@@ -134,9 +134,10 @@ for (const mode of ['light', 'dark']) {
     await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
     await page.goto('/live-tv');
     for (const title of ['Arena TV', 'Independent live stream']) {
-      const send = page.getByRole('button', { name: `Send to player ${title}`, exact: true });
-      await expect(send).toBeEnabled();
-      await send.press('Enter');
+      const sendButton = page.getByRole('button', { name: `Send to player ${title}`, exact: true });
+      // Keyboard focus does not wait for the async saved-player list to load.
+      await expect(sendButton).toBeEnabled();
+      await sendButton.press('Enter');
       await page.getByRole('menuitem', { name: 'Living room (VLC)' }).click();
       await expect(page.getByText(`Sent ${title} to Living room.`)).toBeVisible();
     }

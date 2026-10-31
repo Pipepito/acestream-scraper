@@ -251,7 +251,11 @@ async def lifespan(app: FastAPI):
             scrape_hours, epg_hours, status_minutes = await asyncio.to_thread(_configured_intervals)
             task_service.add_interval_task(run_epg_refresh_task, seconds=epg_hours * 3600, job_id="epg_refresh")  # settings: epg_refresh_interval
             task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
-            task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
+            task_service.add_interval_task(
+                run_url_scraping_task,
+                seconds=scrape_hours * 3600,
+                job_id="url_scraping",
+            )  # settings: rescrape_interval
             task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
             task_service.add_interval_task(run_channel_status_task, seconds=status_minutes * 60, job_id="channel_status")
             task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min

@@ -213,9 +213,21 @@ install_executable() {
         "$PYTHON_BIN" -m pip install \
             --no-warn-script-location \
             --target="$ACE_DIR/python-deps" \
-            -r "$ACE_DIR/requirements.txt"
+            -r "$ACE_DIR/requirements.txt" \
+            'certifi>=2026.10.23' \
+            'idna>=3.15,<4' \
+            'setuptools==81.0.0'
+        # Native egg loaders still import pkg_resources. Keep its last supported
+        # setuptools release in the engine's private dependency directory; 82+
+        # removes that API. The base interpreters still ship without pip/wheel.
+        # Replace the archive's obsolete certificate and IDNA eggs with the
+        # maintained packages, not only their scanner metadata.
+        # PYTHONPATH already exposes python-deps to both engine launchers.
+        rm -f "$ACE_DIR"/lib/certifi-*.egg "$ACE_DIR"/lib/idna-*.egg
         # Fast-fail on ABI issues at build time rather than at first launch.
         PYTHONPATH="$ACE_DIR/python-deps" "$PYTHON_BIN" -c "import apsw; print('apsw ok')"
+        PYTHONPATH="$ACE_DIR/python-deps" "$PYTHON_BIN" -c \
+            "import certifi, idna, ssl; assert certifi.__version__ >= '2026.10.23'; assert tuple(map(int, idna.__version__.split('.'))) >= (3, 15); ssl.create_default_context(cafile=certifi.where())"
     fi
 }
 

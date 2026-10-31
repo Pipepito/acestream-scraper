@@ -820,6 +820,14 @@ health probes and service-only restarts retain the applied boot environment. See
 Setup defaults to adding channel sources and an optional programme guide. Sources and guides save as added; Finish setup only marks onboarding complete. Runtime controls live under Connection settings (advanced), preserving imported deployment values and file precedence. EPG dobleM is an explicit shared guide preset; preview and selected matching reuse the reviewed guide workflow.
 
 
+Security dependency builds use the pinned Kubo source and reviewed module locks
+under `docker/ipfs`, with a fixed Go toolchain shared by Acexy. Keep source and
+checksum identity together; never resolve latest modules during an image build.
+WARP packages retain the official headless tools, runtime libraries and capability
+settings, without the unused desktop GUI. Python packaging tools are build-only.
+Run the production dependency smoke and rescan exact images after changes; see
+`docker/ipfs/README.md` and `wiki/Docker.md#runtime-dependency-maintenance`.
+
 ## WARP management
 
 WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and

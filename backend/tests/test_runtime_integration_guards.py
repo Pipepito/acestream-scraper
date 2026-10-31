@@ -23,7 +23,7 @@ def test_build_backend_script_uses_node_copy_script():
     package_json = json.loads((REPO_ROOT / "frontend" / "package.json").read_text())
 
     assert package_json["scripts"]["build"] == "vite build && npm run build:recipes"
-    assert package_json["scripts"]["build:recipes"] == "vite build --config vite.recipes.config.ts"
+    assert package_json["scripts"]["build:recipes"] == "vite build --config vite.recipes.config.mts"
     assert package_json["scripts"]["build:backend"] == "npm run build && node scripts/copy-build.js"
 
 

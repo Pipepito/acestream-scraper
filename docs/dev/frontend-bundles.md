@@ -1,6 +1,6 @@
 # Frontend bundle boundaries
 
-`frontend/vite.config.ts` uses Rolldown code-splitting groups. React and scheduler
+`frontend/vite.config.mts` uses Rolldown code-splitting groups. React and scheduler
 stay together; MUI's Emotion and transition helpers stay with the remaining
 shared vendor modules. Explicit groups own their modules without recursively
 claiming each other's dependencies. Splitting these shared helpers indiscriminately
@@ -12,6 +12,12 @@ for the demuxer/remuxer registry. Do not split that registry by size. These are
 module grouping rules, not a raised warning threshold: Vite's default 500 KB
 minified output warning remains enabled. The entry and route chunks remain
 separate. Check both individual output sizes and total/gzip size when retuning.
+
+Date utilities have their own group to keep the shared UI chunk below that limit
+without separating MUI from Emotion or transition helpers. Vite configurations
+use explicit ESM extensions; the shared TypeScript build helpers declare their
+module format in `bundling/package.json`. Keep the script and Pages classifier
+references aligned with `vite.recipes.config.mts`.
 
 ## HLS upgrades
 

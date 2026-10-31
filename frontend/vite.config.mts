@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createRequire } from 'node:module';
-import { hlsBuildOptions } from './bundling/hls';
+import { hlsBuildOptions } from './bundling/hls.ts';
 
 const require = createRequire(import.meta.url);
 const hlsBuild = hlsBuildOptions(require.resolve('hls.js/package.json'));
@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => ({
           groups: [
             { name: 'react-vendor', test: /node_modules\/(react|react-dom|scheduler)\//, priority: 40 },
             {
+              debugName: 'hls',
               // Controllers depend on the media primitives. Keep that boundary
               // intact: size-based splits can snapshot uninitialized mux classes.
               name: (id) => /hls\.js\/src\/(controller\/|hls\.ts|config\.ts|exports-)/.test(id)
@@ -43,6 +44,7 @@ export default defineConfig(({ mode }) => ({
             },
             { name: 'mui-data-grid', test: /node_modules\/@mui\/x-data-grid\//, maxSize: 650_000, priority: 30 },
             { name: 'mui-icons', test: /node_modules\/@mui\/icons-material\//, priority: 30 },
+            { name: 'date-vendor', test: /node_modules\/date-fns\//, priority: 20 },
             // Keep UI helpers (Emotion/transitions) with MUI, including their
             // shared dependencies, rather than extracting cyclic common chunks.
             { name: 'mui-vendor', test: /node_modules\//, priority: 10 },

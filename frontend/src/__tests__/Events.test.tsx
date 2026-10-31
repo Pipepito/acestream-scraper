@@ -62,7 +62,10 @@ it.each(['light', 'dark'] as const)('filters, inspects and plays only a compatib
   expect(screen.getByRole('dialog', { name: 'Event player' })).toHaveTextContent('a'.repeat(40));
   await user.click(screen.getByRole('button', { name: 'Stop playback' }));
   await user.click(await screen.findByRole('button', { name: 'Close event details' }));
-  await user.type(screen.getByLabelText('Search events'), 'North');
+  // This checks filtering, not per-keystroke behavior; paste the query once so
+  // coverage instrumentation does not multiply the full page renders.
+  await user.click(screen.getByLabelText('Search events'));
+  await user.paste('North');
   await waitFor(() => expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'North' })));
 });
 it('previews manual events without saving until a row is selected', async () => {

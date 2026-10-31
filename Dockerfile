@@ -16,10 +16,8 @@ ARG SOURCE_DATE_EPOCH=946684800
 #                                  Android engine on ARM ships its own CPython 3.8.
 ARG APP_PYTHON_VERSION=3.13
 ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10
-# The bundled ZeroNet node (zeronet-conservancy v0.7.10) needs gevent 23.9.x
-# (newer gevent deadlocks its import-time ThreadPool), which tops out at
-# CPython 3.12 — so ZeroNet, like the AceStream engine, runs on its own
-# interpreter, carried inside /opt/zeronet.
+# ZeroNet has its own Python 3.11 runtime and dependency set under
+# /opt/zeronet, independent of the application and AceStream interpreters.
 ARG ZERONET_PYTHON_VERSION=3.11
 
 # ARM64 and ARMv7 use the maintained, non-premium-gated Android payloads packaged
@@ -58,7 +56,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --upgrade pip \
+RUN pip install --upgrade pip setuptools wheel \
     && pip install --prefix=/install -r requirements.txt
 
 
@@ -139,12 +137,17 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly
 
 FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 
+# No package manager is needed by the shipped engine interpreter. Remove its
+# vendored dependencies and bootstrap wheels, not just their metadata.
+RUN python -m pip uninstall --yes pip setuptools wheel \
+    && rm -rf /usr/local/lib/python*/ensurepip
 
-# Kubo (go-ipfs) is a static Go binary: download it once on the build host for
-# the target platform instead of running under QEMU. Upstream ships
+
+# Kubo (go-ipfs) is rebuilt from pinned upstream source with reviewed module
+# locks and a patched Go toolchain, cross-compiled without QEMU. Upstream ships
 # linux-amd64 and linux-arm64 only — on linux/arm/v7 the stage produces an
 # empty /opt/ipfs/bin and the image ships without IPFS.
-FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ipfs-installer
+FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS ipfs-installer
 
 ARG TARGETPLATFORM
 ARG KUBO_VERSION=v0.43.1
@@ -153,6 +156,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar \
     && rm -rf /var/lib/apt/lists/*
 
+COPY docker/ipfs/go.mod docker/ipfs/go.sum /usr/local/lib/ipfs-install/
 COPY docker/scripts/install-ipfs.sh /usr/local/lib/ipfs-install/install-ipfs.sh
 RUN chmod +x /usr/local/lib/ipfs-install/install-ipfs.sh \
     && TARGETPLATFORM=${TARGETPLATFORM} KUBO_VERSION=${KUBO_VERSION} \
@@ -192,7 +196,7 @@ RUN chmod +x /usr/local/lib/zeronet-install/install-zeronet.sh \
 
 # Go cross-compiles: build on the build host for the target platform instead
 # of running the toolchain under QEMU (and pulling golang for every arch).
-FROM --platform=$BUILDPLATFORM golang:1.22 AS acexy-builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS acexy-builder
 
 ARG ACEXY_REPO
 ARG ACEXY_REF
@@ -270,6 +274,15 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/ffmpeg-vendor,readonly \
        /usr/local/lib/ffmpeg-build/build-ffmpeg.sh
 
 
+# Extract the vendor's headless tools from its signed APT package. The desktop
+# taskbar/WebView is never used in this container and brings a large GUI stack.
+FROM python:${APP_PYTHON_VERSION}-slim AS warp-installer
+ARG TARGETARCH
+RUN mkdir -p /opt/warp-root/usr/bin /opt/warp-root/usr/share/doc/cloudflare-warp
+COPY docker/scripts/install-warp-headless.sh /tmp/install-warp-headless.sh
+RUN bash /tmp/install-warp-headless.sh
+
+
 FROM python:${APP_PYTHON_VERSION}-slim AS runtime-base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -307,6 +320,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # those images ship warp-cli; linux/arm/v7 stays without it (ENABLE_WARP is
 # unsupported there). The apt suite follows the base image's Debian codename.
 ARG TARGETARCH
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -320,15 +334,28 @@ RUN apt-get update \
         tini \
         wget \
     && case "$TARGETARCH" in amd64|arm64) \
-        . /etc/os-release \
-        && wget -q https://pkg.cloudflareclient.com/pubkey.gpg -O /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
-        && printf 'deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ %s main\n' "${VERSION_CODENAME:-bookworm}" > /etc/apt/sources.list.d/cloudflare-client.list \
-        && apt-get update \
-        && apt-get install -y --no-install-recommends cloudflare-warp tor ;; \
+        apt-get install -y --no-install-recommends tor gnupg2 libcap2-bin \
+            libnss3-tools libpcap0.8 libtss2-esys-3.0.2-0t64 libtss2-tctildr0t64 ;; \
     esac \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --link --from=warp-installer /opt/warp-root/usr/bin/ /usr/bin/
+COPY --link --from=warp-installer /opt/warp-root/usr/share/doc/cloudflare-warp/ /usr/share/doc/cloudflare-warp/
+RUN case "$TARGETARCH" in amd64|arm64) \
+        setcap cap_setuid,cap_setgid,cap_net_raw,cap_dac_read_search,cap_net_admin,cap_net_bind_service,cap_sys_ptrace+ei /usr/bin/warp-svc \
+        && for tool in warp-cli warp-svc warp-dex warp-diag; do \
+            ldd "/usr/bin/$tool" > /tmp/warp-libraries \
+            && ! grep -q 'not found' /tmp/warp-libraries || exit 1; \
+        done \
+        && warp-cli --version ;; \
+    esac \
+    && rm -f /tmp/warp-libraries
+
 COPY --link --from=python-deps /install /usr/local
+# Runtime dependencies are built above. Shipping pip/ensurepip would retain
+# vulnerable private copies of urllib3/msgpack/setuptools inside their wheels.
+RUN python -m pip uninstall --yes pip setuptools wheel \
+    && rm -rf /usr/local/lib/python*/ensurepip
 
 # Kubo IPFS daemon (all flavors; /opt/ipfs/bin is empty on linux/arm/v7 where
 # upstream ships no 32-bit ARM build — the entrypoint detects the missing

@@ -72,9 +72,18 @@ class CastDiscovery:
 
     def list(self):
         with self.lock:
+            for key, value in list(self.devices.items()):
+                if value[2] is None and time.monotonic() - value[1] > 300:
+                    del self.devices[key]
             # Zeroconf owns TTL expiry and calls remove_service. Unchanged
             # announcements need not trigger update_service every five minutes.
             return [CastDevice(id=key, name=value[0].friendly_name or 'TV', model=value[0].model_name or '') for key, value in self.devices.items()]
+
+    def remember_unicast(self, info):
+        with self.lock:
+            key = str(info.uuid)
+            if key not in self.devices and len(self.devices) < 128 or key in self.devices and self.devices[key][2] is None:
+                self.devices[key] = (info, time.monotonic(), None)
 
     def get(self, identity):
         self.list()
@@ -138,15 +147,16 @@ class CastService:
                 raise HTTPException(409, 'Recording takes priority; try original video or wait for capture to finish')
         return await viewer_service.create(payload, user, detached=True, permission=permission, compatibility=payload.compatibility)
 
-    async def start(self, payload, user, policy):
+    async def start(self, payload, user, policy, *, controller=None):
         import pychromecast
+        owner = controller or user
         if not policy.cast_media_url:
-            raise HTTPException(409, 'Set the receiver-accessible application URL in Settings → Access')
+            raise HTTPException(409, 'Open the app using its home-network or HTTPS address, or set an application address in TV casting.')
         async with self.lock:
             info = self.discovery.get(payload.device_id)
             previous = next((cast for cast in self.active.values() if cast.device_id == payload.device_id), None)
-            if previous and previous.owner_id != user['id'] and not user['administrator']:
-                raise HTTPException(403, 'This TV is controlled by another account')
+            if previous and previous.owner_id != owner['id'] and not owner['administrator']:
+                raise HTTPException(403, 'This TV is controlled by another account or browser')
             if previous and not payload.replace:
                 raise HTTPException(409, 'Confirm replacement of the current TV playback')
             if previous:
@@ -174,7 +184,7 @@ class CastService:
                 else:
                     raise HTTPException(504, 'Stream preparation timed out')
                 url = f'{policy.cast_media_url}/api/v1/viewers/{lease.id}/media/index.m3u8?cap={media}'
-                cast = OwnedCast(uuid4().hex, payload.device_id, info.friendly_name or 'TV', user['id'], lease.id, client, url, time.monotonic())
+                cast = OwnedCast(uuid4().hex, payload.device_id, info.friendly_name or 'TV', owner['id'], lease.id, client, url, time.monotonic())
                 # Native Android TV apps can advertise the media namespace but
                 # cannot load arbitrary URLs. After the replacement guard above,
                 # require the default media receiver before sending LOAD.

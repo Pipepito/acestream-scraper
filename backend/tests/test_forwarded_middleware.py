@@ -130,15 +130,15 @@ def test_main_middleware_stack_corrects_the_request_for_a_trusted_proxy_peer():
 
     Rebuilding the stack around a probe endpoint proves the kwargs main.py
     passes actually rewrite the request for a peer inside the default
-    FORWARDED_ALLOW_IPS (10.0.0.0/8) and record the raw peer.
+    FORWARDED_ALLOW_IPS (loopback) and record the raw peer.
     """
     stack = _probe_app()
     for middleware in reversed(main.app.user_middleware):
         stack = middleware.cls(stack, *middleware.args, **middleware.kwargs)
 
-    body = TestClient(stack, client=("10.1.2.3", 4321)).get("/probe", headers=FORWARDED).json()
+    body = TestClient(stack, client=("127.0.0.1", 4321)).get("/probe", headers=FORWARDED).json()
     assert body["scheme"] == "https"
     assert body["host"] == "scraper.example.com"
     assert body["client"] == "203.0.113.7"
-    assert body["peer"] == ["10.1.2.3", 4321]
+    assert body["peer"] == ["127.0.0.1", 4321]
     assert body["forwarded"] is True

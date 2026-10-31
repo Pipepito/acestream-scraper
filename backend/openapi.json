@@ -1635,6 +1635,16 @@
             "title": "Compatibility Conversion",
             "type": "boolean"
           },
+          "home_connection": {
+            "default": false,
+            "title": "Home Connection",
+            "type": "boolean"
+          },
+          "media_url": {
+            "default": "",
+            "title": "Media Url",
+            "type": "string"
+          },
           "media_url_configured": {
             "title": "Media Url Configured",
             "type": "boolean"
@@ -1710,6 +1720,37 @@
           "model"
         ],
         "title": "CastDevice",
+        "type": "object"
+      },
+      "CastSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "cast_media_url": {
+            "default": "",
+            "maxLength": 2048,
+            "title": "Cast Media Url",
+            "type": "string"
+          },
+          "compatibility_conversion": {
+            "default": false,
+            "title": "Compatibility Conversion",
+            "type": "boolean"
+          },
+          "home_networks": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Home Networks",
+            "type": "array"
+          },
+          "remote_casting": {
+            "default": false,
+            "title": "Remote Casting",
+            "type": "boolean"
+          }
+        },
+        "title": "CastSettings",
         "type": "object"
       },
       "CastStart": {
@@ -15261,6 +15302,54 @@
         ]
       }
     },
+    "/api/v1/cast/discover": {
+      "post": {
+        "operationId": "discover_api_v1_cast_discover_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CastDevice"
+                  },
+                  "title": "Response Discover Api V1 Cast Discover Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Discover",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      }
+    },
+    "/api/v1/cast/home-connection": {
+      "post": {
+        "operationId": "home_connection_api_v1_cast_home_connection_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Home Connection",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      }
+    },
     "/api/v1/cast/sessions": {
       "get": {
         "operationId": "sessions_api_v1_cast_sessions_get",
@@ -15367,6 +15456,68 @@
           }
         },
         "summary": "Command",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      }
+    },
+    "/api/v1/cast/settings": {
+      "get": {
+        "operationId": "settings_api_v1_cast_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Settings",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      },
+      "put": {
+        "operationId": "save_settings_api_v1_cast_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Settings",
         "tags": [
           "cast",
           "cast"

@@ -21,7 +21,7 @@ The health endpoint stays available independently of access-storage health.
 | Viewer status/release | Independent control capability; it cannot read media or another viewer |
 | Viewer HLS/segments | Read-only media capability, owner/public-policy revalidation, narrow media-only CORS |
 | Playlist/XMLTV/tuner/live routes | Playback credential, Playlists permission, public playback or verified local IPTV |
-| Server Cast discovery/start/control | Signed-in Cast-server permission plus verified home CIDR, unless remote control explicitly enabled |
+| Server Cast discovery/start/control | Verified home client; account permission when accounts are enabled. Remote control requires an account and explicit opt-in |
 | Browser Cast start | Cast and Live permission; no server-device discovery |
 | Recording playback | Recordings permission, per-account preparation subscriptions, descriptor-relative file access |
 
@@ -42,7 +42,11 @@ validation errors never echo input secrets.
 
 Cast discovery accepts video-capable mDNS announcements on port 8009 with numeric
 RFC1918/ULA destinations. It does not issue DIAL HTTP probes to advertised URLs.
-Only server-issued device IDs are accepted. Device and session inventories are
+An explicit Find TVs action can also probe fixed numeric private destinations on
+port 8008 for a bounded Cast video identity; it never follows redirects or
+advertised URLs. Discovery scans at most three inferred /24 networks with 32
+concurrent requests, a 20-second deadline and a 30-second cooldown. Unicast entries
+expire after five minutes. Only server-issued device IDs are accepted. Device and session inventories are
 bounded. Each cast owns a viewer lease over the shared player, separate control
 and media credentials, and an exact receiver media URL. Cleanup checks ownership
 before sending Stop and collects late worker completion before releasing resources.
@@ -63,3 +67,26 @@ The private dependency-runner image also needs target-platform x264 development
 files when building this revision's GPL-enabled FFmpeg. Updating that runner
 definition is a separate infrastructure review; the public application cannot
 select or replace its host policy.
+
+TV casting has its own `/integrations/tv-casting` page and `/api/v1/cast/settings`
+API. Its policy remains in the independent access store and survives account
+activation/deactivation. Access form writes merge only submitted fields in an
+IMMEDIATE transaction; casting writes update only their own fields. Both forms
+update the query cache with the persisted response.
+
+Without accounts, casting settings and receiver operations require a verified
+home client, preserve optional API-token enforcement, and require same-origin CSRF
+on mutations. A signed CSRF cookie identifies the local browser's session ownership;
+it is not an administrative account and is not passed to ViewerService as a user.
+Enabling accounts revokes anonymous viewer leases. Remote casting never enables
+anonymous remote control, even if accounts are later disabled.
+
+Home defaults are RFC1918/ULA client ranges only when no explicit override exists.
+Proxy/gateway ambiguity remains denied. Proxy trust now defaults to loopback in
+native settings, runtime metadata and entrypoint; saved values remain explicit.
+The administrator-only home-connection action stores a single verified address
+(/32 or /128) after UI confirmation. It cannot establish physical location: the
+administrator confirms being home, and shared public addresses share this trust.
+No server-egress lookup is used (VPNs and tunnels can give misleading addresses).
+The automatic receiver media base uses the current trusted request origin and ASGI
+root path; an optional override supports different receiver routing.

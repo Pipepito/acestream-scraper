@@ -154,8 +154,7 @@ def policy(request: Request):
 @router.put('/policy', response_model=AccessPolicy)
 def update_policy(data: AccessPolicy, request: Request):
     require_admin(request)
-    AccessRepository().save_policy(data)
-    return data
+    return AccessRepository().update_policy(data.model_dump(exclude_unset=True))
 
 
 @router.post('/disable', status_code=204)

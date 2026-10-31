@@ -853,8 +853,10 @@ First-run account setup and Settings → Access manage optional accounts without
 new Docker bootstrap credentials. Preserve the independently migrated access store
 and fail-closed marker across catalogue restore/recovery. Management is default-deny
 across aliases and ASGI prefixes; viewer-control, media, IPTV and administrative
-credentials have separate scopes. Server Cast requires account permission and a
-verified home client unless remote control is explicitly enabled. Stop only owned
+credentials have separate scopes. TV casting has its own Integrations page and works without accounts for verified
+home clients. When accounts are enabled, require casting permission. Remote control
+always requires an account and explicit opt-in; preserve local-browser ownership,
+bounded discovery and explicit proxy trust. Stop only owned
 receiver media; bounded compatibility conversion yields to recording capture.
 See `docs/ops/access-and-casting.md` and `wiki/Accounts-and-Casting.md`.
 

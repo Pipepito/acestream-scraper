@@ -130,7 +130,8 @@ async def test_unavailable_access_store_releases_viewers(viewers, monkeypatch):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('replace', [False, True])
-async def test_native_android_media_namespace_requires_receiver_launch(viewers, monkeypatch, replace):
+@pytest.mark.parametrize('anonymous', [False, True])
+async def test_native_android_media_namespace_requires_receiver_launch(viewers, monkeypatch, replace, anonymous):
     from pychromecast.config import APP_MEDIA_RECEIVER
     from pychromecast.controllers.media import MediaController
     from app.schemas.cast import CastStart
@@ -170,17 +171,20 @@ async def test_native_android_media_namespace_requires_receiver_launch(viewers, 
     service.prepare = AsyncMock(return_value=(lease, 'control', 'media'))
     payload = CastStart(content_id='a' * 40, device_id='device', replace=replace)
     policy = AccessPolicy(cast_media_url='http://app.test')
+    owner = {'id': 'local:browser' if anonymous else 'owner', 'administrator': not anonymous}
+    user = None if anonymous else owner
     if not replace:
         with pytest.raises(HTTPException) as error:
-            await service.start(payload, {'id': 'owner', 'administrator': True}, policy)
+            await service.start(payload, user, policy, controller=owner)
         assert error.value.status_code == 409
         assert actions == []
         service.prepare.assert_not_awaited()
         client.disconnect.assert_called_once()
     else:
-        status = await service.start(payload, {'id': 'owner', 'administrator': True}, policy)
+        status = await service.start(payload, user, policy, controller=owner)
         assert status.state == 'PLAYING'
         assert actions == [('launch', APP_MEDIA_RECEIVER), ('load', APP_MEDIA_RECEIVER)]
+        service.prepare.assert_awaited_once_with(payload, user, policy, 'cast_server')
 
 
 @pytest.mark.parametrize('segment_seconds, before, ready', [(1, 19, 20), (2, 9, 10), (6, 3, 4), (10, 1, 2)])
@@ -218,3 +222,76 @@ def test_cast_buffer_ignores_invalid_durations_and_unfinished_entries(tmp_path, 
         '#EXTINF:2,\nseg00001.ts\n#EXTINF:30,\n')
     assert player.hls_ready(session)
     assert not player.hls_ready(session, minimum_seconds=20)
+
+
+@pytest.mark.asyncio
+async def test_unicast_discovery_requires_video_identity_and_bounded_response():
+    import httpx
+    from app.services.cast_scan import device_info
+    import json
+    identity = uuid4()
+    def reply(data):
+        return httpx.Response(200, stream=httpx.ByteStream(json.dumps(data).encode()))
+    def response(request):
+        assert str(request.url).startswith('http://192.168.1.20:8008/setup/eureka_info')
+        return reply({'device_info': {'ssdp_udn': str(identity), 'name': 'Living room',
+            'model_name': 'TV', 'capabilities': {'display_supported': True}}})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+        info = await device_info(client, '192.168.1.20')
+        assert info.uuid == identity and info.friendly_name == 'Living room'
+        assert await device_info(client, '169.254.169.254') is None
+    for data in [{'name': 'HTTP server'}, {'device_info': {'ssdp_udn': str(identity), 'capabilities': {'display_supported': False}}}, {'padding': 'x' * 20000}]:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: reply(data))) as client:
+            assert await device_info(client, '192.168.1.20') is None
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(302, headers={'Location': 'http://169.254.169.254/'})), follow_redirects=False) as client:
+        assert await device_info(client, '192.168.1.20') is None
+
+
+def test_unicast_inventory_expires_but_mdns_inventory_does_not(monkeypatch):
+    from pychromecast.models import CastInfo, HostServiceInfo
+    discovery = CastDiscovery()
+    identity = uuid4()
+    info = CastInfo({HostServiceInfo('192.168.1.20', 8009)}, identity, 'TV', 'Living room', '192.168.1.20', 8009, 'cast', 'Google')
+    discovery.remember_unicast(info)
+    assert len(discovery.list()) == 1
+    discovery.devices[str(identity)] = (info, time.monotonic() - 301, None)
+    assert discovery.list() == []
+    discovery.devices[str(identity)] = (info, time.monotonic() - 301, 'mdns-name')
+    assert len(discovery.list()) == 1
+
+
+def test_scan_infers_client_lan_without_scanning_container_network(monkeypatch):
+    from starlette.requests import Request
+    from app.services.cast_scan import scan_networks
+    monkeypatch.setattr('app.config.settings.get_settings', lambda: SimpleNamespace(FORWARDED_ALLOW_IPS=''))
+    monkeypatch.setattr('ifaddr.get_adapters', lambda: [SimpleNamespace(ips=[SimpleNamespace(ip='172.17.0.2'), SimpleNamespace(ip='127.0.0.1')])])
+    def request(host):
+        return Request({'type': 'http', 'method': 'GET', 'scheme': 'http', 'path': '/', 'headers': [],
+            'client': (host, 1234), 'state': {'peer': (host, 1234)}})
+    assert scan_networks(request('192.168.1.30')) == ['192.168.1.0/24']
+    assert scan_networks(request('8.8.8.8')) == []
+
+
+def test_local_browsers_have_separate_non_admin_ownership():
+    from app.services.access_service import csrf_token
+    from app.services.cast_settings import controller
+    from starlette.requests import Request
+    def request(token):
+        return Request({'type': 'http', 'headers': [(b'cookie', f'scraper_csrf={token}'.encode())]})
+    token = csrf_token()
+    first = controller(request(token))
+    assert first == controller(request(token))
+    assert first['id'] != controller(request(csrf_token()))['id']
+    assert first['administrator'] is False
+    with pytest.raises(HTTPException):
+        controller(request('forged-cookie'))
+
+
+@pytest.mark.asyncio
+async def test_another_local_browser_cannot_control_owned_cast():
+    from app.schemas.cast import CastCommand
+    service = CastService()
+    service.active['owned'] = SimpleNamespace(owner_id='local:first')
+    with pytest.raises(HTTPException) as error:
+        await service.command('owned', CastCommand(action='stop'), {'id': 'local:second', 'administrator': False})
+    assert error.value.status_code == 404

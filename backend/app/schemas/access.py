@@ -48,24 +48,13 @@ class AccountView(BaseModel):
     permissions: list[Permission]
 
 
-class AccessPolicy(StrictModel):
-    public_features: list[Permission] = Field(default_factory=list, max_length=6)
-    public_playlists: bool = False
-    local_iptv: bool = False
-    local_networks: list[str] = Field(default_factory=list, max_length=16)
+class CastSettings(StrictModel):
     home_networks: list[str] = Field(default_factory=list, max_length=16)
     remote_casting: bool = False
     compatibility_conversion: bool = False
     cast_media_url: str = Field(default='', max_length=2048)
 
-    @field_validator('public_features')
-    @classmethod
-    def public_permissions(cls, value):
-        if set(value) - {'live', 'channels', 'guide', 'events', 'cast'}:
-            raise ValueError('Recordings and server devices cannot be public')
-        return sorted(set(value))
-
-    @field_validator('home_networks', 'local_networks')
+    @field_validator('home_networks')
     @classmethod
     def networks(cls, values):
         result = []
@@ -85,6 +74,25 @@ class AccessPolicy(StrictModel):
         if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError('Use an HTTP(S) application base URL without credentials or query parameters')
         return value.rstrip('/')
+
+
+class AccessPolicy(CastSettings):
+    public_features: list[Permission] = Field(default_factory=list, max_length=6)
+    public_playlists: bool = False
+    local_iptv: bool = False
+    local_networks: list[str] = Field(default_factory=list, max_length=16)
+
+    @field_validator('public_features')
+    @classmethod
+    def public_permissions(cls, value):
+        if set(value) - {'live', 'channels', 'guide', 'events', 'cast'}:
+            raise ValueError('Recordings and server devices cannot be public')
+        return sorted(set(value))
+
+    @field_validator('local_networks')
+    @classmethod
+    def local_network_values(cls, values):
+        return cls.networks(values)
 
 
 class AccessStatus(BaseModel):

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { createAppTheme } from '../theme';
 import { AccessContext } from '../components/access/AccessContext';
+import AccessSettings from '../components/access/AccessSettings';
 import AccountSetup from '../components/access/AccountSetup';
 import PasswordForm from '../components/access/PasswordForm';
 import AccessGate from '../components/access/AccessGate';
@@ -11,9 +12,11 @@ import CastControls from '../components/player/CastControls';
 import { accessService, type AccessStatus } from '../services/accessService';
 import { castService } from '../services/castService';
 import { loadBrowserCast } from '../services/browserCast';
+import { TestMemoryRouter } from '../testUtils/router';
 import { ApiError } from '../services/apiErrors';
 
 jest.mock('../services/accessService', () => ({ ...jest.requireActual('../services/accessService'), accessService: {
+  users: jest.fn(), policy: jest.fn(), savePolicy: jest.fn(), credentials: jest.fn(), sessions: jest.fn(),
   status: jest.fn(), bootstrap: jest.fn(), password: jest.fn(), login: jest.fn(), logout: jest.fn(),
 } }));
 jest.mock('../services/castService', () => ({ castService: { capabilities: jest.fn(), devices: jest.fn(), sessions: jest.fn(), start: jest.fn(), command: jest.fn() } }));
@@ -23,7 +26,7 @@ const pending: AccessStatus = { mode: 'pending', user: null, permissions: [], cs
 const refresh = jest.fn().mockResolvedValue(undefined);
 function wrapper(child: React.ReactNode, status = pending) {
   return render(<ThemeProvider theme={createAppTheme('light')}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
-    <AccessContext.Provider value={{ status, refresh }}>{child}</AccessContext.Provider>
+    <TestMemoryRouter><AccessContext.Provider value={{ status, refresh }}>{child}</AccessContext.Provider></TestMemoryRouter>
   </QueryClientProvider></ThemeProvider>);
 }
 beforeEach(() => { jest.clearAllMocks(); (accessService.bootstrap as jest.Mock).mockResolvedValue({}); });
@@ -88,4 +91,42 @@ test('remote visitors cannot enumerate server TVs and see browser compatibility 
   await screen.findByText(/approved home network/);
   expect(castService.devices).not.toHaveBeenCalled();
   expect(castService.sessions).not.toHaveBeenCalled();
+});
+
+test('saving access updates cached values and preserves them when revisiting the page', async () => {
+  const initial = { public_features: [], public_playlists: false, local_iptv: false, local_networks: [], home_networks: [], remote_casting: false, compatibility_conversion: false, cast_media_url: '' };
+  (accessService.policy as jest.Mock).mockResolvedValue(initial);
+  (accessService.users as jest.Mock).mockResolvedValue([]);
+  (accessService.sessions as jest.Mock).mockResolvedValue([]);
+  (accessService.credentials as jest.Mock).mockResolvedValue([]);
+  (accessService.savePolicy as jest.Mock).mockResolvedValue({ ...initial, local_iptv: true, local_networks: ['192.168.1.0/24'] });
+  const cache = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  const status: AccessStatus = { ...pending, mode: 'accounts' };
+  function Page({ visible }: { visible: boolean }) {
+    return <ThemeProvider theme={createAppTheme('light')}><QueryClientProvider client={cache}><AccessContext.Provider value={{ status, refresh }}>{visible ? <AccessSettings /> : null}</AccessContext.Provider></QueryClientProvider></ThemeProvider>;
+  }
+  const view = render(<Page visible />);
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Allow IPTV without credentials on trusted local networks' }));
+  fireEvent.change(screen.getByLabelText('Local IPTV networks'), { target: { value: '192.168.1.12/24' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save access policy' }));
+  await screen.findByText('Access policy saved.');
+  expect(accessService.savePolicy).toHaveBeenCalledWith({ public_features: [], public_playlists: false, local_iptv: true, local_networks: ['192.168.1.12/24'] });
+  expect(screen.queryByText('Server-device casting')).not.toBeInTheDocument();
+  view.rerender(<Page visible={false} />);
+  view.rerender(<Page visible />);
+  expect(await screen.findByRole('checkbox', { name: 'Allow IPTV without credentials on trusted local networks' })).toBeChecked();
+  expect(screen.getByLabelText('Local IPTV networks')).toHaveValue('192.168.1.0/24');
+  cache.clear();
+});
+
+test('casting is offered when user management is disabled', async () => {
+  (castService.capabilities as jest.Mock).mockResolvedValue({ server_devices: true, compatibility_conversion: false, media_url_configured: true });
+  (castService.devices as jest.Mock).mockResolvedValue([{ id: 'tv', name: 'Living room', model: 'Android TV' }]);
+  (castService.sessions as jest.Mock).mockResolvedValue([]);
+  (loadBrowserCast as jest.Mock).mockResolvedValue(false);
+  wrapper(<CastControls contentId={'a'.repeat(40)} audioIndex={null} subtitleIndex={null} />, { ...pending, mode: 'open' });
+  fireEvent.click(screen.getByRole('button', { name: 'Cast…' }));
+  await screen.findByRole('combobox', { name: 'TV' });
+  await waitFor(() => expect(castService.devices).toHaveBeenCalled());
+  expect(screen.getByRole('button', { name: 'Find TVs' })).toBeVisible();
 });

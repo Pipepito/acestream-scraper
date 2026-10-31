@@ -374,7 +374,7 @@
       "env": "FORWARDED_ALLOW_IPS",
       "group": "integrations",
       "label": "Trusted reverse proxies",
-      "description": "Comma-separated proxy addresses whose forwarded client and host headers the app may trust. Leave empty for the built-in private-network list.",
+      "description": "Comma-separated proxy addresses whose forwarded client and host headers the app may trust. Leave empty to trust loopback only. Specify the actual reverse proxy, not all home-network clients.",
       "type": "text",
       "placeholderFrom": "player.forwardedAllowIpsDefault",
       "appliesWhen": "always",
@@ -576,7 +576,7 @@
     "maxSessionsDefault": 3,
     "startTimeoutSecondsDefault": 45,
     "mediaServerMinRefreshMinutesDefault": 30,
-    "forwardedAllowIpsDefault": "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+    "forwardedAllowIpsDefault": "127.0.0.1",
     "tunerNetworksDefault": "127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10",
     "description": "The web player and the Jellyfin/Plex tuner routes ship in every flavor; ffmpeg is bundled."
   },

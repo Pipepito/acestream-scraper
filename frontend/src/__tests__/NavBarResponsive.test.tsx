@@ -183,7 +183,7 @@ describe('NavBar responsive shell behavior', () => {
 
     for (const name of [
       'TV dashboard', 'Live TV', 'Recordings', 'Catalogues', 'Events', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
-      'EPG', 'Playlist', 'Public address', 'Web player', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings',
+      'EPG', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings',
     ]) {
       await tab();
       expect(screen.getByRole('link', { name })).toHaveFocus();

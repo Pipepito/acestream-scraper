@@ -23,6 +23,7 @@ const Setup = React.lazy(() => import('./pages/Setup'));
 import UpdateAvailableNotice from './components/UpdateAvailableNotice';
 const PublicAddress = React.lazy(() => import('./pages/integrations/PublicAddress'));
 const WebPlayer = React.lazy(() => import('./pages/integrations/WebPlayer'));
+const TvCasting = React.lazy(() => import('./pages/integrations/TvCasting'));
 const RemotePlayers = React.lazy(() => import('./pages/integrations/RemotePlayers'));
 const MediaServers = React.lazy(() => import('./pages/integrations/MediaServers'));
 const Telegram = React.lazy(() => import('./pages/integrations/Telegram'));
@@ -80,6 +81,7 @@ const App: React.FC = () => {
         <Route path="/search" element={<Search />} />
         <Route path="/integrations/public-address" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><PublicAddress /></React.Suspense>} />
         <Route path="/integrations/web-player" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><WebPlayer /></React.Suspense>} />
+        <Route path="/integrations/tv-casting" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><TvCasting /></React.Suspense>} />
         <Route path="/integrations/remote-players" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><RemotePlayers /></React.Suspense>} />
         <Route path="/integrations/media-servers" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><MediaServers /></React.Suspense>} />
         <Route path="/integrations/telegram" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><Telegram /></React.Suspense>} />

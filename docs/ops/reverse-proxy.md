@@ -51,8 +51,9 @@ Proxying notes that apply to all three configs:
 - **Forwarded headers are trusted by address.** The app reads
   `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-For` itself, but
   only when the connecting peer (the proxy) is inside `FORWARDED_ALLOW_IPS`
-  — by default loopback and the private ranges
-  (`127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16`). Because the app owns
+  — by default loopback only (`127.0.0.1`). Configure the actual proxy addresses
+  in setup’s Connection settings → Network access, then restart. Existing saved
+  values are preserved. Do not list all LAN clients as proxies. Because the app owns
   that trust, uvicorn's own handling stays off: keep `--no-proxy-headers` and
   `--timeout-graceful-shutdown 3` in any compose `command:` override, which is
   what `entrypoint.sh` passes by default.

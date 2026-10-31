@@ -44,14 +44,20 @@ function AccountEditor({ initial, saved }: { initial?: Account; saved: () => Pro
 
 function PolicyForm({ initial }: { initial: AccessPolicy }) {
   const [policy, setPolicy] = useState(initial);
-  const [home, setHome] = useState((initial.home_networks ?? []).join(', '));
+  const cache = useQueryClient();
   const [local, setLocal] = useState((initial.local_networks ?? []).join(', '));
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
-  const checkbox = (key: 'public_playlists' | 'local_iptv' | 'remote_casting' | 'compatibility_conversion', label: string) => <FormControlLabel label={label} control={<Checkbox checked={policy[key]} onChange={(_, value) => setPolicy({ ...policy, [key]: value })} />} />;
+  const checkbox = (key: 'public_playlists' | 'local_iptv', label: string) => <FormControlLabel label={label} control={<Checkbox checked={policy[key]} onChange={(_, value) => setPolicy({ ...policy, [key]: value })} />} />;
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setFeedback(null);
-    try { await accessService.savePolicy({ ...policy, home_networks: home.split(',').map(v => v.trim()).filter(Boolean), local_networks: local.split(',').map(v => v.trim()).filter(Boolean) }); setFeedback({ message: 'Access policy saved.', error: false }); }
+    try {
+      const saved = await accessService.savePolicy({ public_features: policy.public_features, public_playlists: policy.public_playlists,
+        local_iptv: policy.local_iptv, local_networks: local.split(',').map(v => v.trim()).filter(Boolean) });
+      cache.setQueryData(['access-policy'], saved);
+      setPolicy(saved); setLocal((saved.local_networks ?? []).join(', '));
+      setFeedback({ message: 'Access policy saved.', error: false });
+    }
     catch (reason) { setFeedback({ message: getAccessErrorMessage(reason), error: true }); }
     finally { setBusy(false); }
   };
@@ -62,12 +68,6 @@ function PolicyForm({ initial }: { initial: AccessPolicy }) {
     {checkbox('public_playlists', 'Allow public playlists, guides and media without credentials')}
     {checkbox('local_iptv', 'Allow IPTV without credentials on trusted local networks')}
     <TextField label="Local IPTV networks" value={local} onChange={e => setLocal(e.target.value)} helperText="Comma-separated client subnets, for example 192.168.1.0/24. A proxy or Docker gateway alone never proves local access." />
-    <Typography component="h3" variant="subtitle1">Server-device casting</Typography>
-    <TextField label="Home networks" value={home} onChange={e => setHome(e.target.value)} helperText="Only verified clients in these networks can control home TVs, unless remote casting is allowed." />
-    {checkbox('remote_casting', 'Allow remote casting for accounts with Cast to server devices permission')}
-    <TextField label="Application URL reachable by the TVs" value={policy.cast_media_url} onChange={e => setPolicy({ ...policy, cast_media_url: e.target.value })} placeholder="http://192.168.1.10:8000" helperText="Include any reverse-proxy path prefix. This must point to this installation." />
-    {checkbox('compatibility_conversion', 'Offer H.264 compatibility conversion for casting')}
-    <Typography variant="body2">Conversion uses more CPU, supports one converted stream at a time and caps output at 720p/30 fps. Original video remains the default.</Typography>
     {feedback ? <Alert severity={feedback.error ? 'error' : 'success'}>{feedback.message}</Alert> : null}
     <Box><Button type="submit" variant="contained" disabled={busy}>Save access policy</Button></Box>
   </Stack></ContentSection>;

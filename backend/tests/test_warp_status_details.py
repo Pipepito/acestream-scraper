@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import pytest
 from unittest.mock import AsyncMock, patch
 
 from app.services.warp_service import CLOUDFLARE_TRACE_URL, WarpService
@@ -86,3 +87,16 @@ def test_get_status_fills_ip_from_trace_and_reports_tunnel_details():
     assert status["registration"]["license"] == "Tz4K…K92k"
     assert status["account_type"] == "free"
     assert status["cf_trace"] == TRACE
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(('reported', 'expected'), [
+    ('WarpWithDnsOverHttps', 'warp+doh'), ('WarpWithDnsOverTls', 'warp+dot'),
+    ('DnsOverHttps', 'doh'), ('DnsOverTls', 'dot'), ('TunnelOnly', 'tunnel_only'),
+    ('WarpProxy on port 40000', 'proxy'),
+])
+async def test_current_cli_mode_names(reported, expected):
+    from app.services.warp_service import WarpService
+    service = WarpService()
+    with patch.object(service, '_run_command', new=AsyncMock(return_value=(0, f'(user set) Mode: {reported}', ''))):
+        assert (await service.get_mode()).value == expected

@@ -10,7 +10,7 @@ import pytest
 SCRIPT = Path(__file__).resolve().parents[2] / "warp-setup.sh"
 
 
-def run_setup(tmp_path, states, auto_connect=True):
+def run_setup(tmp_path, states, auto_connect=True, force_ipv4="true"):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     (tmp_path / "states.json").write_text(json.dumps(states))
@@ -19,6 +19,7 @@ def run_setup(tmp_path, states, auto_connect=True):
         f"#!{sys.executable}\n"
         "import json, os, sys\nfrom pathlib import Path\n"
         "root = Path(os.environ['WARP_TEST_DIR'])\n"
+        "(root / 'force_ipv4').write_text(os.environ.get('WARP_FORCE_IPV4', ''))\n"
         "with (root / 'calls').open('a') as f: f.write(' '.join(sys.argv[1:]) + '\\n')\n"
         "if '--json' in sys.argv:\n"
         "    counter = root / 'polls'\n"
@@ -39,10 +40,11 @@ def run_setup(tmp_path, states, auto_connect=True):
         path.chmod(0o755)
     env = {
         **os.environ, "PATH": str(bin_dir) + os.pathsep + os.environ["PATH"],
-        "WARP_TEST_DIR": str(tmp_path), "LOG_DIR": str(tmp_path / "logs"),
+        "WARP_TEST_DIR": str(tmp_path), "DATABASE_URL": f"sqlite:///{tmp_path}/test.db", "WARP_EXCLUDE_HOSTS": "", "LOG_DIR": str(tmp_path / "logs"),
         "ENABLE_WARP": "true", "WARP_ENABLE_NAT": str(auto_connect).lower(),
         "WARP_REQUIRED_COMMANDS": "warp-cli", "WARP_READY_ATTEMPTS": "4",
         "WARP_READY_INTERVAL": "0.01", "WARP_LICENSE_KEY": "",
+        "WARP_FORCE_IPV4": force_ipv4,
     }
     result = subprocess.run(
         ["bash", str(SCRIPT), "configure"], env=env,
@@ -54,8 +56,8 @@ def run_setup(tmp_path, states, auto_connect=True):
 def test_waits_through_connecting_before_configuring_nat(tmp_path):
     result, calls = run_setup(tmp_path, ["Disconnected", "Connecting", "Connected"])
     assert result.returncode == 0, result.stderr
-    assert calls.count("--accept-tos --json status") == 3
-    assert calls.index("nft") > max(i for i, call in enumerate(calls) if "--json" in call)
+    assert calls.count("--accept-tos --json status") == 4
+    assert calls.index("nft") > [i for i, call in enumerate(calls) if "--json" in call][2]
 
 
 @pytest.mark.parametrize("state", ["Disconnected", "Connecting", "malformed"])
@@ -72,3 +74,9 @@ def test_manual_connect_mode_only_requires_daemon(tmp_path):
     assert result.returncode == 0, result.stderr
     assert not any("--json" in call or call == "nft" for call in calls)
     assert "--accept-tos connect" not in calls
+
+
+def test_setup_preserves_disabled_ipv4_preference(tmp_path):
+    result, _ = run_setup(tmp_path, ["Disconnected"], auto_connect=False, force_ipv4="false")
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "force_ipv4").read_text() == "false"

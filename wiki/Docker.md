@@ -507,3 +507,37 @@ This is not a guarantee of identical cold builds: floating upstream images,
 package repositories and generated dependency files can still change. Retaining
 the builder cache remains useful; never retain stale packages indefinitely just
 to make downloads smaller.
+
+### Managing WARP from the app
+
+Open **System → WARP** to connect, disconnect or reconnect, select the current
+routing/DNS mode, and register a license. DNS-only modes do not tunnel video;
+proxy mode only tunnels clients explicitly using the WARP SOCKS5 proxy. Reconnect
+and exclusion changes can interrupt current playback. Automatic startup connection
+continues to select WARP with DNS over HTTPS.
+
+**Excluded hosts** sends selected hostnames directly instead of through WARP.
+Use **Add Atresmedia**, then **Save and apply exclusions** to add
+`api.atresplayer.com` and `atres-live.atresmedia.com`. Enter up to 64 hostnames,
+one per line or separated by commas; URLs, paths, IP addresses, ports and wildcards
+are rejected. An empty list removes app-managed exclusions. Other WARP exclusions
+are preserved and shown separately.
+
+The app verifies the active list after saving. If WARP is unavailable or rejects
+an operation, the desired list remains saved with a visible warning; start WARP
+and use **Save and apply exclusions** again. Partial changes retain removal
+history so retries and service restarts converge on the saved list. A stale tab
+must reload before it can overwrite another session's changes. Managed WARP
+policies using include mode must be changed by their administrator.
+
+The app saves `warp-exclusions.json` beside the SQLite database. Keep that directory
+on persistent storage. WARP startup and supervisor recovery reapply it before the
+startup connection barrier completes. `WARP_EXCLUDE_HOSTS` remains a comma/space
+separated bootstrap input when no saved file exists; after saving, the file wins,
+including an intentionally empty list. Changing the environment later does not
+overwrite saved choices. Exclusion changes apply without recreating the container.
+
+**Startup settings** controls the WARP service, automatic connection before engines,
+and IPv4 preference through the existing saved runtime configuration. Save these
+in the app, then restart the container to apply them. Docker devices/capabilities
+and persistent volumes still belong in the deployment configuration.

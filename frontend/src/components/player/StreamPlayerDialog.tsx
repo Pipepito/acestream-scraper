@@ -24,6 +24,7 @@ import { usePlayerSessionStatus, useStartPlayerSession } from '../../hooks/usePl
 import { usePublicUrl } from '../../hooks/useSystemServices';
 import { playerService } from '../../services/playerService';
 import { getApiToken } from '../../services/apiToken';
+import { accessSession } from '../../services/accessSession';
 import { buildPublicUrl } from '../../services/playlistService';
 import { getErrorMessage } from '../../utils/errorUtils';
 import { formatBitrate } from '../../utils/format';
@@ -50,6 +51,7 @@ export interface StreamPlayerDialogProps {
 const MAX_RECOVERIES = 3;
 
 const withToken = (url: string): string => {
+  if (accessSession.managed()) return url;
   const token = getApiToken();
   if (!token) return url;
   return `${url}${url.includes('?') ? '&' : '?'}${new URLSearchParams({ token }).toString()}`;
@@ -190,7 +192,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         enableWorker: true,
         liveSyncDurationCount: 3,
         xhrSetup: (xhr) => {
-          const token = getApiToken();
+          const token = accessSession.managed() ? null : getApiToken();
           if (token) xhr.setRequestHeader('X-Api-Token', token);
         },
       });

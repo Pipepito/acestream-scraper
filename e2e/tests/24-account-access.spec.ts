@@ -11,8 +11,8 @@ test('accounts isolate viewing from administration and can be disabled in Settin
   await status();
   await page.goto('/settings?tab=access');
   await page.getByLabel('Administrator username').fill('e2eowner');
-  await page.getByLabel(/^Password(?: \*)?$/).fill(password);
-  await page.getByLabel(/^Confirm password(?: \*)?$/).fill(password);
+  await page.getByLabel(/^Password/).fill(password);
+  await page.getByLabel(/^Confirm password/).fill(password);
   await page.getByRole('button', { name: 'Create administrator and continue' }).click();
   await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible();
   try {
@@ -21,8 +21,8 @@ test('accounts isolate viewing from administration and can be disabled in Settin
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'e2eviewer', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-    await page.getByLabel(/^Username(?: \*)?$/).fill('e2eviewer');
-    await page.getByLabel(/^Password(?: \*)?$/).fill(password);
+    await page.getByLabel(/^Username/).fill('e2eviewer');
+    await page.getByLabel(/^Password/).fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).last().click();
     await expect(page.getByRole('combobox', { name: 'View' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Watch', exact: true })).toBeVisible();

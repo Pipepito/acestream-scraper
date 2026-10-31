@@ -179,6 +179,14 @@ class AccessRepository:
         with self.transaction() as db:
             db.execute('UPDATE access_state SET policy=? WHERE id=1', (policy.model_dump_json(),))
 
+    def update_policy(self, changes):
+        """Merge independent settings forms without overwriting another section."""
+        with self.transaction() as db:
+            row = db.execute('SELECT policy FROM access_state WHERE id=1').fetchone()
+            policy = AccessPolicy.model_validate({**json.loads(row['policy']), **changes})
+            db.execute('UPDATE access_state SET policy=? WHERE id=1', (policy.model_dump_json(),))
+        return policy
+
     def disable(self):
         with self.transaction() as db:
             db.execute('DELETE FROM sessions')

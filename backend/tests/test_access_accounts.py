@@ -210,3 +210,190 @@ def test_mount_prefix_cannot_bypass_authentication(access_client):
         assert prefixed.get('/tv/api/v1/auth/status').json()['mode'] == 'accounts'
     finally:
         prefixed.close()
+
+
+def test_access_and_cast_forms_preserve_each_others_settings(access_client):
+    client, repo = access_client
+    enable(client)
+    casting = {'compatibility_conversion': True, 'cast_media_url': 'https://tv.example/app'}
+    assert client.put('/api/v1/cast/settings', json=casting).status_code == 200
+    response = client.put('/api/v1/auth/policy', json={'public_features': ['guide'], 'local_iptv': True})
+    assert response.status_code == 200
+    assert response.json()['cast_media_url'] == casting['cast_media_url']
+    assert client.get('/api/v1/cast/settings').json()['compatibility_conversion'] is True
+    assert client.put('/api/v1/cast/settings', json={**casting, 'remote_casting': True}).status_code == 200
+    assert repo.state()[1].public_features == ['guide']
+    assert client.post('/api/v1/auth/disable', json={'current_password': 'a sufficiently long password'}).status_code == 204
+    assert repo.state()[0] == 'open'
+    assert repo.state()[1].cast_media_url == casting['cast_media_url']
+    enable(client)
+    assert client.get('/api/v1/cast/settings').json()['cast_media_url'] == casting['cast_media_url']
+
+
+@pytest.mark.parametrize('mode', ['open', 'accounts'])
+@pytest.mark.parametrize('host,allowed', [('192.168.1.22', True), ('8.8.8.8', False), ('172.17.0.1', False), ('127.0.0.1', False)])
+def test_cast_network_defaults_without_manual_networks(mode, host, allowed, monkeypatch):
+    from types import SimpleNamespace
+    from starlette.requests import Request
+    from fastapi import HTTPException
+    from app.services.access_service import require_server_cast
+    monkeypatch.setattr('app.config.settings.get_settings', lambda: SimpleNamespace(FORWARDED_ALLOW_IPS=''))
+    request = Request({'type': 'http', 'method': 'GET', 'scheme': 'http', 'path': '/', 'headers': [(b'host', b'app.test')],
+        'server': ('app.test', 80), 'client': (host, 1234), 'state': {'peer': (host, 1234), 'access_mode': mode,
+        'access_policy': AccessPolicy(), 'access_user': {'id': 'owner', 'administrator': True, 'permissions': []} if mode == 'accounts' else None}})
+    if allowed:
+        require_server_cast(request)
+    else:
+        with pytest.raises(HTTPException) as error:
+            require_server_cast(request)
+        assert error.value.status_code == 403
+
+
+def test_local_open_cast_api_requires_csrf_and_blocks_outsiders(access_client, monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.services.cast_service import cast_service
+    import main
+    _, repo = access_client
+    repo.bootstrap('unused', '', False)
+    monkeypatch.setattr(cast_service.discovery, 'start', lambda: None)
+    client = TestClient(main.app, base_url='http://192.168.1.10:8000', client=('192.168.1.22', 1234))
+    try:
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
+        assert client.get('/api/v1/cast/capabilities').json()['media_url'] == 'http://192.168.1.10:8000'
+        assert client.get('/api/v1/cast/devices').status_code == 200
+        assert client.put('/api/v1/cast/settings', json={}).status_code == 403
+        csrf = client.get('/api/v1/auth/status').json()['csrf']
+        client.headers['X-CSRF-Token'] = csrf
+        assert client.put('/api/v1/cast/settings', json={'compatibility_conversion': True}).status_code == 200
+        assert client.get('/api/v1/cast/settings').json()['compatibility_conversion'] is True
+        assert client.get('/api/v1/cast/sessions').json() == []
+        assert client.post('/api/v1/cast/sessions', json={'content_id': 'a' * 40}).status_code == 422
+        client.headers['Origin'] = 'https://attacker.example'
+        assert client.post('/api/v1/cast/sessions', json={'content_id': 'a' * 40}).status_code == 403
+        assert client.put('/api/v1/cast/settings', json={}).status_code == 403
+    finally:
+        client.close()
+    remote = TestClient(main.app, base_url='https://app.test', client=('8.8.8.8', 1234))
+    try:
+        csrf = remote.get('/api/v1/auth/status').json()['csrf']
+        remote.headers['X-CSRF-Token'] = csrf
+        assert remote.get('/api/v1/cast/capabilities').json()['server_devices'] is False
+        for path in ['settings', 'devices', 'sessions']:
+            assert remote.get('/api/v1/cast/' + path).status_code == 403
+        assert remote.put('/api/v1/cast/settings', json={'remote_casting': True}).status_code == 403
+        assert remote.post('/api/v1/cast/home-connection').status_code == 403
+        repo.update_policy({'remote_casting': True})
+        assert remote.get('/api/v1/cast/capabilities').json()['server_devices'] is False
+    finally:
+        remote.close()
+
+
+def test_public_https_home_connection_can_be_trusted_without_remote_control(access_client):
+    import main
+    _, repo = access_client
+    client = TestClient(main.app, base_url='https://app.test', client=('8.8.4.4', 1234))
+    try:
+        client.headers['X-CSRF-Token'] = client.get('/api/v1/auth/status').json()['csrf']
+        enable(client)
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is False
+        response = client.post('/api/v1/cast/home-connection')
+        assert response.status_code == 200, response.text
+        assert '8.8.4.4/32' in response.json()['home_networks']
+        assert response.json()['remote_casting'] is False
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
+        assert repo.state()[1].home_networks
+    finally:
+        client.close()
+
+
+def test_cast_settings_cannot_be_changed_by_viewer_accounts(access_client):
+    client, _ = access_client
+    enable(client)
+    client.post('/api/v1/auth/users', json={'username': 'viewer', 'password': 'a sufficiently long password', 'permissions': ['cast_server', 'live']})
+    client.post('/api/v1/auth/logout')
+    assert client.post('/api/v1/auth/login', json={'username': 'viewer', 'password': 'a sufficiently long password'}).status_code == 200
+    assert client.get('/api/v1/cast/settings').status_code == 403
+    assert client.put('/api/v1/cast/settings', json={'remote_casting': True}).status_code == 403
+    assert client.post('/api/v1/cast/home-connection').status_code == 403
+
+
+@pytest.mark.parametrize('peer,host,headers,proxy,allowed', [
+    ('192.168.1.22', '192.168.1.10:8000', {}, '', True),
+    ('10.1.2.3', '10.1.2.4', {}, '', True),
+    ('fd12::2', '[fd12::1]', {}, '', True),
+    ('::ffff:192.168.1.22', '192.168.1.10', {}, '', True),
+    ('127.0.0.1', 'localhost', {}, '127.0.0.1', True),
+    ('127.0.0.1', 'localhost', {'x-forwarded-for': '8.8.8.8'}, '127.0.0.1', False),
+    ('8.8.8.8', '192.168.1.10', {}, '', False),
+    ('192.168.1.22', 'app.example', {}, '', False),
+    ('172.17.0.1', '192.168.1.10', {}, '', False),
+    ('127.0.0.1', '192.168.1.10', {}, '', False),
+    ('192.168.1.22', '192.168.1.10', {'x-forwarded-for': '192.168.1.25'}, '', False),
+    ('192.168.1.22', '192.168.1.10', {}, '192.168.0.0/16', False),
+    ('172.17.0.1', '192.168.1.10', {'x-forwarded-for': '192.168.1.22'}, '172.17.0.1', True),
+    ('172.17.0.1', '192.168.1.10', {'x-forwarded-for': '8.8.8.8'}, '172.17.0.1', False),
+])
+def test_plaintext_accounts_require_verified_private_endpoints(peer, host, headers, proxy, allowed, monkeypatch):
+    from types import SimpleNamespace
+    from starlette.requests import Request
+    from app.services.access_service import account_transport
+    from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
+    import asyncio
+    monkeypatch.setattr('app.config.settings.get_settings', lambda: SimpleNamespace(FORWARDED_ALLOW_IPS=proxy))
+    scope = {'type': 'http', 'method': 'GET', 'scheme': 'http', 'path': '/',
+             'headers': [(b'host', host.encode()), *[(k.encode(), v.encode()) for k, v in headers.items()]],
+             'server': ('app', 80), 'client': (peer, 1234), 'state': {'access_policy': AccessPolicy(home_networks=['8.8.8.8/32'])}}
+    async def app(scope, receive, send):
+        assert account_transport(Request(scope)) == ('local_http' if allowed else 'blocked')
+    asyncio.run(ForwardedHeadersMiddleware(app, parse_trusted(proxy))(scope, None, None))
+
+
+def test_local_http_account_lifecycle_and_casting(access_client, monkeypatch):
+    import main
+    from app.services.cast_service import cast_service
+    _, repo = access_client
+    monkeypatch.setattr(cast_service.discovery, 'start', lambda: None)
+    client = TestClient(main.app, base_url='http://192.168.1.10:8000', client=('192.168.1.22', 1234))
+    try:
+        status = client.get('/api/v1/auth/status').json()
+        assert status['account_transport'] == 'local_http'
+        client.headers['X-CSRF-Token'] = status['csrf']
+        enable(client)
+        assert client.get('/api/v1/auth/status').json()['user']['administrator']
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
+        assert client.put('/api/v1/auth/policy', json={'public_features': ['live', 'guide'], 'public_playlists': True}).status_code == 200
+        assert client.put('/api/v1/cast/settings', json={'compatibility_conversion': True}).status_code == 200
+        assert client.get('/api/v1/auth/policy').json()['public_features'] == ['guide', 'live']
+        assert client.get('/api/v1/cast/settings').json()['compatibility_conversion'] is True
+        assert client.post('/api/v1/auth/logout').status_code == 204
+        login = client.post('/api/v1/auth/login', json={'username': 'owner', 'password': 'a sufficiently long password'})
+        assert login.status_code == 200
+        assert 'HttpOnly' in login.headers['set-cookie'] and 'SameSite=strict' in login.headers['set-cookie']
+        assert 'Secure' not in login.headers['set-cookie']
+        session = client.cookies.get('scraper_session')
+        remote = TestClient(main.app, base_url='http://192.168.1.10:8000', client=('8.8.8.8', 1234))
+        try:
+            remote.cookies.set('scraper_session', session)
+            assert remote.get('/api/v1/auth/users').status_code == 403
+        finally:
+            remote.close()
+        assert repo.state()[0] == 'accounts'
+    finally:
+        client.close()
+
+
+def test_public_http_cannot_activate_accounts_even_with_casting_trust(access_client):
+    import main
+    _, repo = access_client
+    repo.update_policy({'home_networks': ['8.8.8.8/32'], 'remote_casting': True})
+    client = TestClient(main.app, base_url='http://app.example', client=('8.8.8.8', 1234))
+    try:
+        status = client.get('/api/v1/auth/status').json()
+        assert status['account_transport'] == 'blocked'
+        client.headers['X-CSRF-Token'] = status['csrf']
+        response = client.post('/api/v1/auth/bootstrap', json={'username': 'owner', 'password': 'a sufficiently long password', 'password_confirmation': 'a sufficiently long password'})
+        assert response.status_code == 403
+        assert repo.state()[0] == 'pending'
+        assert repo.users() == []
+    finally:
+        client.close()

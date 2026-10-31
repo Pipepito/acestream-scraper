@@ -14,6 +14,8 @@ class CastCapabilities(BaseModel):
     compatibility_conversion: bool
     media_url_configured: bool
     message: str = ''
+    home_connection: bool = False
+    media_url: str = ''
 
 
 class CastStart(PlayerSessionCreate):

@@ -7,6 +7,7 @@ import AccountSetup from './AccountSetup';
 import PasswordForm from './PasswordForm';
 import ContentSection from '../layout/ContentSection';
 import { getAccessErrorMessage } from '../../services/accessErrors';
+import NewPasswordField, { PASSWORD_REQUIREMENT, validNewPassword } from './NewPasswordField';
 
 function PermissionFields({ values, onChange, options = Object.keys(permissionLabels) as Permission[] }: { values: Permission[]; onChange: (value: Permission[]) => void; options?: Permission[] }) {
   return <FormGroup row>{options.map(permission => <FormControlLabel key={permission} label={permissionLabels[permission]} control={<Checkbox checked={values.includes(permission)} onChange={(_, checked) => onChange(checked ? [...values, permission] : values.filter(p => p !== permission))} />} />)}</FormGroup>;
@@ -21,7 +22,9 @@ function AccountEditor({ initial, saved }: { initial?: Account; saved: () => Pro
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const submit = async (event: React.FormEvent) => {
-    event.preventDefault(); setBusy(true); setError('');
+    event.preventDefault(); setError('');
+    if (!initial && !validNewPassword(password)) { setError(PASSWORD_REQUIREMENT); return; }
+    setBusy(true);
     try {
       if (initial) await accessService.updateUser({ ...initial, enabled, administrator, permissions });
       else { await accessService.createUser({ username, password, administrator, permissions }); setUsername(''); setPassword(''); }
@@ -29,10 +32,10 @@ function AccountEditor({ initial, saved }: { initial?: Account; saved: () => Pro
     } catch (reason) { setError(getAccessErrorMessage(reason)); }
     finally { setBusy(false); }
   };
-  return <Stack component="form" onSubmit={submit} spacing={1.5} sx={{ pb: 2, mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+  return <Stack component="form" aria-label={initial ? `Edit account ${username}` : 'Create account'} onSubmit={submit} spacing={1.5} sx={{ pb: 2, mb: 2, borderBottom: 1, borderColor: 'divider' }}>
     {initial ? <Typography component="h3" variant="subtitle1">{username}</Typography> : <>
       <TextField label="New account username" required value={username} onChange={e => setUsername(e.target.value)} autoComplete="off" inputProps={{ maxLength: 64, pattern: '[a-zA-Z0-9_.\\-]+' }} />
-      <TextField label="Initial password" type="password" required value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" inputProps={{ minLength: 12, maxLength: 128 }} />
+      <NewPasswordField label="Initial password" value={password} onChange={setPassword} />
     </>}
     <FormGroup row><FormControlLabel label="Administrator" control={<Checkbox checked={administrator} onChange={(_, value) => setAdministrator(value)} />} />
       {initial ? <FormControlLabel label="Account enabled" control={<Checkbox checked={enabled} onChange={(_, value) => setEnabled(value)} />} /> : null}</FormGroup>
@@ -43,31 +46,35 @@ function AccountEditor({ initial, saved }: { initial?: Account; saved: () => Pro
 }
 
 function PolicyForm({ initial }: { initial: AccessPolicy }) {
-  const [policy, setPolicy] = useState(initial);
-  const [home, setHome] = useState((initial.home_networks ?? []).join(', '));
-  const [local, setLocal] = useState((initial.local_networks ?? []).join(', '));
+  const [draft, setPolicy] = useState<AccessPolicy | null>(null);
+  const policy = draft ?? initial;
+  const cache = useQueryClient();
+  const [localDraft, setLocal] = useState<string | null>(null);
+  const local = localDraft ?? (initial.local_networks ?? []).join(', ');
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
-  const checkbox = (key: 'public_playlists' | 'local_iptv' | 'remote_casting' | 'compatibility_conversion', label: string) => <FormControlLabel label={label} control={<Checkbox checked={policy[key]} onChange={(_, value) => setPolicy({ ...policy, [key]: value })} />} />;
+  const checkbox = (key: 'public_playlists' | 'local_iptv', label: string) => <FormControlLabel label={label} control={<Checkbox checked={policy[key]} onChange={(_, value) => setPolicy({ ...policy, [key]: value })} />} />;
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setFeedback(null);
-    try { await accessService.savePolicy({ ...policy, home_networks: home.split(',').map(v => v.trim()).filter(Boolean), local_networks: local.split(',').map(v => v.trim()).filter(Boolean) }); setFeedback({ message: 'Access policy saved.', error: false }); }
+    try {
+      await cache.cancelQueries({ queryKey: ['access-policy'] });
+      const saved = await accessService.savePolicy({ public_features: policy.public_features, public_playlists: policy.public_playlists,
+        local_iptv: policy.local_iptv, local_networks: local.split(',').map(v => v.trim()).filter(Boolean) });
+      cache.setQueryData(['access-policy'], saved);
+      setPolicy(null); setLocal(null);
+      await cache.invalidateQueries({ queryKey: ['access-status'] });
+      setFeedback({ message: 'Access policy saved.', error: false });
+    }
     catch (reason) { setFeedback({ message: getAccessErrorMessage(reason), error: true }); }
     finally { setBusy(false); }
   };
-  return <ContentSection title="Viewing and network access"><Stack component="form" onSubmit={submit} spacing={2}>
+  return <ContentSection title="Viewing and network access"><Stack component="form" aria-label="Public viewing and network access" onSubmit={submit} spacing={2}>
     <Typography component="h3" variant="subtitle1">Public viewing features</Typography>
     <Typography variant="body2">Selected features are available without signing in. Public pages contain viewing information only.</Typography>
     <PermissionFields values={policy.public_features ?? []} onChange={value => setPolicy({ ...policy, public_features: value })} options={['live', 'channels', 'guide', 'events', 'cast']} />
     {checkbox('public_playlists', 'Allow public playlists, guides and media without credentials')}
     {checkbox('local_iptv', 'Allow IPTV without credentials on trusted local networks')}
     <TextField label="Local IPTV networks" value={local} onChange={e => setLocal(e.target.value)} helperText="Comma-separated client subnets, for example 192.168.1.0/24. A proxy or Docker gateway alone never proves local access." />
-    <Typography component="h3" variant="subtitle1">Server-device casting</Typography>
-    <TextField label="Home networks" value={home} onChange={e => setHome(e.target.value)} helperText="Only verified clients in these networks can control home TVs, unless remote casting is allowed." />
-    {checkbox('remote_casting', 'Allow remote casting for accounts with Cast to server devices permission')}
-    <TextField label="Application URL reachable by the TVs" value={policy.cast_media_url} onChange={e => setPolicy({ ...policy, cast_media_url: e.target.value })} placeholder="http://192.168.1.10:8000" helperText="Include any reverse-proxy path prefix. This must point to this installation." />
-    {checkbox('compatibility_conversion', 'Offer H.264 compatibility conversion for casting')}
-    <Typography variant="body2">Conversion uses more CPU, supports one converted stream at a time and caps output at 720p/30 fps. Original video remains the default.</Typography>
     {feedback ? <Alert severity={feedback.error ? 'error' : 'success'}>{feedback.message}</Alert> : null}
     <Box><Button type="submit" variant="contained" disabled={busy}>Save access policy</Button></Box>
   </Stack></ContentSection>;

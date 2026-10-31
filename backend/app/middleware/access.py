@@ -24,7 +24,7 @@ DELEGATED = {
     'GET': [r'/api/v1/auth/(?:users|policy|sessions|credentials)', r'/api/v1/view/(?:channels|live|guide|events|recordings)',
             r'/api/v1/view/recordings/[0-9a-f]{32}/files/[0-9a-f]{32}', r'/api/v1/viewers/[0-9a-f]{32}(?:/media/[^/]+)?',
             r'/api/v1/view/recordings/[0-9a-f]{32}/playback-sessions/[0-9a-f]{32}', r'/api/v1/cast/(?:capabilities|devices|sessions)'],
-    'POST': [r'/api/v1/auth/(?:logout|disable|users|credentials)', r'/api/v1/view/playlists', r'/api/v1/viewers', r'/api/v1/cast/(?:sessions|browser)',
+    'POST': [r'/api/v1/auth/(?:logout|disable|users|credentials)', r'/api/v1/view/playlists', r'/api/v1/viewers', r'/api/v1/cast/(?:sessions|browser|discover)',
              r'/api/v1/view/recordings/[0-9a-f]{32}/playback-sessions', r'/api/v1/cast/sessions/[0-9a-f]{32}/commands'],
     'PUT': [r'/api/v1/auth/(?:password|policy)', r'/api/v1/auth/users/[0-9a-f]{32}'],
     'DELETE': [r'/api/v1/auth/(?:sessions|credentials)/[0-9a-f]{32,64}', r'/api/v1/viewers/[0-9a-f]{32}',

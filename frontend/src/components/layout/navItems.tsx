@@ -35,6 +35,7 @@ export const navItems: NavItem[] = [
   { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Manage' },
   { text: 'Public address', path: '/integrations/public-address', icon: <HubRoundedIcon />, section: 'Integrations' },
   { text: 'Web player', path: '/integrations/web-player', icon: <HubRoundedIcon />, section: 'Integrations' },
+  { text: 'TV casting', path: '/integrations/tv-casting', icon: <LiveTvRoundedIcon />, section: 'Integrations' },
   { text: 'Remote players', path: '/integrations/remote-players', icon: <HubRoundedIcon />, section: 'Integrations' },
   { text: 'Media servers', path: '/integrations/media-servers', icon: <HubRoundedIcon />, section: 'Integrations' },
   { text: 'Telegram', path: '/integrations/telegram', icon: <HubRoundedIcon />, section: 'Integrations' },

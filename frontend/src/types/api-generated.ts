@@ -717,6 +717,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cast/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discover */
+        post: operations["discover_api_v1_cast_discover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/home-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Home Connection */
+        post: operations["home_connection_api_v1_cast_home_connection_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cast/sessions": {
         parameters: {
             query?: never;
@@ -746,6 +780,24 @@ export interface paths {
         put?: never;
         /** Command */
         post: operations["command_api_v1_cast_sessions__cast_id__commands_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settings */
+        get: operations["settings_api_v1_cast_settings_get"];
+        /** Save Settings */
+        put: operations["save_settings_api_v1_cast_settings_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4737,6 +4789,12 @@ export interface components {
         };
         /** AccessStatus */
         AccessStatus: {
+            /**
+             * Account Transport
+             * @default blocked
+             * @enum {string}
+             */
+            account_transport?: "https" | "local_http" | "blocked";
             /** Csrf */
             csrf: string;
             /**
@@ -5291,6 +5349,16 @@ export interface components {
         CastCapabilities: {
             /** Compatibility Conversion */
             compatibility_conversion: boolean;
+            /**
+             * Home Connection
+             * @default false
+             */
+            home_connection?: boolean;
+            /**
+             * Media Url
+             * @default
+             */
+            media_url?: string;
             /** Media Url Configured */
             media_url_configured: boolean;
             /**
@@ -5319,6 +5387,26 @@ export interface components {
             model: string;
             /** Name */
             name: string;
+        };
+        /** CastSettings */
+        CastSettings: {
+            /**
+             * Cast Media Url
+             * @default
+             */
+            cast_media_url?: string;
+            /**
+             * Compatibility Conversion
+             * @default false
+             */
+            compatibility_conversion?: boolean;
+            /** Home Networks */
+            home_networks?: string[];
+            /**
+             * Remote Casting
+             * @default false
+             */
+            remote_casting?: boolean;
         };
         /** CastStart */
         CastStart: {
@@ -11197,6 +11285,46 @@ export interface operations {
             };
         };
     };
+    discover_api_v1_cast_discover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastDevice"][];
+                };
+            };
+        };
+    };
+    home_connection_api_v1_cast_home_connection_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastSettings"];
+                };
+            };
+        };
+    };
     sessions_api_v1_cast_sessions_get: {
         parameters: {
             query?: never;
@@ -11271,6 +11399,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_api_v1_cast_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastSettings"];
+                };
+            };
+        };
+    };
+    save_settings_api_v1_cast_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastSettings"];
+                };
             };
             /** @description Validation Error */
             422: {

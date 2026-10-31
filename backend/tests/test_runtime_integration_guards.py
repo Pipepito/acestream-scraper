@@ -23,7 +23,7 @@ def test_build_backend_script_uses_node_copy_script():
     package_json = json.loads((REPO_ROOT / "frontend" / "package.json").read_text())
 
     assert package_json["scripts"]["build"] == "vite build && npm run build:recipes"
-    assert package_json["scripts"]["build:recipes"] == "vite build --config vite.recipes.config.ts"
+    assert package_json["scripts"]["build:recipes"] == "vite build --config vite.recipes.config.mts"
     assert package_json["scripts"]["build:backend"] == "npm run build && node scripts/copy-build.js"
 
 
@@ -275,7 +275,7 @@ def test_entrypoint_exports_media_integration_defaults():
     ) in entrypoint
     assert 'export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"' in entrypoint
     assert 'export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"' in entrypoint
-    assert 'export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"' in entrypoint
+    assert 'export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1}"' in entrypoint
 
 
 def test_uvicorn_is_launched_with_app_owned_proxy_trust_and_graceful_timeout():

@@ -8,9 +8,16 @@ accounts. Complete this choice before exposing a new installation to the interne
 the first person opening an unconfigured installation can configure it.
 
 No new Docker variables, Docker secrets or setup tokens are required. Account
-setup and sign-in use HTTPS, or HTTP through localhost. A trusted HTTPS reverse
-proxy works with the existing forwarded-header configuration. Opening an HTTP LAN
-address shows an explanation to use HTTPS or localhost before sending a password.
+setup and sign-in work over HTTPS or HTTP through a private server IP on a
+verified home network (for example `http://192.168.1.10:8000`). Localhost also works.
+HTTP is not encrypted; use it only on a home network you trust. Internet access
+still requires HTTPS, including a public address explicitly trusted for casting.
+A trusted reverse proxy must preserve the real client address; a Docker gateway
+alone cannot prove that a visitor is local. The setup/sign-in screen explains
+when the connection cannot be verified before submitting credentials.
+
+New passwords require 12–128 characters. Setup, account creation and password
+changes show this requirement and flag invalid lengths before submission.
 
 An existing installation keeps its previous access behavior until an operator
 turns on user management in **Settings → Access**. With accounts disabled, anyone
@@ -82,17 +89,42 @@ are never silently switched from token protection to open access.
 
 ## Cast to TVs on the server's network
 
-1. Enable user management and sign in with Cast to server devices permission.
-2. In Settings → Access, enter the **Home networks** containing the permitted
-   clients and the **Application URL reachable by the TVs**. Include any proxy path
-   prefix. The receiver must be able to fetch this URL directly.
+1. Open **Integrations → TV casting**. On a direct home-network connection,
+   casting works without accounts or manually entering TV addresses.
+2. Turn on the TV. Devices appear automatically through mDNS; **Find TVs** also
+   performs a bounded scan of the detected local IPv4 network when multicast is
+   unavailable. A response from an ordinary web server is not a Cast receiver.
 3. Open a live channel, choose **Cast…**, select a server device and start playback.
 
-The server discovers video-capable Google Cast receivers through mDNS. Android TV
-must provide Google Cast; a generic Android TV without it cannot receive Cast
-commands. Docker needs multicast connectivity to the home network. Linux host
-networking is one option; ordinary port publishing alone does not forward mDNS.
-No Docker socket is used. Discovery can take several seconds.
+The TV uses the application address you opened in the browser, including its port
+and any proxy path prefix. It must be able to fetch that address directly. Use
+**Advanced connection settings → Application address for TVs** only when the TV
+needs a different route. No device address is needed.
+
+Accounts are optional for a home-only installation. When enabled, sign in using
+HTTPS with Cast to server devices permission. If you use your public HTTPS address
+at home, an administrator can select **I am connected to my home network now** and
+**Trust this home connection**. This saves the current verified client address,
+without enabling remote casting. Repeat this if your provider changes your address.
+Other people sharing that public address share its network trust, but still need
+account permission. Never trust a connection while away from home.
+
+With no explicit home-network override, verified RFC1918/ULA clients are local.
+An explicit **Allowed home networks** list replaces that default. A trusted proxy
+must forward the real visitor address. Unresolved proxy and Docker-gateway
+connections fail closed. The default proxy trust is loopback only; existing saved
+proxy settings are preserved. If an older installation trusts all private ranges,
+open **Set up scraper → Connection settings → Network access**, set **Trusted
+reverse proxies** to the actual proxy addresses (or `127.0.0.1` without a proxy),
+save, and restart. This can be changed in the app; Docker credentials are unrelated.
+
+Android TV must provide Google Cast. Docker needs multicast connectivity for mDNS;
+Linux host networking is one option. Ordinary port publishing does not forward
+multicast. The fallback checks up to three detected /24 networks, at most 32
+requests at once, for up to 20 seconds, with a 30-second cooldown. It accepts only
+Cast identities from the fixed local device-info endpoint, including older Android
+TV responses without capability information. Known audio-only devices are excluded; some TVs
+block that endpoint and still require multicast. No Docker socket is used.
 
 Cast prepares at least 20 seconds of complete HLS segments before loading the
 receiver. It measures media duration because original-video segments follow the
@@ -109,15 +141,15 @@ remote control only for signed-in accounts with the corresponding permission.
 It never makes home TVs public.
 
 An explicit replacement confirmation is required when a TV is already playing.
-One account cannot replace another account's app-owned cast unless it is an
-administrator. Stop releases only media still owned by this app; if someone starts
+An account or local browser cannot replace another sender's app-owned cast unless
+it is an administrator. Stop releases only media still owned by this app; if someone starts
 something else on the receiver, cleanup does not stop that media. Playback continues
 when the sender page closes or its phone locks. Stale, disconnected, revoked and
 idle sessions are reclaimed. A paused server cast is released after ten minutes.
 Server restart ends casting sessions; it does not restore them automatically.
 
 Original video is the default, with AAC audio for HLS. If the receiver cannot
-decode the original codec, the administrator can offer compatibility conversion:
+decode the original codec, TV casting preferences can offer compatibility conversion:
 H.264/AAC, at most 720p/30 fps and one converted stream at a time. Conversion uses
 CPU and is stopped when recording capture needs priority. Bundled images include
 libx264; a custom FFmpeg binary must provide that encoder and the scale/fps filters.

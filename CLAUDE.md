@@ -122,7 +122,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 - Navigation groups Watch (TV dashboard, Live TV, Catalogues, Events), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist) Integrations (Public address, Web player, Remote players, Media servers, Telegram) and System (System status, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations category opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
-- Vite config (`frontend/vite.config.ts`) uses Rolldown dependency groups for React, MUI, data-grid, data, HLS and TV Channels. HLS builds pinned full-feature source modules so its code can split. Preserve dependency ownership to avoid initialization cycles; see `docs/dev/frontend-bundles.md` for upgrade and built-SPA verification.
+- Vite config (`frontend/vite.config.mts`) uses Rolldown dependency groups for React, MUI, data-grid, data, date utilities, HLS and TV Channels. Build configs use explicit ESM extensions. HLS builds pinned full-feature source modules so its code can split. Preserve dependency ownership to avoid initialization cycles; see `docs/dev/frontend-bundles.md` for upgrade and built-SPA verification.
 - Dev server proxies `/api` → `http://localhost:8000`. Backend `CORS_ORIGINS` defaults to `http://localhost:3000` and accepts a comma-separated string in env (normalized in `Settings.normalize_cors_origins`).
 
 ### Media integrations: known limitations
@@ -853,8 +853,10 @@ First-run account setup and Settings → Access manage optional accounts without
 new Docker bootstrap credentials. Preserve the independently migrated access store
 and fail-closed marker across catalogue restore/recovery. Management is default-deny
 across aliases and ASGI prefixes; viewer-control, media, IPTV and administrative
-credentials have separate scopes. Server Cast requires account permission and a
-verified home client unless remote control is explicitly enabled. Stop only owned
+credentials have separate scopes. Accounts support HTTPS and verified private-IP HTTP on a home network; never infer local access from a proxy/gateway or a public Cast trust entry. TV casting has its own Integrations page and works without accounts for verified
+home clients. When accounts are enabled, require casting permission. Remote control
+always requires an account and explicit opt-in; preserve local-browser ownership,
+bounded discovery and explicit proxy trust. Stop only owned
 receiver media; bounded compatibility conversion yields to recording capture.
 See `docs/ops/access-and-casting.md` and `wiki/Accounts-and-Casting.md`.
 

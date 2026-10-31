@@ -20,6 +20,7 @@ jest.mock('../pages/TVChannels', () => ({ __esModule: true, default: () => <h1>T
 jest.mock('../pages/Search', () => ({ __esModule: true, default: () => <h1>Search</h1> }));
 jest.mock('../pages/integrations/PublicAddress', () => ({ __esModule: true, default: () => <h1>Public address</h1> }));
 jest.mock('../pages/integrations/WebPlayer', () => ({ __esModule: true, default: () => <h1>Web player</h1> }));
+jest.mock('../pages/integrations/TvCasting', () => ({ __esModule: true, default: () => <h1>TV casting</h1> }));
 jest.mock('../pages/integrations/RemotePlayers', () => ({ __esModule: true, default: () => <h1>Remote players</h1> }));
 jest.mock('../pages/integrations/MediaServers', () => ({ __esModule: true, default: () => <h1>Media servers</h1> }));
 jest.mock('../pages/integrations/Telegram', () => ({ __esModule: true, default: () => <h1>Telegram</h1> }));
@@ -40,7 +41,7 @@ describe('routes', () => {
   });
 
   it('exposes destinations whose labels are the page titles', () => {
-    expect(navItems.map((item) => item.text)).toEqual(['TV dashboard', 'Live TV', 'Recordings', 'Catalogues', 'Events', 'System status', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Public address', 'Web player', 'Remote players', 'Media servers', 'Telegram', 'WARP', 'Settings', 'Changelog']);
+    expect(navItems.map((item) => item.text)).toEqual(['TV dashboard', 'Live TV', 'Recordings', 'Catalogues', 'Events', 'System status', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'WARP', 'Settings', 'Changelog']);
     expect(getNavTitle('/')).toBe('TV dashboard');
     expect(getNavTitle('/system')).toBe('System status');
     expect(getNavTitle('/events')).toBe('Events');
@@ -66,7 +67,7 @@ describe('routes', () => {
   });
   it.each([
     ['public-address', 'Public address'], ['web-player', 'Web player'],
-    ['remote-players', 'Remote players'], ['media-servers', 'Media servers'], ['telegram', 'Telegram'],
+    ['tv-casting', 'TV casting'], ['remote-players', 'Remote players'], ['media-servers', 'Media servers'], ['telegram', 'Telegram'],
   ])('opens and selects /integrations/%s directly', async (path, title) => {
     renderAt(`/integrations/${path}`);
     expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible();

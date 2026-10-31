@@ -62,10 +62,10 @@
   {
     "name": "FORWARDED_ALLOW_IPS",
     "group": "network",
-    "default": "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+    "default": "127.0.0.1",
     "label": "Trusted reverse proxies",
     "kind": "networks",
-    "help": ""
+    "help": "Use only actual proxy addresses. With no proxy, leave 127.0.0.1. Trusting the whole home network prevents local casting from identifying direct clients."
   },
   {
     "name": "CORS_ORIGINS",

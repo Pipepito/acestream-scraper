@@ -6,6 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from '../config/runtime';
 import { ApiError, normalizeApiError } from './apiErrors';
 import { getApiToken, reportApiTokenRequired } from './apiToken';
+import { accessSession, ACCESS_EXPIRED } from './accessSession';
 
 /**
  * Base API configuration
@@ -16,6 +17,7 @@ const apiBase = getApiBaseUrl({
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBase,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,10 +29,11 @@ const apiClient: AxiosInstance = axios.create({
  * the API_TOKEN env var; harmless otherwise.
  */
 apiClient.interceptors.request.use((config) => {
-  const token = getApiToken();
+  const token = accessSession.managed() ? null : getApiToken();
   if (token) {
     config.headers['X-Api-Token'] = token;
   }
+  if (accessSession.csrf()) config.headers['X-CSRF-Token'] = accessSession.csrf();
   return config;
 });
 
@@ -48,7 +51,9 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       // Server enforces an API token and this request lacked a valid one.
-      reportApiTokenRequired();
+      if (accessSession.managed()) {
+        if (!error.config?.url?.endsWith('/auth/login')) window.dispatchEvent(new Event(ACCESS_EXPIRED));
+      } else reportApiTokenRequired();
     }
     throw normalizeApiError(error);
   }

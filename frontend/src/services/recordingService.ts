@@ -1,5 +1,6 @@
 import apiClient from './apiClient';
 import { getApiToken } from './apiToken';
+import { accessSession } from './accessSession';
 import type { components } from '../types/api-generated';
 export type Recording = components['schemas']['RecordingView'];
 export type RecordingFile = components['schemas']['RecordingFile'];
@@ -8,12 +9,13 @@ export type RecordingSettings = components['schemas']['RecordingSettings'];
 export type RecordingEdit = components['schemas']['RecordingEdit'];
 export type RecordingCapabilities = components['schemas']['RecordingCapabilities'];
 const base = '/v1/recordings';
+const playbackBase = () => accessSession.managed() ? '/v1/view/recordings' : base;
 export const recordingService = {
   currentProgramme: async (tv_channel_id: number) => (await apiClient.get<components['schemas']['ProgrammeSelection'] | null>(`${base}/current-programme`, { params: { tv_channel_id } })).data,
   upcoming: async () => (await apiClient.get<components['schemas']['RecordingList']>(`${base}/upcoming`)).data,
-  openPlayback: async (id: string, file_id: string) => (await apiClient.post<components['schemas']['RecordingPlaybackView']>(`${base}/${id}/playback-sessions`, { file_id })).data,
-  playback: async (id: string, sid: string) => (await apiClient.get<components['schemas']['RecordingPlaybackView']>(`${base}/${id}/playback-sessions/${sid}`)).data,
-  closePlayback: async (id: string, sid: string) => { await apiClient.delete(`${base}/${id}/playback-sessions/${sid}`); },
+  openPlayback: async (id: string, file_id: string) => (await apiClient.post<components['schemas']['RecordingPlaybackView']>(`${playbackBase()}/${id}/playback-sessions`, { file_id })).data,
+  playback: async (id: string, sid: string) => (await apiClient.get<components['schemas']['RecordingPlaybackView']>(`${playbackBase()}/${id}/playback-sessions/${sid}`)).data,
+  closePlayback: async (id: string, sid: string) => { await apiClient.delete(`${playbackBase()}/${id}/playback-sessions/${sid}`); },
   list: async (state?: string, offset = 0, search = '') => (await apiClient.get<components['schemas']['RecordingList']>(base, { params: { state: state || undefined, offset, limit: 50, search } })).data,
   get: async (id: string) => (await apiClient.get<Recording>(`${base}/${id}`)).data,
   capabilities: async () => (await apiClient.get<RecordingCapabilities>(`${base}/capabilities`)).data,
@@ -29,7 +31,7 @@ export const recordingService = {
 export function recordingFileUrl(id: string, fid: string, download = false): string {
   const params = new URLSearchParams();
   if (download) params.set('download', 'true');
-  const token = getApiToken();
+  const token = accessSession.managed() ? null : getApiToken();
   if (token) params.set('token', token);
-  return `${apiClient.defaults.baseURL}${base}/${encodeURIComponent(id)}/files/${encodeURIComponent(fid)}?${params}`;
+  return `${apiClient.defaults.baseURL}${playbackBase()}/${encodeURIComponent(id)}/files/${encodeURIComponent(fid)}?${params}`;
 }

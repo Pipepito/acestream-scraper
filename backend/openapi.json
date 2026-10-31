@@ -1,6 +1,261 @@
 {
   "components": {
     "schemas": {
+      "AccessPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "cast_media_url": {
+            "default": "",
+            "maxLength": 2048,
+            "title": "Cast Media Url",
+            "type": "string"
+          },
+          "compatibility_conversion": {
+            "default": false,
+            "title": "Compatibility Conversion",
+            "type": "boolean"
+          },
+          "home_networks": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Home Networks",
+            "type": "array"
+          },
+          "local_iptv": {
+            "default": false,
+            "title": "Local Iptv",
+            "type": "boolean"
+          },
+          "local_networks": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Local Networks",
+            "type": "array"
+          },
+          "public_features": {
+            "items": {
+              "enum": [
+                "live",
+                "channels",
+                "guide",
+                "events",
+                "recordings",
+                "playlists",
+                "cast",
+                "cast_server"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Public Features",
+            "type": "array"
+          },
+          "public_playlists": {
+            "default": false,
+            "title": "Public Playlists",
+            "type": "boolean"
+          },
+          "remote_casting": {
+            "default": false,
+            "title": "Remote Casting",
+            "type": "boolean"
+          }
+        },
+        "title": "AccessPolicy",
+        "type": "object"
+      },
+      "AccessStatus": {
+        "properties": {
+          "csrf": {
+            "title": "Csrf",
+            "type": "string"
+          },
+          "legacy_token": {
+            "default": false,
+            "title": "Legacy Token",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "pending",
+              "open",
+              "accounts"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "enum": [
+                "live",
+                "channels",
+                "guide",
+                "events",
+                "recordings",
+                "playlists",
+                "cast",
+                "cast_server"
+              ],
+              "type": "string"
+            },
+            "title": "Permissions",
+            "type": "array"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "mode",
+          "csrf"
+        ],
+        "title": "AccessStatus",
+        "type": "object"
+      },
+      "AccountCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "administrator": {
+            "default": false,
+            "title": "Administrator",
+            "type": "boolean"
+          },
+          "password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "permissions": {
+            "items": {
+              "enum": [
+                "live",
+                "channels",
+                "guide",
+                "events",
+                "recordings",
+                "playlists",
+                "cast",
+                "cast_server"
+              ],
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Permissions",
+            "type": "array"
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_.-]+$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "AccountCreate",
+        "type": "object"
+      },
+      "AccountUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "administrator": {
+            "title": "Administrator",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "permissions": {
+            "items": {
+              "enum": [
+                "live",
+                "channels",
+                "guide",
+                "events",
+                "recordings",
+                "playlists",
+                "cast",
+                "cast_server"
+              ],
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Permissions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "administrator",
+          "enabled",
+          "permissions"
+        ],
+        "title": "AccountUpdate",
+        "type": "object"
+      },
+      "AccountView": {
+        "properties": {
+          "administrator": {
+            "title": "Administrator",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "enum": [
+                "live",
+                "channels",
+                "guide",
+                "events",
+                "recordings",
+                "playlists",
+                "cast",
+                "cast_server"
+              ],
+              "type": "string"
+            },
+            "title": "Permissions",
+            "type": "array"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "administrator",
+          "enabled",
+          "permissions"
+        ],
+        "title": "AccountView",
+        "type": "object"
+      },
       "AceEngineUrlUpdate": {
         "description": "Schema for updating the Acestream Engine URL",
         "properties": {
@@ -1154,6 +1409,49 @@
         "title": "Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post",
         "type": "object"
       },
+      "Bootstrap": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "migrate_legacy_token": {
+            "default": false,
+            "title": "Migrate Legacy Token",
+            "type": "boolean"
+          },
+          "password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "password_confirmation": {
+            "format": "password",
+            "title": "Password Confirmation",
+            "type": "string",
+            "writeOnly": true
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_.-]+$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "password_confirmation"
+        ],
+        "title": "Bootstrap",
+        "type": "object"
+      },
       "BroadcastView": {
         "additionalProperties": false,
         "properties": {
@@ -1329,6 +1627,198 @@
           "fields"
         ],
         "title": "BulkChannelEditRequest",
+        "type": "object"
+      },
+      "CastCapabilities": {
+        "properties": {
+          "compatibility_conversion": {
+            "title": "Compatibility Conversion",
+            "type": "boolean"
+          },
+          "media_url_configured": {
+            "title": "Media Url Configured",
+            "type": "boolean"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "server_devices": {
+            "title": "Server Devices",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "server_devices",
+          "compatibility_conversion",
+          "media_url_configured"
+        ],
+        "title": "CastCapabilities",
+        "type": "object"
+      },
+      "CastCommand": {
+        "properties": {
+          "action": {
+            "enum": [
+              "play",
+              "pause",
+              "stop",
+              "volume"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "CastCommand",
+        "type": "object"
+      },
+      "CastDevice": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "model"
+        ],
+        "title": "CastDevice",
+        "type": "object"
+      },
+      "CastStart": {
+        "properties": {
+          "audio_index": {
+            "anyOf": [
+              {
+                "maximum": 63.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Audio track to play; null uses the first available audio track",
+            "title": "Audio Index"
+          },
+          "compatibility": {
+            "default": false,
+            "title": "Compatibility",
+            "type": "boolean"
+          },
+          "content_id": {
+            "description": "AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)",
+            "pattern": "^(?:url:)?[0-9a-fA-F]{40}$",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "replace": {
+            "default": false,
+            "title": "Replace",
+            "type": "boolean"
+          },
+          "subtitle_index": {
+            "anyOf": [
+              {
+                "maximum": 63.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Subtitle track to play; null disables subtitles",
+            "title": "Subtitle Index"
+          }
+        },
+        "required": [
+          "content_id"
+        ],
+        "title": "CastStart",
+        "type": "object"
+      },
+      "CastStatus": {
+        "properties": {
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "device_name": {
+            "title": "Device Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "viewer_id": {
+            "title": "Viewer Id",
+            "type": "string"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          }
+        },
+        "required": [
+          "id",
+          "device_id",
+          "device_name",
+          "state",
+          "viewer_id"
+        ],
+        "title": "CastStatus",
         "type": "object"
       },
       "CatalogueCounts": {
@@ -2232,6 +2722,126 @@
         "title": "ConfigurationWarning",
         "type": "object"
       },
+      "CredentialCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "default": "playback",
+            "enum": [
+              "admin",
+              "playback"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "CredentialCreate",
+        "type": "object"
+      },
+      "CredentialIssued": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "admin",
+              "playback"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "created_at",
+          "token"
+        ],
+        "title": "CredentialIssued",
+        "type": "object"
+      },
+      "CredentialView": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "admin",
+              "playback"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "created_at"
+        ],
+        "title": "CredentialView",
+        "type": "object"
+      },
+      "Credentials": {
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_.-]+$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Credentials",
+        "type": "object"
+      },
       "DashboardConfigResponse": {
         "description": "Schema for dashboard config response",
         "properties": {
@@ -2278,6 +2888,22 @@
           }
         },
         "title": "DashboardConfigUpdate",
+        "type": "object"
+      },
+      "DisableAccess": {
+        "additionalProperties": false,
+        "properties": {
+          "current_password": {
+            "format": "password",
+            "title": "Current Password",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "current_password"
+        ],
+        "title": "DisableAccess",
         "type": "object"
       },
       "EPGChannelListResponse": {
@@ -5547,6 +6173,38 @@
         "title": "NotificationWebhookUpdate",
         "type": "object"
       },
+      "PasswordChange": {
+        "additionalProperties": false,
+        "properties": {
+          "current_password": {
+            "format": "password",
+            "title": "Current Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 12,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "password_confirmation": {
+            "format": "password",
+            "title": "Password Confirmation",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "current_password",
+          "password",
+          "password_confirmation"
+        ],
+        "title": "PasswordChange",
+        "type": "object"
+      },
       "PlaybackRouting": {
         "properties": {
           "acexy_url": {
@@ -5853,6 +6511,24 @@
           "guide_channels"
         ],
         "title": "PlaylistGuideCoverage",
+        "type": "object"
+      },
+      "PlaylistLink": {
+        "properties": {
+          "guide_url": {
+            "title": "Guide Url",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "guide_url"
+        ],
+        "title": "PlaylistLink",
         "type": "object"
       },
       "ProgrammeSelection": {
@@ -8739,6 +9415,39 @@
           "checked_at"
         ],
         "title": "ServicesStatusResponse",
+        "type": "object"
+      },
+      "SessionView": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "number"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_seen": {
+            "title": "Last Seen",
+            "type": "number"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "created_at",
+          "last_seen",
+          "expires_at"
+        ],
+        "title": "SessionView",
         "type": "object"
       },
       "SettingResponse": {
@@ -11889,6 +12598,135 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "ViewerStatus": {
+        "properties": {
+          "audio_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Index"
+          },
+          "audio_tracks": {
+            "items": {
+              "$ref": "#/components/schemas/AudioTrack"
+            },
+            "title": "Audio Tracks",
+            "type": "array"
+          },
+          "codecs": {
+            "$ref": "#/components/schemas/PlayerCodecs"
+          },
+          "content_id": {
+            "title": "Content Id",
+            "type": "string"
+          },
+          "control_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Control Token"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "enum": [
+                  "engine_unavailable",
+                  "engine_refused",
+                  "engine_stalled",
+                  "ffmpeg_missing",
+                  "ffmpeg_failed",
+                  "source_unavailable"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "error_message": {
+            "default": "",
+            "title": "Error Message",
+            "type": "string"
+          },
+          "hls_ready": {
+            "title": "Hls Ready",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "playlist_url": {
+            "title": "Playlist Url",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "starting",
+              "ready",
+              "error",
+              "stopped"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerStats"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subtitle_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle Index"
+          },
+          "subtitle_tracks": {
+            "items": {
+              "$ref": "#/components/schemas/SubtitleTrack"
+            },
+            "title": "Subtitle Tracks",
+            "type": "array"
+          },
+          "viewers": {
+            "title": "Viewers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "content_id",
+          "state",
+          "codecs",
+          "viewers",
+          "playlist_url",
+          "hls_ready"
+        ],
+        "title": "ViewerStatus",
+        "type": "object"
+      },
       "WarpExclusionsState": {
         "properties": {
           "active_hosts": {
@@ -11993,6 +12831,187 @@
           "mode"
         ],
         "title": "WarpModeRequest",
+        "type": "object"
+      },
+      "WatchChannel": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "online": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Online"
+          },
+          "tv_channel_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tv Channel Id"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "WatchChannel",
+        "type": "object"
+      },
+      "WatchChannels": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WatchChannel"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "WatchChannels",
+        "type": "object"
+      },
+      "WatchEvent": {
+        "properties": {
+          "competition": {
+            "default": "",
+            "title": "Competition",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "state": {
+            "default": "",
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "WatchEvent",
+        "type": "object"
+      },
+      "WatchProgramme": {
+        "properties": {
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "end": {
+            "format": "date-time",
+            "title": "End",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "start": {
+            "format": "date-time",
+            "title": "Start",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "channel",
+          "title",
+          "start",
+          "end"
+        ],
+        "title": "WatchProgramme",
+        "type": "object"
+      },
+      "WatchRecording": {
+        "properties": {
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "channel",
+          "state"
+        ],
+        "title": "WatchRecording",
         "type": "object"
       },
       "app__schemas__base_url__BaseUrlUpdate": {
@@ -13411,6 +14430,550 @@
         ]
       }
     },
+    "/api/v1/auth/bootstrap": {
+      "post": {
+        "operationId": "bootstrap_api_v1_auth_bootstrap_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Bootstrap"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AccountView"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Bootstrap Api V1 Auth Bootstrap Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bootstrap",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/credentials": {
+      "get": {
+        "operationId": "credentials_api_v1_auth_credentials_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CredentialView"
+                  },
+                  "title": "Response Credentials Api V1 Auth Credentials Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Credentials",
+        "tags": [
+          "access",
+          "access"
+        ]
+      },
+      "post": {
+        "operationId": "issue_credential_api_v1_auth_credentials_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssued"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue Credential",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/credentials/{credential_id}": {
+      "delete": {
+        "operationId": "revoke_credential_api_v1_auth_credentials__credential_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credential_id",
+            "required": true,
+            "schema": {
+              "title": "Credential Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Credential",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/disable": {
+      "post": {
+        "operationId": "disable_api_v1_auth_disable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableAccess"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Disable",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/password": {
+      "put": {
+        "operationId": "change_password_api_v1_auth_password_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Password",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/policy": {
+      "get": {
+        "operationId": "policy_api_v1_auth_policy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessPolicy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Policy",
+        "tags": [
+          "access",
+          "access"
+        ]
+      },
+      "put": {
+        "operationId": "update_policy_api_v1_auth_policy_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessPolicy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessPolicy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Policy",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "operationId": "sessions_api_v1_auth_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionView"
+                  },
+                  "title": "Response Sessions Api V1 Auth Sessions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sessions",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/{session_id}": {
+      "delete": {
+        "operationId": "revoke_session_api_v1_auth_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Session",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/status": {
+      "get": {
+        "operationId": "access_status_api_v1_auth_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Access Status",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/users": {
+      "get": {
+        "operationId": "users_api_v1_auth_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccountView"
+                  },
+                  "title": "Response Users Api V1 Auth Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Users",
+        "tags": [
+          "access",
+          "access"
+        ]
+      },
+      "post": {
+        "operationId": "create_user_api_v1_auth_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create User",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
+    "/api/v1/auth/users/{user_id}": {
+      "put": {
+        "operationId": "update_user_api_v1_auth_users__user_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update User",
+        "tags": [
+          "access",
+          "access"
+        ]
+      }
+    },
     "/api/v1/background-tasks/channel_status/run": {
       "post": {
         "operationId": "run_channel_status_job_api_v1_background_tasks_channel_status_run_post",
@@ -13605,6 +15168,208 @@
         "summary": "Update Base Url",
         "tags": [
           "base-urls"
+        ]
+      }
+    },
+    "/api/v1/cast/browser": {
+      "post": {
+        "operationId": "browser_api_v1_cast_browser_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewerStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Browser",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      }
+    },
+    "/api/v1/cast/capabilities": {
+      "get": {
+        "operationId": "capabilities_api_v1_cast_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastCapabilities"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Capabilities",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      }
+    },
+    "/api/v1/cast/devices": {
+      "get": {
+        "operationId": "devices_api_v1_cast_devices_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CastDevice"
+                  },
+                  "title": "Response Devices Api V1 Cast Devices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Devices",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      }
+    },
+    "/api/v1/cast/sessions": {
+      "get": {
+        "operationId": "sessions_api_v1_cast_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CastStatus"
+                  },
+                  "title": "Response Sessions Api V1 Cast Sessions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sessions",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      },
+      "post": {
+        "operationId": "start_api_v1_cast_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CastStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start",
+        "tags": [
+          "cast",
+          "cast"
+        ]
+      }
+    },
+    "/api/v1/cast/sessions/{cast_id}/commands": {
+      "post": {
+        "operationId": "command_api_v1_cast_sessions__cast_id__commands_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cast_id",
+            "required": true,
+            "schema": {
+              "title": "Cast Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Command",
+        "tags": [
+          "cast",
+          "cast"
         ]
       }
     },
@@ -23807,6 +25572,659 @@
         "summary": "Refresh Url",
         "tags": [
           "urls"
+        ]
+      }
+    },
+    "/api/v1/view/channels": {
+      "get": {
+        "operationId": "channels_api_v1_view_channels_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchChannels"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Channels",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/events": {
+      "get": {
+        "operationId": "events_api_v1_view_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WatchEvent"
+                  },
+                  "title": "Response Events Api V1 View Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Events",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/guide": {
+      "get": {
+        "operationId": "guide_api_v1_view_guide_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WatchProgramme"
+                  },
+                  "title": "Response Guide Api V1 View Guide Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Guide",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/live": {
+      "get": {
+        "operationId": "live_api_v1_view_live_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchChannels"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Live",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/playlists": {
+      "post": {
+        "operationId": "playlist_link_api_v1_view_playlists_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaylistLink"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Playlist Link",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/recordings": {
+      "get": {
+        "operationId": "recordings_api_v1_view_recordings_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WatchRecording"
+                  },
+                  "title": "Response Recordings Api V1 View Recordings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recordings",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/recordings/{rid}/files/{fid}": {
+      "get": {
+        "operationId": "recording_file_api_v1_view_recordings__rid__files__fid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "title": "Rid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "fid",
+            "required": true,
+            "schema": {
+              "title": "Fid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recording File",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/recordings/{rid}/playback-sessions": {
+      "post": {
+        "operationId": "start_recording_api_v1_view_recordings__rid__playback_sessions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "title": "Rid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingPlaybackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingPlaybackView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Recording",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/view/recordings/{rid}/playback-sessions/{sid}": {
+      "delete": {
+        "operationId": "stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "title": "Rid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "title": "Sid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stop Recording",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      },
+      "get": {
+        "operationId": "recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rid",
+            "required": true,
+            "schema": {
+              "title": "Rid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "title": "Sid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingPlaybackView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recording Status",
+        "tags": [
+          "watch",
+          "watch"
+        ]
+      }
+    },
+    "/api/v1/viewers": {
+      "post": {
+        "operationId": "create_api_v1_viewers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerSessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewerStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "viewers",
+          "viewers"
+        ]
+      }
+    },
+    "/api/v1/viewers/{viewer_id}": {
+      "delete": {
+        "operationId": "release_api_v1_viewers__viewer_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "viewer_id",
+            "required": true,
+            "schema": {
+              "title": "Viewer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Release",
+        "tags": [
+          "viewers",
+          "viewers"
+        ]
+      },
+      "get": {
+        "operationId": "status_api_v1_viewers__viewer_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "viewer_id",
+            "required": true,
+            "schema": {
+              "title": "Viewer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewerStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "viewers",
+          "viewers"
+        ]
+      }
+    },
+    "/api/v1/viewers/{viewer_id}/media/{resource}": {
+      "get": {
+        "operationId": "media_api_v1_viewers__viewer_id__media__resource__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "viewer_id",
+            "required": true,
+            "schema": {
+              "title": "Viewer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "resource",
+            "required": true,
+            "schema": {
+              "title": "Resource",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Media",
+        "tags": [
+          "viewers",
+          "viewers"
         ]
       }
     },

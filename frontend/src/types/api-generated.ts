@@ -372,6 +372,230 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bootstrap */
+        post: operations["bootstrap_api_v1_auth_bootstrap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Credentials */
+        get: operations["credentials_api_v1_auth_credentials_get"];
+        put?: never;
+        /** Issue Credential */
+        post: operations["issue_credential_api_v1_auth_credentials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/credentials/{credential_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Credential */
+        delete: operations["revoke_credential_api_v1_auth_credentials__credential_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable */
+        post: operations["disable_api_v1_auth_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change Password */
+        put: operations["change_password_api_v1_auth_password_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policy */
+        get: operations["policy_api_v1_auth_policy_get"];
+        /** Update Policy */
+        put: operations["update_policy_api_v1_auth_policy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions */
+        get: operations["sessions_api_v1_auth_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Session */
+        delete: operations["revoke_session_api_v1_auth_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access Status */
+        get: operations["access_status_api_v1_auth_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users */
+        get: operations["users_api_v1_auth_users_get"];
+        put?: never;
+        /** Create User */
+        post: operations["create_user_api_v1_auth_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update User */
+        put: operations["update_user_api_v1_auth_users__user_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/background-tasks/channel_status/run": {
         parameters: {
             query?: never;
@@ -440,6 +664,92 @@ export interface paths {
         head?: never;
         /** Update Base Url */
         patch: operations["update_base_url_api_v1_base_urls__base_url_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cast/browser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Browser */
+        post: operations["browser_api_v1_cast_browser_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Capabilities */
+        get: operations["capabilities_api_v1_cast_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Devices */
+        get: operations["devices_api_v1_cast_devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions */
+        get: operations["sessions_api_v1_cast_sessions_get"];
+        put?: never;
+        /** Start */
+        post: operations["start_api_v1_cast_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/sessions/{cast_id}/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Command */
+        post: operations["command_api_v1_cast_sessions__cast_id__commands_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/catalogues": {
@@ -3999,6 +4309,212 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/view/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Channels */
+        get: operations["channels_api_v1_view_channels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Events */
+        get: operations["events_api_v1_view_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/guide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Guide */
+        get: operations["guide_api_v1_view_guide_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live */
+        get: operations["live_api_v1_view_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/playlists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Playlist Link */
+        post: operations["playlist_link_api_v1_view_playlists_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recordings */
+        get: operations["recordings_api_v1_view_recordings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings/{rid}/files/{fid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recording File */
+        get: operations["recording_file_api_v1_view_recordings__rid__files__fid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings/{rid}/playback-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Recording */
+        post: operations["start_recording_api_v1_view_recordings__rid__playback_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings/{rid}/playback-sessions/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recording Status */
+        get: operations["recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get"];
+        put?: never;
+        post?: never;
+        /** Stop Recording */
+        delete: operations["stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/viewers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_viewers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/viewers/{viewer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_api_v1_viewers__viewer_id__get"];
+        put?: never;
+        post?: never;
+        /** Release */
+        delete: operations["release_api_v1_viewers__viewer_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/viewers/{viewer_id}/media/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media */
+        get: operations["media_api_v1_viewers__viewer_id__media__resource__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/warp/connect": {
         parameters: {
             query?: never;
@@ -4185,6 +4701,97 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccessPolicy */
+        AccessPolicy: {
+            /**
+             * Cast Media Url
+             * @default
+             */
+            cast_media_url?: string;
+            /**
+             * Compatibility Conversion
+             * @default false
+             */
+            compatibility_conversion?: boolean;
+            /** Home Networks */
+            home_networks?: string[];
+            /**
+             * Local Iptv
+             * @default false
+             */
+            local_iptv?: boolean;
+            /** Local Networks */
+            local_networks?: string[];
+            /** Public Features */
+            public_features?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            /**
+             * Public Playlists
+             * @default false
+             */
+            public_playlists?: boolean;
+            /**
+             * Remote Casting
+             * @default false
+             */
+            remote_casting?: boolean;
+        };
+        /** AccessStatus */
+        AccessStatus: {
+            /** Csrf */
+            csrf: string;
+            /**
+             * Legacy Token
+             * @default false
+             */
+            legacy_token?: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "pending" | "open" | "accounts";
+            /** Permissions */
+            permissions?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            user?: components["schemas"]["AccountView"] | null;
+        };
+        /** AccountCreate */
+        AccountCreate: {
+            /**
+             * Administrator
+             * @default false
+             */
+            administrator?: boolean;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /** Permissions */
+            permissions?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            /** Username */
+            username: string;
+        };
+        /** AccountUpdate */
+        AccountUpdate: {
+            /** Administrator */
+            administrator: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Permissions */
+            permissions: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+        };
+        /** AccountView */
+        AccountView: {
+            /** Administrator */
+            administrator: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /** Permissions */
+            permissions: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            /** Username */
+            username: string;
+        };
         /**
          * AceEngineUrlUpdate
          * @description Schema for updating the Acestream Engine URL
@@ -4588,6 +5195,31 @@ export interface components {
             /** Acestreamchannel Ids */
             acestreamchannel_ids: string[];
         };
+        /** Bootstrap */
+        Bootstrap: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Migrate Legacy Token
+             * @default false
+             */
+            migrate_legacy_token?: boolean;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Password Confirmation
+             * Format: password
+             */
+            password_confirmation: string;
+            /** Username */
+            username: string;
+        };
         /** BroadcastView */
         BroadcastView: {
             /** Checked At */
@@ -4654,6 +5286,84 @@ export interface components {
             /** Acestreamchannel Ids */
             acestreamchannel_ids: string[];
             fields: components["schemas"]["AcestreamChannelUpdate"];
+        };
+        /** CastCapabilities */
+        CastCapabilities: {
+            /** Compatibility Conversion */
+            compatibility_conversion: boolean;
+            /** Media Url Configured */
+            media_url_configured: boolean;
+            /**
+             * Message
+             * @default
+             */
+            message?: string;
+            /** Server Devices */
+            server_devices: boolean;
+        };
+        /** CastCommand */
+        CastCommand: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "play" | "pause" | "stop" | "volume";
+            /** Volume */
+            volume?: number | null;
+        };
+        /** CastDevice */
+        CastDevice: {
+            /** Id */
+            id: string;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+        };
+        /** CastStart */
+        CastStart: {
+            /**
+             * Audio Index
+             * @description Audio track to play; null uses the first available audio track
+             */
+            audio_index?: number | null;
+            /**
+             * Compatibility
+             * @default false
+             */
+            compatibility?: boolean;
+            /**
+             * Content Id
+             * @description AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)
+             */
+            content_id: string;
+            /** Device Id */
+            device_id?: string | null;
+            /**
+             * Replace
+             * @default false
+             */
+            replace?: boolean;
+            /**
+             * Subtitle Index
+             * @description Subtitle track to play; null disables subtitles
+             */
+            subtitle_index?: number | null;
+        };
+        /** CastStatus */
+        CastStatus: {
+            /** Device Id */
+            device_id: string;
+            /** Device Name */
+            device_name: string;
+            /** Id */
+            id: string;
+            /** State */
+            state: string;
+            /** Viewer Id */
+            viewer_id: string;
+            /** Volume */
+            volume?: number | null;
         };
         /** CatalogueCounts */
         CatalogueCounts: {
@@ -5069,6 +5779,57 @@ export interface components {
             /** Selected */
             selected: string;
         };
+        /** CredentialCreate */
+        CredentialCreate: {
+            /**
+             * Kind
+             * @default playback
+             * @enum {string}
+             */
+            kind?: "admin" | "playback";
+            /** Label */
+            label: string;
+        };
+        /** CredentialIssued */
+        CredentialIssued: {
+            /** Created At */
+            created_at: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "admin" | "playback";
+            /** Label */
+            label: string;
+            /** Token */
+            token: string;
+        };
+        /** CredentialView */
+        CredentialView: {
+            /** Created At */
+            created_at: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "admin" | "playback";
+            /** Label */
+            label: string;
+        };
+        /** Credentials */
+        Credentials: {
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /** Username */
+            username: string;
+        };
         /**
          * DashboardConfigResponse
          * @description Schema for dashboard config response
@@ -5088,6 +5849,14 @@ export interface components {
             auto_refresh_interval?: number | null;
             /** Retention Days */
             retention_days?: number | null;
+        };
+        /** DisableAccess */
+        DisableAccess: {
+            /**
+             * Current Password
+             * Format: password
+             */
+            current_password: string;
         };
         /**
          * EPGChannelListResponse
@@ -6411,6 +7180,24 @@ export interface components {
              */
             value?: string;
         };
+        /** PasswordChange */
+        PasswordChange: {
+            /**
+             * Current Password
+             * Format: password
+             */
+            current_password: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Password Confirmation
+             * Format: password
+             */
+            password_confirmation: string;
+        };
         /** PlaybackRouting */
         PlaybackRouting: {
             /**
@@ -6521,6 +7308,13 @@ export interface components {
             linked_streams: number;
             /** Streams */
             streams: number;
+        };
+        /** PlaylistLink */
+        PlaylistLink: {
+            /** Guide Url */
+            guide_url: string;
+            /** Url */
+            url: string;
         };
         /** ProgrammeSelection */
         ProgrammeSelection: {
@@ -7686,6 +8480,19 @@ export interface components {
              * @description True when the app runs under the container entrypoint
              */
             supervised: boolean;
+        };
+        /** SessionView */
+        SessionView: {
+            /** Created At */
+            created_at: number;
+            /** Expires At */
+            expires_at: number;
+            /** Id */
+            id: string;
+            /** Last Seen */
+            last_seen: number;
+            /** Username */
+            username: string;
         };
         /**
          * SettingResponse
@@ -8901,6 +9708,43 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** ViewerStatus */
+        ViewerStatus: {
+            /** Audio Index */
+            audio_index?: number | null;
+            /** Audio Tracks */
+            audio_tracks?: components["schemas"]["AudioTrack"][];
+            codecs: components["schemas"]["PlayerCodecs"];
+            /** Content Id */
+            content_id: string;
+            /** Control Token */
+            control_token?: string | null;
+            /** Error */
+            error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed" | "source_unavailable") | null;
+            /**
+             * Error Message
+             * @default
+             */
+            error_message?: string;
+            /** Hls Ready */
+            hls_ready: boolean;
+            /** Id */
+            id: string;
+            /** Playlist Url */
+            playlist_url: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "starting" | "ready" | "error" | "stopped";
+            stats?: components["schemas"]["PlayerStats"] | null;
+            /** Subtitle Index */
+            subtitle_index?: number | null;
+            /** Subtitle Tracks */
+            subtitle_tracks?: components["schemas"]["SubtitleTrack"][];
+            /** Viewers */
+            viewers: number;
+        };
         /** WarpExclusionsState */
         WarpExclusionsState: {
             /** Active Hosts */
@@ -8937,6 +9781,77 @@ export interface components {
         WarpModeRequest: {
             /** @description The WARP mode to set */
             mode: components["schemas"]["WarpModeEnum"];
+        };
+        /** WatchChannel */
+        WatchChannel: {
+            /** Category */
+            category?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Online */
+            online?: boolean | null;
+            /** Tv Channel Id */
+            tv_channel_id?: number | null;
+        };
+        /** WatchChannels */
+        WatchChannels: {
+            /** Items */
+            items: components["schemas"]["WatchChannel"][];
+            /** Total */
+            total: number;
+        };
+        /** WatchEvent */
+        WatchEvent: {
+            /**
+             * Competition
+             * @default
+             */
+            competition?: string;
+            /** Id */
+            id: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /**
+             * State
+             * @default
+             */
+            state?: string;
+            /** Title */
+            title: string;
+        };
+        /** WatchProgramme */
+        WatchProgramme: {
+            /** Channel */
+            channel: string;
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
+            /** Id */
+            id: number;
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+            /** Title */
+            title: string;
+        };
+        /** WatchRecording */
+        WatchRecording: {
+            /** Channel */
+            channel: string;
+            /** Files */
+            files?: string[];
+            /** Id */
+            id: string;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
         };
         /** BaseUrlUpdate */
         app__schemas__base_url__BaseUrlUpdate: {
@@ -9614,6 +10529,444 @@ export interface operations {
             };
         };
     };
+    bootstrap_api_v1_auth_bootstrap_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Bootstrap"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    credentials_api_v1_auth_credentials_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialView"][];
+                };
+            };
+        };
+    };
+    issue_credential_api_v1_auth_credentials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CredentialCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialIssued"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_credential_api_v1_auth_credentials__credential_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_api_v1_auth_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisableAccess"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    change_password_api_v1_auth_password_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    policy_api_v1_auth_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessPolicy"];
+                };
+            };
+        };
+    };
+    update_policy_api_v1_auth_policy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessPolicy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessPolicy"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sessions_api_v1_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionView"][];
+                };
+            };
+        };
+    };
+    revoke_session_api_v1_auth_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    access_status_api_v1_auth_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessStatus"];
+                };
+            };
+        };
+    };
+    users_api_v1_auth_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"][];
+                };
+            };
+        };
+    };
+    create_user_api_v1_auth_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_auth_users__user_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     run_channel_status_job_api_v1_background_tasks_channel_status_run_post: {
         parameters: {
             query?: never;
@@ -9759,6 +11112,165 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BaseUrlResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    browser_api_v1_cast_browser_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_cast_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastCapabilities"];
+                };
+            };
+        };
+    };
+    devices_api_v1_cast_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastDevice"][];
+                };
+            };
+        };
+    };
+    sessions_api_v1_cast_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastStatus"][];
+                };
+            };
+        };
+    };
+    start_api_v1_cast_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    command_api_v1_cast_sessions__cast_id__commands_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cast_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -16795,6 +18307,437 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_api_v1_view_channels_get: {
+        parameters: {
+            query?: {
+                search?: string;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchChannels"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    events_api_v1_view_events_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchEvent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guide_api_v1_view_guide_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchProgramme"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    live_api_v1_view_live_get: {
+        parameters: {
+            query?: {
+                search?: string;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchChannels"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    playlist_link_api_v1_view_playlists_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaylistLink"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_view_recordings_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchRecording"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recording_file_api_v1_view_recordings__rid__files__fid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                fid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_recording_api_v1_view_recordings__rid__playback_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordingPlaybackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingPlaybackView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingPlaybackView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_v1_viewers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerSessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    status_api_v1_viewers__viewer_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                viewer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    release_api_v1_viewers__viewer_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                viewer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    media_api_v1_viewers__viewer_id__media__resource__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                viewer_id: string;
+                resource: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

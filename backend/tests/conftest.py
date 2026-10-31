@@ -724,6 +724,20 @@ def assert_epg_program_response(response_data, expected_data):
 
 
 @pytest.fixture(autouse=True)
+def _isolated_access_storage(tmp_path_factory, monkeypatch):
+    """Existing domain tests model an upgraded installation with accounts off.
+
+    Never read/write a developer's access store, or let a lifespan test's fresh
+    setup mode affect later API tests. Account tests override this path and
+    explicitly migrate a fresh pending store; browser journeys cover fresh boot.
+    """
+    from app.repositories import access_repository
+    access_dir = tmp_path_factory.mktemp('access-storage')
+    monkeypatch.setattr(access_repository, 'config_path', lambda url: access_dir / 'runtime-config.json')
+    access_repository.AccessRepository().initialize(fresh=False)
+
+
+@pytest.fixture(autouse=True)
 def _relay_registry_left_clean():
     """Every test leaves the relay registry as it found it.
 
@@ -734,9 +748,11 @@ def _relay_registry_left_clean():
     that leaked it.
     """
     from app.services.stream_relay import relay_registry
-    before = {info.id for info in relay_registry.active()}
+    # Preserve the real registry accessor when a test mocks its projection.
+    active = relay_registry.active
+    before = {info.id for info in active()}
     yield
-    left = [info for info in relay_registry.active() if info.id not in before]
+    left = [info for info in active() if info.id not in before]
     for info in left:
         relay_registry.close(info.id)
     if left:

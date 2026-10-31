@@ -83,7 +83,7 @@ async def _fetch_manifest(url: str, headers: dict, limit: int = MAX_MANIFEST_BYT
     raise ValueError('too many redirects')
 
 
-async def _serve_manifest(stream_id: str, url: str, headers: dict, root_path: str = ""):
+async def _serve_manifest(stream_id: str, url: str, headers: dict, root_path: str = "", playback_token: str = ''):
     try:
         final_url, body, content_type = await _fetch_manifest(url, headers)
     except Exception:
@@ -96,7 +96,7 @@ async def _serve_manifest(stream_id: str, url: str, headers: dict, root_path: st
 
     def link(absolute_url: str) -> str:
         return (f"{root_path}/live/{quote(stream_id, safe='')}?u={quote(absolute_url, safe='')}"
-                f"&s={hls_manifest.sign(absolute_url)}")
+                f"&s={hls_manifest.sign(absolute_url)}" + (f'&token={quote(playback_token, safe="")}' if playback_token else ''))
 
     try:
         served = hls_manifest.serve(text, final_url, link)
@@ -141,7 +141,7 @@ async def open_live_stream(stream_id: str, request: Request, db: Session = Depen
                 return JSONResponse({"detail": "The broadcaster did not return a live link"}, status_code=502)
         try:
             return await asyncio.wait_for(
-                _serve_manifest(stream_id, url, stream_headers, request.scope.get("root_path", "").rstrip("/")),
+                _serve_manifest(stream_id, url, stream_headers, request.scope.get("root_path", "").rstrip("/"), getattr(request.state, 'playback_token', '')),
                 OPEN_BUDGET_SECONDS)
         except asyncio.TimeoutError:
             return JSONResponse({"detail": "The origin did not answer in time"}, status_code=502)

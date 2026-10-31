@@ -5,6 +5,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
 import { describePlayerError } from '../components/player/playerCopy';
 import { createAppTheme } from '../theme';
+import { accessSession } from '../services/accessSession';
+import { setApiToken } from '../services/apiToken';
 
 // jsdom has no decoder; model the lifecycle operations the player calls.
 beforeAll(() => {
@@ -18,6 +20,7 @@ const mockStatus = jest.fn();
 const mockPublicUrl = jest.fn();
 const mockLeave = jest.fn();
 interface MockHlsInstance {
+  options: { xhrSetup: (xhr: XMLHttpRequest) => void };
   loadSource: jest.Mock;
   attachMedia: jest.Mock;
   destroy: jest.Mock;
@@ -44,7 +47,7 @@ jest.mock('hls.js', () => {
     startLoad = jest.fn();
     recoverMediaError = jest.fn();
     on = jest.fn();
-    constructor() { hlsInstances.push(this); }
+    constructor(public options: { xhrSetup: (xhr: XMLHttpRequest) => void }) { hlsInstances.push(this); }
   }
   return { __esModule: true, default: MockHls };
 });
@@ -75,6 +78,33 @@ describe('StreamPlayerDialog', () => {
     hlsInstances.length = 0;
     mockPublicUrl.mockReturnValue({ data: { url: 'http://scraper.lan:8000', source: 'setting', warnings: [] } });
     mockStart.mockResolvedValue({ id: 's1' });
+  });
+
+  it.each([true, false])('keeps legacy credentials out of account media (hls.js: %s)', async (supported) => {
+    const support = jest.spyOn(Hls, 'isSupported').mockReturnValue(supported);
+    const playlist = '/api/v1/viewers/viewer/media/index.m3u8?cap=viewer-media';
+    accessSession.update('csrf', true);
+    setApiToken('legacy-catalogue-token');
+    try {
+      mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
+      const view = await renderDialog();
+      mockStatus.mockReturnValue({ data: { ...readySession.data, playlist_url: playlist } });
+      view.rerender(<ThemeProvider theme={createAppTheme('light')}>
+        <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} />
+      </ThemeProvider>);
+      if (supported) {
+        expect(hlsInstances[0].loadSource).toHaveBeenCalledWith(playlist);
+        const setRequestHeader = jest.fn();
+        hlsInstances[0].options.xhrSetup({ setRequestHeader } as unknown as XMLHttpRequest);
+        expect(setRequestHeader).not.toHaveBeenCalled();
+      } else {
+        expect(screen.getByLabelText('Video player for Arena TV')).toHaveAttribute('src', playlist);
+      }
+    } finally {
+      support.mockRestore();
+      accessSession.update('', false);
+      setApiToken('');
+    }
   });
 
   it('keeps the inline schedule open and resizes without restarting playback', async () => {

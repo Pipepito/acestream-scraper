@@ -37,9 +37,15 @@ import { usePublicUrl } from '../hooks/useSystemServices';
 import { PlaylistFilters, playlistService, getAbsolutePlaylistUrl, buildPublicUrl } from '../services/playlistService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import { useAccess } from '../components/access/AccessContext';
+import { accessService } from '../services/accessService';
 
 /** Build the M3U link, then download it or hand it to a player. */
 const Playlist: React.FC = () => {
+  const managed = useAccess()?.status.mode === 'accounts';
+  const [playbackToken, setPlaybackToken] = useState('');
+  const [creatingLink, setCreatingLink] = useState(false);
+  const [linkError, setLinkError] = useState('');
   const [filters, setFilters] = useState<PlaylistFilters>({ only_online: false, include_unassigned: false, include_groups: [], exclude_groups: [] });
   const [showGroups, setShowGroups] = useState(false);
   const [search, setSearch] = useState('');
@@ -60,7 +66,7 @@ const Playlist: React.FC = () => {
   const relayPattern = buildPublicUrl('/tuner/channel/{tv_channel_id}.ts', publicUrl?.url).replace('%7Btv_channel_id%7D', '{tv_channel_id}');
   const selectedFormat = selectedBaseUrlId === 'tv-relay' ? { name: 'TV channel relay (automatic failover)', pattern: relayPattern } : namedBaseUrls.find(entry => selectedBaseUrlId === '' ? entry.is_default : entry.id === selectedBaseUrlId);
 
-  const isRelay = Boolean(selectedFormat?.pattern?.includes('{tv_channel_id}'));
+  const isRelay = managed || Boolean(selectedFormat?.pattern?.includes('{tv_channel_id}'));
   const effectiveFilters: PlaylistFilters = {
     ...filters,
     search: search || undefined,
@@ -69,8 +75,15 @@ const Playlist: React.FC = () => {
     base_url_id: typeof selectedBaseUrlId === 'number' ? selectedBaseUrlId : undefined,
     base_url: selectedBaseUrlId === 'tv-relay' ? relayPattern : undefined,
   };
-  const playlistUrl = playlistService.getPlaylistDownloadUrl(effectiveFilters);
-  const absolutePlaylistUrl = getAbsolutePlaylistUrl(effectiveFilters, publicUrl?.url);
+  const appendCredential = (url: string) => playbackToken ? `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(playbackToken)}` : url;
+  const playlistUrl = appendCredential(playlistService.getPlaylistDownloadUrl(effectiveFilters));
+  const absolutePlaylistUrl = appendCredential(getAbsolutePlaylistUrl(effectiveFilters, publicUrl?.url));
+  const createLink = async () => {
+    setCreatingLink(true); setLinkError('');
+    try { const link = await accessService.playlistLink(); setPlaybackToken(new URL(link.url).searchParams.get('token') ?? ''); }
+    catch { setLinkError('Could not create a playback credential. Check Settings → Access.'); }
+    finally { setCreatingLink(false); }
+  };
 
   const handleGroups = (key: 'include_groups' | 'exclude_groups') => (event: SelectChangeEvent<string[]>) => {
     setFilters((prev) => ({ ...prev, [key]: event.target.value as string[] }));
@@ -161,13 +174,13 @@ const Playlist: React.FC = () => {
                   labelId="stream-base-url-label"
                   displayEmpty
                   renderValue={(value) => value === '' ? 'Default' : value === 'tv-relay' ? 'TV channel relay (automatic failover)' : namedBaseUrls.find(entry => entry.id === value)?.name ?? 'Default'}
-                  value={selectedBaseUrlId}
+                  value={managed ? 'tv-relay' : selectedBaseUrlId}
                   onChange={(event) => {
                     const value = event.target.value;
                     setSelectedBaseUrlId(value === '' || value === 'tv-relay' ? value : Number(value));
                   }}
                   input={<OutlinedInput label="Stream link format" notched />}
-                  disabled={loadingBaseUrls}
+                  disabled={managed || loadingBaseUrls}
                 >
                   <MenuItem value="">Default</MenuItem>
                   <MenuItem value="tv-relay">TV channel relay (automatic failover)</MenuItem>
@@ -177,7 +190,7 @@ const Playlist: React.FC = () => {
                     </MenuItem>
                   ))}
                 </Select>
-                <FormHelperText>Default uses your saved format, or acestream:// when none is saved.</FormHelperText>
+                <FormHelperText>{managed ? 'User management requires application relay links to protect source credentials.' : 'Default uses your saved format, or acestream:// when none is saved.'}</FormHelperText>
               </FormControl>
               {selectedFormat ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}><strong>{selectedFormat.name}:</strong> {selectedFormat.pattern}</Typography> : null}
               {selectedFormat?.pattern.includes('{tv_channel_id}') ? <Alert severity="info">One entry per TV channel, using its stable ID. If playback fails, the relay selects another source when your player reconnects. Experimental transcoding recovery can be enabled in Integrations → Media servers → Tuner settings. Unassigned streams can be included below the TV channels using individual relay URLs.</Alert> : null}
@@ -201,6 +214,9 @@ const Playlist: React.FC = () => {
               <Typography variant="sectionTitle" component="h3">
                 Playlist link
               </Typography>
+              {managed ? <Alert severity="info">Protected playlists use the server relay. Create a playback credential before copying or downloading a playlist for an external player; revoke shared links in Settings → Access.</Alert> : null}
+              {managed && !playbackToken ? <Button disabled={creatingLink} onClick={() => void createLink()}>Create playback credential</Button> : null}
+              {linkError ? <Alert severity="error">{linkError}</Alert> : null}
               <TextField
                 fullWidth
                 size="small"
@@ -209,7 +225,7 @@ const Playlist: React.FC = () => {
                 InputProps={{
                   endAdornment: (
                     <Tooltip title="Copy link">
-                      <IconButton size="small" aria-label="Copy playlist URL" onClick={handleCopy}>
+                      <IconButton size="small" aria-label="Copy playlist URL" disabled={managed && !playbackToken} onClick={handleCopy}>
                         <ContentCopy fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -217,15 +233,15 @@ const Playlist: React.FC = () => {
                 }}
               />
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Button variant="contained" startIcon={<Download />} href={playlistUrl} download="acestream_playlist.m3u">
+                <Button variant="contained" disabled={managed && !playbackToken} startIcon={<Download />} href={playlistUrl} download="acestream_playlist.m3u">
                   Download M3U
                 </Button>
-                <Button variant="outlined" startIcon={<QrCode />} onClick={() => setQrOpen(true)}>
+                <Button variant="outlined" disabled={managed && !playbackToken} startIcon={<QrCode />} onClick={() => setQrOpen(true)}>
                   Show QR code
                 </Button>
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                Import this URL in VLC, Kodi or your IPTV app. The AceStream engine must be reachable from the player.
+                {managed ? 'Import this URL in VLC, Kodi or your IPTV app. The application must be reachable from the player.' : 'Import this URL in VLC, Kodi or your IPTV app. The AceStream engine must be reachable from the player.'}
               </Typography>
             </Stack>
           </Grid>

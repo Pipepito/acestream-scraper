@@ -847,6 +847,17 @@ See `docs/ops/code-quality.md` for optional Git hooks and coverage reporting.
 `CI_COVERAGE_DIR` enables separate backend/frontend reports in the existing full
 suite. Jenkins gates and scanner policy remain in the private infrastructure repo.
 
+## Accounts and Cast receivers
+
+First-run account setup and Settings → Access manage optional accounts without
+new Docker bootstrap credentials. Preserve the independently migrated access store
+and fail-closed marker across catalogue restore/recovery. Management is default-deny
+across aliases and ASGI prefixes; viewer-control, media, IPTV and administrative
+credentials have separate scopes. Server Cast requires account permission and a
+verified home client unless remote control is explicitly enabled. Stop only owned
+receiver media; bounded compatibility conversion yields to recording capture.
+See `docs/ops/access-and-casting.md` and `wiki/Accounts-and-Casting.md`.
+
 
 ## WARP management
 

@@ -3,8 +3,13 @@ API router configuration
 """
 from fastapi import APIRouter
 from app.api.endpoints import channels, scrapers, epg, playlists, tv_channels, search, config, health, warp, urls, acestream, stats, activity, background_tasks, streams, base_urls, system, player, remote_players, media_servers, tuner
+from app.api.endpoints import access, watch, viewers, cast
 
 api_router = APIRouter()
+api_router.include_router(access.router, prefix='/auth', tags=['access'])
+api_router.include_router(watch.router, prefix='/view', tags=['watch'])
+api_router.include_router(viewers.router, prefix='/viewers', tags=['viewers'])
+api_router.include_router(cast.router, prefix='/cast', tags=['cast'])
 api_router.include_router(channels.router, prefix="/acestream-channels", tags=["channels"])
 # Backward-compatible alias retained for parity and existing test expectations.
 api_router.include_router(channels.router, prefix="/channels", tags=["channels"])

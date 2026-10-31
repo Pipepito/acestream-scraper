@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import ctypes
 import logging
+import math
 import os
 import re
 import shutil
@@ -46,6 +47,7 @@ NO_VIEWERS_SECONDS = 5.0
 ERROR_SECONDS = 60.0
 TICK_SECONDS = 5.0
 STDERR_TAIL = 20
+HLS_WINDOW_SEGMENTS = 30
 _SESSION_DIR = re.compile(r"^[0-9a-f]{32}$")
 _STREAM_LINE = re.compile(r"Stream #0:\d+.*?: (Video|Audio): ([A-Za-z0-9_]+)")
 
@@ -76,6 +78,7 @@ class PlayerSession:
     error: Optional[PlayerError] = None
     error_message: str = ""
     viewers: int = 0
+    compatibility: bool = False
     viewers_zero_since: Optional[float] = None
     engine_session: Optional[EngineSession] = None
     http_source: Optional[PlayerHTTPSource] = None
@@ -156,7 +159,7 @@ class PlayerService:
             str(self.ffmpeg_path()), "-nostdin", "-hide_banner", "-loglevel", "info", "-nostats",
             "-rw_timeout", str(read_timeout_us), "-fflags", "+genpts+discardcorrupt",
             "-i", playback_url, "-map", "0:v:0", "-map", f"0:a:{audio_index}" if audio_index is not None else "0:a:0?", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
-            "-f", "hls", "-hls_time", "2", "-hls_list_size", "6", "-hls_delete_threshold", "2",
+            "-f", "hls", "-hls_time", "2", "-hls_list_size", str(HLS_WINDOW_SEGMENTS), "-hls_delete_threshold", "2",
             "-hls_flags", "delete_segments+independent_segments+omit_endlist+temp_file",
             "-hls_segment_type", "mpegts", "-hls_segment_filename", str(directory / "seg%05d.ts"),
             str(directory / "index.m3u8"),
@@ -251,23 +254,41 @@ class PlayerService:
     def playlist_path(self, session: PlayerSession) -> Path:
         return session.dir / "index.m3u8"
 
-    def hls_ready(self, session: PlayerSession) -> bool:
+    def hls_ready(self, session: PlayerSession, *, minimum_segments: int = 2, minimum_seconds: float = 0) -> bool:
         playlist = self.playlist_path(session)
         try:
             lines = playlist.read_text().splitlines()
         except OSError:
             return False
-        return sum(1 for line in lines if line.strip().endswith(".ts")) >= 2
+        segments = 0
+        seconds = 0.0
+        pending_duration = 0.0
+        for line in lines:
+            line = line.strip()
+            if line.startswith('#EXTINF:'):
+                try:
+                    pending_duration = float(line.partition(':')[2].partition(',')[0])
+                except ValueError:
+                    pending_duration = 0.0
+            elif line and not line.startswith('#'):
+                if line.endswith('.ts'):
+                    segments += 1
+                    if math.isfinite(pending_duration) and pending_duration > 0:
+                        seconds += pending_duration
+                pending_duration = 0.0
+        return segments >= minimum_segments and seconds >= minimum_seconds
 
-    async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None) -> PlayerSession:
+    async def open_session(self, content_id: str, audio_index: Optional[int] = None, subtitle_index: Optional[int] = None, *, compatibility: bool = False) -> PlayerSession:
         async with self._lock:
             for existing in self.sessions.values():
-                if existing.content_id == content_id and (existing.audio_index or 0) == (audio_index or 0) and existing.subtitle_index == subtitle_index and existing.state in ("starting", "ready"):
+                if existing.content_id == content_id and existing.compatibility == compatibility and (existing.audio_index or 0) == (audio_index or 0) and existing.subtitle_index == subtitle_index and existing.state in ("starting", "ready"):
                     existing.viewers += 1
                     existing.viewers_zero_since = None
                     existing.last_access = self._now()
                     return existing
             limit = int(self._settings().PLAYER_MAX_SESSIONS)
+            if compatibility and any(s.compatibility and s.state in ('starting', 'ready') for s in self.sessions.values()):
+                raise PlayerLimitReached(1, 1)
             active = sum(1 for s in self.sessions.values() if s.state in ("starting", "ready"))
             if active >= limit:
                 raise PlayerLimitReached(limit, active)
@@ -288,6 +309,7 @@ class PlayerService:
                 created_at=now,
                 last_access=now,
                 viewers=1,
+                compatibility=compatibility,
             )
             self.sessions[session.id] = session
         for old in retired:
@@ -347,6 +369,13 @@ class PlayerService:
             playback_url = engine_session.playback_url
         session.dir.mkdir(parents=True, exist_ok=True)
         argv = self.ffmpeg_argv(playback_url, session.dir, session.audio_index, session.subtitle_index)
+        if session.compatibility:
+            video_codec = argv.index('-c:v') + 1
+            argv[video_codec] = 'libx264'
+            argv[video_codec + 1:video_codec + 1] = ['-preset', 'veryfast', '-crf', '23', '-profile:v', 'main',
+                '-pix_fmt', 'yuv420p', '-threads', '2', '-vf',
+                "scale=w='min(1280,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=30",
+                '-g', '60', '-keyint_min', '60', '-sc_threshold', '0', '-maxrate', '3M', '-bufsize', '6M']
         if session.http_source is not None:
             # Inputs cannot open local files, concat lists or arbitrary protocols.
             # HTTPS and all HLS child fetches are handled by the guarded proxy.
@@ -502,8 +531,19 @@ class PlayerService:
         multiple of the per-call timeout, stretching the interval that decides
         when a stale session is torn down.
         """
+        if self is player_service:
+            from app.services.cast_service import cast_service
+            from app.services.viewer_service import viewer_service
+            await cast_service.tick()
+            await viewer_service.tick()
         now = self._now()
         sessions = list(self.sessions.values())
+        if any(session.compatibility for session in sessions):
+            from app.services.recording_coordinator import recording_coordinator
+            if recording_coordinator.activity():
+                for session in sessions:
+                    if session.compatibility and session.state in ('starting', 'ready'):
+                        await self._fail(session, 'ffmpeg_failed', 'Compatibility conversion stopped because recording takes priority')
         await asyncio.gather(*(self._refresh_stats(session) for session in sessions))
         for session in sessions:
             try:

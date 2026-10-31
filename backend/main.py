@@ -14,6 +14,7 @@ from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from sqlalchemy.engine import make_url
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api import api_router
@@ -40,6 +41,8 @@ from app.config.database import (
 from app.config.settings import get_settings, settings
 from app.config.version import get_app_version
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
+from app.middleware.access import AccessMiddleware
+from app.middleware.media_cors import ApplicationCORSMiddleware
 from app.services.startup_service import startup_service
 from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
 from app.services.epg_service import EPGService
@@ -188,6 +191,10 @@ async def lifespan(app: FastAPI):
 
     async def stop_services():
         nonlocal reaper, services_started
+        from app.services.cast_service import cast_service
+        from app.services.viewer_service import viewer_service
+        await cast_service.close()
+        viewer_service.close()
         if reaper is not None:
             reaper.cancel()
             with suppress(asyncio.CancelledError):
@@ -206,6 +213,15 @@ async def lifespan(app: FastAPI):
     async def boot(action='retry'):
         nonlocal reaper, data_lock, services_started
         database_phase = True
+        from app.repositories.access_repository import AccessRepository
+        try:
+            legacy_url = make_url(get_settings().LEGACY_DATABASE_URL)
+            legacy_exists = bool(legacy_url.database and Path(legacy_url.database).is_file())
+            fresh_install = not database_path().exists() and not legacy_exists
+            await asyncio.to_thread(AccessRepository().initialize, fresh=fresh_install)
+        except Exception as exc:
+            startup_service.fail(exc, database=False)
+            return
         try:
             if data_lock is None:
                 path = database_path()
@@ -295,11 +311,13 @@ app = FastAPI(
 
 @app.middleware("http")
 async def startup_readiness(request: Request, call_next):
-    path = request.url.path
+    from app.utils.request_path import route_path
+    path = route_path(request.scope)
     if startup_service.active and startup_service.status != 'ready':
         spa_paths = {'/', '/startup', '/live-tv', '/tv-channels', '/acestream-channels',
                      '/recordings', '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
-        allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup'))
+        allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup', '/api/v1/auth/'))
+        allowed = allowed or path in ('/login', '/watch', '/setup')
         allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/'))
         allowed = allowed or path in {'/favicon.ico', '/manifest.json', '/robots.txt'}
         allowed = allowed or path == '/api/v1/system/diagnostics'
@@ -323,11 +341,11 @@ async def correlation_id_middleware(request: Request, call_next):
 
 from app.middleware.recipe_limits import RecipeRequestLimits
 app.add_middleware(RecipeRequestLimits)
+app.add_middleware(AccessMiddleware)
 
 # Add CORS middleware
-from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
-    CORSMiddleware,
+    ApplicationCORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],

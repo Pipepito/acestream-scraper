@@ -36,3 +36,5 @@ e2e/
 # Installation settings must never enter an image build context.
 **/runtime-config.json
 **/runtime-config.json.lock
+**/access.db*
+**/access.required

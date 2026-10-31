@@ -10,6 +10,10 @@ import httpx
 
 class WarpMode(Enum):
     """Available WARP modes"""
+    DOH = "doh"
+    WARP_DOH = "warp+doh"
+    WARP_DOT = "warp+dot"
+    TUNNEL_ONLY = "tunnel_only"
     WARP = "warp"  # Full tunnel mode
     DOT = "dot"    # DNS-over-TLS mode
     PROXY = "proxy"  # Proxy mode
@@ -180,6 +184,8 @@ class WarpService:
         Set the WARP mode
         """
         try:
+            if mode == "off":
+                return await self.disconnect()
             code, stdout, stderr = await self._run_command(["mode", mode])
             if code == 0:
                 status = await self.get_status()
@@ -212,6 +218,10 @@ class WarpService:
         for line in stdout.splitlines():
             if "Mode:" in line:
                 mode_str = line.split("Mode:")[1].strip().lower()
+                if mode_str.startswith('warpproxy on port '):
+                    mode_str = 'proxy'
+                mode_str = {'warpwithdnsoverhttps': 'warp+doh', 'warpwithdnsovertls': 'warp+dot',
+                            'dnsoverhttps': 'doh', 'dnsovertls': 'dot', 'tunnelonly': 'tunnel_only'}.get(mode_str, mode_str)
                 for mode in WarpMode:
                     if mode.value == mode_str:
                         return mode

@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi import status as http_status
 
 from app.api.error_handlers import APIError
-from app.schemas.warp import WarpModeRequest
+from app.schemas.warp import WarpModeRequest, WarpExclusionsState, WarpExclusionsUpdate
 from app.services.warp_service import warp_service
 
 router = APIRouter()
@@ -128,3 +128,29 @@ async def register_warp_license(request: dict):
         raise
     except Exception as exc:
         raise _internal_error("license registration", exc, "WARP_LICENSE_REGISTER_UNAVAILABLE") from exc
+
+
+# Synchronous routes deliberately keep CLI/file operations off the event loop.
+def _exclusions_call(action):
+    from app.config.settings import get_settings
+    from runtime_config import ConfigConflict, ConfigError
+    from warp_exclusions import WarpExclusions, exclusions_path
+
+    try:
+        return action(WarpExclusions(exclusions_path(get_settings().DATABASE_URL)))
+    except ConfigConflict as exc:
+        raise APIError('WARP_EXCLUSIONS_CONFLICT', str(exc), 409) from None
+    except ConfigError as exc:
+        raise APIError('WARP_EXCLUSIONS_INVALID', str(exc), 422) from None
+    except OSError:
+        raise APIError('WARP_EXCLUSIONS_STORAGE', 'Cannot save WARP exclusions. Check permissions on the database directory.', 503) from None
+
+
+@router.get('/exclusions', response_model=WarpExclusionsState)
+def get_exclusions():
+    return _exclusions_call(lambda service: service.state())
+
+
+@router.put('/exclusions', response_model=WarpExclusionsState)
+def save_exclusions(request: WarpExclusionsUpdate):
+    return _exclusions_call(lambda service: service.save(request.hosts, request.expected_revision))

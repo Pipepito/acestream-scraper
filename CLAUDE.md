@@ -122,7 +122,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 - Navigation groups Watch (TV dashboard, Live TV, Catalogues, Events), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist) Integrations (Public address, Web player, Remote players, Media servers, Telegram) and System (System status, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations category opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
-- Vite config (`frontend/vite.config.ts`) hand-tunes `manualChunks` for MUI / data-grid / data-vendor / TVChannels page splits. Preserve the chunking rules unless deliberately retuning bundle size.
+- Vite config (`frontend/vite.config.ts`) uses Rolldown dependency groups for React, MUI, data-grid, data, HLS and TV Channels. HLS builds pinned full-feature source modules so its code can split. Preserve dependency ownership to avoid initialization cycles; see `docs/dev/frontend-bundles.md` for upgrade and built-SPA verification.
 - Dev server proxies `/api` → `http://localhost:8000`. Backend `CORS_ORIGINS` defaults to `http://localhost:3000` and accepts a comma-separated string in env (normalized in `Settings.normalize_cors_origins`).
 
 ### Media integrations: known limitations
@@ -857,3 +857,17 @@ credentials have separate scopes. Server Cast requires account permission and a
 verified home client unless remote control is explicitly enabled. Stop only owned
 receiver media; bounded compatibility conversion yields to recording capture.
 See `docs/ops/access-and-casting.md` and `wiki/Accounts-and-Casting.md`.
+
+
+## WARP management
+
+WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and
+`backend/warp_exclusions.py`, shared with `warp-setup.sh`. Persist desired and
+previously managed hosts beside the database; retain pending removals after partial
+failures, reject stale edits, preserve unrelated CLI exclusions, and verify the
+active exclude-mode list before claiming success. Saved empty lists override
+`WARP_EXCLUDE_HOSTS`; the environment bootstraps only before a saved file exists.
+Startup/recovery reapplies saved exclusions and rechecks the auto-connect barrier.
+Use bounded argv-only commands off the event loop. Startup controls on the WARP
+page use the existing runtime-config API and require a container restart. See
+`wiki/Docker.md#managing-warp-from-the-app`.

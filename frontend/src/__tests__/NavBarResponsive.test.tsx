@@ -190,9 +190,9 @@ describe('NavBar responsive shell behavior', () => {
     const links = ['Watch', 'Manage', 'Integrations', 'System'].flatMap(section =>
       within(screen.getByRole('list', { name: section })).getAllByRole('link'));
     expect(links).toHaveLength(expectedNames.length);
-    for (const [index, name] of expectedNames.entries()) {
+    for (let index = 0; index < expectedNames.length; index += 1) {
       await tab();
-      expect(links[index]).toHaveAccessibleName(name);
+      expect(links[index]).toHaveAccessibleName(expectedNames[index]);
       expect(links[index]).toHaveFocus();
     }
 

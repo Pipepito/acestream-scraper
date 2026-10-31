@@ -8,13 +8,14 @@ from typing import List, Optional
 
 from app.api.dependencies import get_scraper_service
 from app.api.error_handlers import APIError
-from app.schemas.scraper import ScraperRequest, ScraperResult, URLResponse, URLCreate, URLUpdate
+from app.schemas.scraper import ScraperRequest, ScraperResult, URLResponse, URLCreate, URLUpdate, BuiltinProvider
 from app.services.scraper_service import ScraperService
 from app.services.manual_job_service import run_manual_job, scrape_batch
 
 from starlette.concurrency import run_in_threadpool
 from app.schemas.extraction import RecipePreview, RecipePreviewRequest, RecipeSample, RecipeFetchRequest
 from app.services.extraction_service import preview_recipe, fetch_recipe_sample
+
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ async def scrape_url(
                 channels=channels,
                 url=request.url,
                 channels_found=len(channels),
+                excluded_count=scraper_service.last_import_exclusions,
                 status=status_msg
             )
     except Exception as e:
@@ -81,6 +83,12 @@ async def scrape_url(
             status_code=502,
             context={"url": request.url, "url_type": request.url_type, "error": str(e)},
         ) from e
+
+
+@router.get('/providers', response_model=List[BuiltinProvider])
+def builtin_providers():
+    from app.services.live_providers import BUILTIN_SOURCES
+    return BUILTIN_SOURCES
 
 
 @router.get("/urls", response_model=List[URLResponse])

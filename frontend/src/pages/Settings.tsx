@@ -1,6 +1,9 @@
+import RecordingSettingsFields from '../components/recordings/RecordingSettingsFields';
+import GuideMatchingFields from '../components/GuideMatchingFields';
 import ScheduleAnchorFields from '../components/ScheduleAnchorFields';
 import StreamLinkFormatsSection from '../components/StreamLinkFormatsSection';
 import CheckEngineFields from '../components/CheckEngineFields';
+import NotificationsSection from '../components/NotificationsSection';
 import React, { useEffect, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import PlaybackRoutingFields from '../components/player/PlaybackRoutingFields';
@@ -41,6 +44,8 @@ import { getApiToken, setApiToken as storeApiToken, clearApiToken as removeStore
 import { getErrorMessage } from '../utils/errorUtils';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import AccessSettings from '../components/access/AccessSettings';
+import { useAccess } from '../components/access/AccessContext';
 
 type FeedbackSeverity = 'success' | 'error';
 type Notify = (message: string, severity: FeedbackSeverity) => void;
@@ -86,6 +91,7 @@ const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, hel
 );
 
 const Settings: React.FC = () => {
+  const access = useAccess();
   const [params, setParams] = useSearchParams();
   const sections = ['playback', 'automation', 'links', 'access'];
   const section = sections.includes(params.get('tab') ?? '') ? params.get('tab')! : 'playback';
@@ -248,10 +254,10 @@ const Settings: React.FC = () => {
 
   return (
     <Box>
-      <PageHeader title="Settings" subtitle="Playback, scheduled jobs, playlist links and access from this browser." actions={<Button href="/startup" variant="outlined">Startup diagnostics</Button>} />
+      <PageHeader title="Settings" subtitle="Playback, scheduled jobs, playlist links and access from this browser." actions={<><Button component={RouterLink} to="/setup" variant="outlined">Setup wizard</Button><Button href="/startup" variant="outlined">Startup diagnostics</Button></>} />
 
       <Tabs value={section} onChange={(_event, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="Settings sections" sx={{ mb: 2 }}>
-        {sections.map((name, index) => <Tab key={name} value={name} id={`settings-tab-${name}`} aria-controls={`settings-panel-${name}`} label={['Playback', 'Automation', 'Stream links', 'API access'][index]} />)}
+        {sections.map((name, index) => <Tab key={name} value={name} id={`settings-tab-${name}`} aria-controls={`settings-panel-${name}`} label={['Playback', 'Automation', 'Stream links', 'Access'][index]} />)}
       </Tabs>
       <Box {...panelProps('playback')}>
       <ContentSection
@@ -295,11 +301,17 @@ const Settings: React.FC = () => {
       </ContentSection>
 
       <ContentSection title="Players and network" description="Manage the address other devices use, remote players, media servers and tuner limits in Integrations.">
-        <Button component={RouterLink} to="/integrations" variant="outlined">Manage integrations</Button>
+        <Stack direction="row" gap={1} flexWrap="wrap">
+          <Button component={RouterLink} to="/integrations/public-address" variant="outlined">Public address</Button>
+          <Button component={RouterLink} to="/integrations/remote-players" variant="outlined">Remote players</Button>
+          <Button component={RouterLink} to="/integrations/media-servers" variant="outlined">Media servers and tuner</Button>
+        </Stack>
       </ContentSection>
       </Box>
       <Box {...panelProps('automation')}>
 
+      {section === 'automation' ? <ContentSection title="Recordings"><RecordingSettingsFields /></ContentSection> : null}
+      {section === 'automation' ? <ContentSection title="Guide matching"><GuideMatchingFields /></ContentSection> : null}
       <ContentSection title="Stream status checks"><CheckEngineFields /></ContentSection>
 
       <ContentSection title="Automation" description="Background jobs run on these schedules. Changes apply right away.">
@@ -341,6 +353,7 @@ const Settings: React.FC = () => {
 
         </Stack>
       </ContentSection>
+      <NotificationsSection notify={notify} />
 
       </Box>
       <Box {...panelProps('links')}>
@@ -363,10 +376,11 @@ const Settings: React.FC = () => {
         </Stack>
       </ContentSection>
       <Button component={RouterLink} to="/playlist">Open playlist builder</Button>
-      <Button component={RouterLink} to="/integrations">Manage public address</Button>
+      <Button component={RouterLink} to="/integrations/public-address">Manage public address</Button>
       </Box>
       <Box {...panelProps('access')}>
-      <ContentSection title="API access" description="Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.">
+      {section === 'access' ? <AccessSettings /> : null}
+      {access?.status.mode !== 'accounts' ? <ContentSection title="Legacy API access" description="Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.">
         <Stack spacing={2} sx={{ maxWidth: 520 }}>
           {apiTokenRequired ? (
             <Alert severity="warning">The server rejected a request because a valid token is missing. Enter the token below to restore access.</Alert>
@@ -403,7 +417,7 @@ const Settings: React.FC = () => {
             </Stack>
           </form>
         </Stack>
-      </ContentSection>
+      </ContentSection> : null}
 
       </Box>
       <Snackbar open={feedback.open} autoHideDuration={6000} onClose={() => setFeedback((current) => ({ ...current, open: false }))}>

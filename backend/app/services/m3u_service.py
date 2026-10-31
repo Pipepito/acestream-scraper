@@ -1,6 +1,7 @@
 """
 M3U service for handling M3U files and extracting channel information.
 """
+import hashlib
 import re
 
 import logging
@@ -67,6 +68,35 @@ class M3UService:
             epg_service=epg_service,
             tv_channel_service=tv_channel_service,
         )
+
+    _VLCOPT = re.compile(r'^#EXTVLCOPT:\s*http-(referrer|user-agent|origin|sec-fetch-mode)\s*=\s*(.+)$', re.I)
+    _HEADER_NAMES = {'referrer': 'Referer', 'user-agent': 'User-Agent', 'origin': 'Origin',
+                     'sec-fetch-mode': 'Sec-Fetch-Mode'}
+
+    @staticmethod
+    def _looks_like_stream(line: str) -> bool:
+        """A playable URL that is not an acestream id.
+
+        Only http(s): other schemes in these playlists are either acestream
+        -- already handled above -- or things no player can open, and letting
+        them through would turn junk lines into channels.
+        """
+        low = line.strip().lower()
+        if low.startswith('http://') or low.startswith('https://'):
+            return True
+        # A broadcaster's channel (`mediaset://T5`): resolved when opened,
+        # see app.services.live_providers.
+        from app.services.live_providers import for_stream_url
+        return for_stream_url(line.strip()) is not None
+
+    @staticmethod
+    def _stream_id(url: str) -> str:
+        """A stable id for a stream addressed by URL.
+
+        `url:` prefixed so it can never be mistaken for a content id or an
+        infohash, which are bare 40 hex digits.
+        """
+        return 'url:' + hashlib.sha1(url.strip().encode('utf-8')).hexdigest()
 
     async def find_m3u_links(self, content: str, base_url: str) -> List[str]:
         """Find M3U links in HTML content."""
@@ -137,6 +167,16 @@ class M3UService:
                 ):
                     channel_info['tvg_logo'] = current_group_metadata['group_logo']
                 continue
+            # Headers the playlist publishes for THIS entry, between #EXTINF
+            # and its URL. Measured on a public TDT list: 30 of 576 entries
+            # carry http-referrer, and their domains were exactly the ones
+            # answering 403 -- the "blocked" channels were only missing the
+            # header the list itself was publishing.
+            vlcopt = self._VLCOPT.match(line)
+            if vlcopt:
+                channel_info.setdefault('stream_headers', {})[
+                    self._HEADER_NAMES[vlcopt.group(1).lower()]] = vlcopt.group(2).strip()
+                continue
             # Skip other comment lines
             if line.startswith('#'):
                 continue
@@ -148,15 +188,36 @@ class M3UService:
                 channel_id = acestream_match.group(1)
             elif getstream_match:
                 channel_id = getstream_match.group(1)
+            stream_url = None
+            if not channel_id and self._looks_like_stream(line):
+                # NOT AN ACESTREAM ID, AND IT IS STILL A CHANNEL.
+                #
+                # Until now any line without an acestream id was dropped in
+                # silence, so importing an ordinary IPTV playlist produced
+                # zero channels and said nothing about it. Measured on a real
+                # box: 592 of 1.599 sources (37%) are plain HTTP, reaching 458
+                # of 802 channels -- more than half the grid.
+                #
+                # The id is derived from the URL so a re-scrape updates the
+                # same row instead of duplicating it, and it is deliberately
+                # NOT 40 hex: every engine path keyed on that shape keeps
+                # ignoring these, which is what we want until the status
+                # check learns about them.
+                stream_url = line
+                channel_id = self._stream_id(line)
             if channel_id:
                 name = channel_info.get('name', f"Channel {channel_id}")
                 metadata = {k: v for k, v in channel_info.items() if k != 'name'}
+                if stream_url:
+                    metadata['stream_url'] = stream_url
+                else:
+                    # Headers only mean something to an HTTP request; an
+                    # acestream id goes through the engine.
+                    metadata.pop('stream_headers', None)
                 channels.append((channel_id, name, metadata))
                 channel_info = {}
         logger.info(f"Extracted {len(channels)} channels from M3U content")
-        # Auto-create TV channels from EPG if services are provided
-        if db and epg_service and tv_channel_service:
-            channels = self.auto_create_tv_channels_from_epg(db, channels, epg_service, tv_channel_service)
+        # Parsing is read-only; the importing service owns admission and assignment.
         return channels
 
     def auto_create_tv_channels_from_epg(self, db, parsed_channels, epg_service, tv_channel_service):
@@ -171,25 +232,32 @@ class M3UService:
         Returns:
             List of (acestream_id, name, metadata) with tv_channel_id assigned where applicable
         """
+        from app.services.import_exclusion_service import ImportExclusionService
+        policy = ImportExclusionService(db).snapshot(claim=True)
+        parsed_channels = [(cid, name, meta) for cid, name, meta in parsed_channels
+                           if not policy.matches(cid, name)]
         # Build tvg_id -> [channel indices] mapping
+        excluded = tv_channel_service.repository.get_import_assignment_exclusions(
+            channel_id for channel_id, _name, _meta in parsed_channels
+        )
         tvg_id_map = {}
         for idx, (_ace_id, _name, meta) in enumerate(parsed_channels):
+            if _ace_id in excluded:
+                continue
             tvg_id = meta.get('tvg_id')
             if tvg_id:
                 tvg_id_map.setdefault(tvg_id, []).append(idx)
 
-        # For each tvg_id, check if TV channel exists, else try EPG
+        # For each tvg_id, check if TV channel exists, else try EPG.
+        # Ownership conflicts are expected and filtered below. Unexpected errors
+        # must reach the scrape transaction so existing source data is preserved.
         for tvg_id, indices in tvg_id_map.items():
-            # Check if TV channel exists
             tv_channel = tv_channel_service.get_tv_channel_by_epg_id(tvg_id)
             if tv_channel:
-                # Assign tv_channel_id to all matching streams
-                ace_ids = [parsed_channels[idx][0] for idx in indices]
-                tv_channel_service.repository.assign_acestreams_to_tv_channel(ace_ids, tv_channel.id)
-                for idx in indices:
-                    parsed_channels[idx][2]['tv_channel_id'] = tv_channel.id
+                self._assign_parsed_streams(
+                    tv_channel_service, parsed_channels, indices, tv_channel.id
+                )
                 continue
-            # Check EPG for channel across all sources
             epg_channel = epg_service.find_channel_by_xml_id_across_sources(tvg_id)
             if epg_channel:
                 tv_channel_data = {
@@ -201,9 +269,26 @@ class M3UService:
                     'epg_source_id': epg_channel.epg_source_id,
                     'is_active': True
                 }
-                new_tv_channel = tv_channel_service.create_tv_channel(**tv_channel_data)
-                ace_ids = [parsed_channels[idx][0] for idx in indices]
-                tv_channel_service.repository.assign_acestreams_to_tv_channel(ace_ids, new_tv_channel.id)
-                for idx in indices:
-                    parsed_channels[idx][2]['tv_channel_id'] = new_tv_channel.id
+                new_tv_channel = tv_channel_service.repository.create_tv_channel(**tv_channel_data, commit=False)
+                self._assign_parsed_streams(
+                    tv_channel_service, parsed_channels, indices, new_tv_channel.id
+                )
         return parsed_channels
+
+    def _assign_parsed_streams(self, tv_channel_service, parsed_channels, indices, tv_channel_id):
+        """Assign playlist hashes to a TV channel, skipping ones owned elsewhere."""
+        ace_ids = [parsed_channels[idx][0] for idx in indices]
+        repo = tv_channel_service.repository
+        conflicting = set(repo.acestreams_owned_by_other_tv_channel(ace_ids, tv_channel_id))
+        if conflicting:
+            logger.warning(
+                "Skipping %s Acestream hash(es) already associated with another TV channel: %s",
+                len(conflicting),
+                ", ".join(sorted(conflicting)),
+            )
+        assignable = [ace_id for ace_id in ace_ids if ace_id not in conflicting]
+        if assignable:
+            repo.assign_acestreams_to_tv_channel(assignable, tv_channel_id, commit=False)
+        for idx in indices:
+            if parsed_channels[idx][0] not in conflicting:
+                parsed_channels[idx][2]['tv_channel_id'] = tv_channel_id

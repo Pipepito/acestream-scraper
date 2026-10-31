@@ -1,6 +1,7 @@
 """
 Main application entry point for Acestream Scraper v2 backend.
 """
+from pathlib import Path
 import asyncio
 import logging
 import os
@@ -13,15 +14,19 @@ from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from sqlalchemy.engine import make_url
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api import api_router
 from app.api.auth import require_api_token
 from app.api.endpoints import tuner as tuner_endpoints
+from app.api.endpoints.live import live_router
 from app.api.endpoints.playlists import (
+    epg_url_for,
     get_all_streams_playlist,
     get_m3u_playlist,
     get_tv_channels_playlist,
+    playlist_service_for,
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
@@ -34,7 +39,10 @@ from app.config.database import (
     provision_schema,
 )
 from app.config.settings import get_settings, settings
+from app.config.version import get_app_version
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
+from app.middleware.access import AccessMiddleware
+from app.middleware.media_cors import ApplicationCORSMiddleware
 from app.services.startup_service import startup_service
 from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
 from app.services.epg_service import EPGService
@@ -55,7 +63,6 @@ from app.utils.logging import setup_logging
 
 # Setup logging before anything else
 setup_logging()
-logging.getLogger().warning("[MAIN] Root logger active at startup")
 
 
 def initialize_database():
@@ -68,6 +75,12 @@ def initialize_database():
     """
     from migrate_database import DatabaseMigrator
 
+    from runtime_config import config_path, ensure_config
+    runtime_settings = get_settings()
+    runtime_path = config_path(runtime_settings.DATABASE_URL)
+    # Include resolved .env/legacy names without serializing private credentials.
+    bootstrap = {**os.environ, **runtime_settings.model_dump()}
+    ensure_config(runtime_path, bootstrap)
     migrator = DatabaseMigrator()
 
     # Only run migration if acestream.db exists and hasn't been migrated yet.
@@ -173,13 +186,22 @@ async def lifespan(app: FastAPI):
     data_lock = None
     services_started = False
 
+    from app.services.telegram.manager import manager as telegram_manager
+    from app.services.recording_coordinator import recording_coordinator
+
     async def stop_services():
         nonlocal reaper, services_started
+        from app.services.cast_service import cast_service
+        from app.services.viewer_service import viewer_service
+        await cast_service.close()
+        viewer_service.close()
         if reaper is not None:
             reaper.cancel()
             with suppress(asyncio.CancelledError):
                 await reaper
             reaper = None
+        await recording_coordinator.stop()
+        await telegram_manager.stop()
         await tuner_probe_service.stop()
         if services_started:
             try:
@@ -191,6 +213,15 @@ async def lifespan(app: FastAPI):
     async def boot(action='retry'):
         nonlocal reaper, data_lock, services_started
         database_phase = True
+        from app.repositories.access_repository import AccessRepository
+        try:
+            legacy_url = make_url(get_settings().LEGACY_DATABASE_URL)
+            legacy_exists = bool(legacy_url.database and Path(legacy_url.database).is_file())
+            fresh_install = not database_path().exists() and not legacy_exists
+            await asyncio.to_thread(AccessRepository().initialize, fresh=fresh_install)
+        except Exception as exc:
+            startup_service.fail(exc, database=False)
+            return
         try:
             if data_lock is None:
                 path = database_path()
@@ -212,16 +243,33 @@ async def lifespan(app: FastAPI):
             await asyncio.to_thread(task_service.restore_states)
             from app.services.schedule_config_service import load_schedule_anchors
             task_service.configure_schedule(await asyncio.to_thread(load_schedule_anchors))
+            from app.services.saved_search_service import scheduled_targets, prepare_target, finish_target
+            task_service.register_maintenance_targets('url_scraping', snapshot=scheduled_targets,
+                prepare=prepare_target, finish=finish_target, argument='saved_search_targets')
             task_service.start()
             task_service.add_interval_task(run_activity_log_cleanup, seconds=86400, job_id="activity_log_cleanup")  # daily
             scrape_hours, epg_hours, status_minutes = await asyncio.to_thread(_configured_intervals)
             task_service.add_interval_task(run_epg_refresh_task, seconds=epg_hours * 3600, job_id="epg_refresh")  # settings: epg_refresh_interval
             task_service.add_interval_task(run_epg_program_cleanup_task, seconds=3600, job_id="epg_program_cleanup")  # every hour
-            task_service.add_interval_task(run_url_scraping_task, seconds=scrape_hours * 3600, job_id="url_scraping")  # settings: rescrape_interval
+            task_service.add_interval_task(
+                run_url_scraping_task,
+                seconds=scrape_hours * 3600,
+                job_id="url_scraping",
+            )  # settings: rescrape_interval
             task_service.add_interval_task(run_channel_cleanup_task, seconds=86400, job_id="channel_cleanup")  # daily
             task_service.add_interval_task(run_channel_status_task, seconds=status_minutes * 60, job_id="channel_status")
             task_service.add_interval_task(run_media_server_sync_task, seconds=600, job_id="media_server_sync")  # every 10 min
+            # A machine that is only on for a few hours never reaches a 6 h or
+            # 24 h interval counted from startup. See catch_up_missed_runs.
+            # Not at once: the first minutes after power-on are when channels
+            # are opened, and the guide refresh holds SQLite's write lock.
+            task_service.catch_up_missed_runs(start_after_seconds=300)
+            # channel_status opens the engine, so not at startup: a quarter of
+            # an hour later, and only if it is still overdue then.
+            task_service.catch_up_later("channel_status", delay_seconds=900)
+            await recording_coordinator.start()
             await player_service.start()
+            await telegram_manager.start()
             await asyncio.to_thread(_schedule_deferred_migration)
             reaper = asyncio.create_task(reap_relays_forever())
             startup_service.record('Ready to use')
@@ -256,18 +304,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Acestream Scraper API",
     description="API for scraping and managing Acestream channels",
-    version="2.0.0",
+    version=get_app_version(),
     lifespan=lifespan,
 )
 
 
 @app.middleware("http")
 async def startup_readiness(request: Request, call_next):
-    path = request.url.path
+    from app.utils.request_path import route_path
+    path = route_path(request.scope)
     if startup_service.active and startup_service.status != 'ready':
         spa_paths = {'/', '/startup', '/live-tv', '/tv-channels', '/acestream-channels',
-                     '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
-        allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup'))
+                     '/recordings', '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
+        allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup', '/api/v1/auth/'))
+        allowed = allowed or path in ('/login', '/watch', '/setup')
         allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/'))
         allowed = allowed or path in {'/favicon.ico', '/manifest.json', '/robots.txt'}
         allowed = allowed or path == '/api/v1/system/diagnostics'
@@ -291,11 +341,11 @@ async def correlation_id_middleware(request: Request, call_next):
 
 from app.middleware.recipe_limits import RecipeRequestLimits
 app.add_middleware(RecipeRequestLimits)
+app.add_middleware(AccessMiddleware)
 
 # Add CORS middleware
-from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
-    CORSMiddleware,
+    ApplicationCORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
@@ -315,6 +365,9 @@ app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(require_a
 # HDHomeRun-style tuner routes: token-free by design (tuner clients cannot send
 # credentials), gated by TUNER_ALLOWED_NETWORKS inside the router (spec 4.4).
 app.include_router(tuner_endpoints.hdhr_router)
+# Broadcasters' live channels, resolved when opened: token-free and
+# network-gated for the same reason as the tuner.
+app.include_router(live_router)
 register_error_handlers(app)
 
 # Static files serving
@@ -334,10 +387,12 @@ for dirname in static_dirs:
 # Public playlist route for user-friendly URLs (no /api prefix)
 @app.get("/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def public_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
     include_unassigned: Optional[bool] = None,
+    per_source: bool = False,
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
@@ -352,7 +407,7 @@ async def public_m3u_playlist(
     if refresh:
         trigger_url_scrape_refresh()
 
-    playlist_service = PlaylistService(db)
+    playlist_service = playlist_service_for(request, db)
     try:
         include_groups_list = include_groups.split(",") if include_groups else None
         exclude_groups_list = exclude_groups.split(",") if exclude_groups else None
@@ -361,13 +416,15 @@ async def public_m3u_playlist(
             group=group,
             only_online=only_online,
             include_unassigned=include_unassigned,
+            per_source=per_source,
             include_groups=include_groups_list,
             exclude_groups=exclude_groups_list,
             base_url=base_url,
             base_url_id=base_url_id,
-            format=format
+            format=format,
+            epg_url=epg_url_for(request, db),
         )
-        headers = {"Content-Disposition": "attachment; filename=playlist.m3u"}
+        headers = {"Content-Disposition": "attachment; filename=playlist.m3u", "Cache-Control": "private, no-store"}
         return PlainTextResponse(m3u_content, headers=headers)
     except LookupError as e:
         # Client error (unknown base_url_id): keep the error-playlist body
@@ -381,10 +438,12 @@ async def public_m3u_playlist(
 # fallback would answer with index.html and HTTP 200, silently breaking them.
 @app.get("/playlist.m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
     include_unassigned: Optional[bool] = None,
+    per_source: bool = False,
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
@@ -397,10 +456,12 @@ async def legacy_m3u_playlist(
     Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
     """
     return await public_m3u_playlist(
+        request=request,
         search=search,
         group=group,
         only_online=only_online,
         include_unassigned=include_unassigned,
+        per_source=per_source,
         include_groups=include_groups,
         exclude_groups=exclude_groups,
         base_url=base_url,
@@ -414,10 +475,12 @@ async def legacy_m3u_playlist(
 # the canonical v2 routes live under /api/v1/playlists/*.
 @app.get("/api/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_api_m3u_playlist(
+    request: Request,
     search: Optional[str] = None,
     group: Optional[str] = None,
     only_online: bool = True,
     include_unassigned: Optional[bool] = None,
+    per_source: bool = False,
     include_groups: Optional[str] = Query(None),
     exclude_groups: Optional[str] = Query(None),
     base_url: Optional[str] = Query(None),
@@ -431,10 +494,12 @@ async def legacy_api_m3u_playlist(
     (API error contract, unlike the player-facing /playlists/m3u route).
     """
     return await get_m3u_playlist(
+        request=request,
         search=search,
         group=group,
         only_online=only_online,
         include_unassigned=include_unassigned,
+        per_source=per_source,
         include_groups=include_groups,
         exclude_groups=exclude_groups,
         base_url=base_url,
@@ -446,6 +511,7 @@ async def legacy_api_m3u_playlist(
 
 @app.get("/api/playlists/tv-channels/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_tv_channels_playlist(
+    request: Request,
     search: Optional[str] = None,
     favorites_only: bool = False,
     base_url: Optional[str] = Query(None),
@@ -459,6 +525,7 @@ async def legacy_tv_channels_playlist(
     /api/v1/playlists/tv-channels/m3u.
     """
     return await get_tv_channels_playlist(
+        request=request,
         search=search,
         favorites_only=favorites_only,
         base_url=base_url,
@@ -470,6 +537,7 @@ async def legacy_tv_channels_playlist(
 
 @app.get("/api/playlists/all-streams/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def legacy_all_streams_playlist(
+    request: Request,
     search: Optional[str] = None,
     include_unassigned: bool = True,
     base_url: Optional[str] = Query(None),
@@ -483,6 +551,7 @@ async def legacy_all_streams_playlist(
     /api/v1/playlists/all-streams/m3u.
     """
     return await get_all_streams_playlist(
+        request=request,
         search=search,
         include_unassigned=include_unassigned,
         base_url=base_url,
@@ -526,8 +595,10 @@ async def legacy_epg_xml(
 async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
-    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner")):
-        return FileResponse(os.path.join(frontend_dir, "index.html"))
+    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner", "/live/")):
+        # Exported image timestamps are normalized; HTML must not acquire a
+        # long heuristic cache lifetime from its old Last-Modified timestamp.
+        return FileResponse(os.path.join(frontend_dir, "index.html"), headers={"Cache-Control": "no-store"})
     # For API routes or other status codes, return the exception as an HTTP
     # response, preserving headers such as WWW-Authenticate on 401s.
     return JSONResponse(
@@ -541,7 +612,7 @@ async def read_index():
     """Serve the React frontend index page."""
     try:
         with open(os.path.join(frontend_dir, "index.html"), "r") as f:
-            return HTMLResponse(content=f.read())
+            return HTMLResponse(content=f.read(), headers={"Cache-Control": "no-store"})
     except FileNotFoundError:
         # If frontend build doesn't exist yet, return a placeholder
         return HTMLResponse(content="<html><body><h1>Acestream Scraper</h1><p>Frontend not built yet. Please run 'npm run build' in the frontend directory.</p></body></html>")

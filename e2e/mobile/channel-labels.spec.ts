@@ -12,9 +12,9 @@ for (const mode of ['light', 'dark']) {
       let data: unknown = {};
       if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [] };
       else if (path === '/tv-channels') data = { items: [channel], total: 1 };
-      else if (path === '/acestream-channels') data = { items: [stream], total: 1 };
+      else if (path === '/acestream-channels/') data = { items: [stream], total: 1 };
       else if (path === '/epg/sources' || path === '/remote-players') data = [];
-      else if (path.endsWith('/groups')) data = [];
+      else if (path.endsWith('/groups') || path === '/acestream-channels/sources') data = [];
       await route.fulfill({ json: data });
     });
     await page.goto('/tv-channels');

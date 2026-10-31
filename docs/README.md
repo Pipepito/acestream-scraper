@@ -34,8 +34,11 @@ The manual release job mirrors `wiki/` to the GitHub wiki after successful lates
 
 ## Release Docs
 
-- `docs/release/v2-release-notes.md`: user-facing v2 release notes (source for the GitHub release).
-- `docs/release/v2-release-readiness.md`: gap audit, closure record, open items before the `v2.0.0` tag, and the two-phase `:latest` publish flow.
+- `docs/release/v2.2-release-notes.md`: current draft release notes and upgrade guidance.
+- `docs/release/v2.2-release-readiness.md`: current merge, validation and release checklist.
+- `docs/dev/batches-4-5.md`: prepared WARP and external-engine follow-up scopes.
+- `docs/release/v2-release-notes.md`: historical v2 cutover release notes.
+- `docs/release/v2-release-readiness.md`: historical v2.0 gap audit and closure record.
 - `docs/release/phase5-multiarch-evidence.md`: how multi-arch evidence is produced on Jenkins and the per-release record.
 
 ## Testing

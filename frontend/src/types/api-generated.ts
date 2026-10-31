@@ -3,7875 +3,19082 @@
  * Do not make direct changes to the file.
  */
 
-
 export interface paths {
-  "/": {
-    /**
-     * Read Index
-     * @description Serve the React frontend index page.
-     */
-    get: operations["read_index__get"];
-  };
-  "/api/playlists/all-streams/m3u": {
-    /**
-     * Legacy All Streams Playlist
-     * @description Legacy v1 all-streams playlist URL. Behaves identically to
-     * /api/v1/playlists/all-streams/m3u.
-     */
-    get: operations["legacy_all_streams_playlist_api_playlists_all_streams_m3u_get"];
-  };
-  "/api/playlists/epg.xml": {
-    /**
-     * Legacy Epg Xml
-     * @description Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.
-     */
-    get: operations["legacy_epg_xml_api_playlists_epg_xml_get"];
-  };
-  "/api/playlists/m3u": {
-    /**
-     * Legacy Api M3U Playlist
-     * @description Legacy v1 playlist API URL. Behaves identically to /api/v1/playlists/m3u
-     * (API error contract, unlike the player-facing /playlists/m3u route).
-     */
-    get: operations["legacy_api_m3u_playlist_api_playlists_m3u_get"];
-  };
-  "/api/playlists/tv-channels/m3u": {
-    /**
-     * Legacy Tv Channels Playlist
-     * @description Legacy v1 TV-channels playlist URL. Behaves identically to
-     * /api/v1/playlists/tv-channels/m3u.
-     */
-    get: operations["legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get"];
-  };
-  "/api/v1/acestream-channels/": {
-    /**
-     * Get Acestream Channels
-     * @description Get all channels with optional filtering.
-     * Supports both skip/limit and page/page_size parameters.
-     * Set assigned=false to list only streams not linked to a TV channel.
-     * Returns paginated items and total count.
-     */
-    get: operations["get_acestream_channels_api_v1_acestream_channels__get"];
-    /**
-     * Create Acestream Channel
-     * @description Create a new Acestream channel. If a channel with the same ID exists, update it.
-     */
-    post: operations["create_acestream_channel_api_v1_acestream_channels__post"];
-  };
-  "/api/v1/acestream-channels/bulk_activate": {
-    /**
-     * Bulk Activate Acestream Channels
-     * @description Activate/deactivate multiple Acestream channels by IDs.
-     * data: {"acestreamchannel_ids": [...], "active": true/false}
-     */
-    post: operations["bulk_activate_acestream_channels_api_v1_acestream_channels_bulk_activate_post"];
-  };
-  "/api/v1/acestream-channels/bulk_delete": {
-    /**
-     * Bulk Delete Acestream Channels
-     * @description Delete multiple Acestream channels by IDs.
-     */
-    post: operations["bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post"];
-  };
-  "/api/v1/acestream-channels/bulk_edit": {
-    /**
-     * Bulk Edit Acestream Channels
-     * @description Update multiple Acestream channels by IDs and fields.
-     * updates: {"acestreamchannel_ids": [...], "fields": {...}}
-     */
-    put: operations["bulk_edit_acestream_channels_api_v1_acestream_channels_bulk_edit_put"];
-  };
-  "/api/v1/acestream-channels/export_csv": {
-    /**
-     * Export Acestream Channels Csv
-     * @description Export all Acestream channels as a CSV file.
-     */
-    get: operations["export_acestream_channels_csv_api_v1_acestream_channels_export_csv_get"];
-  };
-  "/api/v1/acestream-channels/groups": {
-    /**
-     * Get Channel Groups
-     * @description Get unique channel groups.
-     */
-    get: operations["get_channel_groups_api_v1_acestream_channels_groups_get"];
-  };
-  "/api/v1/acestream-channels/status_summary": {
-    /**
-     * Get Channel Status Summary
-     * @description Get summary of channel statuses.
-     */
-    get: operations["get_channel_status_summary_api_v1_acestream_channels_status_summary_get"];
-  };
-  "/api/v1/acestream-channels/{acestreamchannel_id}": {
-    /**
-     * Get Acestream Channel
-     * @description Get a specific Acestream channel by ID.
-     */
-    get: operations["get_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__get"];
-    /**
-     * Update Acestream Channel
-     * @description Update an existing Acestream channel.
-     */
-    put: operations["update_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__put"];
-    /**
-     * Delete Acestream Channel
-     * @description Delete an Acestream channel.
-     */
-    delete: operations["delete_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__delete"];
-  };
-  "/api/v1/acestream-channels/{acestreamchannel_id}/check_status": {
-    /**
-     * Check Acestream Channel Status
-     * @description Check the online status of a specific Acestream channel via Acestream engine.
-     */
-    post: operations["check_acestream_channel_status_api_v1_acestream_channels__acestreamchannel_id__check_status_post"];
-  };
-  "/api/v1/acestream/status": {
-    /** Get Acestream Engine status */
-    get: operations["get_acestream_status_api_v1_acestream_status_get"];
-  };
-  "/api/v1/activity/channels/{channel_id}/activity_log": {
-    /** Get Channel Activity Log */
-    get: operations["get_channel_activity_log_api_v1_activity_channels__channel_id__activity_log_get"];
-  };
-  "/api/v1/activity/recent": {
-    /** Get Recent Activity */
-    get: operations["get_recent_activity_api_v1_activity_recent_get"];
-  };
-  "/api/v1/background-tasks/channel_status/run": {
-    /** Run Channel Status Job */
-    post: operations["run_channel_status_job_api_v1_background_tasks_channel_status_run_post"];
-  };
-  "/api/v1/background-tasks/status": {
-    /** Get Background Tasks Status */
-    get: operations["get_background_tasks_status_api_v1_background_tasks_status_get"];
-  };
-  "/api/v1/base-urls": {
-    /** List Base Urls */
-    get: operations["list_base_urls_api_v1_base_urls_get"];
-    /** Create Base Url */
-    post: operations["create_base_url_api_v1_base_urls_post"];
-  };
-  "/api/v1/base-urls/{base_url_id}": {
-    /** Delete Base Url */
-    delete: operations["delete_base_url_api_v1_base_urls__base_url_id__delete"];
-    /** Update Base Url */
-    patch: operations["update_base_url_api_v1_base_urls__base_url_id__patch"];
-  };
-  "/api/v1/channels/": {
-    /**
-     * Get Acestream Channels
-     * @description Get all channels with optional filtering.
-     * Supports both skip/limit and page/page_size parameters.
-     * Set assigned=false to list only streams not linked to a TV channel.
-     * Returns paginated items and total count.
-     */
-    get: operations["get_acestream_channels_api_v1_channels__get"];
-    /**
-     * Create Acestream Channel
-     * @description Create a new Acestream channel. If a channel with the same ID exists, update it.
-     */
-    post: operations["create_acestream_channel_api_v1_channels__post"];
-  };
-  "/api/v1/channels/bulk_activate": {
-    /**
-     * Bulk Activate Acestream Channels
-     * @description Activate/deactivate multiple Acestream channels by IDs.
-     * data: {"acestreamchannel_ids": [...], "active": true/false}
-     */
-    post: operations["bulk_activate_acestream_channels_api_v1_channels_bulk_activate_post"];
-  };
-  "/api/v1/channels/bulk_delete": {
-    /**
-     * Bulk Delete Acestream Channels
-     * @description Delete multiple Acestream channels by IDs.
-     */
-    post: operations["bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post"];
-  };
-  "/api/v1/channels/bulk_edit": {
-    /**
-     * Bulk Edit Acestream Channels
-     * @description Update multiple Acestream channels by IDs and fields.
-     * updates: {"acestreamchannel_ids": [...], "fields": {...}}
-     */
-    put: operations["bulk_edit_acestream_channels_api_v1_channels_bulk_edit_put"];
-  };
-  "/api/v1/channels/export_csv": {
-    /**
-     * Export Acestream Channels Csv
-     * @description Export all Acestream channels as a CSV file.
-     */
-    get: operations["export_acestream_channels_csv_api_v1_channels_export_csv_get"];
-  };
-  "/api/v1/channels/groups": {
-    /**
-     * Get Channel Groups
-     * @description Get unique channel groups.
-     */
-    get: operations["get_channel_groups_api_v1_channels_groups_get"];
-  };
-  "/api/v1/channels/status_summary": {
-    /**
-     * Get Channel Status Summary
-     * @description Get summary of channel statuses.
-     */
-    get: operations["get_channel_status_summary_api_v1_channels_status_summary_get"];
-  };
-  "/api/v1/channels/{acestreamchannel_id}": {
-    /**
-     * Get Acestream Channel
-     * @description Get a specific Acestream channel by ID.
-     */
-    get: operations["get_acestream_channel_api_v1_channels__acestreamchannel_id__get"];
-    /**
-     * Update Acestream Channel
-     * @description Update an existing Acestream channel.
-     */
-    put: operations["update_acestream_channel_api_v1_channels__acestreamchannel_id__put"];
-    /**
-     * Delete Acestream Channel
-     * @description Delete an Acestream channel.
-     */
-    delete: operations["delete_acestream_channel_api_v1_channels__acestreamchannel_id__delete"];
-  };
-  "/api/v1/channels/{acestreamchannel_id}/check_status": {
-    /**
-     * Check Acestream Channel Status
-     * @description Check the online status of a specific Acestream channel via Acestream engine.
-     */
-    post: operations["check_acestream_channel_status_api_v1_channels__acestreamchannel_id__check_status_post"];
-  };
-  "/api/v1/config/ace_engine_url": {
-    /**
-     * Get Ace Engine Url
-     * @description Get the Acestream Engine URL.
-     */
-    get: operations["get_ace_engine_url_api_v1_config_ace_engine_url_get"];
-    /**
-     * Update Ace Engine Url
-     * @description Update the Acestream Engine URL.
-     */
-    put: operations["update_ace_engine_url_api_v1_config_ace_engine_url_put"];
-  };
-  "/api/v1/config/acestream_status": {
-    /**
-     * Check Acestream Status
-     * @description Check the status of the Acestream Engine.
-     */
-    get: operations["check_acestream_status_api_v1_config_acestream_status_get"];
-  };
-  "/api/v1/config/addpid": {
-    /**
-     * Get Addpid
-     * @description Get whether to add PID to Acestream links.
-     */
-    get: operations["get_addpid_api_v1_config_addpid_get"];
-    /**
-     * Update Addpid
-     * @description Update whether to add PID to Acestream links.
-     */
-    put: operations["update_addpid_api_v1_config_addpid_put"];
-  };
-  "/api/v1/config/all": {
-    /**
-     * Get All Settings
-     * @description Get all settings.
-     */
-    get: operations["get_all_settings_api_v1_config_all_get"];
-  };
-  "/api/v1/config/appid": {
-    /**
-     * Get Appid
-     * @description Get whether to use AppID in Acestream links.
-     */
-    get: operations["get_appid_api_v1_config_appid_get"];
-    /**
-     * Update Appid
-     * @description Update whether to use AppID in Acestream links.
-     */
-    put: operations["update_appid_api_v1_config_appid_put"];
-  };
-  "/api/v1/config/base_url": {
-    /**
-     * Get Base Url
-     * @description Get the base URL for Acestream links.
-     */
-    get: operations["get_base_url_api_v1_config_base_url_get"];
-    /**
-     * Update Base Url
-     * @description Update the base URL for Acestream links.
-     */
-    put: operations["update_base_url_api_v1_config_base_url_put"];
-  };
-  "/api/v1/config/check-engine": {
-    /** Get Check Engine */
-    get: operations["get_check_engine_api_v1_config_check_engine_get"];
-    /** Update Check Engine */
-    put: operations["update_check_engine_api_v1_config_check_engine_put"];
-  };
-  "/api/v1/config/dashboard": {
-    /** Get Dashboard Config */
-    get: operations["get_dashboard_config_api_v1_config_dashboard_get"];
-    /** Update Dashboard Config */
-    put: operations["update_dashboard_config_api_v1_config_dashboard_put"];
-  };
-  "/api/v1/config/epg_refresh_interval": {
-    /**
-     * Get Epg Refresh Interval
-     * @description Get the interval between automatic EPG refreshes in hours.
-     */
-    get: operations["get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get"];
-    /**
-     * Update Epg Refresh Interval
-     * @description Update the interval between automatic EPG refreshes in hours (reschedules the job).
-     */
-    put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
-  };
-  "/api/v1/config/playback-routing": {
-    /** Get Playback Routing */
-    get: operations["get_playback_routing_api_v1_config_playback_routing_get"];
-    /** Update Playback Routing */
-    put: operations["update_playback_routing_api_v1_config_playback_routing_put"];
-  };
-  "/api/v1/config/public_base_url": {
-    /**
-     * Get Public Base Url
-     * @description Externally reachable origin used for tuner, player and copy links.
-     */
-    get: operations["get_public_base_url_api_v1_config_public_base_url_get"];
-    /**
-     * Update Public Base Url
-     * @description Update the externally reachable origin (empty value clears the override).
-     */
-    put: operations["update_public_base_url_api_v1_config_public_base_url_put"];
-  };
-  "/api/v1/config/rescrape_interval": {
-    /**
-     * Get Rescrape Interval
-     * @description Get the interval between automatic rescrapes in hours.
-     */
-    get: operations["get_rescrape_interval_api_v1_config_rescrape_interval_get"];
-    /**
-     * Update Rescrape Interval
-     * @description Update the interval between automatic rescrapes in hours.
-     */
-    put: operations["update_rescrape_interval_api_v1_config_rescrape_interval_put"];
-  };
-  "/api/v1/config/schedule-anchors": {
-    /** Get Schedule Anchors */
-    get: operations["get_schedule_anchors_api_v1_config_schedule_anchors_get"];
-    /** Update Schedule Anchors */
-    put: operations["update_schedule_anchors_api_v1_config_schedule_anchors_put"];
-  };
-  "/api/v1/config/{key}": {
-    /**
-     * Get Config Key
-     * @description Generic GET for config keys.
-     */
-    get: operations["get_config_key_api_v1_config__key__get"];
-    /**
-     * Update Config Key
-     * @description Generic PUT for config keys.
-     */
-    put: operations["update_config_key_api_v1_config__key__put"];
-  };
-  "/api/v1/epg/auto-scan": {
-    /**
-     * Auto Map Channels
-     * @description Auto-map TV channels to EPG channels based on string patterns
-     */
-    post: operations["auto_map_channels_api_v1_epg_auto_scan_post"];
-  };
-  "/api/v1/epg/channels": {
-    /**
-     * Get Epg Channels
-     * @description Get EPG channels, optionally filtered by source ID
-     */
-    get: operations["get_epg_channels_api_v1_epg_channels_get"];
-  };
-  "/api/v1/epg/channels/map": {
-    /**
-     * Map Epg Channel To Tv
-     * @description Map an EPG channel to a TV channel
-     */
-    post: operations["map_epg_channel_to_tv_api_v1_epg_channels_map_post"];
-  };
-  "/api/v1/epg/channels/resolve": {
-    /**
-     * Resolve Epg Channel
-     * @description Resolve an EPG channel by source ID and channel XML ID.
-     */
-    get: operations["resolve_epg_channel_api_v1_epg_channels_resolve_get"];
-  };
-  "/api/v1/epg/channels/unmap": {
-    /**
-     * Unmap Epg Channel From Tv
-     * @description Remove a mapping between an EPG channel and a TV channel
-     */
-    post: operations["unmap_epg_channel_from_tv_api_v1_epg_channels_unmap_post"];
-  };
-  "/api/v1/epg/channels/{channel_id}": {
-    /**
-     * Get Epg Channel
-     * @description Get a specific EPG channel by ID
-     */
-    get: operations["get_epg_channel_api_v1_epg_channels__channel_id__get"];
-  };
-  "/api/v1/epg/channels/{channel_id}/mappings": {
-    /**
-     * Get Epg String Mappings
-     * @description Get string mappings for an EPG channel
-     */
-    get: operations["get_epg_string_mappings_api_v1_epg_channels__channel_id__mappings_get"];
-    /**
-     * Add Epg String Mapping
-     * @description Add a string mapping for an EPG channel. Accepts both direct JSON and Pydantic schema for backward compatibility.
-     */
-    post: operations["add_epg_string_mapping_api_v1_epg_channels__channel_id__mappings_post"];
-  };
-  "/api/v1/epg/channels/{channel_id}/programs": {
-    /**
-     * Get Epg Programs
-     * @description Get programs for an EPG channel, optionally filtered by date range
-     */
-    get: operations["get_epg_programs_api_v1_epg_channels__channel_id__programs_get"];
-  };
-  "/api/v1/epg/mappings": {
-    /**
-     * Get All Epg String Mappings
-     * @description Get all EPG string mappings across all channels
-     */
-    get: operations["get_all_epg_string_mappings_api_v1_epg_mappings_get"];
-  };
-  "/api/v1/epg/mappings/{mapping_id}": {
-    /**
-     * Delete Epg String Mapping
-     * @description Delete a string mapping
-     */
-    delete: operations["delete_epg_string_mapping_api_v1_epg_mappings__mapping_id__delete"];
-    /**
-     * Update Epg String Mapping
-     * @description Update an existing EPG string mapping. Accepts both direct JSON and Pydantic schema for backward compatibility.
-     */
-    patch: operations["update_epg_string_mapping_api_v1_epg_mappings__mapping_id__patch"];
-  };
-  "/api/v1/epg/sources": {
-    /**
-     * Get Epg Sources
-     * @description Get all EPG sources
-     */
-    get: operations["get_epg_sources_api_v1_epg_sources_get"];
-    /**
-     * Create Epg Source
-     * @description Create a new EPG source
-     */
-    post: operations["create_epg_source_api_v1_epg_sources_post"];
-  };
-  "/api/v1/epg/sources/refresh_all": {
-    /**
-     * Refresh All Epg Sources
-     * @description Refresh EPG data for all enabled sources
-     */
-    post: operations["refresh_all_epg_sources_api_v1_epg_sources_refresh_all_post"];
-  };
-  "/api/v1/epg/sources/{source_id}": {
-    /**
-     * Get Epg Source
-     * @description Get a specific EPG source by ID
-     */
-    get: operations["get_epg_source_api_v1_epg_sources__source_id__get"];
-    /**
-     * Delete Epg Source
-     * @description Delete an EPG source
-     */
-    delete: operations["delete_epg_source_api_v1_epg_sources__source_id__delete"];
-    /**
-     * Update Epg Source
-     * @description Update an EPG source
-     */
-    patch: operations["update_epg_source_api_v1_epg_sources__source_id__patch"];
-  };
-  "/api/v1/epg/sources/{source_id}/refresh": {
-    /**
-     * Refresh Epg Source
-     * @description Refresh EPG data for a specific source
-     */
-    post: operations["refresh_epg_source_api_v1_epg_sources__source_id__refresh_post"];
-  };
-  "/api/v1/epg/xml": {
-    /**
-     * Get Epg Xml
-     * @description Generate EPG XML data in XMLTV format
-     *
-     * Args:
-     *     search_term: Optional term to filter channels by name
-     *     favorites_only: If True, only include favorite channels
-     *     days_back: Number of days in the past to include programs for
-     *     days_forward: Number of days in the future to include programs for
-     *
-     * Returns:
-     *     XML content in XMLTV format
-     */
-    get: operations["get_epg_xml_api_v1_epg_xml_get"];
-    /**
-     * Generate Epg Xml
-     * @description Generate EPG XML data with customizable parameters
-     *
-     * Args:
-     *     request: Parameters for XML generation
-     *
-     * Returns:
-     *     XML content in XMLTV format
-     */
-    post: operations["generate_epg_xml_api_v1_epg_xml_post"];
-  };
-  "/api/v1/health": {
-    /**
-     * Check Health
-     * @description Check the overall system health
-     */
-    get: operations["check_health_api_v1_health_get"];
-  };
-  "/api/v1/media-servers": {
-    /** Saved media servers */
-    get: operations["list_media_servers_api_v1_media_servers_get"];
-    /** Create Media Server */
-    post: operations["create_media_server_api_v1_media_servers_post"];
-  };
-  "/api/v1/media-servers/test": {
-    /** Probe a media server before saving it */
-    post: operations["test_media_server_api_v1_media_servers_test_post"];
-  };
-  "/api/v1/media-servers/{server_id}": {
-    /** Delete Media Server */
-    delete: operations["delete_media_server_api_v1_media_servers__server_id__delete"];
-    /** Update Media Server */
-    patch: operations["update_media_server_api_v1_media_servers__server_id__patch"];
-  };
-  "/api/v1/media-servers/{server_id}/connect": {
-    /** Register the tuner and guide */
-    post: operations["connect_media_server_api_v1_media_servers__server_id__connect_post"];
-  };
-  "/api/v1/media-servers/{server_id}/disconnect": {
-    /** Unregister the tuner and guide */
-    post: operations["disconnect_media_server_api_v1_media_servers__server_id__disconnect_post"];
-  };
-  "/api/v1/media-servers/{server_id}/refresh": {
-    /**
-     * Refresh the guide now
-     * @description Bypasses the sync job's debounce — the user asked for it explicitly.
-     */
-    post: operations["refresh_media_server_api_v1_media_servers__server_id__refresh_post"];
-  };
-  "/api/v1/media-servers/{server_id}/status": {
-    /** Media Server Status */
-    get: operations["media_server_status_api_v1_media_servers__server_id__status_get"];
-  };
-  "/api/v1/media-servers/{server_id}/test": {
-    /** Probe a saved media server */
-    post: operations["test_saved_media_server_api_v1_media_servers__server_id__test_post"];
-  };
-  "/api/v1/player/capabilities": {
-    /** Whether the server can prepare streams for browsers */
-    get: operations["capabilities_api_v1_player_capabilities_get"];
-  };
-  "/api/v1/player/sessions": {
-    /** Active player sessions */
-    get: operations["list_sessions_api_v1_player_sessions_get"];
-    /** Start (or join) playback of a channel */
-    post: operations["create_session_api_v1_player_sessions_post"];
-  };
-  "/api/v1/player/sessions/{session_id}": {
-    /** Session status (heartbeat) */
-    get: operations["get_session_api_v1_player_sessions__session_id__get"];
-    /** Leave a session */
-    delete: operations["leave_session_api_v1_player_sessions__session_id__delete"];
-  };
-  "/api/v1/player/sessions/{session_id}/index.m3u8": {
-    /** HLS playlist */
-    get: operations["playlist_api_v1_player_sessions__session_id__index_m3u8_get"];
-  };
-  "/api/v1/player/sessions/{session_id}/{segment}": {
-    /** HLS segment */
-    get: operations["segment_api_v1_player_sessions__session_id___segment__get"];
-  };
-  "/api/v1/player/streams": {
-    /**
-     * Everything the server is streaming right now
-     * @description Browser sessions and raw relays in one list, named where we know the name.
-     *
-     * Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
-     * it in the threadpool instead of blocking the event loop that is feeding the
-     * relays this very endpoint reports.
-     */
-    get: operations["active_streams_api_v1_player_streams_get"];
-  };
-  "/api/v1/playlists/all-streams/m3u": {
-    /**
-     * Get All Streams Playlist
-     * @description Generate an M3U playlist of numbered TV channels followed by unassigned
-     * acestreams (numbered from 9000).
-     *
-     * - **search**: Optional search term for channel names
-     * - **include_unassigned**: Append streams not assigned to any TV channel
-     * - **refresh**: Trigger a background rescrape of all enabled URLs
-     */
-    get: operations["get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get"];
-  };
-  "/api/v1/playlists/groups": {
-    /**
-     * Get Channel Groups
-     * @description Get list of all available channel groups
-     */
-    get: operations["get_channel_groups_api_v1_playlists_groups_get"];
-  };
-  "/api/v1/playlists/m3u": {
-    /**
-     * Get M3U Playlist
-     * @description Generate M3U playlist with specified filters
-     *
-     * - **search**: Optional search term for channel names
-     * - **group**: Optional specific group to filter by
-     * - **only_online**: Whether to include only online channels (default: True)
-     * - **include_groups**: Comma-separated list of groups to include
-     * - **exclude_groups**: Comma-separated list of groups to exclude
-     * - **refresh**: Trigger a background rescrape of all enabled URLs
-     */
-    get: operations["get_m3u_playlist_api_v1_playlists_m3u_get"];
-  };
-  "/api/v1/playlists/playlists/m3u": {
-    /**
-     * Get M3U Playlist Compat
-     * @description Compatibility route for M3U playlist generation
-     *
-     * This route exists to support legacy URLs. It behaves identically to the
-     * /m3u endpoint.
-     */
-    get: operations["get_m3u_playlist_compat_api_v1_playlists_playlists_m3u_get"];
-  };
-  "/api/v1/playlists/tv-channels/m3u": {
-    /**
-     * Get Tv Channels Playlist
-     * @description Generate a curated M3U playlist of TV channels with their assigned
-     * acestreams, ordered by channel number then name.
-     *
-     * - **search**: Optional search term for TV channel names
-     * - **favorites_only**: Only include favorite TV channels
-     * - **refresh**: Trigger a background rescrape of all enabled URLs
-     */
-    get: operations["get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get"];
-  };
-  "/api/v1/remote-players": {
-    /** Saved remote players */
-    get: operations["list_players_api_v1_remote_players_get"];
-    /** Create Player */
-    post: operations["create_player_api_v1_remote_players_post"];
-  };
-  "/api/v1/remote-players/android/pair/finish": {
-    /** Android Pair Finish */
-    post: operations["android_pair_finish_api_v1_remote_players_android_pair_finish_post"];
-  };
-  "/api/v1/remote-players/android/pair/start": {
-    /** Android Pair Start */
-    post: operations["android_pair_start_api_v1_remote_players_android_pair_start_post"];
-  };
-  "/api/v1/remote-players/scan": {
-    /** Find VLC/Kodi web interfaces on a private network */
-    post: operations["scan_api_v1_remote_players_scan_post"];
-  };
-  "/api/v1/remote-players/scan/default": {
-    /** Suggested network to scan */
-    get: operations["scan_default_api_v1_remote_players_scan_default_get"];
-  };
-  "/api/v1/remote-players/test": {
-    /** Probe a player before saving it */
-    post: operations["test_player_api_v1_remote_players_test_post"];
-  };
-  "/api/v1/remote-players/{player_id}": {
-    /** Delete Player */
-    delete: operations["delete_player_api_v1_remote_players__player_id__delete"];
-    /** Update Player */
-    patch: operations["update_player_api_v1_remote_players__player_id__patch"];
-  };
-  "/api/v1/remote-players/{player_id}/command": {
-    /** Player Command */
-    post: operations["player_command_api_v1_remote_players__player_id__command_post"];
-  };
-  "/api/v1/remote-players/{player_id}/play": {
-    /** Send a channel to the player */
-    post: operations["play_on_player_api_v1_remote_players__player_id__play_post"];
-  };
-  "/api/v1/remote-players/{player_id}/status": {
-    /** Player Status */
-    get: operations["player_status_api_v1_remote_players__player_id__status_get"];
-  };
-  "/api/v1/remote-players/{player_id}/test": {
-    /** Probe a saved player */
-    post: operations["test_saved_player_api_v1_remote_players__player_id__test_post"];
-  };
-  "/api/v1/scrapers/recipes/preview": {
-    /**
-     * Preview Extraction
-     * @description Test a sample in an isolated worker. No source/channel writes.
-     */
-    post: operations["preview_extraction_api_v1_scrapers_recipes_preview_post"];
-  };
-  "/api/v1/scrapers/recipes/sample": {
-    /**
-     * Fetch Extraction Sample
-     * @description Fetch a bounded source sample using the installed app, without scraping.
-     */
-    post: operations["fetch_extraction_sample_api_v1_scrapers_recipes_sample_post"];
-  };
-  "/api/v1/scrapers/scrape": {
-    /**
-     * Scrape Url
-     * @description Scrape a URL for Acestream channels.
-     *
-     * Request body:
-     * - url: The URL to scrape
-     * - url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')
-     * - run_async: (Optional) Run scraping in background
-     */
-    post: operations["scrape_url_api_v1_scrapers_scrape_post"];
-  };
-  "/api/v1/scrapers/urls": {
-    /**
-     * Get Scraped Urls
-     * @description Get list of URLs that have been scraped.
-     */
-    get: operations["get_scraped_urls_api_v1_scrapers_urls_get"];
-    /**
-     * Create Scraped Url
-     * @description Create a new URL to be scraped.
-     */
-    post: operations["create_scraped_url_api_v1_scrapers_urls_post"];
-  };
-  "/api/v1/scrapers/urls/scrape_all": {
-    /**
-     * Scrape All Urls
-     * @description Scrape all enabled URLs, with optional limit.
-     */
-    post: operations["scrape_all_urls_api_v1_scrapers_urls_scrape_all_post"];
-  };
-  "/api/v1/scrapers/urls/{url_id}": {
-    /**
-     * Get Scraped Url
-     * @description Get a specific scraped URL by ID.
-     */
-    get: operations["get_scraped_url_api_v1_scrapers_urls__url_id__get"];
-    /**
-     * Delete Scraped Url
-     * @description Delete a scraped URL.
-     */
-    delete: operations["delete_scraped_url_api_v1_scrapers_urls__url_id__delete"];
-    /**
-     * Update Scraped Url
-     * @description Update a scraped URL.
-     */
-    patch: operations["update_scraped_url_api_v1_scrapers_urls__url_id__patch"];
-  };
-  "/api/v1/scrapers/urls/{url_id}/scrape": {
-    /**
-     * Scrape Specific Url
-     * @description Scrape a specific URL by ID.
-     */
-    post: operations["scrape_specific_url_api_v1_scrapers_urls__url_id__scrape_post"];
-  };
-  "/api/v1/search": {
-    /**
-     * Search Channels
-     * @description Search for Acestream channels via engine API
-     */
-    get: operations["search_channels_api_v1_search_get"];
-  };
-  "/api/v1/search/add": {
-    /**
-     * Add Channel
-     * @description Add a channel from search results to the database (delegated to service)
-     */
-    post: operations["add_channel_api_v1_search_add_post"];
-  };
-  "/api/v1/search/add_multiple": {
-    /**
-     * Add Multiple Channels
-     * @description Add multiple channels from search results to the database (delegated to service)
-     */
-    post: operations["add_multiple_channels_api_v1_search_add_multiple_post"];
-  };
-  "/api/v1/search/{infohash}/check_status": {
-    /**
-     * Check Search Broadcast
-     * @description Verify a search result's broadcast without adding it to the inventory.
-     */
-    post: operations["check_search_broadcast_api_v1_search__infohash__check_status_post"];
-  };
-  "/api/v1/startup": {
-    /** Status */
-    get: operations["status_api_v1_startup_get"];
-  };
-  "/api/v1/startup/diagnostics": {
-    /** Diagnostics */
-    get: operations["diagnostics_api_v1_startup_diagnostics_get"];
-  };
-  "/api/v1/startup/recover": {
-    /** Recover */
-    post: operations["recover_api_v1_startup_recover_post"];
-  };
-  "/api/v1/stats": {
-    /**
-     * Get Stats
-     * @description Get system statistics
-     */
-    get: operations["get_stats_api_v1_stats_get"];
-  };
-  "/api/v1/stats/": {
-    /** Get Stats */
-    get: operations["get_stats_api_v1_stats__get"];
-  };
-  "/api/v1/stats/tv-channels/": {
-    /** Get Tv Channel Stats */
-    get: operations["get_tv_channel_stats_api_v1_stats_tv_channels__get"];
-  };
-  "/api/v1/streams/active": {
-    /** Get Active Streams */
-    get: operations["get_active_streams_api_v1_streams_active_get"];
-  };
-  "/api/v1/system/diagnostics": {
-    /** Download recent runtime diagnostics */
-    get: operations["download_diagnostics_api_v1_system_diagnostics_get"];
-  };
-  "/api/v1/system/public-url": {
-    /**
-     * Origin external clients must use
-     * @description Sync on purpose: it reads the settings table.
-     */
-    get: operations["get_public_url_api_v1_system_public_url_get"];
-  };
-  "/api/v1/system/services": {
-    /**
-     * Status of the sidecar services
-     * @description Sync endpoint on purpose: the probes block for up to a couple of seconds each.
-     */
-    get: operations["list_services_api_v1_system_services_get"];
-  };
-  "/api/v1/system/services/acestream-check/start": {
-    /** Start the supervised checking engine */
-    post: operations["start_check_engine_api_v1_system_services_acestream_check_start_post"];
-  };
-  "/api/v1/system/services/acestream-check/stop": {
-    /** Stop channel checks until Start or container restart */
-    post: operations["stop_check_engine_api_v1_system_services_acestream_check_stop_post"];
-  };
-  "/api/v1/system/services/acestream/start": {
-    /** Start the supervised AceStream engine */
-    post: operations["start_engine_api_v1_system_services_acestream_start_post"];
-  };
-  "/api/v1/system/services/acestream/stop": {
-    /** Stop AceStream until Start or container restart */
-    post: operations["stop_engine_api_v1_system_services_acestream_stop_post"];
-  };
-  "/api/v1/system/services/{name}": {
-    /** Status of one sidecar service */
-    get: operations["get_service_api_v1_system_services__name__get"];
-  };
-  "/api/v1/system/services/{name}/restart": {
-    /** Restart a service supervised by this container */
-    post: operations["restart_service_api_v1_system_services__name__restart_post"];
-  };
-  "/api/v1/system/storage": {
-    /** Container directories and filesystem space */
-    get: operations["get_storage_api_v1_system_storage_get"];
-  };
-  "/api/v1/tuner/settings": {
-    /** Tuner settings */
-    get: operations["get_tuner_settings_api_v1_tuner_settings_get"];
-    /** Change the tuner settings */
-    put: operations["update_tuner_settings_api_v1_tuner_settings_put"];
-  };
-  "/api/v1/tuner/status": {
-    /**
-     * Lineup, URLs and allowlist state
-     * @description Everything the Integrations page needs to explain the tuner: the lineup
-     * it would serve, the URLs to paste into a media server, and whether the
-     * allowlist can actually tell this caller apart from any other.
-     */
-    get: operations["tuner_status_api_v1_tuner_status_get"];
-  };
-  "/api/v1/tv-channels/": {
-    /**
-     * Get Tv Channels
-     * @description Get all TV channels with pagination and total count.
-     * Optional filters: search (name substring), favorites=true.
-     */
-    get: operations["get_tv_channels_api_v1_tv_channels__get"];
-    /**
-     * Create Tv Channel
-     * @description Create a new TV channel.
-     */
-    post: operations["create_tv_channel_api_v1_tv_channels__post"];
-  };
-  "/api/v1/tv-channels/analyze-epg-matches": {
-    /** Analyze Epg Matches */
-    post: operations["analyze_epg_matches_api_v1_tv_channels_analyze_epg_matches_post"];
-  };
-  "/api/v1/tv-channels/associate-by-epg": {
-    /**
-     * Associate By Epg
-     * @description Associate acestream channels with TV channels based on EPG IDs.
-     *
-     * This endpoint attempts to match acestream channels with TV channels
-     * using EPG IDs and channel names.
-     */
-    post: operations["associate_by_epg_api_v1_tv_channels_associate_by_epg_post"];
-  };
-  "/api/v1/tv-channels/automatch/apply": {
-    /** Apply Tv Matches */
-    post: operations["apply_tv_matches_api_v1_tv_channels_automatch_apply_post"];
-  };
-  "/api/v1/tv-channels/automatch/preview": {
-    /** Preview Tv Matches */
-    post: operations["preview_tv_matches_api_v1_tv_channels_automatch_preview_post"];
-  };
-  "/api/v1/tv-channels/batch-assign": {
-    /**
-     * Batch Assign Acestreams
-     * @description Batch assign acestream channels to TV channels.
-     *
-     * The request body should be a dictionary where keys are TV channel IDs
-     * and values are lists of acestream channel IDs.
-     *
-     * Example:
-     * {
-     *     "1": ["acestream1", "acestream2"],
-     *     "2": ["acestream3"]
-     * }
-     */
-    post: operations["batch_assign_acestreams_api_v1_tv_channels_batch_assign_post"];
-  };
-  "/api/v1/tv-channels/bulk-update-epg": {
-    /**
-     * Bulk Update Epg
-     * @description Update EPG IDs for multiple TV channels.
-     *
-     * This endpoint updates EPG IDs for multiple TV channels in a batch.
-     *
-     * Request format:
-     * {
-     *     "updates": [
-     *         {"tv_channel_id": 1, "epg_id": "new.epg.id1"},
-     *         {"tv_channel_id": 2, "epg_id": "new.epg.id2"}
-     *     ]
-     * }
-     */
-    post: operations["bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post"];
-  };
-  "/api/v1/tv-channels/create-from-epg-analysis": {
-    /** Create Tv Channels From Epg Analysis */
-    post: operations["create_tv_channels_from_epg_analysis_api_v1_tv_channels_create_from_epg_analysis_post"];
-  };
-  "/api/v1/tv-channels/from-epg": {
-    /** Create Tv Channels From Epg */
-    post: operations["create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post"];
-  };
-  "/api/v1/tv-channels/reorder": {
-    /**
-     * Reorder Tv Channels
-     * @description Save the complete channel order atomically using consecutive channel numbers.
-     */
-    post: operations["reorder_tv_channels_api_v1_tv_channels_reorder_post"];
-  };
-  "/api/v1/tv-channels/{tv_channel_id}": {
-    /**
-     * Get Tv Channel
-     * @description Get a specific TV channel by ID.
-     */
-    get: operations["get_tv_channel_api_v1_tv_channels__tv_channel_id__get"];
-    /**
-     * Update Tv Channel
-     * @description Update an existing TV channel.
-     */
-    put: operations["update_tv_channel_api_v1_tv_channels__tv_channel_id__put"];
-    /**
-     * Delete Tv Channel
-     * @description Delete a TV channel.
-     */
-    delete: operations["delete_tv_channel_api_v1_tv_channels__tv_channel_id__delete"];
-  };
-  "/api/v1/tv-channels/{tv_channel_id}/acestream-matches": {
-    /**
-     * Get Tv Channel Acestream Matches
-     * @description Suggest unassigned acestreams matching this TV channel by EPG id or
-     * normalized name, for the assign flow.
-     */
-    get: operations["get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get"];
-  };
-  "/api/v1/tv-channels/{tv_channel_id}/acestreams": {
-    /**
-     * Get Tv Channel Acestreams
-     * @description Get all acestream channels associated with a TV channel.
-     */
-    get: operations["get_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_get"];
-    /**
-     * Associate Acestream
-     * @description Associate an acestream channel with a TV channel.
-     */
-    post: operations["associate_acestream_api_v1_tv_channels__tv_channel_id__acestreams_post"];
-  };
-  "/api/v1/tv-channels/{tv_channel_id}/acestreams/{acestream_id}": {
-    /**
-     * Remove Acestream Association
-     * @description Remove association between an acestream channel and a TV channel.
-     */
-    delete: operations["remove_acestream_association_api_v1_tv_channels__tv_channel_id__acestreams__acestream_id__delete"];
-  };
-  "/api/v1/tv-channels/{tv_channel_id}/favorite": {
-    /**
-     * Set Tv Channel Favorite
-     * @description Toggle (or explicitly set, via ?value=) a TV channel's favorite flag.
-     */
-    post: operations["set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post"];
-  };
-  "/api/v1/urls/refresh-all": {
-    /**
-     * Refresh All Urls
-     * @description Manually refresh all URLs.
-     */
-    post: operations["refresh_all_urls_api_v1_urls_refresh_all_post"];
-  };
-  "/api/v1/urls/{url_id}/refresh": {
-    /**
-     * Refresh Url
-     * @description Manually refresh a specific URL by ID.
-     */
-    post: operations["refresh_url_api_v1_urls__url_id__refresh_post"];
-  };
-  "/api/v1/warp/connect": {
-    /** Connect to WARP */
-    post: operations["connect_to_warp_api_v1_warp_connect_post"];
-  };
-  "/api/v1/warp/disconnect": {
-    /** Disconnect from WARP */
-    post: operations["disconnect_from_warp_api_v1_warp_disconnect_post"];
-  };
-  "/api/v1/warp/license": {
-    /** Register WARP license */
-    post: operations["register_warp_license_api_v1_warp_license_post"];
-  };
-  "/api/v1/warp/mode": {
-    /** Set WARP mode */
-    post: operations["set_warp_mode_api_v1_warp_mode_post"];
-  };
-  "/api/v1/warp/status": {
-    /** Get WARP status */
-    get: operations["get_warp_status_api_v1_warp_status_get"];
-  };
-  "/playlist.m3u": {
-    /**
-     * Legacy M3U Playlist
-     * @description Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
-     */
-    get: operations["legacy_m3u_playlist_playlist_m3u_get"];
-  };
-  "/playlists/m3u": {
-    /**
-     * Public M3U Playlist
-     * @description Public route for M3U playlist (no /api prefix)
-     */
-    get: operations["public_m3u_playlist_playlists_m3u_get"];
-  };
-  "/tuner/channel/{tv_channel_id}.ts": {
-    /** TV channel MPEG-TS with automatic source failover */
-    get: operations["tuner_channel_tuner_channel__tv_channel_id__ts_get"];
-  };
-  "/tuner/stream/{content_id}.ts": {
-    /**
-     * MPEG-TS relay of one channel
-     * @description Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
-     * duration) are ignored. HEAD answers headers only and never starts a
-     * session.
-     */
-    get: operations["tuner_stream_tuner_stream__content_id__ts_get"];
-  };
+    "/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Index
+         * @description Serve the React frontend index page.
+         */
+        get: operations["read_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playlists/all-streams/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy All Streams Playlist
+         * @description Legacy v1 all-streams playlist URL. Behaves identically to
+         *     /api/v1/playlists/all-streams/m3u.
+         */
+        get: operations["legacy_all_streams_playlist_api_playlists_all_streams_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playlists/epg.xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy Epg Xml
+         * @description Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.
+         */
+        get: operations["legacy_epg_xml_api_playlists_epg_xml_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playlists/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy Api M3U Playlist
+         * @description Legacy v1 playlist API URL. Behaves identically to /api/v1/playlists/m3u
+         *     (API error contract, unlike the player-facing /playlists/m3u route).
+         */
+        get: operations["legacy_api_m3u_playlist_api_playlists_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playlists/tv-channels/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy Tv Channels Playlist
+         * @description Legacy v1 TV-channels playlist URL. Behaves identically to
+         *     /api/v1/playlists/tv-channels/m3u.
+         */
+        get: operations["legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Acestream Channels
+         * @description Get all channels with optional filtering.
+         *     Supports both skip/limit and page/page_size parameters.
+         *     Set assigned=false to list only streams not linked to a TV channel.
+         *     Returns paginated items and total count.
+         */
+        get: operations["get_acestream_channels_api_v1_acestream_channels__get"];
+        put?: never;
+        /**
+         * Create Acestream Channel
+         * @description Create a new Acestream channel. If a channel with the same ID exists, update it.
+         */
+        post: operations["create_acestream_channel_api_v1_acestream_channels__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/bulk_activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Activate Acestream Channels
+         * @description Activate/deactivate multiple Acestream channels by IDs.
+         *     data: {"acestreamchannel_ids": [...], "active": true/false}
+         */
+        post: operations["bulk_activate_acestream_channels_api_v1_acestream_channels_bulk_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/bulk_delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Delete Acestream Channels
+         * @description Delete multiple Acestream channels by IDs.
+         */
+        post: operations["bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/bulk_edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Bulk Edit Acestream Channels
+         * @description Update multiple Acestream channels by IDs and fields.
+         *     updates: {"acestreamchannel_ids": [...], "fields": {...}}
+         */
+        put: operations["bulk_edit_acestream_channels_api_v1_acestream_channels_bulk_edit_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/export_csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Acestream Channels Csv
+         * @description Export all Acestream channels as a CSV file.
+         */
+        get: operations["export_acestream_channels_csv_api_v1_acestream_channels_export_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Channel Groups
+         * @description Get unique channel groups.
+         */
+        get: operations["get_channel_groups_api_v1_acestream_channels_groups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Channel Sources */
+        get: operations["get_channel_sources_api_v1_acestream_channels_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/status_summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Channel Status Summary
+         * @description Get summary of channel statuses.
+         */
+        get: operations["get_channel_status_summary_api_v1_acestream_channels_status_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/{acestreamchannel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Acestream Channel
+         * @description Get a specific Acestream channel by ID.
+         */
+        get: operations["get_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__get"];
+        /**
+         * Update Acestream Channel
+         * @description Update an existing Acestream channel.
+         */
+        put: operations["update_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__put"];
+        post?: never;
+        /**
+         * Delete Acestream Channel
+         * @description Delete an Acestream channel.
+         */
+        delete: operations["delete_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream-channels/{acestreamchannel_id}/check_status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Acestream Channel Status
+         * @description Check the online status of a specific Acestream channel via Acestream engine.
+         */
+        post: operations["check_acestream_channel_status_api_v1_acestream_channels__acestreamchannel_id__check_status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/acestream/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Acestream Engine status */
+        get: operations["get_acestream_status_api_v1_acestream_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity/channels/{channel_id}/activity_log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Channel Activity Log */
+        get: operations["get_channel_activity_log_api_v1_activity_channels__channel_id__activity_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recent Activity */
+        get: operations["get_recent_activity_api_v1_activity_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bootstrap */
+        post: operations["bootstrap_api_v1_auth_bootstrap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Credentials */
+        get: operations["credentials_api_v1_auth_credentials_get"];
+        put?: never;
+        /** Issue Credential */
+        post: operations["issue_credential_api_v1_auth_credentials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/credentials/{credential_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Credential */
+        delete: operations["revoke_credential_api_v1_auth_credentials__credential_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable */
+        post: operations["disable_api_v1_auth_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change Password */
+        put: operations["change_password_api_v1_auth_password_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policy */
+        get: operations["policy_api_v1_auth_policy_get"];
+        /** Update Policy */
+        put: operations["update_policy_api_v1_auth_policy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions */
+        get: operations["sessions_api_v1_auth_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Session */
+        delete: operations["revoke_session_api_v1_auth_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access Status */
+        get: operations["access_status_api_v1_auth_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users */
+        get: operations["users_api_v1_auth_users_get"];
+        put?: never;
+        /** Create User */
+        post: operations["create_user_api_v1_auth_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update User */
+        put: operations["update_user_api_v1_auth_users__user_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/background-tasks/channel_status/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Channel Status Job */
+        post: operations["run_channel_status_job_api_v1_background_tasks_channel_status_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/background-tasks/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Background Tasks Status */
+        get: operations["get_background_tasks_status_api_v1_background_tasks_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/base-urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Base Urls */
+        get: operations["list_base_urls_api_v1_base_urls_get"];
+        put?: never;
+        /** Create Base Url */
+        post: operations["create_base_url_api_v1_base_urls_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/base-urls/{base_url_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Base Url */
+        delete: operations["delete_base_url_api_v1_base_urls__base_url_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Base Url */
+        patch: operations["update_base_url_api_v1_base_urls__base_url_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cast/browser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Browser */
+        post: operations["browser_api_v1_cast_browser_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Capabilities */
+        get: operations["capabilities_api_v1_cast_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Devices */
+        get: operations["devices_api_v1_cast_devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions */
+        get: operations["sessions_api_v1_cast_sessions_get"];
+        put?: never;
+        /** Start */
+        post: operations["start_api_v1_cast_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cast/sessions/{cast_id}/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Command */
+        post: operations["command_api_v1_cast_sessions__cast_id__commands_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Catalogues */
+        get: operations["list_catalogues_api_v1_catalogues_get"];
+        put?: never;
+        /** Save Catalogue */
+        post: operations["save_catalogue_api_v1_catalogues_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogues/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Catalogue */
+        post: operations["preview_catalogue_api_v1_catalogues_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogues/{catalogue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Catalogue */
+        get: operations["get_catalogue_api_v1_catalogues__catalogue_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Catalogue */
+        delete: operations["delete_catalogue_api_v1_catalogues__catalogue_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogues/{catalogue_id}/events/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Event */
+        post: operations["preview_event_api_v1_catalogues__catalogue_id__events_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Acestream Channels
+         * @description Get all channels with optional filtering.
+         *     Supports both skip/limit and page/page_size parameters.
+         *     Set assigned=false to list only streams not linked to a TV channel.
+         *     Returns paginated items and total count.
+         */
+        get: operations["get_acestream_channels_api_v1_channels__get"];
+        put?: never;
+        /**
+         * Create Acestream Channel
+         * @description Create a new Acestream channel. If a channel with the same ID exists, update it.
+         */
+        post: operations["create_acestream_channel_api_v1_channels__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/bulk_activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Activate Acestream Channels
+         * @description Activate/deactivate multiple Acestream channels by IDs.
+         *     data: {"acestreamchannel_ids": [...], "active": true/false}
+         */
+        post: operations["bulk_activate_acestream_channels_api_v1_channels_bulk_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/bulk_delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Delete Acestream Channels
+         * @description Delete multiple Acestream channels by IDs.
+         */
+        post: operations["bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/bulk_edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Bulk Edit Acestream Channels
+         * @description Update multiple Acestream channels by IDs and fields.
+         *     updates: {"acestreamchannel_ids": [...], "fields": {...}}
+         */
+        put: operations["bulk_edit_acestream_channels_api_v1_channels_bulk_edit_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/export_csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Acestream Channels Csv
+         * @description Export all Acestream channels as a CSV file.
+         */
+        get: operations["export_acestream_channels_csv_api_v1_channels_export_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Channel Groups
+         * @description Get unique channel groups.
+         */
+        get: operations["get_channel_groups_api_v1_channels_groups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Channel Sources */
+        get: operations["get_channel_sources_api_v1_channels_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/status_summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Channel Status Summary
+         * @description Get summary of channel statuses.
+         */
+        get: operations["get_channel_status_summary_api_v1_channels_status_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/{acestreamchannel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Acestream Channel
+         * @description Get a specific Acestream channel by ID.
+         */
+        get: operations["get_acestream_channel_api_v1_channels__acestreamchannel_id__get"];
+        /**
+         * Update Acestream Channel
+         * @description Update an existing Acestream channel.
+         */
+        put: operations["update_acestream_channel_api_v1_channels__acestreamchannel_id__put"];
+        post?: never;
+        /**
+         * Delete Acestream Channel
+         * @description Delete an Acestream channel.
+         */
+        delete: operations["delete_acestream_channel_api_v1_channels__acestreamchannel_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/{acestreamchannel_id}/check_status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Acestream Channel Status
+         * @description Check the online status of a specific Acestream channel via Acestream engine.
+         */
+        post: operations["check_acestream_channel_status_api_v1_channels__acestreamchannel_id__check_status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/ace_engine_url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ace Engine Url
+         * @description Get the Acestream Engine URL.
+         */
+        get: operations["get_ace_engine_url_api_v1_config_ace_engine_url_get"];
+        /**
+         * Update Ace Engine Url
+         * @description Update the Acestream Engine URL.
+         */
+        put: operations["update_ace_engine_url_api_v1_config_ace_engine_url_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/acestream_status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Acestream Status
+         * @description Check the status of the Acestream Engine.
+         */
+        get: operations["check_acestream_status_api_v1_config_acestream_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/addpid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Addpid
+         * @description Get whether to add PID to Acestream links.
+         */
+        get: operations["get_addpid_api_v1_config_addpid_get"];
+        /**
+         * Update Addpid
+         * @description Update whether to add PID to Acestream links.
+         */
+        put: operations["update_addpid_api_v1_config_addpid_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get All Settings
+         * @description Get all settings.
+         */
+        get: operations["get_all_settings_api_v1_config_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/appid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Appid
+         * @description Get whether to use AppID in Acestream links.
+         */
+        get: operations["get_appid_api_v1_config_appid_get"];
+        /**
+         * Update Appid
+         * @description Update whether to use AppID in Acestream links.
+         */
+        put: operations["update_appid_api_v1_config_appid_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/base_url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Base Url
+         * @description Get the base URL for Acestream links.
+         */
+        get: operations["get_base_url_api_v1_config_base_url_get"];
+        /**
+         * Update Base Url
+         * @description Update the base URL for Acestream links.
+         */
+        put: operations["update_base_url_api_v1_config_base_url_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/check-engine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Check Engine */
+        get: operations["get_check_engine_api_v1_config_check_engine_get"];
+        /** Update Check Engine */
+        put: operations["update_check_engine_api_v1_config_check_engine_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dashboard Config */
+        get: operations["get_dashboard_config_api_v1_config_dashboard_get"];
+        /** Update Dashboard Config */
+        put: operations["update_dashboard_config_api_v1_config_dashboard_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/epg-matching": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Epg Matching */
+        get: operations["get_epg_matching_api_v1_config_epg_matching_get"];
+        /** Update Epg Matching */
+        put: operations["update_epg_matching_api_v1_config_epg_matching_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/epg-matching/last-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Epg Matching Last Run */
+        get: operations["epg_matching_last_run_api_v1_config_epg_matching_last_run_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/epg_refresh_interval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg Refresh Interval
+         * @description Get the interval between automatic EPG refreshes in hours.
+         */
+        get: operations["get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get"];
+        /**
+         * Update Epg Refresh Interval
+         * @description Update the interval between automatic EPG refreshes in hours (reschedules the job).
+         */
+        put: operations["update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/notification_webhook_url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Notification Webhook Url
+         * @description Get the webhook that receives task notifications (empty = off), as
+         *     scheme and host only: webhooks keep their secret in the query or path.
+         *     An invalid previously saved URL returns only '•••' so it can be replaced or cleared.
+         */
+        get: operations["get_notification_webhook_url_api_v1_config_notification_webhook_url_get"];
+        /**
+         * Update Notification Webhook Url
+         * @description Set the webhook that receives task notifications; empty turns them off (#41).
+         */
+        put: operations["update_notification_webhook_url_api_v1_config_notification_webhook_url_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/notification_webhook_url/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Notification Webhook
+         * @description Send a test notification to the saved webhook.
+         */
+        post: operations["test_notification_webhook_api_v1_config_notification_webhook_url_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/playback-routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Playback Routing */
+        get: operations["get_playback_routing_api_v1_config_playback_routing_get"];
+        /** Update Playback Routing */
+        put: operations["update_playback_routing_api_v1_config_playback_routing_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/public_base_url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Public Base Url
+         * @description Externally reachable origin used for tuner, player and copy links.
+         */
+        get: operations["get_public_base_url_api_v1_config_public_base_url_get"];
+        /**
+         * Update Public Base Url
+         * @description Update the externally reachable origin (empty value clears the override).
+         */
+        put: operations["update_public_base_url_api_v1_config_public_base_url_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settings */
+        get: operations["settings_api_v1_config_recordings_get"];
+        /** Configure */
+        put: operations["configure_api_v1_config_recordings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/rescrape_interval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Rescrape Interval
+         * @description Get the interval between automatic rescrapes in hours.
+         */
+        get: operations["get_rescrape_interval_api_v1_config_rescrape_interval_get"];
+        /**
+         * Update Rescrape Interval
+         * @description Update the interval between automatic rescrapes in hours.
+         */
+        put: operations["update_rescrape_interval_api_v1_config_rescrape_interval_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/schedule-anchors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Schedule Anchors */
+        get: operations["get_schedule_anchors_api_v1_config_schedule_anchors_get"];
+        /** Update Schedule Anchors */
+        put: operations["update_schedule_anchors_api_v1_config_schedule_anchors_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Config Key
+         * @description Generic GET for config keys.
+         */
+        get: operations["get_config_key_api_v1_config__key__get"];
+        /**
+         * Update Config Key
+         * @description Generic PUT for config keys.
+         */
+        put: operations["update_config_key_api_v1_config__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/auto-scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Auto Map Channels
+         * @description Auto-map TV channels to EPG channels based on string patterns
+         */
+        post: operations["auto_map_channels_api_v1_epg_auto_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg Channels
+         * @description Get EPG channels, optionally filtered by source ID
+         */
+        get: operations["get_epg_channels_api_v1_epg_channels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/channels/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Map Epg Channel To Tv
+         * @description Map an EPG channel to a TV channel
+         */
+        post: operations["map_epg_channel_to_tv_api_v1_epg_channels_map_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/channels/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve Epg Channel
+         * @description Resolve an EPG channel by source ID and channel XML ID.
+         */
+        get: operations["resolve_epg_channel_api_v1_epg_channels_resolve_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/channels/unmap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unmap Epg Channel From Tv
+         * @description Remove a mapping between an EPG channel and a TV channel
+         */
+        post: operations["unmap_epg_channel_from_tv_api_v1_epg_channels_unmap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/channels/{channel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg Channel
+         * @description Get a specific EPG channel by ID
+         */
+        get: operations["get_epg_channel_api_v1_epg_channels__channel_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/channels/{channel_id}/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg String Mappings
+         * @description Get string mappings for an EPG channel
+         */
+        get: operations["get_epg_string_mappings_api_v1_epg_channels__channel_id__mappings_get"];
+        put?: never;
+        /**
+         * Add Epg String Mapping
+         * @description Add a string mapping for an EPG channel. Accepts both direct JSON and Pydantic schema for backward compatibility.
+         */
+        post: operations["add_epg_string_mapping_api_v1_epg_channels__channel_id__mappings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/channels/{channel_id}/programs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg Programs
+         * @description Get programs for an EPG channel, optionally filtered by date range
+         */
+        get: operations["get_epg_programs_api_v1_epg_channels__channel_id__programs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get All Epg String Mappings
+         * @description Get all EPG string mappings across all channels
+         */
+        get: operations["get_all_epg_string_mappings_api_v1_epg_mappings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/mappings/{mapping_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Epg String Mapping
+         * @description Delete a string mapping
+         */
+        delete: operations["delete_epg_string_mapping_api_v1_epg_mappings__mapping_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Epg String Mapping
+         * @description Update an existing EPG string mapping. Accepts both direct JSON and Pydantic schema for backward compatibility.
+         */
+        patch: operations["update_epg_string_mapping_api_v1_epg_mappings__mapping_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/epg/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg Sources
+         * @description Get all EPG sources
+         */
+        get: operations["get_epg_sources_api_v1_epg_sources_get"];
+        put?: never;
+        /**
+         * Create Epg Source
+         * @description Create a new EPG source
+         */
+        post: operations["create_epg_source_api_v1_epg_sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/sources/refresh_all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh All Epg Sources
+         * @description Refresh EPG data for all enabled sources
+         */
+        post: operations["refresh_all_epg_sources_api_v1_epg_sources_refresh_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/sources/{source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg Source
+         * @description Get a specific EPG source by ID
+         */
+        get: operations["get_epg_source_api_v1_epg_sources__source_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Epg Source
+         * @description Delete an EPG source
+         */
+        delete: operations["delete_epg_source_api_v1_epg_sources__source_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Epg Source
+         * @description Update an EPG source
+         */
+        patch: operations["update_epg_source_api_v1_epg_sources__source_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/epg/sources/{source_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Epg Source
+         * @description Refresh EPG data for a specific source
+         */
+        post: operations["refresh_epg_source_api_v1_epg_sources__source_id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/epg/xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Epg Xml
+         * @description Generate EPG XML data in XMLTV format
+         *
+         *     Args:
+         *         search_term: Optional term to filter channels by name
+         *         favorites_only: If True, only include favorite channels
+         *         days_back: Number of days in the past to include programs for
+         *         days_forward: Number of days in the future to include programs for
+         *
+         *     Returns:
+         *         XML content in XMLTV format
+         */
+        get: operations["get_epg_xml_api_v1_epg_xml_get"];
+        put?: never;
+        /**
+         * Generate Epg Xml
+         * @description Generate EPG XML data with customizable parameters
+         *
+         *     Args:
+         *         request: Parameters for XML generation
+         *
+         *     Returns:
+         *         XML content in XMLTV format
+         */
+        post: operations["generate_epg_xml_api_v1_epg_xml_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_api_v1_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Events */
+        post: operations["apply_events_api_v1_events_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/broadcast-targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Broadcast Targets */
+        get: operations["event_broadcast_targets_api_v1_events_broadcast_targets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/interests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Interests */
+        get: operations["event_interests_api_v1_events_interests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Events */
+        post: operations["preview_events_api_v1_events_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Providers */
+        get: operations["event_providers_api_v1_events_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Retention */
+        get: operations["event_retention_api_v1_events_retention_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Save Event Retention */
+        patch: operations["save_event_retention_api_v1_events_retention_patch"];
+        trace?: never;
+    };
+    "/api/v1/events/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Sources */
+        get: operations["event_sources_api_v1_events_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/sources/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Event Source */
+        post: operations["preview_event_source_api_v1_events_sources_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/sources/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue Event Refresh */
+        post: operations["queue_event_refresh_api_v1_events_sources_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/sources/{source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Event Source */
+        delete: operations["delete_event_source_api_v1_events_sources__source_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Event Source */
+        patch: operations["update_event_source_api_v1_events_sources__source_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Event */
+        get: operations["get_event_api_v1_events__event_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Event */
+        patch: operations["update_event_api_v1_events__event_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/events/{event_id}/artwork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Artwork */
+        get: operations["event_artwork_api_v1_events__event_id__artwork_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{event_id}/broadcast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Map Event Broadcast */
+        patch: operations["map_event_broadcast_api_v1_events__event_id__broadcast_patch"];
+        trace?: never;
+    };
+    "/api/v1/events/{event_id}/guide-overlays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Event Overlays */
+        get: operations["list_event_overlays_api_v1_events__event_id__guide_overlays_get"];
+        put?: never;
+        /** Apply Event Overlay */
+        post: operations["apply_event_overlay_api_v1_events__event_id__guide_overlays_post"];
+        /** Remove Event Overlay */
+        delete: operations["remove_event_overlay_api_v1_events__event_id__guide_overlays_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{event_id}/guide-overlays/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Event Overlay */
+        post: operations["preview_event_overlay_api_v1_events__event_id__guide_overlays_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Health
+         * @description Check the overall system health
+         */
+        get: operations["check_health_api_v1_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import-exclusions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Rules */
+        get: operations["list_rules_api_v1_import_exclusions_get"];
+        put?: never;
+        /** Create Rule */
+        post: operations["create_rule_api_v1_import_exclusions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import-exclusions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_v1_import_exclusions_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/import-exclusions/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Rule */
+        delete: operations["delete_rule_api_v1_import_exclusions__rule_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Rule */
+        patch: operations["update_rule_api_v1_import_exclusions__rule_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/media-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved media servers */
+        get: operations["list_media_servers_api_v1_media_servers_get"];
+        put?: never;
+        /** Create Media Server */
+        post: operations["create_media_server_api_v1_media_servers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media-servers/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe a media server before saving it */
+        post: operations["test_media_server_api_v1_media_servers_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media-servers/{server_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Media Server */
+        delete: operations["delete_media_server_api_v1_media_servers__server_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Media Server */
+        patch: operations["update_media_server_api_v1_media_servers__server_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/media-servers/{server_id}/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register the tuner and guide */
+        post: operations["connect_media_server_api_v1_media_servers__server_id__connect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media-servers/{server_id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unregister the tuner and guide */
+        post: operations["disconnect_media_server_api_v1_media_servers__server_id__disconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media-servers/{server_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh the guide now
+         * @description Bypasses the sync job's debounce — the user asked for it explicitly.
+         */
+        post: operations["refresh_media_server_api_v1_media_servers__server_id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media-servers/{server_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media Server Status */
+        get: operations["media_server_status_api_v1_media_servers__server_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media-servers/{server_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe a saved media server */
+        post: operations["test_saved_media_server_api_v1_media_servers__server_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the server can prepare streams for browsers */
+        get: operations["capabilities_api_v1_player_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active player sessions */
+        get: operations["list_sessions_api_v1_player_sessions_get"];
+        put?: never;
+        /** Start (or join) playback of a channel */
+        post: operations["create_session_api_v1_player_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Session status (heartbeat) */
+        get: operations["get_session_api_v1_player_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        /** Leave a session */
+        delete: operations["leave_session_api_v1_player_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/sessions/{session_id}/index.m3u8": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** HLS playlist */
+        get: operations["playlist_api_v1_player_sessions__session_id__index_m3u8_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/sessions/{session_id}/subtitles.m3u8": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subtitle HLS playlist */
+        get: operations["subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/sessions/{session_id}/video.m3u8": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Video HLS playlist */
+        get: operations["video_playlist_api_v1_player_sessions__session_id__video_m3u8_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/sessions/{session_id}/{segment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** HLS segment */
+        get: operations["segment_api_v1_player_sessions__session_id___segment__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/player/streams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Everything the server is streaming right now
+         * @description Browser sessions and raw relays in one list, named where we know the name.
+         *
+         *     Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
+         *     it in the threadpool instead of blocking the event loop that is feeding the
+         *     relays this very endpoint reports.
+         */
+        get: operations["active_streams_api_v1_player_streams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/playlists/all-streams/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get All Streams Playlist
+         * @description Generate an M3U playlist of numbered TV channels followed by unassigned
+         *     acestreams (numbered from 9000).
+         *
+         *     - **search**: Optional search term for channel names
+         *     - **include_unassigned**: Append streams not assigned to any TV channel
+         *     - **refresh**: Trigger a background rescrape of all enabled URLs
+         */
+        get: operations["get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/playlists/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Channel Groups
+         * @description Get list of all available channel groups
+         */
+        get: operations["get_channel_groups_api_v1_playlists_groups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/playlists/guide-coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Guide Coverage */
+        get: operations["guide_coverage_api_v1_playlists_guide_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/playlists/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get M3U Playlist
+         * @description Generate M3U playlist with specified filters
+         *
+         *     - **search**: Optional search term for channel names
+         *     - **group**: Optional specific group to filter by
+         *     - **only_online**: Whether to include only online channels (default: True)
+         *     - **include_groups**: Comma-separated list of groups to include
+         *     - **exclude_groups**: Comma-separated list of groups to exclude
+         *     - **refresh**: Trigger a background rescrape of all enabled URLs
+         */
+        get: operations["get_m3u_playlist_api_v1_playlists_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/playlists/playlists/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get M3U Playlist Compat
+         * @description Compatibility route for M3U playlist generation
+         *
+         *     This route exists to support legacy URLs. It behaves identically to the
+         *     /m3u endpoint.
+         */
+        get: operations["get_m3u_playlist_compat_api_v1_playlists_playlists_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/playlists/tv-channels/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tv Channels Playlist
+         * @description Generate a curated M3U playlist of TV channels with their assigned
+         *     acestreams, ordered by channel number then name.
+         *
+         *     - **search**: Optional search term for TV channel names
+         *     - **favorites_only**: Only include favorite TV channels
+         *     - **refresh**: Trigger a background rescrape of all enabled URLs
+         */
+        get: operations["get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_recordings_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_recordings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Capabilities */
+        get: operations["capabilities_api_v1_recordings_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/current-programme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Programme */
+        get: operations["current_programme_api_v1_recordings_current_programme_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Upcoming */
+        get: operations["upcoming_api_v1_recordings_upcoming_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_recordings__rid__get"];
+        put?: never;
+        post?: never;
+        /** Delete */
+        delete: operations["delete_api_v1_recordings__rid__delete"];
+        options?: never;
+        head?: never;
+        /** Edit */
+        patch: operations["edit_api_v1_recordings__rid__patch"];
+        trace?: never;
+    };
+    "/api/v1/recordings/{rid}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_v1_recordings__rid__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/{rid}/conversions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convert */
+        post: operations["convert_api_v1_recordings__rid__conversions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/{rid}/files/{fid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** File */
+        get: operations["file_api_v1_recordings__rid__files__fid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        /** File */
+        head: operations["file_api_v1_recordings__rid__files__fid__head"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/{rid}/playback-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open Playback */
+        post: operations["open_playback_api_v1_recordings__rid__playback_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/{rid}/playback-sessions/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Playback Status */
+        get: operations["playback_status_api_v1_recordings__rid__playback_sessions__sid__get"];
+        put?: never;
+        post?: never;
+        /** Close Playback */
+        delete: operations["close_playback_api_v1_recordings__rid__playback_sessions__sid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recordings/{rid}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop */
+        post: operations["stop_api_v1_recordings__rid__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved remote players */
+        get: operations["list_players_api_v1_remote_players_get"];
+        put?: never;
+        /** Create Player */
+        post: operations["create_player_api_v1_remote_players_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/android/pair/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Android Pair Finish */
+        post: operations["android_pair_finish_api_v1_remote_players_android_pair_finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/android/pair/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Android Pair Start */
+        post: operations["android_pair_start_api_v1_remote_players_android_pair_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find VLC/Kodi web interfaces on a private network */
+        post: operations["scan_api_v1_remote_players_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/scan/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggested network to scan */
+        get: operations["scan_default_api_v1_remote_players_scan_default_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe a player before saving it */
+        post: operations["test_player_api_v1_remote_players_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/{player_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Player */
+        delete: operations["delete_player_api_v1_remote_players__player_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Player */
+        patch: operations["update_player_api_v1_remote_players__player_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/remote-players/{player_id}/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Player Command */
+        post: operations["player_command_api_v1_remote_players__player_id__command_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/{player_id}/play": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a channel to the player */
+        post: operations["play_on_player_api_v1_remote_players__player_id__play_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/{player_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Player Status */
+        get: operations["player_status_api_v1_remote_players__player_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/remote-players/{player_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe a saved player */
+        post: operations["test_saved_player_api_v1_remote_players__player_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/saved-searches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Searches */
+        get: operations["list_searches_api_v1_saved_searches_get"];
+        put?: never;
+        /** Create Search */
+        post: operations["create_search_api_v1_saved_searches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/saved-searches/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_v1_saved_searches_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/saved-searches/{search_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Search */
+        get: operations["get_search_api_v1_saved_searches__search_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Search */
+        delete: operations["delete_search_api_v1_saved_searches__search_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Search */
+        patch: operations["update_search_api_v1_saved_searches__search_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/saved-searches/{search_id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Search */
+        post: operations["run_search_api_v1_saved_searches__search_id__run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Builtin Providers */
+        get: operations["builtin_providers_api_v1_scrapers_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/recipes/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Extraction
+         * @description Test a sample in an isolated worker. No source/channel writes.
+         */
+        post: operations["preview_extraction_api_v1_scrapers_recipes_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/recipes/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fetch Extraction Sample
+         * @description Fetch a bounded source sample using the installed app, without scraping.
+         */
+        post: operations["fetch_extraction_sample_api_v1_scrapers_recipes_sample_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/scrape": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scrape Url
+         * @description Scrape a URL for Acestream channels.
+         *
+         *     Request body:
+         *     - url: The URL to scrape
+         *     - url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')
+         *     - run_async: (Optional) Run scraping in background
+         */
+        post: operations["scrape_url_api_v1_scrapers_scrape_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scraped Urls
+         * @description Get list of URLs that have been scraped.
+         */
+        get: operations["get_scraped_urls_api_v1_scrapers_urls_get"];
+        put?: never;
+        /**
+         * Create Scraped Url
+         * @description Create a new URL to be scraped.
+         */
+        post: operations["create_scraped_url_api_v1_scrapers_urls_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/urls/scrape_all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scrape All Urls
+         * @description Scrape all enabled URLs, with optional limit.
+         */
+        post: operations["scrape_all_urls_api_v1_scrapers_urls_scrape_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/urls/{url_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scraped Url
+         * @description Get a specific scraped URL by ID.
+         */
+        get: operations["get_scraped_url_api_v1_scrapers_urls__url_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Scraped Url
+         * @description Delete a scraped URL.
+         */
+        delete: operations["delete_scraped_url_api_v1_scrapers_urls__url_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Scraped Url
+         * @description Update a scraped URL.
+         */
+        patch: operations["update_scraped_url_api_v1_scrapers_urls__url_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/scrapers/urls/{url_id}/scrape": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scrape Specific Url
+         * @description Scrape a specific URL by ID.
+         */
+        post: operations["scrape_specific_url_api_v1_scrapers_urls__url_id__scrape_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Channels
+         * @description Search for Acestream channels via engine API
+         */
+        get: operations["search_channels_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Channel
+         * @description Add a channel from search results to the database (delegated to service)
+         */
+        post: operations["add_channel_api_v1_search_add_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/add_multiple": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Multiple Channels
+         * @description Add multiple channels from search results to the database (delegated to service)
+         */
+        post: operations["add_multiple_channels_api_v1_search_add_multiple_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Search Results */
+        post: operations["import_search_results_api_v1_search_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/{infohash}/check_status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Search Broadcast
+         * @description Verify a search result's broadcast without adding it to the inventory.
+         */
+        post: operations["check_search_broadcast_api_v1_search__infohash__check_status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/{infohash}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Search Result
+         * @description Resolve a catalogue result before saving it or opening the shared player.
+         */
+        post: operations["resolve_search_result_api_v1_search__infohash__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Setup */
+        get: operations["get_setup_api_v1_setup_get"];
+        /** Save Setup */
+        put: operations["save_setup_api_v1_setup_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/startup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_api_v1_startup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/startup/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnostics */
+        get: operations["diagnostics_api_v1_startup_diagnostics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/startup/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recover */
+        post: operations["recover_api_v1_startup_recover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stats
+         * @description Get system statistics
+         */
+        get: operations["get_stats_api_v1_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Stats */
+        get: operations["get_stats_api_v1_stats__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stats/tv-channels/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Tv Channel Stats */
+        get: operations["get_tv_channel_stats_api_v1_stats_tv_channels__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/streams/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Active Streams */
+        get: operations["get_active_streams_api_v1_streams_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download recent runtime diagnostics */
+        get: operations["download_diagnostics_api_v1_system_diagnostics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/public-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Origin external clients must use
+         * @description Sync on purpose: it reads the settings table.
+         */
+        get: operations["get_public_url_api_v1_system_public_url_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Status of the sidecar services
+         * @description Sync endpoint on purpose: the probes block for up to a couple of seconds each.
+         */
+        get: operations["list_services_api_v1_system_services_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/services/acestream-check/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the supervised checking engine */
+        post: operations["start_check_engine_api_v1_system_services_acestream_check_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/services/acestream-check/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop channel checks until Start or container restart */
+        post: operations["stop_check_engine_api_v1_system_services_acestream_check_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/services/acestream/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the supervised AceStream engine */
+        post: operations["start_engine_api_v1_system_services_acestream_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/services/acestream/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop AceStream until Start or container restart */
+        post: operations["stop_engine_api_v1_system_services_acestream_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/services/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status of one sidecar service */
+        get: operations["get_service_api_v1_system_services__name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/services/{name}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart a service supervised by this container */
+        post: operations["restart_service_api_v1_system_services__name__restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Container directories and filesystem space */
+        get: operations["get_storage_api_v1_system_storage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check for a newer published stable release */
+        get: operations["get_updates_api_v1_system_updates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Logout */
+        delete: operations["logout_api_v1_telegram_account_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/chats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chats */
+        get: operations["chats_api_v1_telegram_chats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/chats/{chat_id}/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Topics */
+        get: operations["topics_api_v1_telegram_chats__chat_id__topics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Code */
+        post: operations["code_api_v1_telegram_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disconnect */
+        post: operations["disconnect_api_v1_telegram_disconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_telegram_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Password */
+        post: operations["password_api_v1_telegram_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/preset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preset */
+        get: operations["preset_api_v1_telegram_preset_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_v1_telegram_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconnect */
+        post: operations["reconnect_api_v1_telegram_reconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve */
+        post: operations["resolve_api_v1_telegram_resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sources */
+        get: operations["sources_api_v1_telegram_sources_get"];
+        put?: never;
+        /** Create Source */
+        post: operations["create_source_api_v1_telegram_sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/sources/{source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Source */
+        put: operations["update_source_api_v1_telegram_sources__source_id__put"];
+        post?: never;
+        /** Delete Source */
+        delete: operations["delete_source_api_v1_telegram_sources__source_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/sources/{source_id}/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Scan */
+        post: operations["scan_api_v1_telegram_sources__source_id__scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_api_v1_telegram_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tuner/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tuner settings */
+        get: operations["get_tuner_settings_api_v1_tuner_settings_get"];
+        /** Change the tuner settings */
+        put: operations["update_tuner_settings_api_v1_tuner_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tuner/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lineup, URLs and allowlist state
+         * @description Everything the Integrations page needs to explain the tuner: the lineup
+         *     it would serve, the URLs to paste into a media server, and whether the
+         *     allowlist can actually tell this caller apart from any other.
+         */
+        get: operations["tuner_status_api_v1_tuner_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tv Channels
+         * @description Get all TV channels with pagination and total count.
+         *     Optional filters: search (name substring), favorites=true.
+         */
+        get: operations["get_tv_channels_api_v1_tv_channels__get"];
+        put?: never;
+        /**
+         * Create Tv Channel
+         * @description Create a new TV channel.
+         */
+        post: operations["create_tv_channel_api_v1_tv_channels__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/analyze-epg-matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Analyze Epg Matches */
+        post: operations["analyze_epg_matches_api_v1_tv_channels_analyze_epg_matches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/associate-by-epg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Associate By Epg
+         * @description Associate acestream channels with TV channels based on EPG IDs.
+         *
+         *     This endpoint attempts to match acestream channels with TV channels
+         *     using EPG IDs and channel names.
+         */
+        post: operations["associate_by_epg_api_v1_tv_channels_associate_by_epg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/automatch/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Tv Matches */
+        post: operations["apply_tv_matches_api_v1_tv_channels_automatch_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/automatch/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Tv Matches */
+        post: operations["preview_tv_matches_api_v1_tv_channels_automatch_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/batch-assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Assign Acestreams
+         * @description Batch assign acestream channels to TV channels.
+         *
+         *     The request body should be a dictionary where keys are TV channel IDs
+         *     and values are lists of acestream channel IDs.
+         *
+         *     Example:
+         *     {
+         *         "1": ["acestream1", "acestream2"],
+         *         "2": ["acestream3"]
+         *     }
+         */
+        post: operations["batch_assign_acestreams_api_v1_tv_channels_batch_assign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/bulk-update-epg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Update Epg
+         * @description Update EPG IDs for multiple TV channels.
+         *
+         *     This endpoint updates EPG IDs for multiple TV channels in a batch.
+         *
+         *     Request format:
+         *     {
+         *         "updates": [
+         *             {"tv_channel_id": 1, "epg_id": "new.epg.id1"},
+         *             {"tv_channel_id": 2, "epg_id": "new.epg.id2"}
+         *         ]
+         *     }
+         */
+        post: operations["bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/create-from-epg-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Tv Channels From Epg Analysis */
+        post: operations["create_tv_channels_from_epg_analysis_api_v1_tv_channels_create_from_epg_analysis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/from-epg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Tv Channels From Epg */
+        post: operations["create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reorder Tv Channels
+         * @description Save the complete channel order atomically using consecutive channel numbers.
+         */
+        post: operations["reorder_tv_channels_api_v1_tv_channels_reorder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{tv_channel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tv Channel
+         * @description Get a specific TV channel by ID.
+         */
+        get: operations["get_tv_channel_api_v1_tv_channels__tv_channel_id__get"];
+        /**
+         * Update Tv Channel
+         * @description Update an existing TV channel.
+         */
+        put: operations["update_tv_channel_api_v1_tv_channels__tv_channel_id__put"];
+        post?: never;
+        /**
+         * Delete Tv Channel
+         * @description Delete a TV channel.
+         */
+        delete: operations["delete_tv_channel_api_v1_tv_channels__tv_channel_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{tv_channel_id}/acestream-matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tv Channel Acestream Matches
+         * @description Suggest unassigned acestreams matching this TV channel by EPG id or
+         *     normalized name, for the assign flow.
+         */
+        get: operations["get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{tv_channel_id}/acestreams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tv Channel Acestreams
+         * @description Get all acestream channels associated with a TV channel.
+         */
+        get: operations["get_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_get"];
+        put?: never;
+        /**
+         * Associate Acestream
+         * @description Associate an acestream channel with a TV channel.
+         */
+        post: operations["associate_acestream_api_v1_tv_channels__tv_channel_id__acestreams_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{tv_channel_id}/acestreams/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reorder Tv Channel Acestreams
+         * @description Reorder streams for a TV channel by setting their preference order (1, 2, ...).
+         */
+        post: operations["reorder_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_reorder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{tv_channel_id}/acestreams/{acestream_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Acestream Association
+         * @description Remove association between an acestream channel and a TV channel.
+         */
+        delete: operations["remove_acestream_association_api_v1_tv_channels__tv_channel_id__acestreams__acestream_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{tv_channel_id}/favorite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Tv Channel Favorite
+         * @description Toggle (or explicitly set, via ?value=) a TV channel's favorite flag.
+         */
+        post: operations["set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/urls/refresh-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh All Urls
+         * @description Manually refresh all URLs.
+         */
+        post: operations["refresh_all_urls_api_v1_urls_refresh_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/urls/{url_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Url
+         * @description Manually refresh a specific URL by ID.
+         */
+        post: operations["refresh_url_api_v1_urls__url_id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Channels */
+        get: operations["channels_api_v1_view_channels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Events */
+        get: operations["events_api_v1_view_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/guide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Guide */
+        get: operations["guide_api_v1_view_guide_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live */
+        get: operations["live_api_v1_view_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/playlists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Playlist Link */
+        post: operations["playlist_link_api_v1_view_playlists_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recordings */
+        get: operations["recordings_api_v1_view_recordings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings/{rid}/files/{fid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recording File */
+        get: operations["recording_file_api_v1_view_recordings__rid__files__fid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings/{rid}/playback-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Recording */
+        post: operations["start_recording_api_v1_view_recordings__rid__playback_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/view/recordings/{rid}/playback-sessions/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recording Status */
+        get: operations["recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get"];
+        put?: never;
+        post?: never;
+        /** Stop Recording */
+        delete: operations["stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/viewers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_viewers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/viewers/{viewer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_api_v1_viewers__viewer_id__get"];
+        put?: never;
+        post?: never;
+        /** Release */
+        delete: operations["release_api_v1_viewers__viewer_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/viewers/{viewer_id}/media/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media */
+        get: operations["media_api_v1_viewers__viewer_id__media__resource__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warp/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect to WARP */
+        post: operations["connect_to_warp_api_v1_warp_connect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warp/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disconnect from WARP */
+        post: operations["disconnect_from_warp_api_v1_warp_disconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warp/exclusions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Exclusions */
+        get: operations["get_exclusions_api_v1_warp_exclusions_get"];
+        /** Save Exclusions */
+        put: operations["save_exclusions_api_v1_warp_exclusions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warp/license": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register WARP license */
+        post: operations["register_warp_license_api_v1_warp_license_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warp/mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set WARP mode */
+        post: operations["set_warp_mode_api_v1_warp_mode_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warp/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get WARP status */
+        get: operations["get_warp_status_api_v1_warp_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/playlist.m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy M3U Playlist
+         * @description Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
+         */
+        get: operations["legacy_m3u_playlist_playlist_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/playlists/m3u": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public M3U Playlist
+         * @description Public route for M3U playlist (no /api prefix)
+         */
+        get: operations["public_m3u_playlist_playlists_m3u_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tuner/channel/{tv_channel_id}.ts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** TV channel MPEG-TS with automatic source failover */
+        get: operations["tuner_channel_tuner_channel__tv_channel_id__ts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tuner/stream/{content_id}.ts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * MPEG-TS relay of one channel
+         * @description Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
+         *     duration) are ignored. HEAD answers headers only and never starts a
+         *     session.
+         */
+        get: operations["tuner_stream_tuner_stream__content_id__ts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
-
 export type webhooks = Record<string, never>;
-
 export interface components {
-  schemas: {
-    /**
-     * AceEngineUrlUpdate
-     * @description Schema for updating the Acestream Engine URL
-     */
-    AceEngineUrlUpdate: {
-      /**
-       * Value
-       * @description Acestream Engine URL
-       */
-      value: string;
-    };
-    /**
-     * AcestreamChannelCreate
-     * @description Schema for Acestream channel creation
-     */
-    AcestreamChannelCreate: {
-      /** Group */
-      group?: string | null;
-      /**
-       * Id
-       * @description Acestream channel ID (required, GUID string)
-       */
-      id: string;
-      /** Is Online */
-      is_online?: boolean | null;
-      /** Logo */
-      logo?: string | null;
-      /** Name */
-      name: string;
-      /** Source Url */
-      source_url?: string | null;
-      /** Tvg Id */
-      tvg_id?: string | null;
-      /** Tvg Name */
-      tvg_name?: string | null;
-    };
-    /**
-     * AcestreamChannelListResponse
-     * @description Schema for paginated acestream channel results
-     */
-    AcestreamChannelListResponse: {
-      /** Items */
-      items: components["schemas"]["AcestreamChannelResponse"][];
-      /** Total */
-      total: number;
-    };
-    /**
-     * AcestreamChannelResponse
-     * @description Schema for Acestream channel response
-     */
-    AcestreamChannelResponse: {
-      /**
-       * Audio Tracks
-       * @description Audio tracks found at the last successful media probe; null means unknown
-       */
-      audio_tracks?: components["schemas"]["AudioTrack"][] | null;
-      /**
-       * Bitrate Bps
-       * @description Last measured encoded media bitrate in bits per second; not P2P download speed
-       */
-      bitrate_bps?: number | null;
-      /** Bitrate Checked At */
-      bitrate_checked_at?: string | null;
-      /** Check Error */
-      check_error?: string | null;
-      /**
-       * Epg Update Protected
-       * @default false
-       */
-      epg_update_protected?: boolean | null;
-      /** Group */
-      group?: string | null;
-      /**
-       * Id
-       * @description Acestream channel ID (required, GUID string)
-       */
-      id: string;
-      /** Is Active */
-      is_active: boolean;
-      /** Is Online */
-      is_online?: boolean | null;
-      /** Last Checked */
-      last_checked?: string | null;
-      /**
-       * Last Seen
-       * Format: date-time
-       */
-      last_seen: string;
-      /** Logo */
-      logo?: string | null;
-      /** Name */
-      name: string;
-      /**
-       * Network Status
-       * @description Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence
-       */
-      network_status?: ("found" | "not_found" | "unknown") | null;
-      /** Source Url */
-      source_url?: string | null;
-      stream_stats?: components["schemas"]["StreamStats"] | null;
-      /** Tv Channel Id */
-      tv_channel_id?: number | null;
-      /** Tv Channel Is Favorite */
-      tv_channel_is_favorite?: boolean | null;
-      /** Tv Channel Name */
-      tv_channel_name?: string | null;
-      /** Tvg Id */
-      tvg_id?: string | null;
-      /** Tvg Name */
-      tvg_name?: string | null;
-    };
-    /**
-     * AcestreamChannelUpdate
-     * @description Schema for Acestream channel update
-     */
-    AcestreamChannelUpdate: {
-      /** Epg Update Protected */
-      epg_update_protected?: boolean | null;
-      /** Group */
-      group?: string | null;
-      /** Is Active */
-      is_active?: boolean | null;
-      /** Is Online */
-      is_online?: boolean | null;
-      /** Logo */
-      logo?: string | null;
-      /** Name */
-      name?: string | null;
-      /** Source Url */
-      source_url?: string | null;
-      /** Tv Channel Id */
-      tv_channel_id?: number | null;
-      /** Tvg Id */
-      tvg_id?: string | null;
-      /** Tvg Name */
-      tvg_name?: string | null;
-    };
-    /** AcestreamStatusResponse */
-    AcestreamStatusResponse: {
-      /** Available */
-      available: boolean;
-      /** Connected */
-      connected?: boolean | null;
-      /** Enabled */
-      enabled: boolean;
-      /** Engine Url */
-      engine_url: string;
-      /** Is Internal */
-      is_internal: boolean;
-      /** Message */
-      message: string;
-      /** Platform */
-      platform?: string | null;
-      /** Playlist Loaded */
-      playlist_loaded?: boolean | null;
-      /** Version */
-      version?: string | null;
-    };
-    /**
-     * ActiveStream
-     * @description One thing the server is streaming right now.
-     *
-     * ``browser`` is an ffmpeg/HLS player session; ``relay`` is a raw MPEG-TS
-     * relay of ``/tuner/stream/<id>.ts`` — what a media server's tuner and a
-     * remote player on the server-relay link format pull.
-     */
-    ActiveStream: {
-      /** Channel Name */
-      channel_name?: string | null;
-      /** Client Label */
-      client_label?: string | null;
-      /** Content Id */
-      content_id: string;
-      /** Id */
-      id: string;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "browser" | "relay";
-      /** Peers */
-      peers?: number | null;
-      /** Started At */
-      started_at?: string | null;
-      /**
-       * State
-       * @enum {string}
-       */
-      state: "starting" | "ready" | "error" | "stopped" | "streaming";
-      /**
-       * Viewers
-       * @default 1
-       */
-      viewers?: number;
-    };
-    /** ActiveStreamListResponse */
-    ActiveStreamListResponse: {
-      /** Streams */
-      streams: components["schemas"]["ActiveStream"][];
-    };
-    /** AddChannelRequest */
-    AddChannelRequest: {
-      /**
-       * Category
-       * @description Channel category
-       */
-      category?: string | null;
-      /**
-       * Description
-       * @description Channel description
-       */
-      description?: string | null;
-      /**
-       * Id
-       * @description Acestream channel ID (optional, will be generated if not provided)
-       */
-      id?: string | null;
-      /**
-       * Logo
-       * @description Channel logo URL
-       */
-      logo?: string | null;
-      /**
-       * Name
-       * @description Channel name
-       */
-      name: string;
-      /**
-       * Tv Channel Id
-       * @description TV channel ID for association
-       */
-      tv_channel_id?: number | null;
-      /**
-       * Url
-       * @description Channel URL
-       */
-      url: string;
-    };
-    /** AddMultipleRequest */
-    AddMultipleRequest: {
-      /**
-       * Channels
-       * @description List of channels to add
-       */
-      channels: components["schemas"]["AddChannelRequest"][];
-    };
-    /**
-     * AddPidUpdate
-     * @description Schema for updating the addpid setting
-     */
-    AddPidUpdate: {
-      /**
-       * Value
-       * @description Whether to add PID to Acestream links
-       */
-      value: string;
-    };
-    /** AndroidPairFinishRequest */
-    AndroidPairFinishRequest: {
-      /** Challenge */
-      challenge: string;
-      /** Code */
-      code: string;
-      /** Fingerprint */
-      fingerprint: string;
-      /** Host */
-      host: string;
-      /**
-       * Port
-       * @default 8443
-       */
-      port?: number;
-    };
-    /** AndroidPairFinishResponse */
-    AndroidPairFinishResponse: {
-      /**
-       * Password
-       * @description New paired credential; submit with player create/update. Never returned for saved players.
-       */
-      password: string;
-    };
-    /** AndroidPairStartRequest */
-    AndroidPairStartRequest: {
-      /** Host */
-      host: string;
-      /**
-       * Port
-       * @default 8443
-       */
-      port?: number;
-    };
-    /** AndroidPairStartResponse */
-    AndroidPairStartResponse: {
-      /** Challenge */
-      challenge: string;
-      /** Fingerprint */
-      fingerprint: string;
-    };
-    /**
-     * AppIdUpdate
-     * @description Schema for updating appid setting
-     */
-    AppIdUpdate: {
-      /**
-       * Value
-       * @description Whether to add appid to Acestream links
-       */
-      value: string;
-    };
-    /** AudioTrack */
-    AudioTrack: {
-      /** Channel Layout */
-      channel_layout?: string | null;
-      /** Channels */
-      channels?: number | null;
-      /** Codec */
-      codec?: string | null;
-      /**
-       * Index
-       * @description Zero-based audio track index (ffmpeg 0:a:index)
-       */
-      index: number;
-      /** Language */
-      language?: string | null;
-      /** Title */
-      title?: string | null;
-    };
-    /** BackgroundTaskStatus */
-    BackgroundTaskStatus: {
-      /** Last Error */
-      last_error: string | null;
-      /** Last Result */
-      last_result: unknown;
-      /** Last Run */
-      last_run: string | null;
-      /** Next Run */
-      next_run: string | null;
-      /** Progress */
-      progress?: {
-        [key: string]: unknown;
-      } | null;
-      /** Status */
-      status: string;
-      /** Task Name */
-      task_name: string;
-    };
-    /** BaseUrlCreate */
-    BaseUrlCreate: {
-      /**
-       * Is Default
-       * @default false
-       */
-      is_default?: boolean;
-      /** Name */
-      name: string;
-      /**
-       * Pattern
-       * @description Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}
-       */
-      pattern: string;
-    };
-    /** BaseUrlResponse */
-    BaseUrlResponse: {
-      /** Id */
-      id: number;
-      /**
-       * Is Default
-       * @default false
-       */
-      is_default?: boolean;
-      /** Name */
-      name: string;
-      /**
-       * Pattern
-       * @description Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}
-       */
-      pattern: string;
-    };
-    /** Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post */
-    Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post: {
-      /** Acestreamchannel Ids */
-      acestreamchannel_ids: string[];
-    };
-    /** Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post */
-    Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post: {
-      /** Acestreamchannel Ids */
-      acestreamchannel_ids: string[];
-    };
-    /**
-     * BulkChannelActivateRequest
-     * @description Schema for bulk channel activation/deactivation
-     */
-    BulkChannelActivateRequest: {
-      /** Acestreamchannel Ids */
-      acestreamchannel_ids: string[];
-      /**
-       * Active
-       * @default true
-       */
-      active?: boolean;
-    };
-    /**
-     * BulkChannelEditRequest
-     * @description Schema for bulk channel field updates
-     */
-    BulkChannelEditRequest: {
-      /** Acestreamchannel Ids */
-      acestreamchannel_ids: string[];
-      fields: components["schemas"]["AcestreamChannelUpdate"];
-    };
-    /**
-     * ChannelResult
-     * @description Schema for channel result from scraping
-     */
-    ChannelResult: {
-      /** Channel Id */
-      channel_id: string;
-      /**
-       * Metadata
-       * @default {}
-       */
-      metadata?: {
-        [key: string]: unknown;
-      };
-      /** Name */
-      name: string;
-    };
-    /** ChannelStatusJobRunResponse */
-    ChannelStatusJobRunResponse: {
-      /** Message */
-      message: string;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "triggered" | "already_running" | "disabled";
-    };
-    /**
-     * ChannelStatusResponse
-     * @description Response schema for channel status check
-     */
-    ChannelStatusResponse: {
-      /** Channel Id */
-      channel_id: string;
-      /** Error */
-      error?: string | null;
-      /** Is Online */
-      is_online: boolean;
-      /**
-       * Last Checked
-       * Format: date-time
-       */
-      last_checked: string;
-      /** Message */
-      message: string;
-      /** Network Status */
-      network_status?: ("found" | "not_found" | "unknown") | null;
-      /** Status */
-      status: string;
-      stream_stats?: components["schemas"]["StreamStats"] | null;
-    };
-    /**
-     * ChannelStatusSummary
-     * @description Summary of all channel statuses
-     */
-    ChannelStatusSummary: {
-      /** Active Channels */
-      active_channels: number;
-      /** Checked Percentage */
-      checked_percentage: number;
-      /** Last Checked Channels */
-      last_checked_channels: number;
-      /** Offline */
-      offline: number;
-      /** Offline Channels */
-      offline_channels: number;
-      /** Online */
-      online: number;
-      /** Online Channels */
-      online_channels: number;
-      /** Online Percentage */
-      online_percentage: number;
-      /** Recent Checks */
-      recent_checks: number;
-      /** Total Channels */
-      total_channels: number;
-      /** Unknown */
-      unknown: number;
-    };
-    /** CheckEngineConfig */
-    CheckEngineConfig: {
-      /**
-       * Url
-       * @default
-       */
-      url?: string;
-      /**
-       * Use Dedicated
-       * @default false
-       */
-      use_dedicated?: boolean;
-    };
-    /** CheckEngineConfigResponse */
-    CheckEngineConfigResponse: {
-      /**
-       * Managed
-       * @default false
-       */
-      managed?: boolean;
-      /**
-       * Url
-       * @default
-       */
-      url?: string;
-      /**
-       * Use Dedicated
-       * @default false
-       */
-      use_dedicated?: boolean;
-    };
-    /**
-     * ConfigKeyUpdate
-     * @description Schema for generic config key update endpoint
-     */
-    ConfigKeyUpdate: {
-      /** Base Url */
-      base_url?: string | null;
-      /** Hours */
-      hours?: number | null;
-      /**
-       * Value
-       * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60)
-       */
-      value?: string | null;
-    };
-    /**
-     * ConfigUpdateResponse
-     * @description Schema for simple config mutation result
-     */
-    ConfigUpdateResponse: {
-      /** Message */
-      message: string;
-      /** Value */
-      value: string;
-    };
-    /** ConfigurationWarning */
-    ConfigurationWarning: {
-      /** Legacy */
-      legacy: string;
-      /** Replacement */
-      replacement: string;
-      /** Selected */
-      selected: string;
-    };
-    /**
-     * DashboardConfigResponse
-     * @description Schema for dashboard config response
-     */
-    DashboardConfigResponse: {
-      /** Auto Refresh Interval */
-      auto_refresh_interval: number;
-      /** Retention Days */
-      retention_days: number;
-    };
-    /**
-     * DashboardConfigUpdate
-     * @description Schema for dashboard config updates
-     */
-    DashboardConfigUpdate: {
-      /** Auto Refresh Interval */
-      auto_refresh_interval?: number | null;
-      /** Retention Days */
-      retention_days?: number | null;
-    };
-    /**
-     * EPGChannelListResponse
-     * @description Paginated EPG channel response.
-     */
-    EPGChannelListResponse: {
-      /** Items */
-      items: components["schemas"]["EPGChannelResponse"][];
-      /** Total */
-      total: number;
-    };
-    /**
-     * EPGChannelMappingRequest
-     * @description Schema for EPG channel to TV channel mapping request
-     */
-    EPGChannelMappingRequest: {
-      /** Epg Channel Id */
-      epg_channel_id: number;
-      /** Tv Channel Id */
-      tv_channel_id: number;
-    };
-    /**
-     * EPGChannelResponse
-     * @description Schema for EPG channel response
-     */
-    EPGChannelResponse: {
-      /** Channel Xml Id */
-      channel_xml_id: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Epg Source Id */
-      epg_source_id: number;
-      /** Icon Url */
-      icon_url?: string | null;
-      /** Id */
-      id: number;
-      /** Language */
-      language?: string | null;
-      /** Name */
-      name: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
-    };
-    /** EPGMatchAnalysisRequest */
-    EPGMatchAnalysisRequest: {
-      /** Source Id */
-      source_id?: number | null;
-      /**
-       * Strictness
-       * @enum {string}
-       */
-      strictness: "loose" | "balanced" | "strict";
-    };
-    /** EPGMatchAnalysisResponse */
-    EPGMatchAnalysisResponse: {
-      /** Rows */
-      rows: components["schemas"]["EPGMatchRowResponse"][];
-      summary: components["schemas"]["EPGMatchAnalysisSummaryResponse"];
-    };
-    /** EPGMatchAnalysisSummaryResponse */
-    EPGMatchAnalysisSummaryResponse: {
-      /** Creatable Rows */
-      creatable_rows: number;
-      /** Epg Channels Analyzed */
-      epg_channels_analyzed: number;
-      /** Matched Acestream Channels */
-      matched_acestream_channels: number;
-      /** Matched Epg Channels */
-      matched_epg_channels: number;
-      /** Skipped Existing Tv Channels */
-      skipped_existing_tv_channels: number;
-    };
-    /** EPGMatchCandidateResponse */
-    EPGMatchCandidateResponse: {
-      /** Acestream Channel Id */
-      acestream_channel_id: string;
-      /** Match Stage */
-      match_stage: string;
-      /** Name */
-      name: string;
-      /** Score */
-      score: number;
-      /** Tvg Id */
-      tvg_id?: string | null;
-      /** Tvg Name */
-      tvg_name?: string | null;
-    };
-    /** EPGMatchRowResponse */
-    EPGMatchRowResponse: {
-      /** Best Match Confidence */
-      best_match_confidence?: string | null;
-      /** Best Match Type */
-      best_match_type?: string | null;
-      /** Candidate Count */
-      candidate_count: number;
-      /** Candidates */
-      candidates: components["schemas"]["EPGMatchCandidateResponse"][];
-      /** Epg Channel Id */
-      epg_channel_id: number;
-      /** Epg Channel Name */
-      epg_channel_name: string;
-      /** Epg Channel Xml Id */
-      epg_channel_xml_id: string;
-      /** Epg Source Id */
-      epg_source_id: number;
-      /** Epg Source Name */
-      epg_source_name?: string | null;
-      /**
-       * Existing Tv Channel Count
-       * @default 0
-       */
-      existing_tv_channel_count?: number;
-      /** Existing Tv Channel Id */
-      existing_tv_channel_id?: number | null;
-      /**
-       * Has Duplicate Existing Conflict
-       * @default false
-       */
-      has_duplicate_existing_conflict?: boolean;
-      /** Is Creatable */
-      is_creatable: boolean;
-    };
-    /**
-     * EPGProgramResponse
-     * @description Schema for EPG program response
-     */
-    EPGProgramResponse: {
-      /** Category */
-      category?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * End Time
-       * Format: date-time
-       */
-      end_time: string;
-      /** Epg Channel Id */
-      epg_channel_id: number;
-      /** Id */
-      id: number;
-      /** Image Url */
-      image_url?: string | null;
-      /** Program Xml Id */
-      program_xml_id?: string | null;
-      /**
-       * Start Time
-       * Format: date-time
-       */
-      start_time: string;
-      /** Subtitle */
-      subtitle?: string | null;
-      /** Title */
-      title: string;
-    };
-    /**
-     * EPGRefreshResponse
-     * @description Schema for EPG refresh response
-     */
-    EPGRefreshResponse: {
-      /** Channels Found */
-      channels_found?: number | null;
-      /** Duration Seconds */
-      duration_seconds?: number | null;
-      /** Error */
-      error?: string | null;
-      /** Message */
-      message: string;
-      /** Programs Found */
-      programs_found?: number | null;
-      /** Source Id */
-      source_id: number;
-      /**
-       * Status
-       * @default success
-       */
-      status?: string;
-      /** Success */
-      success: boolean;
-    };
-    /**
-     * EPGSourceCreate
-     * @description Schema for creating an EPG source
-     */
-    EPGSourceCreate: {
-      /**
-       * Enabled
-       * @default true
-       */
-      enabled?: boolean;
-      /** Name */
-      name: string;
-      /** Url */
-      url: string;
-    };
-    /**
-     * EPGSourceResponse
-     * @description Schema for EPG source response
-     */
-    EPGSourceResponse: {
-      /** Enabled */
-      enabled: boolean;
-      /**
-       * Error Count
-       * @default 0
-       */
-      error_count?: number;
-      /** Id */
-      id: number;
-      /** Last Error */
-      last_error?: string | null;
-      /** Last Updated */
-      last_updated?: string | null;
-      /** Name */
-      name: string;
-      /** Url */
-      url: string;
-    };
-    /**
-     * EPGSourceUpdate
-     * @description Schema for updating an EPG source
-     */
-    EPGSourceUpdate: {
-      /** Enabled */
-      enabled?: boolean | null;
-      /** Name */
-      name?: string | null;
-      /** Url */
-      url?: string | null;
-    };
-    /**
-     * EPGStringMappingResponse
-     * @description Schema for EPG string mapping response
-     */
-    EPGStringMappingResponse: {
-      /** Epg Channel Id */
-      epg_channel_id: number;
-      /** Id */
-      id: number;
-      /**
-       * Is Exclusion
-       * @default false
-       */
-      is_exclusion?: boolean;
-      /** Search Pattern */
-      search_pattern: string;
-    };
-    /**
-     * EPGStringMappingUpdate
-     * @description Schema for updating/creating mapping payload in endpoint bodies
-     */
-    EPGStringMappingUpdate: {
-      /**
-       * Is Exclusion
-       * @default false
-       */
-      is_exclusion?: boolean;
-      /** Search Pattern */
-      search_pattern: string;
-    };
-    /**
-     * EPGXmlGenerationRequest
-     * @description Schema for EPG XML generation request
-     */
-    EPGXmlGenerationRequest: {
-      /**
-       * Days Back
-       * @default 1
-       */
-      days_back?: number;
-      /**
-       * Days Forward
-       * @default 7
-       */
-      days_forward?: number;
-      /**
-       * Favorites Only
-       * @default false
-       */
-      favorites_only?: boolean;
-      /** Search Term */
-      search_term?: string | null;
-    };
-    /** ExtractedChannel */
-    ExtractedChannel: {
-      /** Channel Id */
-      channel_id: string;
-      /** Metadata */
-      metadata?: {
-        [key: string]: string;
-      };
-      /** Name */
-      name: string;
-    };
-    /** ExtractionRecipe */
-    ExtractionRecipe: {
-      /** Fields */
-      fields: {
-        [key: string]: components["schemas"]["RecipeField"];
-      };
-      /**
-       * Flags
-       * @default is
-       */
-      flags?: string;
-      /**
-       * Mode
-       * @default html
-       * @enum {string}
-       */
-      mode?: "html" | "regex" | "json";
-      /**
-       * Name
-       * @default My recipe
-       */
-      name?: string;
-      /**
-       * Records
-       * @default
-       */
-      records?: string;
-      /**
-       * Schema Version
-       * @default 1
-       * @constant
-       */
-      schema_version?: 1;
-      /**
-       * Version
-       * @default 1.0.0
-       */
-      version?: string;
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components["schemas"]["ValidationError"][];
-    };
-    /** HealthChannelTotals */
-    HealthChannelTotals: {
-      /** Offline */
-      offline: number;
-      /** Online */
-      online: number;
-      /** Total */
-      total: number;
-      /** Unknown */
-      unknown: number;
-    };
-    /** HealthEPGTotals */
-    HealthEPGTotals: {
-      /** Channels */
-      channels: number;
-      /** Programs */
-      programs: number;
-      /** Sources */
-      sources: number;
-    };
-    /**
-     * HealthResponse
-     * @description Schema for the health check response
-     */
-    HealthResponse: {
-      /** @description Acestream Engine status */
-      acestream: components["schemas"]["StatusResponse"];
-      /**
-       * Database
-       * @description Database connection status
-       */
-      database: {
-        [key: string]: unknown;
-      };
-      /**
-       * Settings
-       * @description Application settings
-       */
-      settings: {
-        [key: string]: unknown;
-      };
-      /**
-       * Status
-       * @description Overall system status (healthy, degraded, unhealthy)
-       */
-      status: string;
-      /**
-       * Version
-       * @description Application version
-       */
-      version: string;
-    };
-    /**
-     * HealthStatsResponse
-     * @description Compact inventory totals rendered by the Health and Stats pages.
-     */
-    HealthStatsResponse: {
-      channels: components["schemas"]["HealthChannelTotals"];
-      epg: components["schemas"]["HealthEPGTotals"];
-      urls: components["schemas"]["HealthURLTotals"];
-    };
-    /** HealthURLTotals */
-    HealthURLTotals: {
-      /** Active */
-      active: number;
-      /** Error */
-      error: number;
-      /** Total */
-      total: number;
-    };
-    /** MediaServerCreate */
-    MediaServerCreate: {
-      /**
-       * Api Key
-       * @description Jellyfin API key or Plex owner token
-       */
-      api_key?: string | null;
-      /**
-       * Auto Refresh
-       * @default true
-       */
-      auto_refresh?: boolean;
-      /** Base Url */
-      base_url: string;
-      /**
-       * Enabled
-       * @default true
-       */
-      enabled?: boolean;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "jellyfin" | "plex";
-      /** Name */
-      name: string;
-      /**
-       * Tuner Mode
-       * @default hdhomerun
-       * @enum {string}
-       */
-      tuner_mode?: "hdhomerun" | "m3u";
-    };
-    /** MediaServerProbeResponse */
-    MediaServerProbeResponse: {
-      /** Authenticated */
-      authenticated: boolean;
-      /**
-       * Credentials
-       * @enum {string}
-       */
-      credentials: "ok" | "missing" | "rejected";
-      /** Message */
-      message: string;
-      /** Reachable */
-      reachable: boolean;
-      tuner_access: components["schemas"]["TunerAccessResponse"];
-      /** Version */
-      version?: string | null;
-    };
-    /** MediaServerRefreshResponse */
-    MediaServerRefreshResponse: {
-      /** Last Sync At */
-      last_sync_at?: string | null;
-      /** Message */
-      message?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "ok" | "error" | "manual";
-    };
-    /** MediaServerResponse */
-    MediaServerResponse: {
-      /** Auto Refresh */
-      auto_refresh: boolean;
-      /** Base Url */
-      base_url: string;
-      /** Connected */
-      connected: boolean;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Dvr Key */
-      dvr_key?: string | null;
-      /** Enabled */
-      enabled: boolean;
-      /** Has Api Key */
-      has_api_key: boolean;
-      /** Id */
-      id: number;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "jellyfin" | "plex";
-      /** Last Error */
-      last_error?: string | null;
-      /** Last Sync At */
-      last_sync_at?: string | null;
-      /**
-       * Last Sync Status
-       * @enum {string}
-       */
-      last_sync_status: "ok" | "error" | "never" | "manual";
-      /** Listing Provider Id */
-      listing_provider_id?: string | null;
-      /** Name */
-      name: string;
-      /** Server Version */
-      server_version?: string | null;
-      /** Tuner Host Id */
-      tuner_host_id?: string | null;
-      /**
-       * Tuner Mode
-       * @enum {string}
-       */
-      tuner_mode: "hdhomerun" | "m3u";
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
-    };
-    /** MediaServerStatusResponse */
-    MediaServerStatusResponse: {
-      /** Channel Count */
-      channel_count?: number | null;
-      /** Connected */
-      connected: boolean;
-      /** Error */
-      error?: string | null;
-      /** Last Result */
-      last_result?: string | null;
-      /** Paste */
-      paste?: {
-        [key: string]: string;
-      };
-      /** Refresh State */
-      refresh_state?: string | null;
-      /** Steps */
-      steps?: string[];
-    };
-    /** MediaServerTestRequest */
-    MediaServerTestRequest: {
-      /** Api Key */
-      api_key?: string | null;
-      /** Base Url */
-      base_url: string;
-      /** Id */
-      id?: number | null;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "jellyfin" | "plex";
-    };
-    /** MediaServerUpdate */
-    MediaServerUpdate: {
-      /**
-       * Api Key
-       * @description omit = keep, empty = clear
-       */
-      api_key?: string | null;
-      /** Auto Refresh */
-      auto_refresh?: boolean | null;
-      /** Base Url */
-      base_url?: string | null;
-      /** Enabled */
-      enabled?: boolean | null;
-      /** Name */
-      name?: string | null;
-      /** Tuner Mode */
-      tuner_mode?: ("hdhomerun" | "m3u") | null;
-    };
-    /**
-     * MessageResponse
-     * @description Generic operation message response
-     */
-    MessageResponse: {
-      /** Message */
-      message: string;
-    };
-    /** MigrationProgress */
-    MigrationProgress: {
-      /**
-       * Migrated
-       * @default 0
-       */
-      migrated?: number;
-      /**
-       * Percent
-       * @default 0
-       */
-      percent?: number;
-      /**
-       * Processed
-       * @default 0
-       */
-      processed?: number;
-      /**
-       * Skipped
-       * @default 0
-       */
-      skipped?: number;
-      /**
-       * Stale
-       * @default 0
-       */
-      stale?: number;
-      /** Status */
-      status: string;
-      /**
-       * Total
-       * @default 0
-       */
-      total?: number;
-    };
-    /** PlaybackRouting */
-    PlaybackRouting: {
-      /**
-       * Acexy Url
-       * @description HTTP(S) origin where the backend reaches Acexy in MPEG-TS mode
-       * @default http://localhost:8080
-       */
-      acexy_url?: string;
-      /**
-       * Use Acexy
-       * @description Route web, tuner and remote-player playback through Acexy
-       * @default false
-       */
-      use_acexy?: boolean;
-    };
-    /** PlayerCapabilities */
-    PlayerCapabilities: {
-      /** Ffmpeg Available */
-      ffmpeg_available: boolean;
-      /** Ffmpeg Path */
-      ffmpeg_path?: string | null;
-      /** Hls Dir */
-      hls_dir: string;
-      /** Max Sessions */
-      max_sessions: number;
-    };
-    /** PlayerCodecs */
-    PlayerCodecs: {
-      /** Audio */
-      audio?: string | null;
-      /** Video */
-      video?: string | null;
-    };
-    /** PlayerSessionCreate */
-    PlayerSessionCreate: {
-      /**
-       * Audio Index
-       * @description Audio track to play; null uses the first available audio track
-       */
-      audio_index?: number | null;
-      /**
-       * Content Id
-       * @description AceStream content id (40 hex)
-       */
-      content_id: string;
-    };
-    /** PlayerSessionListResponse */
-    PlayerSessionListResponse: {
-      /** Sessions */
-      sessions: components["schemas"]["PlayerSessionStatus"][];
-    };
-    /** PlayerSessionStatus */
-    PlayerSessionStatus: {
-      /** Audio Index */
-      audio_index?: number | null;
-      /** Audio Tracks */
-      audio_tracks?: components["schemas"]["AudioTrack"][];
-      codecs: components["schemas"]["PlayerCodecs"];
-      /** Content Id */
-      content_id: string;
-      /** Error */
-      error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed") | null;
-      /**
-       * Error Message
-       * @default
-       */
-      error_message?: string;
-      /** Hls Ready */
-      hls_ready: boolean;
-      /** Id */
-      id: string;
-      /** Playlist Url */
-      playlist_url: string;
-      /**
-       * State
-       * @enum {string}
-       */
-      state: "starting" | "ready" | "error" | "stopped";
-      stats?: components["schemas"]["PlayerStats"] | null;
-      /** Viewers */
-      viewers: number;
-    };
-    /** PlayerStats */
-    PlayerStats: {
-      /** Peers */
-      peers: number;
-      /** Speed Down */
-      speed_down: number;
-      /** Speed Up */
-      speed_up: number;
-      /** Status */
-      status: string;
-    };
-    /**
-     * PublicBaseUrlUpdate
-     * @description Schema for updating the externally reachable origin (spec 4.3).
-     */
-    PublicBaseUrlUpdate: {
-      /**
-       * Value
-       * @description http(s)://host[:port]; empty clears the override
-       * @default
-       */
-      value?: string;
-    };
-    /**
-     * PublicUrlResponse
-     * @description The origin external clients must use to reach this server (spec 4.3).
-     */
-    PublicUrlResponse: {
-      /**
-       * Source
-       * @enum {string}
-       */
-      source: "setting" | "forwarded" | "request";
-      /**
-       * Url
-       * @description scheme://host[:port], no trailing slash
-       */
-      url: string;
-      /**
-       * Warnings
-       * @description localhost | docker-internal | unset | proxied
-       */
-      warnings?: string[];
-    };
-    /** RecipeFetchRequest */
-    RecipeFetchRequest: {
-      /** Url */
-      url: string;
-      /**
-       * Url Type
-       * @default auto
-       * @enum {string}
-       */
-      url_type?: "auto" | "regular" | "zeronet" | "ipfs";
-    };
-    /** RecipeField */
-    RecipeField: {
-      /**
-       * Attribute
-       * @default
-       */
-      attribute?: string;
-      /**
-       * Path
-       * @default
-       */
-      path?: string;
-      /**
-       * Pattern
-       * @default
-       */
-      pattern?: string;
-      /**
-       * Selector
-       * @default
-       */
-      selector?: string;
-    };
-    /** RecipeIssue */
-    RecipeIssue: {
-      /** Message */
-      message: string;
-      /** Record */
-      record: number;
-    };
-    /** RecipePreview */
-    RecipePreview: {
-      /** Channels */
-      channels: components["schemas"]["ExtractedChannel"][];
-      /** Duplicate Count */
-      duplicate_count: number;
-      /** Invalid Count */
-      invalid_count: number;
-      /** Issues */
-      issues: components["schemas"]["RecipeIssue"][];
-      /** Record Count */
-      record_count: number;
-    };
-    /** RecipePreviewRequest */
-    RecipePreviewRequest: {
-      recipe: components["schemas"]["ExtractionRecipe"];
-      /** Sample */
-      sample: string;
-    };
-    /** RecipeSample */
-    RecipeSample: {
-      /** Sample */
-      sample: string;
-    };
-    /** RemotePlayerCommandRequest */
-    RemotePlayerCommandRequest: {
-      /**
-       * Command
-       * @enum {string}
-       */
-      command: "pause" | "resume" | "stop" | "volume";
-      /**
-       * Value
-       * @description Percent, volume only
-       */
-      value?: number | null;
-    };
-    /** RemotePlayerCreate */
-    RemotePlayerCreate: {
-      /**
-       * Base Url Id
-       * @description Stream link format; null = server relay URL
-       */
-      base_url_id?: number | null;
-      /**
-       * Host
-       * @description Hostname or IP, no scheme
-       */
-      host: string;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "vlc" | "kodi" | "vlc_android";
-      /** Name */
-      name: string;
-      /** Password */
-      password?: string | null;
-      /**
-       * Port
-       * @default 8080
-       */
-      port?: number;
-      /**
-       * Username
-       * @description Kodi only; default kodi
-       */
-      username?: string | null;
-    };
-    /** RemotePlayerPlayRequest */
-    RemotePlayerPlayRequest: {
-      /** Content Id */
-      content_id: string;
-      /** Title */
-      title?: string | null;
-    };
-    /** RemotePlayerPlayResponse */
-    RemotePlayerPlayResponse: {
-      /** Url */
-      url: string;
-      /**
-       * Warnings
-       * @description Why the player probably cannot fetch this URL: localhost | docker-internal | tuner_blocked
-       */
-      warnings?: string[];
-    };
-    /** RemotePlayerProbeResponse */
-    RemotePlayerProbeResponse: {
-      /** Authenticated */
-      authenticated: boolean;
-      /** Hint */
-      hint?: string | null;
-      /** Message */
-      message: string;
-      /** Reachable */
-      reachable: boolean;
-      tuner_access: components["schemas"]["TunerAccessResponse"];
-      /** Version */
-      version?: string | null;
-    };
-    /** RemotePlayerResponse */
-    RemotePlayerResponse: {
-      /**
-       * Base Url Id
-       * @description Stream link format; null = server relay URL
-       */
-      base_url_id?: number | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Has Password */
-      has_password: boolean;
-      /**
-       * Host
-       * @description Hostname or IP, no scheme
-       */
-      host: string;
-      /** Id */
-      id: number;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "vlc" | "kodi" | "vlc_android";
-      /** Name */
-      name: string;
-      /**
-       * Port
-       * @default 8080
-       */
-      port?: number;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
-      /**
-       * Username
-       * @description Kodi only; default kodi
-       */
-      username?: string | null;
-    };
-    /** RemotePlayerStatusResponse */
-    RemotePlayerStatusResponse: {
-      /** Length S */
-      length_s?: number | null;
-      /** Message */
-      message?: string | null;
-      /** Position S */
-      position_s?: number | null;
-      /**
-       * State
-       * @enum {string}
-       */
-      state: "playing" | "paused" | "stopped";
-      /** Title */
-      title?: string | null;
-      /** Volume Pct */
-      volume_pct?: number | null;
-    };
-    /** RemotePlayerTestRequest */
-    RemotePlayerTestRequest: {
-      /** Host */
-      host: string;
-      /**
-       * Id
-       * @description Use this saved player's password when none is given
-       */
-      id?: number | null;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "vlc" | "kodi" | "vlc_android";
-      /** Password */
-      password?: string | null;
-      /**
-       * Port
-       * @default 8080
-       */
-      port?: number;
-      /** Username */
-      username?: string | null;
-    };
-    /** RemotePlayerUpdate */
-    RemotePlayerUpdate: {
-      /** Base Url Id */
-      base_url_id?: number | null;
-      /**
-       * Clear Base Url
-       * @default false
-       */
-      clear_base_url?: boolean;
-      /** Host */
-      host?: string | null;
-      /** Kind */
-      kind?: ("vlc" | "kodi" | "vlc_android") | null;
-      /** Name */
-      name?: string | null;
-      /**
-       * Password
-       * @description omit = keep, empty string = clear
-       */
-      password?: string | null;
-      /** Port */
-      port?: number | null;
-      /** Username */
-      username?: string | null;
-    };
-    /**
-     * RescrapeIntervalUpdate
-     * @description Schema for updating the rescrape interval
-     */
-    RescrapeIntervalUpdate: {
-      /**
-       * Hours
-       * @description Numeric hours between automatic rescrapes
-       */
-      hours?: number | null;
-      /**
-       * Value
-       * @description Hours between automatic rescrapes
-       */
-      value?: string | null;
-    };
-    /** ScanDefaultResponse */
-    ScanDefaultResponse: {
-      /** Cidr */
-      cidr?: string | null;
-      /** Hint */
-      hint: string;
-    };
-    /** ScanHitResponse */
-    ScanHitResponse: {
-      /** Hint */
-      hint: string;
-      /** Host */
-      host: string;
-      /**
-       * Kind
-       * @enum {string}
-       */
-      kind: "vlc" | "kodi" | "unknown";
-      /** Port */
-      port: number;
-    };
-    /** ScanRequest */
-    ScanRequest: {
-      /** Cidr */
-      cidr: string;
-      /** Ports */
-      ports?: number[];
-      /**
-       * Timeout Ms
-       * @default 400
-       */
-      timeout_ms?: number;
-    };
-    /** ScanResultResponse */
-    ScanResultResponse: {
-      /** Duration Ms */
-      duration_ms: number;
-      /** Hosts */
-      hosts: components["schemas"]["ScanHitResponse"][];
-      /** Scanned */
-      scanned: number;
-    };
-    /**
-     * ScheduleAnchors
-     * @description Optional clock anchors for the existing repeat intervals.
-     */
-    ScheduleAnchors: {
-      /** Channel Status */
-      channel_status?: string | null;
-      /** Epg Refresh */
-      epg_refresh?: string | null;
-      /**
-       * Timezone
-       * @description IANA timezone used to interpret start times
-       * @default UTC
-       */
-      timezone?: string;
-      /**
-       * Url Scraping
-       * @description HH:MM anchor; null retains startup-relative scheduling
-       */
-      url_scraping?: string | null;
-    };
-    /**
-     * ScraperRequest
-     * @description Request model for scraping a URL
-     */
-    ScraperRequest: {
-      /**
-       * Run Async
-       * @default false
-       */
-      run_async?: boolean;
-      /** Url */
-      url: string;
-      /**
-       * Url Type
-       * @default auto
-       */
-      url_type?: string;
-    };
-    /** ScraperResultExtended */
-    ScraperResultExtended: {
-      /** Channels */
-      channels: components["schemas"]["ChannelResult"][];
-      /** Channels Found */
-      channels_found: number;
-      /** Message */
-      message: string;
-      /** Status */
-      status: string;
-      /** Url */
-      url: string;
-    };
-    /** SearchPagination */
-    SearchPagination: {
-      /**
-       * Page
-       * @description Current page number
-       */
-      page: number;
-      /**
-       * Page Size
-       * @description Results per page
-       */
-      page_size: number;
-      /**
-       * Total Pages
-       * @description Total number of pages
-       */
-      total_pages: number;
-      /**
-       * Total Results
-       * @description Total number of results
-       */
-      total_results: number;
-    };
-    /** SearchResponse */
-    SearchResponse: {
-      /**
-       * Message
-       * @description Message describing the result
-       */
-      message: string;
-      /** @description Pagination information */
-      pagination: components["schemas"]["SearchPagination"];
-      /**
-       * Results
-       * @description Search results
-       */
-      results?: components["schemas"]["SearchResultItem"][];
-      /**
-       * Success
-       * @description Success status of the request
-       */
-      success: boolean;
-    };
-    /** SearchResultItem */
-    SearchResultItem: {
-      /**
-       * Availability
-       * @description Catalogue availability score
-       */
-      availability?: number | null;
-      /**
-       * Availability Updated At
-       * @description Unix timestamp of the catalogue availability update
-       */
-      availability_updated_at?: number | null;
-      /**
-       * Bitrate
-       * @description Channel bitrate
-       */
-      bitrate?: number | null;
-      /**
-       * Categories
-       * @description Categories of the channel
-       */
-      categories?: string[];
-      /**
-       * Id
-       * @description Acestream channel ID (infohash)
-       */
-      id: string;
-      /**
-       * Name
-       * @description Channel name
-       */
-      name: string;
-      /**
-       * Status
-       * @description Catalogue status: 2 available, 1 uncertain; not a live probe
-       */
-      status?: number | null;
-    };
-    /** ServiceRestartResponse */
-    ServiceRestartResponse: {
-      /** Message */
-      message: string;
-      /** Name */
-      name: string;
-      /** Success */
-      success: boolean;
-    };
-    /** ServiceStatus */
-    ServiceStatus: {
-      /** Description */
-      description: string;
-      /**
-       * Distribution
-       * @description Package or image that supplied the service
-       */
-      distribution?: string | null;
-      /**
-       * Distribution Url
-       * @description Public attribution page for the distribution
-       */
-      distribution_url?: string | null;
-      /**
-       * Enabled
-       * @description Turned on through its ENABLE_* variable
-       */
-      enabled: boolean;
-      /**
-       * Endpoint
-       * @description Where the app reaches the service
-       */
-      endpoint?: string | null;
-      /**
-       * Installed
-       * @description Shipped in this image flavor
-       */
-      installed: boolean;
-      /** Label */
-      label: string;
-      /**
-       * Managed
-       * @description Supervised by this container's entrypoint (controls available)
-       */
-      managed: boolean;
-      /** Message */
-      message: string;
-      /**
-       * Name
-       * @description Stable identifier: acestream, acestream-check, acexy, ipfs, zeronet, warp
-       */
-      name: string;
-      /**
-       * Open Streams
-       * @description Distinct open streams; includes startup and idle grace. Null means unavailable, not zero.
-       */
-      open_streams?: number | null;
-      /** Pid */
-      pid?: number | null;
-      /**
-       * Running
-       * @description The service answered its health probe
-       */
-      running: boolean;
-      /**
-       * State
-       * @enum {string}
-       */
-      state: "running" | "unhealthy" | "stopped" | "disabled" | "external" | "not-installed";
-      /**
-       * Stopped By User
-       * @description Intentionally stopped until Start or container restart
-       * @default false
-       */
-      stopped_by_user?: boolean;
-      /**
-       * Stream Count Scope
-       * @description app counts web-player and relay content IDs only; service is the Acexy-reported total. Counts may overlap.
-       */
-      stream_count_scope?: ("app" | "service") | null;
-      /** Uptime Seconds */
-      uptime_seconds?: number | null;
-      /** Version */
-      version?: string | null;
-    };
-    /** ServicesStatusResponse */
-    ServicesStatusResponse: {
-      /** Checked At */
-      checked_at: string;
-      /** Services */
-      services: components["schemas"]["ServiceStatus"][];
-      /**
-       * Supervised
-       * @description True when the app runs under the container entrypoint
-       */
-      supervised: boolean;
-    };
-    /**
-     * SettingResponse
-     * @description Schema for a setting response
-     */
-    SettingResponse: {
-      /**
-       * Key
-       * @description Setting key
-       */
-      key: string;
-      /**
-       * Value
-       * @description Setting value
-       */
-      value: string;
-    };
-    /**
-     * SettingsResponse
-     * @description Schema for all settings response
-     */
-    SettingsResponse: {
-      /**
-       * Settings
-       * @description All settings
-       */
-      settings: {
-        [key: string]: string;
-      };
-    };
-    /** StartupEvent */
-    StartupEvent: {
-      /**
-       * Level
-       * @default info
-       * @enum {string}
-       */
-      level?: "info" | "warning" | "error";
-      /** Message */
-      message: string;
-      /** Time */
-      time: string;
-    };
-    /** StartupRecoveryRequest */
-    StartupRecoveryRequest: {
-      /**
-       * Action
-       * @enum {string}
-       */
-      action: "retry" | "salvage" | "fresh";
-      /**
-       * Confirm
-       * @default false
-       */
-      confirm?: boolean;
-      /** Recovery Token */
-      recovery_token: string;
-    };
-    /** StartupStatus */
-    StartupStatus: {
-      /** Events */
-      events: components["schemas"]["StartupEvent"][];
-      /** Guidance */
-      guidance?: string | null;
-      migration?: components["schemas"]["MigrationProgress"] | null;
-      /** Phase */
-      phase: string;
-      /**
-       * Recovery Available
-       * @default false
-       */
-      recovery_available?: boolean;
-      /** Recovery Token */
-      recovery_token: string;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "starting" | "ready" | "failed";
-    };
-    /** StatsResponse */
-    StatsResponse: {
-      /** Ace Engine Url */
-      ace_engine_url: string;
-      /** Addpid */
-      addpid: boolean;
-      /** Base Url */
-      base_url: string;
-      /** Channels */
-      channels: number;
-      /** Channels Checked */
-      channels_checked: number;
-      /** Channels Offline */
-      channels_offline: number;
-      /** Channels Online */
-      channels_online: number;
-      /** Rescrape Interval */
-      rescrape_interval: number;
-      /** Task Manager Status */
-      task_manager_status: string;
-      /** Total Channels */
-      total_channels: number;
-      /** Urls */
-      urls: components["schemas"]["URLStats"][];
-    };
-    /**
-     * StatusResponse
-     * @description Schema for a status check response
-     */
-    StatusResponse: {
-      /**
-       * Details
-       * @description Additional details
-       */
-      details?: string | null;
-      /**
-       * Message
-       * @description Status message
-       */
-      message: string;
-      /**
-       * Status
-       * @description Status of the component (online, offline, error, etc.)
-       */
-      status: string;
-    };
-    /** StorageDirectory */
-    StorageDirectory: {
-      /** Directory Bytes */
-      directory_bytes?: number | null;
-      /** Filesystem Free Bytes */
-      filesystem_free_bytes?: number | null;
-      /** Filesystem Total Bytes */
-      filesystem_total_bytes?: number | null;
-      /**
-       * Message
-       * @default
-       */
-      message?: string;
-      /** Mount Point */
-      mount_point?: string | null;
-      /** Mounted */
-      mounted?: boolean | null;
-      /** Path */
-      path: string;
-      /** Read Only */
-      read_only?: boolean | null;
-      /**
-       * Size Complete
-       * @default false
-       */
-      size_complete?: boolean;
-    };
-    /** StorageReport */
-    StorageReport: {
-      /**
-       * Checked At
-       * Format: date-time
-       */
-      checked_at: string;
-      /**
-       * Configuration Warnings
-       * @default []
-       */
-      configuration_warnings?: components["schemas"]["ConfigurationWarning"][];
-      /** Directories */
-      directories: components["schemas"]["StorageDirectory"][];
-      /**
-       * Message
-       * @default
-       */
-      message?: string;
-      /**
-       * Mount Detection
-       * @enum {string}
-       */
-      mount_detection: "available" | "unavailable";
-    };
-    /** StreamStats */
-    StreamStats: {
-      /**
-       * Download Speed Kbytes Sec
-       * @description Engine speed_down in Kbytes/sec; not encoded media bitrate
-       */
-      download_speed_kbytes_sec?: number | null;
-      /**
-       * Observed At
-       * Format: date-time
-       */
-      observed_at: string;
-      /** Peers */
-      peers?: number | null;
-      /**
-       * Upload Speed Kbytes Sec
-       * @description Engine speed_up in Kbytes/sec
-       */
-      upload_speed_kbytes_sec?: number | null;
-    };
-    /**
-     * TVChannelAssociationRequest
-     * @description Schema for asociating one acestream channel with a TV channel
-     */
-    TVChannelAssociationRequest: {
-      /** Acestream Channel Id */
-      acestream_channel_id: string;
-    };
-    /**
-     * TVChannelBatchAssignRequest
-     * @description Schema for batch TV channel assignments
-     */
-    TVChannelBatchAssignRequest: {
-      /** Assignments */
-      assignments: components["schemas"]["TVChannelBatchAssignmentItem"][];
-    };
-    /**
-     * TVChannelBatchAssignResponse
-     * @description Schema for batch assignment operation results
-     */
-    TVChannelBatchAssignResponse: {
-      /** Details */
-      details: {
-        [key: string]: {
-          [key: string]: string[];
+    schemas: {
+        /** AccessPolicy */
+        AccessPolicy: {
+            /**
+             * Cast Media Url
+             * @default
+             */
+            cast_media_url?: string;
+            /**
+             * Compatibility Conversion
+             * @default false
+             */
+            compatibility_conversion?: boolean;
+            /** Home Networks */
+            home_networks?: string[];
+            /**
+             * Local Iptv
+             * @default false
+             */
+            local_iptv?: boolean;
+            /** Local Networks */
+            local_networks?: string[];
+            /** Public Features */
+            public_features?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            /**
+             * Public Playlists
+             * @default false
+             */
+            public_playlists?: boolean;
+            /**
+             * Remote Casting
+             * @default false
+             */
+            remote_casting?: boolean;
         };
-      };
-      /** Failure Count */
-      failure_count: number;
-      /** Success Count */
-      success_count: number;
+        /** AccessStatus */
+        AccessStatus: {
+            /** Csrf */
+            csrf: string;
+            /**
+             * Legacy Token
+             * @default false
+             */
+            legacy_token?: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "pending" | "open" | "accounts";
+            /** Permissions */
+            permissions?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            user?: components["schemas"]["AccountView"] | null;
+        };
+        /** AccountCreate */
+        AccountCreate: {
+            /**
+             * Administrator
+             * @default false
+             */
+            administrator?: boolean;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /** Permissions */
+            permissions?: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            /** Username */
+            username: string;
+        };
+        /** AccountUpdate */
+        AccountUpdate: {
+            /** Administrator */
+            administrator: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Permissions */
+            permissions: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+        };
+        /** AccountView */
+        AccountView: {
+            /** Administrator */
+            administrator: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /** Permissions */
+            permissions: ("live" | "channels" | "guide" | "events" | "recordings" | "playlists" | "cast" | "cast_server")[];
+            /** Username */
+            username: string;
+        };
+        /**
+         * AceEngineUrlUpdate
+         * @description Schema for updating the Acestream Engine URL
+         */
+        AceEngineUrlUpdate: {
+            /**
+             * Value
+             * @description Acestream Engine URL
+             */
+            value: string;
+        };
+        /**
+         * AcestreamChannelCreate
+         * @description Schema for Acestream channel creation
+         */
+        AcestreamChannelCreate: {
+            /**
+             * Allow Excluded
+             * @default false
+             */
+            allow_excluded?: boolean;
+            /** Group */
+            group?: string | null;
+            /**
+             * Id
+             * @description Acestream channel ID (required, GUID string)
+             */
+            id: string;
+            /** Is Online */
+            is_online?: boolean | null;
+            /** Logo */
+            logo?: string | null;
+            /** Name */
+            name: string;
+            /** Source Url */
+            source_url?: string | null;
+            /** Tvg Id */
+            tvg_id?: string | null;
+            /** Tvg Name */
+            tvg_name?: string | null;
+        };
+        /**
+         * AcestreamChannelListResponse
+         * @description Schema for paginated acestream channel results
+         */
+        AcestreamChannelListResponse: {
+            /** Items */
+            items: components["schemas"]["AcestreamChannelResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * AcestreamChannelResponse
+         * @description Schema for Acestream channel response
+         */
+        AcestreamChannelResponse: {
+            /**
+             * Audio Tracks
+             * @description Audio tracks found at the last successful media probe; null means unknown
+             */
+            audio_tracks?: components["schemas"]["AudioTrack"][] | null;
+            /**
+             * Bitrate Bps
+             * @description Last measured encoded media bitrate in bits per second; not P2P download speed
+             */
+            bitrate_bps?: number | null;
+            /** Bitrate Checked At */
+            bitrate_checked_at?: string | null;
+            /** Check Error */
+            check_error?: string | null;
+            /**
+             * Epg Update Protected
+             * @default false
+             */
+            epg_update_protected?: boolean | null;
+            /** Group */
+            group?: string | null;
+            /**
+             * Id
+             * @description Acestream channel ID (required, GUID string)
+             */
+            id: string;
+            /**
+             * Id Kind
+             * @description Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet
+             */
+            id_kind?: ("id" | "infohash") | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Online */
+            is_online?: boolean | null;
+            /** Last Checked */
+            last_checked?: string | null;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /** Logo */
+            logo?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Network Status
+             * @description Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence
+             */
+            network_status?: ("found" | "not_found" | "unknown") | null;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Stream Order
+             * @description Priority preference order among streams for this channel; 1 is highest priority.
+             */
+            stream_order?: number | null;
+            stream_stats?: components["schemas"]["StreamStats"] | null;
+            /** Tv Channel Id */
+            tv_channel_id?: number | null;
+            /** Tv Channel Is Favorite */
+            tv_channel_is_favorite?: boolean | null;
+            /** Tv Channel Name */
+            tv_channel_name?: string | null;
+            /** Tvg Id */
+            tvg_id?: string | null;
+            /** Tvg Name */
+            tvg_name?: string | null;
+        };
+        /**
+         * AcestreamChannelUpdate
+         * @description Schema for Acestream channel update
+         */
+        AcestreamChannelUpdate: {
+            /** Epg Update Protected */
+            epg_update_protected?: boolean | null;
+            /** Group */
+            group?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Is Online */
+            is_online?: boolean | null;
+            /** Logo */
+            logo?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** Tv Channel Id */
+            tv_channel_id?: number | null;
+            /** Tvg Id */
+            tvg_id?: string | null;
+            /** Tvg Name */
+            tvg_name?: string | null;
+        };
+        /** AcestreamStatusResponse */
+        AcestreamStatusResponse: {
+            /** Available */
+            available: boolean;
+            /** Connected */
+            connected?: boolean | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Engine Url */
+            engine_url: string;
+            /** Is Internal */
+            is_internal: boolean;
+            /** Message */
+            message: string;
+            /** Platform */
+            platform?: string | null;
+            /** Playlist Loaded */
+            playlist_loaded?: boolean | null;
+            /** Version */
+            version?: string | null;
+        };
+        /**
+         * ActiveStream
+         * @description One thing the server is streaming right now.
+         *
+         *     ``browser`` is an ffmpeg/HLS player session; ``relay`` is a raw MPEG-TS
+         *     relay of ``/tuner/stream/<id>.ts`` — what a media server's tuner and a
+         *     remote player on the server-relay link format pull.
+         */
+        ActiveStream: {
+            /** Channel Name */
+            channel_name?: string | null;
+            /** Client Label */
+            client_label?: string | null;
+            /** Content Id */
+            content_id: string;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "browser" | "relay";
+            /** Peers */
+            peers?: number | null;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "starting" | "ready" | "error" | "stopped" | "streaming";
+            /**
+             * Viewers
+             * @default 1
+             */
+            viewers?: number;
+        };
+        /** ActiveStreamListResponse */
+        ActiveStreamListResponse: {
+            /** Streams */
+            streams: components["schemas"]["ActiveStream"][];
+        };
+        /** AddChannelRequest */
+        AddChannelRequest: {
+            /**
+             * Category
+             * @description Channel category
+             */
+            category?: string | null;
+            /**
+             * Description
+             * @description Channel description
+             */
+            description?: string | null;
+            /**
+             * Id
+             * @description Catalogue infohash; resolved by the server before import
+             */
+            id: string;
+            /**
+             * Logo
+             * @description Channel logo URL
+             */
+            logo?: string | null;
+            /**
+             * Name
+             * @description Channel name
+             */
+            name: string;
+            /**
+             * Tv Channel Id
+             * @description TV channel ID for association
+             */
+            tv_channel_id?: number | null;
+            /**
+             * Url
+             * @description Channel URL
+             */
+            url: string;
+        };
+        /** AddMultipleRequest */
+        AddMultipleRequest: {
+            /**
+             * Channels
+             * @description Catalogue results to resolve and import
+             */
+            channels: components["schemas"]["AddChannelRequest"][];
+        };
+        /**
+         * AddPidUpdate
+         * @description Schema for updating the addpid setting
+         */
+        AddPidUpdate: {
+            /**
+             * Value
+             * @description Whether to add PID to Acestream links
+             */
+            value: string;
+        };
+        /** AndroidPairFinishRequest */
+        AndroidPairFinishRequest: {
+            /** Challenge */
+            challenge: string;
+            /** Code */
+            code: string;
+            /** Fingerprint */
+            fingerprint: string;
+            /** Host */
+            host: string;
+            /**
+             * Port
+             * @default 8443
+             */
+            port?: number;
+        };
+        /** AndroidPairFinishResponse */
+        AndroidPairFinishResponse: {
+            /**
+             * Password
+             * @description New paired credential; submit with player create/update. Never returned for saved players.
+             */
+            password: string;
+        };
+        /** AndroidPairStartRequest */
+        AndroidPairStartRequest: {
+            /** Host */
+            host: string;
+            /**
+             * Port
+             * @default 8443
+             */
+            port?: number;
+        };
+        /** AndroidPairStartResponse */
+        AndroidPairStartResponse: {
+            /** Challenge */
+            challenge: string;
+            /** Fingerprint */
+            fingerprint: string;
+        };
+        /**
+         * AppIdUpdate
+         * @description Schema for updating appid setting
+         */
+        AppIdUpdate: {
+            /**
+             * Value
+             * @description Whether to add appid to Acestream links
+             */
+            value: string;
+        };
+        /** AudioTrack */
+        AudioTrack: {
+            /** Channel Layout */
+            channel_layout?: string | null;
+            /** Channels */
+            channels?: number | null;
+            /** Codec */
+            codec?: string | null;
+            /**
+             * Index
+             * @description Zero-based audio track index (ffmpeg 0:a:index)
+             */
+            index: number;
+            /** Language */
+            language?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** BackgroundTaskStatus */
+        BackgroundTaskStatus: {
+            /** Last Error */
+            last_error: string | null;
+            /** Last Result */
+            last_result: unknown | null;
+            /** Last Run */
+            last_run: string | null;
+            /** Next Run */
+            next_run: string | null;
+            /** Progress */
+            progress?: {
+                [key: string]: unknown;
+            } | null;
+            /** Status */
+            status: string;
+            /** Task Name */
+            task_name: string;
+        };
+        /** BaseUrlCreate */
+        BaseUrlCreate: {
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default?: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Pattern
+             * @description Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}
+             */
+            pattern: string;
+        };
+        /** BaseUrlResponse */
+        BaseUrlResponse: {
+            /** Id */
+            id: number;
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default?: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Pattern
+             * @description Prefix, a stream mask using {channel_id} and optionally {pid}, or a TV relay mask using {tv_channel_id}
+             */
+            pattern: string;
+        };
+        /** Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post */
+        Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post: {
+            /** Acestreamchannel Ids */
+            acestreamchannel_ids: string[];
+        };
+        /** Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post */
+        Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post: {
+            /** Acestreamchannel Ids */
+            acestreamchannel_ids: string[];
+        };
+        /** Bootstrap */
+        Bootstrap: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Migrate Legacy Token
+             * @default false
+             */
+            migrate_legacy_token?: boolean;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Password Confirmation
+             * Format: password
+             */
+            password_confirmation: string;
+            /** Username */
+            username: string;
+        };
+        /** BroadcastView */
+        BroadcastView: {
+            /** Checked At */
+            checked_at?: string | null;
+            /**
+             * Compatibility
+             * @enum {string}
+             */
+            compatibility: "playable" | "linked" | "unresolved" | "unsupported" | "unavailable";
+            /** Content Id */
+            content_id: string | null;
+            /** Country */
+            country: string;
+            /** Id */
+            id: string;
+            /** Is Online */
+            is_online?: boolean | null;
+            /** Label */
+            label: string;
+            /** Language */
+            language: string;
+            /**
+             * Manually Mapped
+             * @default false
+             */
+            manually_mapped?: boolean;
+            /** Origin */
+            origin: string;
+            /** Quality */
+            quality: string;
+            /** Reason */
+            reason: string;
+            /** Source Name */
+            source_name: string;
+            target?: components["schemas"]["EventChannelTarget"] | null;
+        };
+        /** BuiltinProvider */
+        BuiltinProvider: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * BulkChannelActivateRequest
+         * @description Schema for bulk channel activation/deactivation
+         */
+        BulkChannelActivateRequest: {
+            /** Acestreamchannel Ids */
+            acestreamchannel_ids: string[];
+            /**
+             * Active
+             * @default true
+             */
+            active?: boolean;
+        };
+        /**
+         * BulkChannelEditRequest
+         * @description Schema for bulk channel field updates
+         */
+        BulkChannelEditRequest: {
+            /** Acestreamchannel Ids */
+            acestreamchannel_ids: string[];
+            fields: components["schemas"]["AcestreamChannelUpdate"];
+        };
+        /** CastCapabilities */
+        CastCapabilities: {
+            /** Compatibility Conversion */
+            compatibility_conversion: boolean;
+            /** Media Url Configured */
+            media_url_configured: boolean;
+            /**
+             * Message
+             * @default
+             */
+            message?: string;
+            /** Server Devices */
+            server_devices: boolean;
+        };
+        /** CastCommand */
+        CastCommand: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "play" | "pause" | "stop" | "volume";
+            /** Volume */
+            volume?: number | null;
+        };
+        /** CastDevice */
+        CastDevice: {
+            /** Id */
+            id: string;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+        };
+        /** CastStart */
+        CastStart: {
+            /**
+             * Audio Index
+             * @description Audio track to play; null uses the first available audio track
+             */
+            audio_index?: number | null;
+            /**
+             * Compatibility
+             * @default false
+             */
+            compatibility?: boolean;
+            /**
+             * Content Id
+             * @description AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)
+             */
+            content_id: string;
+            /** Device Id */
+            device_id?: string | null;
+            /**
+             * Replace
+             * @default false
+             */
+            replace?: boolean;
+            /**
+             * Subtitle Index
+             * @description Subtitle track to play; null disables subtitles
+             */
+            subtitle_index?: number | null;
+        };
+        /** CastStatus */
+        CastStatus: {
+            /** Device Id */
+            device_id: string;
+            /** Device Name */
+            device_name: string;
+            /** Id */
+            id: string;
+            /** State */
+            state: string;
+            /** Viewer Id */
+            viewer_id: string;
+            /** Volume */
+            volume?: number | null;
+        };
+        /** CatalogueCounts */
+        CatalogueCounts: {
+            /**
+             * Accepted
+             * @default 0
+             */
+            accepted?: number;
+            /**
+             * Bytes Read
+             * @description Traversal byte budget used, including cached input and failed-read reservations
+             * @default 0
+             */
+            bytes_read?: number;
+            /**
+             * Cached Documents
+             * @default 0
+             */
+            cached_documents?: number;
+            /**
+             * Duplicates
+             * @default 0
+             */
+            duplicates?: number;
+            /**
+             * Excluded
+             * @default 0
+             */
+            excluded?: number;
+            /**
+             * Failed Fetches
+             * @default 0
+             */
+            failed_fetches?: number;
+            /**
+             * Invalid
+             * @default 0
+             */
+            invalid?: number;
+            /**
+             * Requests
+             * @default 0
+             */
+            requests?: number;
+            /**
+             * Unsupported
+             * @default 0
+             */
+            unsupported?: number;
+        };
+        /** CatalogueEntry */
+        CatalogueEntry: {
+            /** Channel Id */
+            channel_id?: string | null;
+            /**
+             * Content Type
+             * @default unknown
+             * @enum {string}
+             */
+            content_type?: "live" | "event" | "vod" | "unknown";
+            /**
+             * Description
+             * @default
+             */
+            description?: string;
+            /**
+             * Duplicate
+             * @default false
+             */
+            duplicate?: boolean;
+            /** Excluded Rule Ids */
+            excluded_rule_ids?: number[];
+            /** Guide Id */
+            guide_id?: string | null;
+            /** Header Names */
+            header_names?: string[];
+            /** Id */
+            id: string;
+            /** Image */
+            image?: string | null;
+            /**
+             * Imported
+             * @default false
+             */
+            imported?: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "folder" | "acestream" | "hls" | "mpegts" | "resolver" | "vod" | "unsupported" | "invalid";
+            /** Name */
+            name: string;
+            /** Number */
+            number?: number | null;
+            /**
+             * Origin
+             * @default
+             */
+            origin?: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /**
+             * Reason
+             * @default
+             */
+            reason?: string;
+            /**
+             * Retained
+             * @default false
+             */
+            retained?: boolean;
+        };
+        /** CatalogueEventPreviewRequest */
+        CatalogueEventPreviewRequest: {
+            /**
+             * Competition
+             * @default
+             */
+            competition?: string;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Entry Ids */
+            entry_ids: string[];
+            /** Event Id */
+            event_id?: string | null;
+            /** Participants */
+            participants?: string[];
+            /** Revision */
+            revision: number;
+            /** Scheduled Date */
+            scheduled_date?: string | null;
+            /**
+             * Sport
+             * @default
+             */
+            sport?: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /**
+             * State
+             * @default unknown
+             * @enum {string}
+             */
+            state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+            /**
+             * Time Notes
+             * @default
+             */
+            time_notes?: string;
+            /** Timezone */
+            timezone: string;
+            /** Title */
+            title: string;
+        };
+        /** CataloguePreviewRequest */
+        CataloguePreviewRequest: {
+            /** Catalogue Id */
+            catalogue_id?: number | null;
+            /** Sample */
+            sample?: string | null;
+            /** Url */
+            url?: string | null;
+        };
+        /** CatalogueSaveRequest */
+        CatalogueSaveRequest: {
+            /**
+             * Confirm Live
+             * @default false
+             */
+            confirm_live?: boolean;
+            /**
+             * Mode
+             * @default compatible
+             * @enum {string}
+             */
+            mode?: "compatible" | "acestream";
+            /** Name */
+            name: string;
+            /** Preview Token */
+            preview_token: string;
+            /**
+             * Refresh Enabled
+             * @default false
+             */
+            refresh_enabled?: boolean;
+            /** Selected Branches */
+            selected_branches: string[];
+        };
+        /** CatalogueSummary */
+        CatalogueSummary: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Origin */
+            origin: string;
+            /** Partial */
+            partial: boolean;
+            /** Refresh Enabled */
+            refresh_enabled: boolean;
+            /** Revision */
+            revision: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CatalogueView */
+        CatalogueView: {
+            /**
+             * Can Refresh
+             * @default false
+             */
+            can_refresh?: boolean;
+            counts: components["schemas"]["CatalogueCounts"];
+            /** Entries */
+            entries: components["schemas"]["CatalogueEntry"][];
+            /** Id */
+            id?: number | null;
+            /**
+             * Mode
+             * @default compatible
+             * @enum {string}
+             */
+            mode?: "compatible" | "acestream";
+            /** Name */
+            name: string;
+            /** Origin */
+            origin: string;
+            /**
+             * Partial
+             * @default false
+             */
+            partial?: boolean;
+            /**
+             * Policy Revision
+             * @default 0
+             */
+            policy_revision?: number;
+            /** Preview Token */
+            preview_token?: string | null;
+            /**
+             * Refresh Enabled
+             * @default false
+             */
+            refresh_enabled?: boolean;
+            /**
+             * Revision
+             * @default 0
+             */
+            revision?: number;
+            /** Selected Branches */
+            selected_branches?: string[];
+            /** Updated At */
+            updated_at?: string | null;
+            /** Warnings */
+            warnings?: string[];
+        };
+        /**
+         * ChannelResult
+         * @description Schema for channel result from scraping
+         */
+        ChannelResult: {
+            /** Channel Id */
+            channel_id: string;
+            /**
+             * Metadata
+             * @default {}
+             */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Name */
+            name: string;
+        };
+        /** ChannelSourceFilter */
+        ChannelSourceFilter: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "scrape" | "broadcaster" | "catalogue" | "import";
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /** ChannelStatusJobRunResponse */
+        ChannelStatusJobRunResponse: {
+            /** Message */
+            message: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "triggered" | "already_running" | "disabled";
+        };
+        /**
+         * ChannelStatusResponse
+         * @description Response schema for channel status check
+         */
+        ChannelStatusResponse: {
+            /** Channel Id */
+            channel_id: string;
+            /** Error */
+            error?: string | null;
+            /** Is Online */
+            is_online: boolean;
+            /**
+             * Last Checked
+             * Format: date-time
+             */
+            last_checked: string;
+            /** Message */
+            message: string;
+            /** Network Status */
+            network_status?: ("found" | "not_found" | "unknown") | null;
+            /** Status */
+            status: string;
+            stream_stats?: components["schemas"]["StreamStats"] | null;
+        };
+        /**
+         * ChannelStatusSummary
+         * @description Summary of all channel statuses
+         */
+        ChannelStatusSummary: {
+            /** Active Channels */
+            active_channels: number;
+            /** Checked Percentage */
+            checked_percentage: number;
+            /** Last Checked Channels */
+            last_checked_channels: number;
+            /** Offline */
+            offline: number;
+            /** Offline Channels */
+            offline_channels: number;
+            /** Online */
+            online: number;
+            /** Online Channels */
+            online_channels: number;
+            /** Online Percentage */
+            online_percentage: number;
+            /** Recent Checks */
+            recent_checks: number;
+            /** Total Channels */
+            total_channels: number;
+            /** Unknown */
+            unknown: number;
+        };
+        /** CheckEngineConfig */
+        CheckEngineConfig: {
+            /**
+             * Url
+             * @default
+             */
+            url?: string;
+            /**
+             * Use Dedicated
+             * @default false
+             */
+            use_dedicated?: boolean;
+        };
+        /** CheckEngineConfigResponse */
+        CheckEngineConfigResponse: {
+            /**
+             * Managed
+             * @default false
+             */
+            managed?: boolean;
+            /**
+             * Url
+             * @default
+             */
+            url?: string;
+            /**
+             * Use Dedicated
+             * @default false
+             */
+            use_dedicated?: boolean;
+        };
+        /**
+         * ConfigKeyUpdate
+         * @description Schema for generic config key update endpoint
+         */
+        ConfigKeyUpdate: {
+            /** Base Url */
+            base_url?: string | null;
+            /** Hours */
+            hours?: number | null;
+            /**
+             * Value
+             * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60)
+             */
+            value?: string | null;
+        };
+        /**
+         * ConfigUpdateResponse
+         * @description Schema for simple config mutation result
+         */
+        ConfigUpdateResponse: {
+            /** Message */
+            message: string;
+            /** Value */
+            value: string;
+        };
+        /** ConfigurationWarning */
+        ConfigurationWarning: {
+            /** Legacy */
+            legacy: string;
+            /** Replacement */
+            replacement: string;
+            /** Selected */
+            selected: string;
+        };
+        /** CredentialCreate */
+        CredentialCreate: {
+            /**
+             * Kind
+             * @default playback
+             * @enum {string}
+             */
+            kind?: "admin" | "playback";
+            /** Label */
+            label: string;
+        };
+        /** CredentialIssued */
+        CredentialIssued: {
+            /** Created At */
+            created_at: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "admin" | "playback";
+            /** Label */
+            label: string;
+            /** Token */
+            token: string;
+        };
+        /** CredentialView */
+        CredentialView: {
+            /** Created At */
+            created_at: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "admin" | "playback";
+            /** Label */
+            label: string;
+        };
+        /** Credentials */
+        Credentials: {
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /** Username */
+            username: string;
+        };
+        /**
+         * DashboardConfigResponse
+         * @description Schema for dashboard config response
+         */
+        DashboardConfigResponse: {
+            /** Auto Refresh Interval */
+            auto_refresh_interval: number;
+            /** Retention Days */
+            retention_days: number;
+        };
+        /**
+         * DashboardConfigUpdate
+         * @description Schema for dashboard config updates
+         */
+        DashboardConfigUpdate: {
+            /** Auto Refresh Interval */
+            auto_refresh_interval?: number | null;
+            /** Retention Days */
+            retention_days?: number | null;
+        };
+        /** DisableAccess */
+        DisableAccess: {
+            /**
+             * Current Password
+             * Format: password
+             */
+            current_password: string;
+        };
+        /**
+         * EPGChannelListResponse
+         * @description Paginated EPG channel response.
+         */
+        EPGChannelListResponse: {
+            /** Items */
+            items: components["schemas"]["EPGChannelResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * EPGChannelMappingRequest
+         * @description Schema for EPG channel to TV channel mapping request
+         */
+        EPGChannelMappingRequest: {
+            /** Epg Channel Id */
+            epg_channel_id: number;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+        };
+        /**
+         * EPGChannelResponse
+         * @description Schema for EPG channel response
+         */
+        EPGChannelResponse: {
+            /** Channel Xml Id */
+            channel_xml_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Epg Source Id */
+            epg_source_id: number;
+            /** Icon Url */
+            icon_url?: string | null;
+            /** Id */
+            id: number;
+            /** Language */
+            language?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** EPGMatchAnalysisRequest */
+        EPGMatchAnalysisRequest: {
+            /** Source Id */
+            source_id?: number | null;
+            /**
+             * Strictness
+             * @enum {string}
+             */
+            strictness: "loose" | "balanced" | "strict";
+        };
+        /** EPGMatchAnalysisResponse */
+        EPGMatchAnalysisResponse: {
+            /** Rows */
+            rows: components["schemas"]["EPGMatchRowResponse"][];
+            summary: components["schemas"]["EPGMatchAnalysisSummaryResponse"];
+        };
+        /** EPGMatchAnalysisSummaryResponse */
+        EPGMatchAnalysisSummaryResponse: {
+            /** Creatable Rows */
+            creatable_rows: number;
+            /** Epg Channels Analyzed */
+            epg_channels_analyzed: number;
+            /** Matched Acestream Channels */
+            matched_acestream_channels: number;
+            /** Matched Epg Channels */
+            matched_epg_channels: number;
+            /** Skipped Existing Tv Channels */
+            skipped_existing_tv_channels: number;
+        };
+        /** EPGMatchCandidateResponse */
+        EPGMatchCandidateResponse: {
+            /** Acestream Channel Id */
+            acestream_channel_id: string;
+            /** Match Stage */
+            match_stage: string;
+            /** Name */
+            name: string;
+            /** Score */
+            score: number;
+            /** Tvg Id */
+            tvg_id?: string | null;
+            /** Tvg Name */
+            tvg_name?: string | null;
+        };
+        /** EPGMatchRowResponse */
+        EPGMatchRowResponse: {
+            /**
+             * Ambiguous Count
+             * @default 0
+             */
+            ambiguous_count?: number;
+            /**
+             * Automation Safe
+             * @default false
+             */
+            automation_safe?: boolean;
+            /** Best Match Confidence */
+            best_match_confidence?: string | null;
+            /** Best Match Type */
+            best_match_type?: string | null;
+            /**
+             * Can Apply
+             * @default false
+             */
+            can_apply?: boolean;
+            /** Candidate Count */
+            candidate_count: number;
+            /** Candidates */
+            candidates: components["schemas"]["EPGMatchCandidateResponse"][];
+            /** Epg Channel Id */
+            epg_channel_id: number;
+            /** Epg Channel Name */
+            epg_channel_name: string;
+            /** Epg Channel Xml Id */
+            epg_channel_xml_id: string;
+            /** Epg Source Id */
+            epg_source_id: number;
+            /** Epg Source Name */
+            epg_source_name?: string | null;
+            /**
+             * Existing Tv Channel Count
+             * @default 0
+             */
+            existing_tv_channel_count?: number;
+            /** Existing Tv Channel Id */
+            existing_tv_channel_id?: number | null;
+            /**
+             * Has Duplicate Existing Conflict
+             * @default false
+             */
+            has_duplicate_existing_conflict?: boolean;
+            /** Is Creatable */
+            is_creatable: boolean;
+            /**
+             * Review Token
+             * @default
+             */
+            review_token?: string;
+        };
+        /** EPGMatchingConfig */
+        EPGMatchingConfig: {
+            /**
+             * Enabled
+             * @description Automatically apply unambiguous exact guide matches after successful scraping or EPG refresh
+             * @default false
+             */
+            enabled?: boolean;
+        };
+        /** EPGMatchingRun */
+        EPGMatchingRun: {
+            /**
+             * Assigned
+             * @default 0
+             */
+            assigned?: number;
+            /**
+             * Created
+             * @default 0
+             */
+            created?: number;
+            /** Finished At */
+            finished_at?: string | null;
+            /**
+             * Review Needed
+             * @default 0
+             */
+            review_needed?: number;
+            /**
+             * Status
+             * @default never
+             */
+            status?: string;
+        };
+        /**
+         * EPGProgramResponse
+         * @description Schema for EPG program response
+         */
+        EPGProgramResponse: {
+            /** Category */
+            category?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * End Time
+             * Format: date-time
+             */
+            end_time: string;
+            /** Epg Channel Id */
+            epg_channel_id: number;
+            /** Id */
+            id: number;
+            /** Image Url */
+            image_url?: string | null;
+            /** Program Xml Id */
+            program_xml_id?: string | null;
+            /**
+             * Start Time
+             * Format: date-time
+             */
+            start_time: string;
+            /** Subtitle */
+            subtitle?: string | null;
+            /** Title */
+            title: string;
+        };
+        /**
+         * EPGRefreshResponse
+         * @description Schema for EPG refresh response
+         */
+        EPGRefreshResponse: {
+            /** Channels Found */
+            channels_found?: number | null;
+            /** Duration Seconds */
+            duration_seconds?: number | null;
+            /** Error */
+            error?: string | null;
+            /** Message */
+            message: string;
+            /** Programs Found */
+            programs_found?: number | null;
+            /** Source Id */
+            source_id: number;
+            /**
+             * Status
+             * @default success
+             */
+            status?: string;
+            /** Success */
+            success: boolean;
+        };
+        /**
+         * EPGSourceCreate
+         * @description Schema for creating an EPG source
+         */
+        EPGSourceCreate: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * EPGSourceResponse
+         * @description Schema for EPG source response
+         */
+        EPGSourceResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Error Count
+             * @default 0
+             */
+            error_count?: number;
+            /** Id */
+            id: number;
+            /** Last Error */
+            last_error?: string | null;
+            /** Last Updated */
+            last_updated?: string | null;
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * EPGSourceUpdate
+         * @description Schema for updating an EPG source
+         */
+        EPGSourceUpdate: {
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /** Url */
+            url?: string | null;
+        };
+        /**
+         * EPGStringMappingResponse
+         * @description Schema for EPG string mapping response
+         */
+        EPGStringMappingResponse: {
+            /** Epg Channel Id */
+            epg_channel_id: number;
+            /** Id */
+            id: number;
+            /**
+             * Is Exclusion
+             * @default false
+             */
+            is_exclusion?: boolean;
+            /** Search Pattern */
+            search_pattern: string;
+        };
+        /**
+         * EPGStringMappingUpdate
+         * @description Schema for updating/creating mapping payload in endpoint bodies
+         */
+        EPGStringMappingUpdate: {
+            /**
+             * Is Exclusion
+             * @default false
+             */
+            is_exclusion?: boolean;
+            /** Search Pattern */
+            search_pattern: string;
+        };
+        /**
+         * EPGXmlGenerationRequest
+         * @description Schema for EPG XML generation request
+         */
+        EPGXmlGenerationRequest: {
+            /**
+             * Days Back
+             * @default 1
+             */
+            days_back?: number;
+            /**
+             * Days Forward
+             * @default 7
+             */
+            days_forward?: number;
+            /**
+             * Favorites Only
+             * @default false
+             */
+            favorites_only?: boolean;
+            /** Search Term */
+            search_term?: string | null;
+        };
+        /** EventApply */
+        EventApply: {
+            /**
+             * Refresh Source
+             * @default false
+             */
+            refresh_source?: boolean;
+            /** Selected Ids */
+            selected_ids: string[];
+            /** Token */
+            token: string;
+        };
+        /** EventBroadcast */
+        EventBroadcast: {
+            /** Channel Id */
+            channel_id?: string | null;
+            /**
+             * Country
+             * @default
+             */
+            country?: string;
+            /** Headers */
+            headers?: {
+                [key: string]: string;
+            };
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Language
+             * @default
+             */
+            language?: string;
+            /**
+             * Quality
+             * @default
+             */
+            quality?: string;
+            /** Url */
+            url?: string | null;
+        };
+        /** EventBroadcastMapping */
+        EventBroadcastMapping: {
+            /** Broadcast Id */
+            broadcast_id: string;
+            /** Channel Id */
+            channel_id?: string | null;
+            /** Revision */
+            revision: number;
+            /** Target Id */
+            target_id?: number | null;
+            /** Target Kind */
+            target_kind?: ("tv" | "epg") | null;
+        };
+        /** EventChannelTarget */
+        EventChannelTarget: {
+            /**
+             * Country
+             * @default
+             */
+            country?: string;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "tv" | "epg";
+            /** Name */
+            name: string;
+            /**
+             * Source Name
+             * @default
+             */
+            source_name?: string;
+        };
+        /** EventFields */
+        EventFields: {
+            /**
+             * Competition
+             * @default
+             */
+            competition?: string;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Participants */
+            participants?: string[];
+            /** Scheduled Date */
+            scheduled_date?: string | null;
+            /**
+             * Sport
+             * @default
+             */
+            sport?: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /**
+             * State
+             * @default unknown
+             * @enum {string}
+             */
+            state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+            /**
+             * Time Notes
+             * @default
+             */
+            time_notes?: string;
+            /** Timezone */
+            timezone: string;
+            /** Title */
+            title: string;
+        };
+        /** EventImport */
+        EventImport: {
+            /** Observations */
+            observations: components["schemas"]["EventObservation"][];
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version?: 1;
+        };
+        /** EventInterestChoices */
+        EventInterestChoices: {
+            /** Competitions */
+            competitions?: string[];
+            /** Sports */
+            sports?: string[];
+            /** Teams */
+            teams?: string[];
+        };
+        /** EventInterests */
+        EventInterests: {
+            /** Competitions */
+            competitions?: string[];
+            /** Sports */
+            sports?: string[];
+            /** Teams */
+            teams?: string[];
+        };
+        /** EventList */
+        EventList: {
+            /** Events */
+            events: components["schemas"]["EventView"][];
+            /** Total */
+            total: number;
+        };
+        /** EventObservation */
+        EventObservation: {
+            /** Artwork Url */
+            artwork_url?: string | null;
+            /** Broadcasts */
+            broadcasts?: components["schemas"]["EventBroadcast"][];
+            /**
+             * Competition
+             * @default
+             */
+            competition?: string;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Event Id */
+            event_id?: string | null;
+            /** External Id */
+            external_id: string;
+            /** Participants */
+            participants?: string[];
+            /** Scheduled Date */
+            scheduled_date?: string | null;
+            /** Source Id */
+            source_id: string;
+            /**
+             * Source Kind
+             * @default manual
+             * @enum {string}
+             */
+            source_kind?: "guide" | "w3u" | "telegram" | "manual";
+            /** Source Name */
+            source_name: string;
+            /**
+             * Sport
+             * @default
+             */
+            sport?: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /**
+             * State
+             * @default unknown
+             * @enum {string}
+             */
+            state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+            /**
+             * Time Notes
+             * @default
+             */
+            time_notes?: string;
+            /** Timezone */
+            timezone: string;
+            /** Title */
+            title: string;
+        };
+        /** EventOverlayApply */
+        EventOverlayApply: {
+            /** Broadcast Id */
+            broadcast_id: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Expected Fingerprint */
+            expected_fingerprint: string;
+            /** Revision */
+            revision: number;
+        };
+        /** EventOverlayPreview */
+        EventOverlayPreview: {
+            /** Affected */
+            affected: components["schemas"]["EventOverlayProgram"][];
+            channel: components["schemas"]["EventChannelTarget"];
+            /** Fingerprint */
+            fingerprint: string;
+            programme: components["schemas"]["EventOverlayProgram"];
+        };
+        /** EventOverlayProgram */
+        EventOverlayProgram: {
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Title */
+            title: string;
+        };
+        /** EventOverlayRequest */
+        EventOverlayRequest: {
+            /** Broadcast Id */
+            broadcast_id: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Revision */
+            revision: number;
+        };
+        /** EventOverlayView */
+        EventOverlayView: {
+            /** Active */
+            active: boolean;
+            /** Broadcast Id */
+            broadcast_id: string;
+            channel: components["schemas"]["EventChannelTarget"];
+            programme: components["schemas"]["EventOverlayProgram"];
+        };
+        /** EventPreview */
+        EventPreview: {
+            available_interests?: components["schemas"]["EventInterestChoices"];
+            /** Events */
+            events: components["schemas"]["EventView"][];
+            /** Token */
+            token: string;
+            /** Warnings */
+            warnings: string[];
+        };
+        /** EventProgramMatch */
+        EventProgramMatch: {
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            epg_channel: components["schemas"]["EventChannelTarget"];
+            /** Program Id */
+            program_id: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Title */
+            title: string;
+            tv_channel?: components["schemas"]["EventChannelTarget"] | null;
+        };
+        /** EventProviderCatalog */
+        EventProviderCatalog: {
+            /** Feeds */
+            feeds: components["schemas"]["EventProviderChoice"][];
+            /** Football Competitions */
+            football_competitions?: components["schemas"]["EventProviderChoice"][];
+            /** Leagues */
+            leagues: components["schemas"]["EventProviderChoice"][];
+        };
+        /** EventProviderChoice */
+        EventProviderChoice: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Timezone
+             * @default Europe/Madrid
+             */
+            timezone?: string;
+        };
+        /** EventProviderOptions */
+        EventProviderOptions: {
+            /** Feeds */
+            feeds?: string[];
+            /** Football Competitions */
+            football_competitions?: string[];
+            interests?: components["schemas"]["EventInterests"];
+            /**
+             * League
+             * @default es.1
+             * @enum {string}
+             */
+            league?: "en.1" | "en.2" | "es.1" | "de.1" | "fr.1" | "it.1" | "nl.1" | "pt.1";
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "wosti_es" | "openfootball";
+            /** Season */
+            season?: string;
+            /**
+             * Window Days
+             * @default 14
+             */
+            window_days?: number;
+        };
+        /** EventRefreshQueued */
+        EventRefreshQueued: {
+            /** Message */
+            message: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "triggered" | "already_running";
+        };
+        /** EventRefreshResult */
+        EventRefreshResult: {
+            /** Message */
+            message: string;
+            /**
+             * Pending
+             * @default 0
+             */
+            pending?: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "updated" | "error" | "unchanged";
+            /**
+             * Updated
+             * @default 0
+             */
+            updated?: number;
+        };
+        /** EventRetention */
+        EventRetention: {
+            /**
+             * Archived Days
+             * @default 0
+             */
+            archived_days?: number;
+            /**
+             * Ended Days
+             * @default 0
+             */
+            ended_days?: number;
+        };
+        /** EventSourcePreviewRequest */
+        EventSourcePreviewRequest: {
+            /**
+             * Format
+             * @default event_import
+             * @enum {string}
+             */
+            format?: "event_import" | "schema_org";
+            provider_options?: components["schemas"]["EventProviderOptions"] | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Timeout Seconds */
+            timeout_seconds?: number | null;
+            /**
+             * Timezone
+             * @default UTC
+             */
+            timezone?: string;
+            /** Url */
+            url?: string | null;
+        };
+        /** EventSourceUpdate */
+        EventSourceUpdate: {
+            /** Enabled */
+            enabled: boolean;
+            /** Revision */
+            revision: number;
+        };
+        /** EventSourceView */
+        EventSourceView: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Format
+             * @default event_import
+             * @enum {string}
+             */
+            format?: "event_import" | "schema_org";
+            /** Id */
+            id: string;
+            /** Last Attempt */
+            last_attempt: string | null;
+            last_result: components["schemas"]["EventRefreshResult"] | null;
+            /** Last Success */
+            last_success: string | null;
+            /** Name */
+            name: string;
+            /** Origin */
+            origin: string;
+            provider_options?: components["schemas"]["EventProviderOptions"] | null;
+            /** Reviewed */
+            reviewed: number;
+            /** Revision */
+            revision: number;
+            /**
+             * Timeout Seconds
+             * @default 15
+             */
+            timeout_seconds?: number;
+            /**
+             * Timezone
+             * @default UTC
+             */
+            timezone?: string;
+        };
+        /** EventUpdate */
+        EventUpdate: {
+            /** Archived */
+            archived?: boolean | null;
+            correction?: components["schemas"]["EventFields"] | null;
+            /** Followed */
+            followed?: boolean | null;
+            /** Revision */
+            revision: number;
+        };
+        /** EventView */
+        EventView: {
+            /** Archived */
+            archived: boolean;
+            /** Broadcasts */
+            broadcasts: components["schemas"]["BroadcastView"][];
+            /**
+             * Competition
+             * @default
+             */
+            competition?: string;
+            /** Corrected */
+            corrected: boolean;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Epg Matches */
+            epg_matches?: components["schemas"]["EventProgramMatch"][];
+            /** Followed */
+            followed: boolean;
+            /**
+             * Has Artwork
+             * @default false
+             */
+            has_artwork?: boolean;
+            /** Id */
+            id: string;
+            /** Participants */
+            participants?: string[];
+            /** Provenance */
+            provenance: components["schemas"]["ProvenanceView"][];
+            /** Revision */
+            revision: number;
+            /** Scheduled Date */
+            scheduled_date?: string | null;
+            /**
+             * Sport
+             * @default
+             */
+            sport?: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /**
+             * State
+             * @default unknown
+             * @enum {string}
+             */
+            state?: "unknown" | "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+            /**
+             * Time Notes
+             * @default
+             */
+            time_notes?: string;
+            /** Timezone */
+            timezone: string;
+            /** Title */
+            title: string;
+        };
+        /** ExclusionInput */
+        ExclusionInput: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "name_contains" | "name_equals" | "stream_id_equals";
+            /** Note */
+            note?: string | null;
+            /** Value */
+            value: string;
+        };
+        /** ExclusionList */
+        ExclusionList: {
+            /** Items */
+            items: components["schemas"]["ExclusionRule"][];
+            /** Policy Revision */
+            policy_revision: number;
+            /** Total */
+            total: number;
+        };
+        /** ExclusionPreview */
+        ExclusionPreview: {
+            /** Complete */
+            complete: boolean;
+            /** Examples */
+            examples: components["schemas"]["ImportCandidate"][];
+            /** Matched */
+            matched: number;
+            /** Policy Revision */
+            policy_revision: number;
+            /** Scanned */
+            scanned: number;
+        };
+        /** ExclusionPreviewRequest */
+        ExclusionPreviewRequest: {
+            /** Candidates */
+            candidates?: components["schemas"]["ImportCandidate"][] | null;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "name_contains" | "name_equals" | "stream_id_equals";
+            /** Note */
+            note?: string | null;
+            /** Value */
+            value: string;
+        };
+        /** ExclusionRule */
+        ExclusionRule: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "name_contains" | "name_equals" | "stream_id_equals";
+            /** Note */
+            note?: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Value */
+            value: string;
+        };
+        /** ExclusionUpdate */
+        ExclusionUpdate: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "name_contains" | "name_equals" | "stream_id_equals";
+            /** Note */
+            note?: string | null;
+            /** Value */
+            value: string;
+        };
+        /** ExclusionWrite */
+        ExclusionWrite: {
+            /** Policy Revision */
+            policy_revision: number;
+            rule: components["schemas"]["ExclusionRule"];
+        };
+        /** ExtractedChannel */
+        ExtractedChannel: {
+            /** Channel Id */
+            channel_id: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            };
+            /** Name */
+            name: string;
+        };
+        /** ExtractionRecipe */
+        ExtractionRecipe: {
+            /** Fields */
+            fields: {
+                [key: string]: components["schemas"]["RecipeField"];
+            };
+            /**
+             * Flags
+             * @default is
+             */
+            flags?: string;
+            /**
+             * Mode
+             * @default html
+             * @enum {string}
+             */
+            mode?: "html" | "regex" | "json";
+            /**
+             * Name
+             * @default My recipe
+             */
+            name?: string;
+            /**
+             * Records
+             * @default
+             */
+            records?: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version?: 1;
+            /**
+             * Version
+             * @default 1.0.0
+             */
+            version?: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HealthChannelTotals */
+        HealthChannelTotals: {
+            /** Offline */
+            offline: number;
+            /** Online */
+            online: number;
+            /** Total */
+            total: number;
+            /** Unknown */
+            unknown: number;
+        };
+        /** HealthEPGTotals */
+        HealthEPGTotals: {
+            /** Channels */
+            channels: number;
+            /** Programs */
+            programs: number;
+            /** Sources */
+            sources: number;
+        };
+        /**
+         * HealthResponse
+         * @description Schema for the health check response
+         */
+        HealthResponse: {
+            /** @description Acestream Engine status */
+            acestream: components["schemas"]["StatusResponse"];
+            /**
+             * Database
+             * @description Database connection status
+             */
+            database: {
+                [key: string]: unknown;
+            };
+            /**
+             * Settings
+             * @description Application settings
+             */
+            settings: {
+                [key: string]: unknown;
+            };
+            /**
+             * Status
+             * @description Overall system status (healthy, degraded, unhealthy)
+             */
+            status: string;
+            /**
+             * Version
+             * @description Application version
+             */
+            version: string;
+        };
+        /**
+         * HealthStatsResponse
+         * @description Compact inventory totals rendered by the Health and Stats pages.
+         */
+        HealthStatsResponse: {
+            channels: components["schemas"]["HealthChannelTotals"];
+            epg: components["schemas"]["HealthEPGTotals"];
+            urls: components["schemas"]["HealthURLTotals"];
+        };
+        /** HealthURLTotals */
+        HealthURLTotals: {
+            /** Active */
+            active: number;
+            /** Error */
+            error: number;
+            /** Total */
+            total: number;
+        };
+        /** ImportCandidate */
+        ImportCandidate: {
+            /** Channel Id */
+            channel_id: string;
+            /** Name */
+            name: string;
+        };
+        /** MediaServerCreate */
+        MediaServerCreate: {
+            /**
+             * Api Key
+             * @description Jellyfin API key or Plex owner token
+             */
+            api_key?: string | null;
+            /**
+             * Auto Refresh
+             * @default true
+             */
+            auto_refresh?: boolean;
+            /** Base Url */
+            base_url: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "jellyfin" | "plex";
+            /** Name */
+            name: string;
+            /**
+             * Tuner Mode
+             * @default hdhomerun
+             * @enum {string}
+             */
+            tuner_mode?: "hdhomerun" | "m3u";
+        };
+        /** MediaServerProbeResponse */
+        MediaServerProbeResponse: {
+            /** Authenticated */
+            authenticated: boolean;
+            /**
+             * Credentials
+             * @enum {string}
+             */
+            credentials: "ok" | "missing" | "rejected";
+            /** Message */
+            message: string;
+            /** Reachable */
+            reachable: boolean;
+            tuner_access: components["schemas"]["TunerAccessResponse"];
+            /** Version */
+            version?: string | null;
+        };
+        /** MediaServerRefreshResponse */
+        MediaServerRefreshResponse: {
+            /** Last Sync At */
+            last_sync_at?: string | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "error" | "manual";
+        };
+        /** MediaServerResponse */
+        MediaServerResponse: {
+            /** Auto Refresh */
+            auto_refresh: boolean;
+            /** Base Url */
+            base_url: string;
+            /** Connected */
+            connected: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dvr Key */
+            dvr_key?: string | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Has Api Key */
+            has_api_key: boolean;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "jellyfin" | "plex";
+            /** Last Error */
+            last_error?: string | null;
+            /** Last Sync At */
+            last_sync_at?: string | null;
+            /**
+             * Last Sync Status
+             * @enum {string}
+             */
+            last_sync_status: "ok" | "error" | "never" | "manual";
+            /** Listing Provider Id */
+            listing_provider_id?: string | null;
+            /** Name */
+            name: string;
+            /** Server Version */
+            server_version?: string | null;
+            /** Tuner Host Id */
+            tuner_host_id?: string | null;
+            /**
+             * Tuner Mode
+             * @enum {string}
+             */
+            tuner_mode: "hdhomerun" | "m3u";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** MediaServerStatusResponse */
+        MediaServerStatusResponse: {
+            /** Channel Count */
+            channel_count?: number | null;
+            /** Connected */
+            connected: boolean;
+            /** Error */
+            error?: string | null;
+            /** Last Result */
+            last_result?: string | null;
+            /** Paste */
+            paste?: {
+                [key: string]: string;
+            };
+            /** Refresh State */
+            refresh_state?: string | null;
+            /** Steps */
+            steps?: string[];
+        };
+        /** MediaServerTestRequest */
+        MediaServerTestRequest: {
+            /** Api Key */
+            api_key?: string | null;
+            /** Base Url */
+            base_url: string;
+            /** Id */
+            id?: number | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "jellyfin" | "plex";
+        };
+        /** MediaServerUpdate */
+        MediaServerUpdate: {
+            /**
+             * Api Key
+             * @description omit = keep, empty = clear
+             */
+            api_key?: string | null;
+            /** Auto Refresh */
+            auto_refresh?: boolean | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /** Tuner Mode */
+            tuner_mode?: ("hdhomerun" | "m3u") | null;
+        };
+        /**
+         * MessageResponse
+         * @description Generic operation message response
+         */
+        MessageResponse: {
+            /** Message */
+            message: string;
+        };
+        /** MigrationProgress */
+        MigrationProgress: {
+            /**
+             * Migrated
+             * @default 0
+             */
+            migrated?: number;
+            /**
+             * Percent
+             * @default 0
+             */
+            percent?: number;
+            /**
+             * Processed
+             * @default 0
+             */
+            processed?: number;
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped?: number;
+            /**
+             * Stale
+             * @default 0
+             */
+            stale?: number;
+            /** Status */
+            status: string;
+            /**
+             * Total
+             * @default 0
+             */
+            total?: number;
+        };
+        /**
+         * NotificationWebhookUpdate
+         * @description Schema for updating the notification webhook (#41).
+         */
+        NotificationWebhookUpdate: {
+            /**
+             * Value
+             * @description HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off
+             * @default
+             */
+            value?: string;
+        };
+        /** PasswordChange */
+        PasswordChange: {
+            /**
+             * Current Password
+             * Format: password
+             */
+            current_password: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Password Confirmation
+             * Format: password
+             */
+            password_confirmation: string;
+        };
+        /** PlaybackRouting */
+        PlaybackRouting: {
+            /**
+             * Acexy Url
+             * @description HTTP(S) origin where the backend reaches Acexy in MPEG-TS mode
+             * @default http://localhost:8080
+             */
+            acexy_url?: string;
+            /**
+             * Use Acexy
+             * @description Route web, tuner and remote-player playback through Acexy
+             * @default false
+             */
+            use_acexy?: boolean;
+        };
+        /** PlayerCapabilities */
+        PlayerCapabilities: {
+            /** Ffmpeg Available */
+            ffmpeg_available: boolean;
+            /** Ffmpeg Path */
+            ffmpeg_path?: string | null;
+            /** Hls Dir */
+            hls_dir: string;
+            /** Max Sessions */
+            max_sessions: number;
+        };
+        /** PlayerCodecs */
+        PlayerCodecs: {
+            /** Audio */
+            audio?: string | null;
+            /** Video */
+            video?: string | null;
+        };
+        /** PlayerSessionCreate */
+        PlayerSessionCreate: {
+            /**
+             * Audio Index
+             * @description Audio track to play; null uses the first available audio track
+             */
+            audio_index?: number | null;
+            /**
+             * Content Id
+             * @description AceStream content ID (40 hex) or imported HTTP stream ID (url: followed by 40 hex)
+             */
+            content_id: string;
+            /**
+             * Subtitle Index
+             * @description Subtitle track to play; null disables subtitles
+             */
+            subtitle_index?: number | null;
+        };
+        /** PlayerSessionListResponse */
+        PlayerSessionListResponse: {
+            /** Sessions */
+            sessions: components["schemas"]["PlayerSessionStatus"][];
+        };
+        /** PlayerSessionStatus */
+        PlayerSessionStatus: {
+            /** Audio Index */
+            audio_index?: number | null;
+            /** Audio Tracks */
+            audio_tracks?: components["schemas"]["AudioTrack"][];
+            codecs: components["schemas"]["PlayerCodecs"];
+            /** Content Id */
+            content_id: string;
+            /** Error */
+            error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed" | "source_unavailable") | null;
+            /**
+             * Error Message
+             * @default
+             */
+            error_message?: string;
+            /** Hls Ready */
+            hls_ready: boolean;
+            /** Id */
+            id: string;
+            /** Playlist Url */
+            playlist_url: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "starting" | "ready" | "error" | "stopped";
+            stats?: components["schemas"]["PlayerStats"] | null;
+            /** Subtitle Index */
+            subtitle_index?: number | null;
+            /** Subtitle Tracks */
+            subtitle_tracks?: components["schemas"]["SubtitleTrack"][];
+            /** Viewers */
+            viewers: number;
+        };
+        /** PlayerStats */
+        PlayerStats: {
+            /** Peers */
+            peers: number;
+            /** Speed Down */
+            speed_down: number;
+            /** Speed Up */
+            speed_up: number;
+            /** Status */
+            status: string;
+        };
+        /** PlaylistGuideCoverage */
+        PlaylistGuideCoverage: {
+            /** Guide Channels */
+            guide_channels: number;
+            /** Linked Streams */
+            linked_streams: number;
+            /** Streams */
+            streams: number;
+        };
+        /** PlaylistLink */
+        PlaylistLink: {
+            /** Guide Url */
+            guide_url: string;
+            /** Url */
+            url: string;
+        };
+        /** ProgrammeSelection */
+        ProgrammeSelection: {
+            /** Category */
+            category?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * End Time
+             * Format: date-time
+             */
+            end_time: string;
+            /** Epg Channel Id */
+            epg_channel_id: number;
+            /** Id */
+            id: number;
+            /**
+             * Start Time
+             * Format: date-time
+             */
+            start_time: string;
+            /** Subtitle */
+            subtitle?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** ProvenanceView */
+        ProvenanceView: {
+            /** External Id */
+            external_id: string;
+            /** Source Id */
+            source_id: string;
+            /** Source Kind */
+            source_kind: string;
+            /** Source Name */
+            source_name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PublicBaseUrlUpdate
+         * @description Schema for updating the externally reachable origin (spec 4.3).
+         */
+        PublicBaseUrlUpdate: {
+            /**
+             * Value
+             * @description http(s)://host[:port]; empty clears the override
+             * @default
+             */
+            value?: string;
+        };
+        /**
+         * PublicUrlResponse
+         * @description The origin external clients must use to reach this server (spec 4.3).
+         */
+        PublicUrlResponse: {
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "setting" | "forwarded" | "request";
+            /**
+             * Url
+             * @description scheme://host[:port], no trailing slash
+             */
+            url: string;
+            /**
+             * Warnings
+             * @description localhost | docker-internal | unset | proxied
+             */
+            warnings?: string[];
+        };
+        /** RecipeFetchRequest */
+        RecipeFetchRequest: {
+            /** Url */
+            url: string;
+            /**
+             * Url Type
+             * @default auto
+             * @enum {string}
+             */
+            url_type?: "auto" | "regular" | "zeronet" | "ipfs";
+        };
+        /** RecipeField */
+        RecipeField: {
+            /**
+             * Attribute
+             * @default
+             */
+            attribute?: string;
+            /**
+             * Path
+             * @default
+             */
+            path?: string;
+            /**
+             * Pattern
+             * @default
+             */
+            pattern?: string;
+            /**
+             * Selector
+             * @default
+             */
+            selector?: string;
+        };
+        /** RecipeIssue */
+        RecipeIssue: {
+            /** Message */
+            message: string;
+            /** Record */
+            record: number;
+        };
+        /** RecipePreview */
+        RecipePreview: {
+            /** Channels */
+            channels: components["schemas"]["ExtractedChannel"][];
+            /** Duplicate Count */
+            duplicate_count: number;
+            /** Invalid Count */
+            invalid_count: number;
+            /** Issues */
+            issues: components["schemas"]["RecipeIssue"][];
+            /** Record Count */
+            record_count: number;
+        };
+        /** RecipePreviewRequest */
+        RecipePreviewRequest: {
+            recipe: components["schemas"]["ExtractionRecipe"];
+            /** Sample */
+            sample: string;
+        };
+        /** RecipeSample */
+        RecipeSample: {
+            /** Sample */
+            sample: string;
+        };
+        /** RecordingAttemptView */
+        RecordingAttemptView: {
+            /** Ended At */
+            ended_at: string | null;
+            /** Exit Code */
+            exit_code: number | null;
+            /** Id */
+            id: string;
+            /** Ordinal */
+            ordinal: number;
+            /** Reason */
+            reason: string | null;
+            /** Route */
+            route: string;
+            /** Source Id */
+            source_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+        };
+        /** RecordingCapabilities */
+        RecordingCapabilities: {
+            /** Aac Conversion */
+            aac_conversion: boolean;
+            /** Available */
+            available: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Message */
+            message: string;
+            /** Mp4 Remux */
+            mp4_remux: boolean;
+            settings: components["schemas"]["RecordingSettings"];
+            /** Storage Ready */
+            storage_ready: boolean;
+            /** Stream Copy */
+            stream_copy: boolean;
+        };
+        /** RecordingConversion */
+        RecordingConversion: {
+            /** File Id */
+            file_id: string;
+            /**
+             * Profile
+             * @default remux
+             * @enum {string}
+             */
+            profile?: "remux" | "aac";
+        };
+        /** RecordingCreate */
+        RecordingCreate: {
+            /**
+             * End Time
+             * Format: date-time
+             */
+            end_time: string;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Mode
+             * @default schedule
+             * @enum {string}
+             */
+            mode?: "now" | "schedule";
+            programme?: components["schemas"]["ProgrammeSelection"] | null;
+            /**
+             * Start Time
+             * Format: date-time
+             */
+            start_time: string;
+            /** Timezone */
+            timezone: string;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+        };
+        /** RecordingEdit */
+        RecordingEdit: {
+            /** End Time */
+            end_time?: string | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Protected */
+            protected?: boolean | null;
+            /** Start Time */
+            start_time?: string | null;
+        };
+        /** RecordingFile */
+        RecordingFile: {
+            /** Bytes */
+            bytes: number;
+            /** Codecs */
+            codecs: string[];
+            /** Duration */
+            duration: number | null;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Profile */
+            profile: string | null;
+            /** Reason */
+            reason: string | null;
+            /** Source Artifact Id */
+            source_artifact_id: string | null;
+            /** State */
+            state: string;
+        };
+        /** RecordingGap */
+        RecordingGap: {
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+        };
+        /** RecordingList */
+        RecordingList: {
+            /** Items */
+            items: components["schemas"]["RecordingView"][];
+            /** Total */
+            total: number;
+        };
+        /** RecordingPlaybackRequest */
+        RecordingPlaybackRequest: {
+            /** File Id */
+            file_id: string;
+        };
+        /** RecordingPlaybackView */
+        RecordingPlaybackView: {
+            /** File Id */
+            file_id: string;
+            /** Id */
+            id: string;
+            /** Media Url */
+            media_url?: string | null;
+            /** Message */
+            message: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "preparing" | "ready" | "failed";
+        };
+        /** RecordingSettings */
+        RecordingSettings: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled?: boolean;
+            /**
+             * Max Concurrent
+             * @default 1
+             */
+            max_concurrent?: number;
+            /**
+             * Max Recording Bytes
+             * @default 107374182400
+             */
+            max_recording_bytes?: number;
+            /**
+             * Min Free Bytes
+             * @default 2147483648
+             */
+            min_free_bytes?: number;
+            /** Retention Days */
+            retention_days?: number | null;
+        };
+        /** RecordingSnapshot */
+        RecordingSnapshot: {
+            /** Category */
+            category?: string | null;
+            /** Channel Name */
+            channel_name: string;
+            /** Description */
+            description?: string | null;
+            /** Guide Channel Id */
+            guide_channel_id?: string | null;
+            /** Guide Source Uuid */
+            guide_source_uuid?: string | null;
+            /** Original End */
+            original_end?: string | null;
+            /** Original Start */
+            original_start?: string | null;
+            /** Provider Programme Id */
+            provider_programme_id?: string | null;
+            /** Subtitle */
+            subtitle?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** RecordingView */
+        RecordingView: {
+            /** Actual End */
+            actual_end: string | null;
+            /** Actual Start */
+            actual_start: string | null;
+            /** Attempts */
+            attempts?: components["schemas"]["RecordingAttemptView"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * End Time
+             * Format: date-time
+             */
+            end_time: string;
+            /** Files */
+            files?: components["schemas"]["RecordingFile"][];
+            /** Gaps */
+            gaps: components["schemas"]["RecordingGap"][];
+            /** Id */
+            id: string;
+            /** Protected */
+            protected: boolean;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+            snapshot: components["schemas"]["RecordingSnapshot"];
+            /**
+             * Start Time
+             * Format: date-time
+             */
+            start_time: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "scheduled" | "starting" | "recording" | "recovering" | "finalizing" | "completed" | "partial" | "failed" | "missed" | "cancelled" | "deleting" | "deleted";
+            /** Timezone */
+            timezone: string;
+            /** Tv Channel Id */
+            tv_channel_id: number | null;
+        };
+        /** RemotePlayerCommandRequest */
+        RemotePlayerCommandRequest: {
+            /**
+             * Command
+             * @enum {string}
+             */
+            command: "pause" | "resume" | "stop" | "volume";
+            /**
+             * Value
+             * @description Percent, volume only
+             */
+            value?: number | null;
+        };
+        /** RemotePlayerCreate */
+        RemotePlayerCreate: {
+            /**
+             * Base Url Id
+             * @description Stream link format; null = server relay URL
+             */
+            base_url_id?: number | null;
+            /**
+             * Host
+             * @description Hostname or IP, no scheme
+             */
+            host: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "vlc" | "kodi" | "vlc_android";
+            /** Name */
+            name: string;
+            /** Password */
+            password?: string | null;
+            /**
+             * Port
+             * @default 8080
+             */
+            port?: number;
+            /**
+             * Username
+             * @description Kodi only; default kodi
+             */
+            username?: string | null;
+        };
+        /** RemotePlayerPlayRequest */
+        RemotePlayerPlayRequest: {
+            /** Content Id */
+            content_id: string;
+            /** Title */
+            title?: string | null;
+        };
+        /** RemotePlayerPlayResponse */
+        RemotePlayerPlayResponse: {
+            /** Url */
+            url: string;
+            /**
+             * Warnings
+             * @description Why the player probably cannot fetch this URL: localhost | docker-internal | tuner_blocked
+             */
+            warnings?: string[];
+        };
+        /** RemotePlayerProbeResponse */
+        RemotePlayerProbeResponse: {
+            /** Authenticated */
+            authenticated: boolean;
+            /** Hint */
+            hint?: string | null;
+            /** Message */
+            message: string;
+            /** Reachable */
+            reachable: boolean;
+            tuner_access: components["schemas"]["TunerAccessResponse"];
+            /** Version */
+            version?: string | null;
+        };
+        /** RemotePlayerResponse */
+        RemotePlayerResponse: {
+            /**
+             * Base Url Id
+             * @description Stream link format; null = server relay URL
+             */
+            base_url_id?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Has Password */
+            has_password: boolean;
+            /**
+             * Host
+             * @description Hostname or IP, no scheme
+             */
+            host: string;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "vlc" | "kodi" | "vlc_android";
+            /** Name */
+            name: string;
+            /**
+             * Port
+             * @default 8080
+             */
+            port?: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Username
+             * @description Kodi only; default kodi
+             */
+            username?: string | null;
+        };
+        /** RemotePlayerStatusResponse */
+        RemotePlayerStatusResponse: {
+            /** Length S */
+            length_s?: number | null;
+            /** Message */
+            message?: string | null;
+            /** Position S */
+            position_s?: number | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "playing" | "paused" | "stopped";
+            /** Title */
+            title?: string | null;
+            /** Volume Pct */
+            volume_pct?: number | null;
+        };
+        /** RemotePlayerTestRequest */
+        RemotePlayerTestRequest: {
+            /** Host */
+            host: string;
+            /**
+             * Id
+             * @description Use this saved player's password when none is given
+             */
+            id?: number | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "vlc" | "kodi" | "vlc_android";
+            /** Password */
+            password?: string | null;
+            /**
+             * Port
+             * @default 8080
+             */
+            port?: number;
+            /** Username */
+            username?: string | null;
+        };
+        /** RemotePlayerUpdate */
+        RemotePlayerUpdate: {
+            /** Base Url Id */
+            base_url_id?: number | null;
+            /**
+             * Clear Base Url
+             * @default false
+             */
+            clear_base_url?: boolean;
+            /** Host */
+            host?: string | null;
+            /** Kind */
+            kind?: ("vlc" | "kodi" | "vlc_android") | null;
+            /** Name */
+            name?: string | null;
+            /**
+             * Password
+             * @description omit = keep, empty string = clear
+             */
+            password?: string | null;
+            /** Port */
+            port?: number | null;
+            /** Username */
+            username?: string | null;
+        };
+        /**
+         * RescrapeIntervalUpdate
+         * @description Schema for updating the rescrape interval
+         */
+        RescrapeIntervalUpdate: {
+            /**
+             * Hours
+             * @description Numeric hours between automatic rescrapes
+             */
+            hours?: number | null;
+            /**
+             * Value
+             * @description Hours between automatic rescrapes
+             */
+            value?: string | null;
+        };
+        /** ResolvedSearchResult */
+        ResolvedSearchResult: {
+            /**
+             * Content Id
+             * @description Resolved transport-file content ID for saving or playback
+             */
+            content_id: string;
+        };
+        /** RuntimeOption */
+        RuntimeOption: {
+            /** Default */
+            default: boolean | number | string;
+            /** Group */
+            group: string;
+            /** Help */
+            help: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Maximum */
+            maximum?: number | null;
+            /** Minimum */
+            minimum?: number | null;
+            /** Name */
+            name: string;
+        };
+        /** SavedSearchInput */
+        SavedSearchInput: {
+            /**
+             * Category
+             * @default
+             */
+            category?: string;
+            /** Name */
+            name: string;
+            /** Query */
+            query: string;
+            /**
+             * Refresh Enabled
+             * @default false
+             */
+            refresh_enabled?: boolean;
+        };
+        /** SavedSearchList */
+        SavedSearchList: {
+            /** Items */
+            items: components["schemas"]["SavedSearchView"][];
+            /** Total */
+            total: number;
+        };
+        /** SavedSearchPreview */
+        SavedSearchPreview: {
+            /**
+             * Expires In Seconds
+             * @default 300
+             */
+            expires_in_seconds?: number;
+            /** Preview Token */
+            preview_token: string;
+            result: components["schemas"]["SavedSearchResult"];
+        };
+        /** SavedSearchPreviewRequest */
+        SavedSearchPreviewRequest: {
+            definition?: components["schemas"]["SavedSearchInput"] | null;
+            /** Expected Revision */
+            expected_revision?: number | null;
+            /** Saved Search Id */
+            saved_search_id?: number | null;
+        };
+        /** SavedSearchResult */
+        SavedSearchResult: {
+            /**
+             * Added
+             * @default 0
+             */
+            added?: number;
+            /**
+             * Candidates Seen
+             * @default 0
+             */
+            candidates_seen?: number;
+            /**
+             * Deferred Candidates
+             * @default 0
+             */
+            deferred_candidates?: number;
+            /** Definition Revision */
+            definition_revision: number;
+            /**
+             * Duplicates
+             * @default 0
+             */
+            duplicates?: number;
+            /**
+             * Duration Seconds
+             * @default 0
+             */
+            duration_seconds?: number;
+            /**
+             * Excluded Candidates
+             * @default 0
+             */
+            excluded_candidates?: number;
+            /**
+             * Existing
+             * @default 0
+             */
+            existing?: number;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "complete" | "partial" | "failed" | "skipped" | "interrupted";
+            /**
+             * Pages Fetched
+             * @default 0
+             */
+            pages_fetched?: number;
+            /** Policy Revision */
+            policy_revision: number;
+            /**
+             * Resolved Content Ids
+             * @default 0
+             */
+            resolved_content_ids?: number;
+            /** Samples */
+            samples?: components["schemas"]["SearchImportOutcome"][];
+            /**
+             * Samples Truncated
+             * @default false
+             */
+            samples_truncated?: boolean;
+            /**
+             * Schema Version
+             * @default 1
+             */
+            schema_version?: number;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Stop Reason */
+            stop_reason?: string | null;
+            /**
+             * Unique Infohashes
+             * @default 0
+             */
+            unique_infohashes?: number;
+            /**
+             * Unresolved Candidates
+             * @default 0
+             */
+            unresolved_candidates?: number;
+        };
+        /** SavedSearchRunRequest */
+        SavedSearchRunRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+            /** Preview Token */
+            preview_token?: string | null;
+        };
+        /** SavedSearchUpdate */
+        SavedSearchUpdate: {
+            /**
+             * Category
+             * @default
+             */
+            category?: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Name */
+            name: string;
+            /** Query */
+            query: string;
+            /**
+             * Refresh Enabled
+             * @default false
+             */
+            refresh_enabled?: boolean;
+        };
+        /** SavedSearchView */
+        SavedSearchView: {
+            /**
+             * Category
+             * @default
+             */
+            category?: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error Code */
+            error_code?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Id */
+            id: number;
+            /** Last Attempt At */
+            last_attempt_at?: string | null;
+            /** Last Finished At */
+            last_finished_at?: string | null;
+            /** Last Outcome */
+            last_outcome?: ("complete" | "partial" | "failed" | "skipped" | "interrupted") | null;
+            last_result?: components["schemas"]["SavedSearchResult"] | null;
+            /** Last Started At */
+            last_started_at?: string | null;
+            /** Last Success At */
+            last_success_at?: string | null;
+            /** Name */
+            name: string;
+            /** Query */
+            query: string;
+            /**
+             * Refresh Enabled
+             * @default false
+             */
+            refresh_enabled?: boolean;
+            /** Revision */
+            revision: number;
+            /** Run Id */
+            run_id?: string | null;
+            /** Run State */
+            run_state?: ("waiting" | "running") | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ScanDefaultResponse */
+        ScanDefaultResponse: {
+            /** Cidr */
+            cidr?: string | null;
+            /** Hint */
+            hint: string;
+        };
+        /** ScanHitResponse */
+        ScanHitResponse: {
+            /** Hint */
+            hint: string;
+            /** Host */
+            host: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "vlc" | "kodi" | "unknown";
+            /** Port */
+            port: number;
+        };
+        /** ScanRequest */
+        ScanRequest: {
+            /** Cidr */
+            cidr: string;
+            /** Ports */
+            ports?: number[];
+            /**
+             * Timeout Ms
+             * @default 400
+             */
+            timeout_ms?: number;
+        };
+        /** ScanResultResponse */
+        ScanResultResponse: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Hosts */
+            hosts: components["schemas"]["ScanHitResponse"][];
+            /** Scanned */
+            scanned: number;
+        };
+        /**
+         * ScheduleAnchors
+         * @description Optional clock anchors for the existing repeat intervals.
+         */
+        ScheduleAnchors: {
+            /** Channel Status */
+            channel_status?: string | null;
+            /** Epg Refresh */
+            epg_refresh?: string | null;
+            /**
+             * Timezone
+             * @description IANA timezone used to interpret start times
+             * @default UTC
+             */
+            timezone?: string;
+            /**
+             * Url Scraping
+             * @description HH:MM anchor; null retains startup-relative scheduling
+             */
+            url_scraping?: string | null;
+        };
+        /**
+         * ScraperRequest
+         * @description Request model for scraping a URL
+         */
+        ScraperRequest: {
+            /**
+             * Run Async
+             * @default false
+             */
+            run_async?: boolean;
+            /** Url */
+            url: string;
+            /**
+             * Url Type
+             * @default auto
+             */
+            url_type?: string;
+        };
+        /** ScraperResultExtended */
+        ScraperResultExtended: {
+            /** Channels */
+            channels: components["schemas"]["ChannelResult"][];
+            /** Channels Found */
+            channels_found: number;
+            /**
+             * Excluded Count
+             * @default 0
+             */
+            excluded_count?: number;
+            /** Message */
+            message: string;
+            /** Status */
+            status: string;
+            /** Url */
+            url: string;
+        };
+        /** SearchImportItem */
+        SearchImportItem: {
+            /**
+             * Category
+             * @default
+             */
+            category?: string;
+            /** Infohash */
+            infohash: string;
+            /** Name */
+            name: string;
+        };
+        /** SearchImportOutcome */
+        SearchImportOutcome: {
+            /** Content Id */
+            content_id?: string | null;
+            /** Infohash */
+            infohash: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "added" | "existing" | "excluded" | "unresolved" | "duplicate" | "deferred";
+            /** Rule Ids */
+            rule_ids?: number[];
+        };
+        /** SearchImportRequest */
+        SearchImportRequest: {
+            /** Items */
+            items: components["schemas"]["SearchImportItem"][];
+        };
+        /** SearchImportResponse */
+        SearchImportResponse: {
+            /**
+             * Added
+             * @default 0
+             */
+            added?: number;
+            /**
+             * Deferred
+             * @default 0
+             */
+            deferred?: number;
+            /**
+             * Excluded
+             * @default 0
+             */
+            excluded?: number;
+            /**
+             * Existing
+             * @default 0
+             */
+            existing?: number;
+            /** Items */
+            items: components["schemas"]["SearchImportOutcome"][];
+            /** Policy Revision */
+            policy_revision: number;
+            /**
+             * Unresolved
+             * @default 0
+             */
+            unresolved?: number;
+        };
+        /** SearchPagination */
+        SearchPagination: {
+            /**
+             * Page
+             * @description Current page number
+             */
+            page: number;
+            /**
+             * Page Size
+             * @description Results per page
+             */
+            page_size: number;
+            /**
+             * Total Pages
+             * @description Total number of pages
+             */
+            total_pages: number;
+            /**
+             * Total Results
+             * @description Total number of results
+             */
+            total_results: number;
+        };
+        /** SearchResponse */
+        SearchResponse: {
+            /**
+             * Message
+             * @description Message describing the result
+             */
+            message: string;
+            /** @description Pagination information */
+            pagination: components["schemas"]["SearchPagination"];
+            /**
+             * Results
+             * @description Search results
+             */
+            results?: components["schemas"]["SearchResultItem"][];
+            /**
+             * Success
+             * @description Success status of the request
+             */
+            success: boolean;
+        };
+        /** SearchResultItem */
+        SearchResultItem: {
+            /**
+             * Availability
+             * @description Catalogue availability score
+             */
+            availability?: number | null;
+            /**
+             * Availability Updated At
+             * @description Unix timestamp of the catalogue availability update
+             */
+            availability_updated_at?: number | null;
+            /**
+             * Bitrate
+             * @description Channel bitrate
+             */
+            bitrate?: number | null;
+            /**
+             * Categories
+             * @description Categories of the channel
+             */
+            categories?: string[];
+            /**
+             * Id
+             * @description Acestream channel ID (infohash)
+             */
+            id: string;
+            /**
+             * Name
+             * @description Channel name
+             */
+            name: string;
+            /**
+             * Status
+             * @description Catalogue status: 2 available, 1 uncertain; not a live probe
+             */
+            status?: number | null;
+        };
+        /** ServiceRestartResponse */
+        ServiceRestartResponse: {
+            /** Message */
+            message: string;
+            /** Name */
+            name: string;
+            /** Success */
+            success: boolean;
+        };
+        /** ServiceStatus */
+        ServiceStatus: {
+            /** Description */
+            description: string;
+            /**
+             * Distribution
+             * @description Package or image that supplied the service
+             */
+            distribution?: string | null;
+            /**
+             * Distribution Url
+             * @description Public attribution page for the distribution
+             */
+            distribution_url?: string | null;
+            /**
+             * Enabled
+             * @description Turned on through its ENABLE_* variable
+             */
+            enabled: boolean;
+            /**
+             * Endpoint
+             * @description Where the app reaches the service
+             */
+            endpoint?: string | null;
+            /**
+             * Installed
+             * @description Shipped in this image flavor
+             */
+            installed: boolean;
+            /** Label */
+            label: string;
+            /**
+             * Managed
+             * @description Supervised by this container's entrypoint (controls available)
+             */
+            managed: boolean;
+            /** Message */
+            message: string;
+            /**
+             * Name
+             * @description Stable identifier: acestream, acestream-check, acexy, ipfs, zeronet, warp
+             */
+            name: string;
+            /**
+             * Open Streams
+             * @description Distinct open streams; includes startup and idle grace. Null means unavailable, not zero.
+             */
+            open_streams?: number | null;
+            /** Pid */
+            pid?: number | null;
+            /**
+             * Running
+             * @description The service answered its health probe
+             */
+            running: boolean;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "running" | "unhealthy" | "stopped" | "disabled" | "external" | "not-installed";
+            /**
+             * Stopped By User
+             * @description Intentionally stopped until Start or container restart
+             * @default false
+             */
+            stopped_by_user?: boolean;
+            /**
+             * Stream Count Scope
+             * @description app counts web-player and relay content IDs only; service is the Acexy-reported total. Counts may overlap.
+             */
+            stream_count_scope?: ("app" | "service") | null;
+            /** Uptime Seconds */
+            uptime_seconds?: number | null;
+            /** Version */
+            version?: string | null;
+        };
+        /** ServicesStatusResponse */
+        ServicesStatusResponse: {
+            /** Checked At */
+            checked_at: string;
+            /** Services */
+            services: components["schemas"]["ServiceStatus"][];
+            /**
+             * Supervised
+             * @description True when the app runs under the container entrypoint
+             */
+            supervised: boolean;
+        };
+        /** SessionView */
+        SessionView: {
+            /** Created At */
+            created_at: number;
+            /** Expires At */
+            expires_at: number;
+            /** Id */
+            id: string;
+            /** Last Seen */
+            last_seen: number;
+            /** Username */
+            username: string;
+        };
+        /**
+         * SettingResponse
+         * @description Schema for a setting response
+         */
+        SettingResponse: {
+            /**
+             * Key
+             * @description Setting key
+             */
+            key: string;
+            /**
+             * Value
+             * @description Setting value
+             */
+            value: string;
+        };
+        /**
+         * SettingsResponse
+         * @description Schema for all settings response
+         */
+        SettingsResponse: {
+            /**
+             * Settings
+             * @description All settings
+             */
+            settings: {
+                [key: string]: string;
+            };
+        };
+        /** SetupState */
+        SetupState: {
+            /** Api Protected */
+            api_protected: boolean;
+            /** Options */
+            options: components["schemas"]["RuntimeOption"][];
+            /**
+             * Recordings Configured
+             * @default false
+             */
+            recordings_configured?: boolean;
+            /** Resolved Runtime */
+            resolved_runtime?: {
+                [key: string]: boolean | number | string;
+            };
+            /** Restart Required */
+            restart_required: boolean;
+            /** Revision */
+            revision: string;
+            /** Runtime */
+            runtime: {
+                [key: string]: boolean | number | string;
+            };
+            /** Saved Overrides */
+            saved_overrides?: {
+                [key: string]: string;
+            };
+            /** Setup Complete */
+            setup_complete: boolean;
+            /** Unavailable */
+            unavailable: {
+                [key: string]: string;
+            };
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version?: 1;
+        };
+        /** SetupUpdate */
+        SetupUpdate: {
+            /** Expected Revision */
+            expected_revision: string;
+            /** Runtime */
+            runtime: {
+                [key: string]: boolean | number | string;
+            };
+            /**
+             * Setup Complete
+             * @default true
+             */
+            setup_complete?: boolean;
+        };
+        /** StartupEvent */
+        StartupEvent: {
+            /**
+             * Level
+             * @default info
+             * @enum {string}
+             */
+            level?: "info" | "warning" | "error";
+            /** Message */
+            message: string;
+            /** Time */
+            time: string;
+        };
+        /** StartupRecoveryRequest */
+        StartupRecoveryRequest: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "retry" | "salvage" | "fresh";
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm?: boolean;
+            /** Recovery Token */
+            recovery_token: string;
+        };
+        /** StartupStatus */
+        StartupStatus: {
+            /** Events */
+            events: components["schemas"]["StartupEvent"][];
+            /** Guidance */
+            guidance?: string | null;
+            migration?: components["schemas"]["MigrationProgress"] | null;
+            /** Phase */
+            phase: string;
+            /**
+             * Recovery Available
+             * @default false
+             */
+            recovery_available?: boolean;
+            /** Recovery Token */
+            recovery_token: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "starting" | "ready" | "failed";
+        };
+        /** StatsResponse */
+        StatsResponse: {
+            /** Ace Engine Url */
+            ace_engine_url: string;
+            /** Addpid */
+            addpid: boolean;
+            /** Base Url */
+            base_url: string;
+            /** Channels */
+            channels: number;
+            /** Channels Checked */
+            channels_checked: number;
+            /** Channels Offline */
+            channels_offline: number;
+            /** Channels Online */
+            channels_online: number;
+            /** Rescrape Interval */
+            rescrape_interval: number;
+            /** Task Manager Status */
+            task_manager_status: string;
+            /** Total Channels */
+            total_channels: number;
+            /** Urls */
+            urls: components["schemas"]["URLStats"][];
+        };
+        /**
+         * StatusResponse
+         * @description Schema for a status check response
+         */
+        StatusResponse: {
+            /**
+             * Details
+             * @description Additional details
+             */
+            details?: string | null;
+            /**
+             * Message
+             * @description Status message
+             */
+            message: string;
+            /**
+             * Status
+             * @description Status of the component (online, offline, error, etc.)
+             */
+            status: string;
+        };
+        /** StorageDirectory */
+        StorageDirectory: {
+            /** Directory Bytes */
+            directory_bytes?: number | null;
+            /** Filesystem Free Bytes */
+            filesystem_free_bytes?: number | null;
+            /** Filesystem Total Bytes */
+            filesystem_total_bytes?: number | null;
+            /**
+             * Message
+             * @default
+             */
+            message?: string;
+            /** Mount Point */
+            mount_point?: string | null;
+            /** Mounted */
+            mounted?: boolean | null;
+            /** Path */
+            path: string;
+            /** Read Only */
+            read_only?: boolean | null;
+            /**
+             * Size Complete
+             * @default false
+             */
+            size_complete?: boolean;
+        };
+        /** StorageReport */
+        StorageReport: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /**
+             * Configuration Warnings
+             * @default []
+             */
+            configuration_warnings?: components["schemas"]["ConfigurationWarning"][];
+            /** Directories */
+            directories: components["schemas"]["StorageDirectory"][];
+            /**
+             * Message
+             * @default
+             */
+            message?: string;
+            /**
+             * Mount Detection
+             * @enum {string}
+             */
+            mount_detection: "available" | "unavailable";
+        };
+        /** StreamStats */
+        StreamStats: {
+            /**
+             * Download Speed Kbytes Sec
+             * @description Engine speed_down in Kbytes/sec; not encoded media bitrate
+             */
+            download_speed_kbytes_sec?: number | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Peers */
+            peers?: number | null;
+            /**
+             * Upload Speed Kbytes Sec
+             * @description Engine speed_up in Kbytes/sec
+             */
+            upload_speed_kbytes_sec?: number | null;
+        };
+        /** SubtitleTrack */
+        SubtitleTrack: {
+            /** Codec */
+            codec?: string | null;
+            /**
+             * Index
+             * @description Zero-based subtitle track index (ffmpeg 0:s:index)
+             */
+            index: number;
+            /** Language */
+            language?: string | null;
+            /**
+             * Supported
+             * @default true
+             */
+            supported?: boolean;
+        };
+        /**
+         * TVChannelAssociationRequest
+         * @description Schema for asociating one acestream channel with a TV channel
+         */
+        TVChannelAssociationRequest: {
+            /** Acestream Channel Id */
+            acestream_channel_id: string;
+        };
+        /**
+         * TVChannelBatchAssignRequest
+         * @description Schema for batch TV channel assignments
+         */
+        TVChannelBatchAssignRequest: {
+            /** Assignments */
+            assignments: components["schemas"]["TVChannelBatchAssignmentItem"][];
+        };
+        /**
+         * TVChannelBatchAssignResponse
+         * @description Schema for batch assignment operation results
+         */
+        TVChannelBatchAssignResponse: {
+            /** Details */
+            details: {
+                [key: string]: {
+                    [key: string]: string[];
+                };
+            };
+            /** Failure Count */
+            failure_count: number;
+            /** Success Count */
+            success_count: number;
+        };
+        /**
+         * TVChannelBatchAssignmentItem
+         * @description Schema for one TV channel assignment row
+         */
+        TVChannelBatchAssignmentItem: {
+            /** Acestream Channel Id */
+            acestream_channel_id: string;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+        };
+        /**
+         * TVChannelBulkEPGUpdateDetail
+         * @description Schema for one bulk EPG update result detail
+         */
+        TVChannelBulkEPGUpdateDetail: {
+            /** New Epg Id */
+            new_epg_id?: string | null;
+            /** Old Epg Id */
+            old_epg_id?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Status */
+            status: string;
+            /** Tv Channel Id */
+            tv_channel_id: number | string;
+        };
+        /**
+         * TVChannelBulkEPGUpdateItem
+         * @description Schema for one EPG update row
+         */
+        TVChannelBulkEPGUpdateItem: {
+            /** Epg Id */
+            epg_id: string;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+        };
+        /**
+         * TVChannelBulkEPGUpdateRequest
+         * @description Schema for bulk EPG updates
+         */
+        TVChannelBulkEPGUpdateRequest: {
+            /** Updates */
+            updates: components["schemas"]["TVChannelBulkEPGUpdateItem"][];
+        };
+        /**
+         * TVChannelBulkEPGUpdateResponse
+         * @description Schema for bulk EPG update operation results
+         */
+        TVChannelBulkEPGUpdateResponse: {
+            /** Details */
+            details: components["schemas"]["TVChannelBulkEPGUpdateDetail"][];
+            /** Failure Count */
+            failure_count: number;
+            /** Success Count */
+            success_count: number;
+        };
+        /**
+         * TVChannelCreate
+         * @description Schema for TV channel creation
+         */
+        TVChannelCreate: {
+            /** Category */
+            category?: string | null;
+            /** Channel Number */
+            channel_number?: number | null;
+            /** Country */
+            country?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Epg Id */
+            epg_id?: string | null;
+            /** Epg Source Id */
+            epg_source_id?: number | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active?: boolean | null;
+            /**
+             * Is Favorite
+             * @default false
+             */
+            is_favorite?: boolean | null;
+            /** Language */
+            language?: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name: string;
+            /** Website */
+            website?: string | null;
+        };
+        /** TVChannelCreateFromEPGAnalysisRequest */
+        TVChannelCreateFromEPGAnalysisRequest: {
+            /** Epg Channel Ids */
+            epg_channel_ids: number[];
+            /** Expected Previews */
+            expected_previews?: {
+                [key: string]: string;
+            } | null;
+            /** Source Id */
+            source_id?: number | null;
+            /**
+             * Strictness
+             * @enum {string}
+             */
+            strictness: "loose" | "balanced" | "strict";
+        };
+        /** TVChannelCreateFromEPGAnalysisResponse */
+        TVChannelCreateFromEPGAnalysisResponse: {
+            /** Associated Count */
+            associated_count: number;
+            /** Created Count */
+            created_count: number;
+            /** Failure Count */
+            failure_count: number;
+            /** Row Outcomes */
+            row_outcomes: components["schemas"]["TVChannelCreateFromEPGAnalysisRowOutcome"][];
+            /** Skipped Count */
+            skipped_count: number;
+        };
+        /** TVChannelCreateFromEPGAnalysisRowOutcome */
+        TVChannelCreateFromEPGAnalysisRowOutcome: {
+            /**
+             * Associated Count
+             * @default 0
+             */
+            associated_count?: number;
+            /** Epg Channel Id */
+            epg_channel_id: number;
+            /** Reason */
+            reason?: string | null;
+            /** Status */
+            status: string;
+            /** Tv Channel Id */
+            tv_channel_id?: number | null;
+        };
+        /** TVChannelCreateFromEPGRequest */
+        TVChannelCreateFromEPGRequest: {
+            /** Epg Channel Ids */
+            epg_channel_ids: number[];
+        };
+        /** TVChannelCreateFromEPGResponse */
+        TVChannelCreateFromEPGResponse: {
+            /** Associated Count */
+            associated_count: number;
+            /** Created Count */
+            created_count: number;
+            /** Items */
+            items: components["schemas"]["TVChannelResponse"][];
+            /** Skipped Count */
+            skipped_count: number;
+        };
+        /**
+         * TVChannelListResponse
+         * @description Schema for paginated TV channel results
+         */
+        TVChannelListResponse: {
+            /** Items */
+            items: components["schemas"]["TVChannelResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * TVChannelReorderRequest
+         * @description Complete inventory in the desired order; saved as numbers 1 through N.
+         */
+        TVChannelReorderRequest: {
+            /** Channel Ids */
+            channel_ids: number[];
+            /**
+             * Expected Order
+             * @description Original inventory order; rejects stale reorder edits.
+             */
+            expected_order: number[];
+        };
+        /**
+         * TVChannelResponse
+         * @description Schema for TV channel response
+         */
+        TVChannelResponse: {
+            /**
+             * Acestream Channels
+             * @default []
+             */
+            acestream_channels?: components["schemas"]["AcestreamChannelResponse"][];
+            /** Category */
+            category?: string | null;
+            /** Channel Number */
+            channel_number?: number | null;
+            /** Country */
+            country?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            /** Epg Id */
+            epg_id?: string | null;
+            /** Epg Source Id */
+            epg_source_id?: number | null;
+            /** Id */
+            id: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Favorite */
+            is_favorite: boolean;
+            /** Language */
+            language?: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Website */
+            website?: string | null;
+        };
+        /** TVChannelStatsResponse */
+        TVChannelStatsResponse: {
+            /** Acestreams */
+            acestreams: number;
+            /** Active */
+            active: number;
+            /** Total */
+            total: number;
+            /** With Epg */
+            with_epg: number;
+        };
+        /**
+         * TVChannelStreamReorderRequest
+         * @description Desired stream IDs in preference order; saved with stream_order 1 through N.
+         */
+        TVChannelStreamReorderRequest: {
+            /**
+             * Expected Order
+             * @description Original complete acestream ID ordering; rejects stale reorder edits.
+             */
+            expected_order: string[];
+            /**
+             * Stream Ids
+             * @description Desired complete acestream ID ordering for this TV channel.
+             */
+            stream_ids: string[];
+        };
+        /**
+         * TVChannelUpdate
+         * @description Schema for TV channel update
+         */
+        TVChannelUpdate: {
+            /** Category */
+            category?: string | null;
+            /** Channel Number */
+            channel_number?: number | null;
+            /** Country */
+            country?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Epg Id */
+            epg_id?: string | null;
+            /** Epg Source Id */
+            epg_source_id?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Is Favorite */
+            is_favorite?: boolean | null;
+            /** Language */
+            language?: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Website */
+            website?: string | null;
+        };
+        /** TVMatchApplyRequest */
+        TVMatchApplyRequest: {
+            /** Assignments */
+            assignments: components["schemas"]["TVMatchAssignment"][];
+            /**
+             * Assumed Country
+             * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
+             */
+            assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
+        };
+        /** TVMatchApplyResponse */
+        TVMatchApplyResponse: {
+            /** Assigned Count */
+            assigned_count: number;
+            /** Skipped Count */
+            skipped_count: number;
+        };
+        /** TVMatchAssignment */
+        TVMatchAssignment: {
+            /** Acestream Channel Id */
+            acestream_channel_id: string;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+        };
+        /** TVMatchCandidate */
+        TVMatchCandidate: {
+            /** Acestream Channel Id */
+            acestream_channel_id: string;
+            /** Acestream Name */
+            acestream_name: string;
+            /** Reason */
+            reason: string;
+            /** Recommended */
+            recommended: boolean;
+            /** Score */
+            score: number;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+            /** Tv Channel Name */
+            tv_channel_name: string;
+        };
+        /** TVMatchOptions */
+        TVMatchOptions: {
+            /**
+             * Assumed Country
+             * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
+             */
+            assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
+        };
+        /** TVMatchPreview */
+        TVMatchPreview: {
+            /** Ambiguous Streams */
+            ambiguous_streams: number;
+            /** Candidates */
+            candidates: components["schemas"]["TVMatchCandidate"][];
+            /** Tv Channels */
+            tv_channels: number;
+            /** Unassigned Streams */
+            unassigned_streams: number;
+            /** Unmatched Streams */
+            unmatched_streams: number;
+        };
+        /** TelegramCode */
+        TelegramCode: {
+            /**
+             * Code
+             * Format: password
+             */
+            code: string;
+        };
+        /** TelegramLogin */
+        TelegramLogin: {
+            /**
+             * Api Hash
+             * Format: password
+             */
+            api_hash: string;
+            /** Api Id */
+            api_id: number;
+            /**
+             * Phone
+             * Format: password
+             */
+            phone: string;
+        };
+        /** TelegramPassword */
+        TelegramPassword: {
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+        };
+        /** TelegramPeer */
+        TelegramPeer: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "user" | "chat" | "channel" | "topic";
+            /** Label */
+            label: string;
+        };
+        /** TelegramPreview */
+        TelegramPreview: {
+            /** Chat Id */
+            chat_id: string;
+            /** Messages */
+            messages: components["schemas"]["TelegramPreviewMessage"][];
+        };
+        /** TelegramPreviewMessage */
+        TelegramPreviewMessage: {
+            /**
+             * Excluded Count
+             * @default 0
+             */
+            excluded_count?: number;
+            /** Excluded Rule Ids */
+            excluded_rule_ids?: {
+                [key: string]: number[];
+            };
+            /** Message Id */
+            message_id: number;
+            /** Outcome */
+            outcome: string;
+            result: components["schemas"]["RecipePreview"];
+            /** Sender Id */
+            sender_id?: string | null;
+        };
+        /** TelegramPreviewRequest */
+        TelegramPreviewRequest: {
+            /**
+             * Limit
+             * @default 10
+             */
+            limit?: number;
+            source: components["schemas"]["TelegramSourceConfig"];
+        };
+        /** TelegramResolve */
+        TelegramResolve: {
+            /** Username */
+            username: string;
+        };
+        /** TelegramSource */
+        TelegramSource: {
+            /**
+             * Bare Ids
+             * @default true
+             */
+            bare_ids?: boolean;
+            /** Chat Id */
+            chat_id: string;
+            /** Chat Label */
+            chat_label: string;
+            /** Cursor */
+            cursor: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Exclude
+             * @default
+             */
+            exclude?: string;
+            /**
+             * Excluded Count
+             * @default 0
+             */
+            excluded_count?: number;
+            /**
+             * Filter Mode
+             * @default keyword
+             * @enum {string}
+             */
+            filter_mode?: "keyword" | "regex";
+            /** Id */
+            id: number;
+            /** Imported Count */
+            imported_count: number;
+            /**
+             * Include
+             * @default
+             */
+            include?: string;
+            /**
+             * Include Forwards
+             * @default true
+             */
+            include_forwards?: boolean;
+            /** Last Success */
+            last_success?: string | null;
+            /** Message */
+            message: string;
+            /** Name */
+            name: string;
+            recipe?: components["schemas"]["ExtractionRecipe"] | null;
+            /** Sender Ids */
+            sender_ids?: string[];
+            /** Sender Labels */
+            sender_labels?: {
+                [key: string]: string;
+            };
+            /**
+             * Sender Rule
+             * @default posting
+             * @enum {string}
+             */
+            sender_rule?: "posting" | "original";
+            /** State */
+            state: string;
+            /** Topic Id */
+            topic_id?: number | null;
+        };
+        /** TelegramSourceConfig */
+        TelegramSourceConfig: {
+            /**
+             * Bare Ids
+             * @default true
+             */
+            bare_ids?: boolean;
+            /** Chat Id */
+            chat_id: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Exclude
+             * @default
+             */
+            exclude?: string;
+            /**
+             * Filter Mode
+             * @default keyword
+             * @enum {string}
+             */
+            filter_mode?: "keyword" | "regex";
+            /**
+             * Include
+             * @default
+             */
+            include?: string;
+            /**
+             * Include Forwards
+             * @default true
+             */
+            include_forwards?: boolean;
+            /** Name */
+            name: string;
+            recipe?: components["schemas"]["ExtractionRecipe"] | null;
+            /** Sender Ids */
+            sender_ids?: string[];
+            /**
+             * Sender Rule
+             * @default posting
+             * @enum {string}
+             */
+            sender_rule?: "posting" | "original";
+            /** Topic Id */
+            topic_id?: number | null;
+        };
+        /** TelegramSourceCreate */
+        TelegramSourceCreate: {
+            /**
+             * Bare Ids
+             * @default true
+             */
+            bare_ids?: boolean;
+            /** Chat Id */
+            chat_id: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /**
+             * Exclude
+             * @default
+             */
+            exclude?: string;
+            /**
+             * Filter Mode
+             * @default keyword
+             * @enum {string}
+             */
+            filter_mode?: "keyword" | "regex";
+            /**
+             * History Count
+             * @default 0
+             */
+            history_count?: number;
+            /** History Since */
+            history_since?: string | null;
+            /**
+             * Include
+             * @default
+             */
+            include?: string;
+            /**
+             * Include Forwards
+             * @default true
+             */
+            include_forwards?: boolean;
+            /** Name */
+            name: string;
+            recipe?: components["schemas"]["ExtractionRecipe"] | null;
+            /** Sender Ids */
+            sender_ids?: string[];
+            /**
+             * Sender Rule
+             * @default posting
+             * @enum {string}
+             */
+            sender_rule?: "posting" | "original";
+            /** Topic Id */
+            topic_id?: number | null;
+        };
+        /** TelegramStatus */
+        TelegramStatus: {
+            /**
+             * Account Label
+             * @default
+             */
+            account_label?: string;
+            /**
+             * Message
+             * @default
+             */
+            message?: string;
+            /**
+             * Queue Size
+             * @default 0
+             */
+            queue_size?: number;
+            /** Retry At */
+            retry_at?: string | null;
+            /** State */
+            state: string;
+        };
+        /** TunerAccessResponse */
+        TunerAccessResponse: {
+            /** Addresses */
+            addresses: string[];
+            /** Allowed */
+            allowed: boolean;
+        };
+        /** TunerDenial */
+        TunerDenial: {
+            /** At */
+            at: number;
+            /** Client Ip */
+            client_ip: string;
+            /** Path */
+            path: string;
+            /** Peer */
+            peer: string;
+        };
+        /** TunerRenumbered */
+        TunerRenumbered: {
+            /** Assigned Number */
+            assigned_number: number;
+            /** Name */
+            name: string;
+            /** Requested Number */
+            requested_number: number;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+        };
+        /** TunerSettingsResponse */
+        TunerSettingsResponse: {
+            /**
+             * Experimental Transcoding
+             * @description Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection
+             * @default false
+             */
+            experimental_transcoding?: boolean;
+            /** Friendly Name */
+            friendly_name: string;
+            /** Max Channels */
+            max_channels: number;
+            /** Only Online */
+            only_online: boolean;
+            /**
+             * Plex Compatible Audio
+             * @description Convert tuner audio to stereo AAC/LATM for Plex Desktop; copy video unless experimental recovery is enabled
+             * @default false
+             */
+            plex_compatible_audio?: boolean;
+            /**
+             * Source Start Seconds
+             * @description Seconds a source gets to deliver its first byte before the next is tried
+             * @default 15
+             */
+            source_start_seconds?: number;
+            /**
+             * Startup Budget Seconds
+             * @description Seconds for the whole start across sources; keep it under the player's own timeout (Kodi gives up after about 30)
+             * @default 45
+             */
+            startup_budget_seconds?: number;
+            /** Tuner Count */
+            tuner_count: number;
+        };
+        /** TunerSettingsUpdate */
+        TunerSettingsUpdate: {
+            /** Experimental Transcoding */
+            experimental_transcoding?: boolean | null;
+            /** Friendly Name */
+            friendly_name?: string | null;
+            /** Max Channels */
+            max_channels?: number | null;
+            /** Only Online */
+            only_online?: boolean | null;
+            /** Plex Compatible Audio */
+            plex_compatible_audio?: boolean | null;
+            /** Source Start Seconds */
+            source_start_seconds?: number | null;
+            /** Startup Budget Seconds */
+            startup_budget_seconds?: number | null;
+            /** Tuner Count */
+            tuner_count?: number | null;
+        };
+        /** TunerStatusResponse */
+        TunerStatusResponse: {
+            /** Allowed Networks */
+            allowed_networks: string[];
+            /** Channel Count */
+            channel_count: number;
+            /** Client Allowed */
+            client_allowed: boolean;
+            /** Client Ip */
+            client_ip?: string | null;
+            /**
+             * Client Source
+             * @enum {string}
+             */
+            client_source: "direct" | "forwarded" | "docker-gateway" | "loopback";
+            /** Device Id */
+            device_id: string;
+            /** Ffmpeg Available */
+            ffmpeg_available: boolean;
+            /** Overflow */
+            overflow: number;
+            /** Peer */
+            peer?: string | null;
+            /** Recent Denials */
+            recent_denials: components["schemas"]["TunerDenial"][];
+            /** Renumbered */
+            renumbered: components["schemas"]["TunerRenumbered"][];
+            urls: components["schemas"]["TunerUrls"];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** TunerUrls */
+        TunerUrls: {
+            /** Epg */
+            epg: string;
+            /** Guide */
+            guide: string;
+            /** Lineup */
+            lineup: string;
+            /** Playlist */
+            playlist: string;
+            /**
+             * Stream Template
+             * @description Stable TV channel playback URL template; replace {tv_channel_id} with its numeric ID
+             */
+            stream_template: string;
+            /** Tuner */
+            tuner: string;
+        };
+        /**
+         * URLCreate
+         * @description Schema for creating a scraped URL
+         */
+        URLCreate: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
+            /** Name */
+            name?: string | null;
+            /**
+             * Scrape Bare Ids
+             * @default false
+             */
+            scrape_bare_ids?: boolean;
+            /**
+             * Status
+             * @default active
+             */
+            status?: string;
+            /** Url */
+            url: string;
+            /**
+             * Url Type
+             * @default regular
+             */
+            url_type?: string;
+        };
+        /**
+         * URLResponse
+         * @description Schema for scraped URL information
+         */
+        URLResponse: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at: string;
+            /**
+             * Channels Found
+             * @default 0
+             */
+            channels_found?: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /** Error */
+            error?: string | null;
+            /**
+             * Error Count
+             * @default 0
+             */
+            error_count?: number;
+            extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
+            /** Id */
+            id: number;
+            /** Last Error */
+            last_error?: string | null;
+            /** Last Processed */
+            last_processed?: string | null;
+            /** Last Scraped */
+            last_scraped?: string | null;
+            /** Name */
+            name?: string | null;
+            /**
+             * Scrape Bare Ids
+             * @default false
+             */
+            scrape_bare_ids?: boolean;
+            /** Status */
+            status: string;
+            /** Url */
+            url: string;
+            /** Url Type */
+            url_type: string;
+        };
+        /** URLStats */
+        URLStats: {
+            /** Channel Count */
+            channel_count: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Error Count */
+            error_count: number;
+            /** Id */
+            id: number;
+            /** Last Error */
+            last_error?: string | null;
+            /** Last Processed */
+            last_processed?: string | null;
+            /** Status */
+            status: string;
+            /** Url */
+            url: string;
+            /** Url Type */
+            url_type: string;
+        };
+        /**
+         * URLUpdate
+         * @description Schema for updating a scraped URL
+         */
+        URLUpdate: {
+            /** Enabled */
+            enabled?: boolean | null;
+            extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
+            /** Name */
+            name?: string | null;
+            /** Scrape Bare Ids */
+            scrape_bare_ids?: boolean | null;
+            /** Status */
+            status?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Url Type */
+            url_type?: string | null;
+        };
+        /** UpdateStatus */
+        UpdateStatus: {
+            /** Current Version */
+            current_version: string;
+            /**
+             * Deployment
+             * @enum {string}
+             */
+            deployment: "docker" | "native";
+            /** Latest Version */
+            latest_version?: string | null;
+            /** Release Url */
+            release_url?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "checked" | "unavailable";
+            /**
+             * Update Available
+             * @default false
+             */
+            update_available?: boolean;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
+        /** ViewerStatus */
+        ViewerStatus: {
+            /** Audio Index */
+            audio_index?: number | null;
+            /** Audio Tracks */
+            audio_tracks?: components["schemas"]["AudioTrack"][];
+            codecs: components["schemas"]["PlayerCodecs"];
+            /** Content Id */
+            content_id: string;
+            /** Control Token */
+            control_token?: string | null;
+            /** Error */
+            error?: ("engine_unavailable" | "engine_refused" | "engine_stalled" | "ffmpeg_missing" | "ffmpeg_failed" | "source_unavailable") | null;
+            /**
+             * Error Message
+             * @default
+             */
+            error_message?: string;
+            /** Hls Ready */
+            hls_ready: boolean;
+            /** Id */
+            id: string;
+            /** Playlist Url */
+            playlist_url: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "starting" | "ready" | "error" | "stopped";
+            stats?: components["schemas"]["PlayerStats"] | null;
+            /** Subtitle Index */
+            subtitle_index?: number | null;
+            /** Subtitle Tracks */
+            subtitle_tracks?: components["schemas"]["SubtitleTrack"][];
+            /** Viewers */
+            viewers: number;
+        };
+        /** WarpExclusionsState */
+        WarpExclusionsState: {
+            /** Active Hosts */
+            active_hosts: string[] | null;
+            /** Applied */
+            applied: boolean;
+            /** Error */
+            error?: string | null;
+            /** Hosts */
+            hosts: string[];
+            /** Revision */
+            revision: string;
+        };
+        /**
+         * WarpExclusionsUpdate
+         * @description Replace only app-managed exclusions, with optimistic concurrency.
+         */
+        WarpExclusionsUpdate: {
+            /** Expected Revision */
+            expected_revision: string;
+            /** Hosts */
+            hosts: string[];
+        };
+        /**
+         * WarpModeEnum
+         * @description Available WARP modes for API use
+         * @enum {string}
+         */
+        WarpModeEnum: "doh" | "warp+doh" | "warp+dot" | "tunnel_only" | "warp" | "dot" | "proxy" | "off";
+        /**
+         * WarpModeRequest
+         * @description Request schema for changing WARP mode
+         */
+        WarpModeRequest: {
+            /** @description The WARP mode to set */
+            mode: components["schemas"]["WarpModeEnum"];
+        };
+        /** WatchChannel */
+        WatchChannel: {
+            /** Category */
+            category?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Online */
+            online?: boolean | null;
+            /** Tv Channel Id */
+            tv_channel_id?: number | null;
+        };
+        /** WatchChannels */
+        WatchChannels: {
+            /** Items */
+            items: components["schemas"]["WatchChannel"][];
+            /** Total */
+            total: number;
+        };
+        /** WatchEvent */
+        WatchEvent: {
+            /**
+             * Competition
+             * @default
+             */
+            competition?: string;
+            /** Id */
+            id: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /**
+             * State
+             * @default
+             */
+            state?: string;
+            /** Title */
+            title: string;
+        };
+        /** WatchProgramme */
+        WatchProgramme: {
+            /** Channel */
+            channel: string;
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
+            /** Id */
+            id: number;
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+            /** Title */
+            title: string;
+        };
+        /** WatchRecording */
+        WatchRecording: {
+            /** Channel */
+            channel: string;
+            /** Files */
+            files?: string[];
+            /** Id */
+            id: string;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+        };
+        /** BaseUrlUpdate */
+        app__schemas__base_url__BaseUrlUpdate: {
+            /** Is Default */
+            is_default?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /** Pattern */
+            pattern?: string | null;
+        };
+        /**
+         * BaseUrlUpdate
+         * @description Schema for updating the base URL for Acestream links
+         */
+        app__schemas__config__BaseUrlUpdate: {
+            /**
+             * Base Url
+             * @description Base URL for Acestream links
+             */
+            base_url?: string | null;
+            /**
+             * Value
+             * @description Compatibility alias for base_url
+             */
+            value?: string | null;
+        };
     };
-    /**
-     * TVChannelBatchAssignmentItem
-     * @description Schema for one TV channel assignment row
-     */
-    TVChannelBatchAssignmentItem: {
-      /** Acestream Channel Id */
-      acestream_channel_id: string;
-      /** Tv Channel Id */
-      tv_channel_id: number;
-    };
-    /**
-     * TVChannelBulkEPGUpdateDetail
-     * @description Schema for one bulk EPG update result detail
-     */
-    TVChannelBulkEPGUpdateDetail: {
-      /** New Epg Id */
-      new_epg_id?: string | null;
-      /** Old Epg Id */
-      old_epg_id?: string | null;
-      /** Reason */
-      reason?: string | null;
-      /** Status */
-      status: string;
-      /** Tv Channel Id */
-      tv_channel_id: number | string;
-    };
-    /**
-     * TVChannelBulkEPGUpdateItem
-     * @description Schema for one EPG update row
-     */
-    TVChannelBulkEPGUpdateItem: {
-      /** Epg Id */
-      epg_id: string;
-      /** Tv Channel Id */
-      tv_channel_id: number;
-    };
-    /**
-     * TVChannelBulkEPGUpdateRequest
-     * @description Schema for bulk EPG updates
-     */
-    TVChannelBulkEPGUpdateRequest: {
-      /** Updates */
-      updates: components["schemas"]["TVChannelBulkEPGUpdateItem"][];
-    };
-    /**
-     * TVChannelBulkEPGUpdateResponse
-     * @description Schema for bulk EPG update operation results
-     */
-    TVChannelBulkEPGUpdateResponse: {
-      /** Details */
-      details: components["schemas"]["TVChannelBulkEPGUpdateDetail"][];
-      /** Failure Count */
-      failure_count: number;
-      /** Success Count */
-      success_count: number;
-    };
-    /**
-     * TVChannelCreate
-     * @description Schema for TV channel creation
-     */
-    TVChannelCreate: {
-      /** Category */
-      category?: string | null;
-      /** Channel Number */
-      channel_number?: number | null;
-      /** Country */
-      country?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Epg Id */
-      epg_id?: string | null;
-      /** Epg Source Id */
-      epg_source_id?: number | null;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active?: boolean | null;
-      /**
-       * Is Favorite
-       * @default false
-       */
-      is_favorite?: boolean | null;
-      /** Language */
-      language?: string | null;
-      /** Logo Url */
-      logo_url?: string | null;
-      /** Name */
-      name: string;
-      /** Website */
-      website?: string | null;
-    };
-    /** TVChannelCreateFromEPGAnalysisRequest */
-    TVChannelCreateFromEPGAnalysisRequest: {
-      /** Epg Channel Ids */
-      epg_channel_ids: number[];
-      /**
-       * Strictness
-       * @enum {string}
-       */
-      strictness: "loose" | "balanced" | "strict";
-    };
-    /** TVChannelCreateFromEPGAnalysisResponse */
-    TVChannelCreateFromEPGAnalysisResponse: {
-      /** Associated Count */
-      associated_count: number;
-      /** Created Count */
-      created_count: number;
-      /** Failure Count */
-      failure_count: number;
-      /** Row Outcomes */
-      row_outcomes: components["schemas"]["TVChannelCreateFromEPGAnalysisRowOutcome"][];
-      /** Skipped Count */
-      skipped_count: number;
-    };
-    /** TVChannelCreateFromEPGAnalysisRowOutcome */
-    TVChannelCreateFromEPGAnalysisRowOutcome: {
-      /**
-       * Associated Count
-       * @default 0
-       */
-      associated_count?: number;
-      /** Epg Channel Id */
-      epg_channel_id: number;
-      /** Reason */
-      reason?: string | null;
-      /** Status */
-      status: string;
-      /** Tv Channel Id */
-      tv_channel_id?: number | null;
-    };
-    /** TVChannelCreateFromEPGRequest */
-    TVChannelCreateFromEPGRequest: {
-      /** Epg Channel Ids */
-      epg_channel_ids: number[];
-    };
-    /** TVChannelCreateFromEPGResponse */
-    TVChannelCreateFromEPGResponse: {
-      /** Associated Count */
-      associated_count: number;
-      /** Created Count */
-      created_count: number;
-      /** Items */
-      items: components["schemas"]["TVChannelResponse"][];
-      /** Skipped Count */
-      skipped_count: number;
-    };
-    /**
-     * TVChannelListResponse
-     * @description Schema for paginated TV channel results
-     */
-    TVChannelListResponse: {
-      /** Items */
-      items: components["schemas"]["TVChannelResponse"][];
-      /** Total */
-      total: number;
-    };
-    /**
-     * TVChannelReorderRequest
-     * @description Complete inventory in the desired order; saved as numbers 1 through N.
-     */
-    TVChannelReorderRequest: {
-      /** Channel Ids */
-      channel_ids: number[];
-      /**
-       * Expected Order
-       * @description Original inventory order; rejects stale reorder edits.
-       */
-      expected_order: number[];
-    };
-    /**
-     * TVChannelResponse
-     * @description Schema for TV channel response
-     */
-    TVChannelResponse: {
-      /**
-       * Acestream Channels
-       * @default []
-       */
-      acestream_channels?: components["schemas"]["AcestreamChannelResponse"][];
-      /** Category */
-      category?: string | null;
-      /** Channel Number */
-      channel_number?: number | null;
-      /** Country */
-      country?: string | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Description */
-      description?: string | null;
-      /** Epg Id */
-      epg_id?: string | null;
-      /** Epg Source Id */
-      epg_source_id?: number | null;
-      /** Id */
-      id: number;
-      /** Is Active */
-      is_active: boolean;
-      /** Is Favorite */
-      is_favorite: boolean;
-      /** Language */
-      language?: string | null;
-      /** Logo Url */
-      logo_url?: string | null;
-      /** Name */
-      name: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
-      /** Website */
-      website?: string | null;
-    };
-    /** TVChannelStatsResponse */
-    TVChannelStatsResponse: {
-      /** Acestreams */
-      acestreams: number;
-      /** Active */
-      active: number;
-      /** Total */
-      total: number;
-      /** With Epg */
-      with_epg: number;
-    };
-    /**
-     * TVChannelUpdate
-     * @description Schema for TV channel update
-     */
-    TVChannelUpdate: {
-      /** Category */
-      category?: string | null;
-      /** Channel Number */
-      channel_number?: number | null;
-      /** Country */
-      country?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Epg Id */
-      epg_id?: string | null;
-      /** Epg Source Id */
-      epg_source_id?: number | null;
-      /** Is Active */
-      is_active?: boolean | null;
-      /** Is Favorite */
-      is_favorite?: boolean | null;
-      /** Language */
-      language?: string | null;
-      /** Logo Url */
-      logo_url?: string | null;
-      /** Name */
-      name?: string | null;
-      /** Website */
-      website?: string | null;
-    };
-    /** TVMatchApplyRequest */
-    TVMatchApplyRequest: {
-      /** Assignments */
-      assignments: components["schemas"]["TVMatchAssignment"][];
-      /**
-       * Assumed Country
-       * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
-       */
-      assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
-    };
-    /** TVMatchApplyResponse */
-    TVMatchApplyResponse: {
-      /** Assigned Count */
-      assigned_count: number;
-      /** Skipped Count */
-      skipped_count: number;
-    };
-    /** TVMatchAssignment */
-    TVMatchAssignment: {
-      /** Acestream Channel Id */
-      acestream_channel_id: string;
-      /** Tv Channel Id */
-      tv_channel_id: number;
-    };
-    /** TVMatchCandidate */
-    TVMatchCandidate: {
-      /** Acestream Channel Id */
-      acestream_channel_id: string;
-      /** Acestream Name */
-      acestream_name: string;
-      /** Reason */
-      reason: string;
-      /** Recommended */
-      recommended: boolean;
-      /** Score */
-      score: number;
-      /** Tv Channel Id */
-      tv_channel_id: number;
-      /** Tv Channel Name */
-      tv_channel_name: string;
-    };
-    /** TVMatchOptions */
-    TVMatchOptions: {
-      /**
-       * Assumed Country
-       * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
-       */
-      assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
-    };
-    /** TVMatchPreview */
-    TVMatchPreview: {
-      /** Ambiguous Streams */
-      ambiguous_streams: number;
-      /** Candidates */
-      candidates: components["schemas"]["TVMatchCandidate"][];
-      /** Tv Channels */
-      tv_channels: number;
-      /** Unassigned Streams */
-      unassigned_streams: number;
-      /** Unmatched Streams */
-      unmatched_streams: number;
-    };
-    /** TunerAccessResponse */
-    TunerAccessResponse: {
-      /** Addresses */
-      addresses: string[];
-      /** Allowed */
-      allowed: boolean;
-    };
-    /** TunerDenial */
-    TunerDenial: {
-      /** At */
-      at: number;
-      /** Client Ip */
-      client_ip: string;
-      /** Path */
-      path: string;
-      /** Peer */
-      peer: string;
-    };
-    /** TunerRenumbered */
-    TunerRenumbered: {
-      /** Assigned Number */
-      assigned_number: number;
-      /** Name */
-      name: string;
-      /** Requested Number */
-      requested_number: number;
-      /** Tv Channel Id */
-      tv_channel_id: number;
-    };
-    /** TunerSettingsResponse */
-    TunerSettingsResponse: {
-      /**
-       * Experimental Transcoding
-       * @description Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection
-       * @default false
-       */
-      experimental_transcoding?: boolean;
-      /** Friendly Name */
-      friendly_name: string;
-      /** Max Channels */
-      max_channels: number;
-      /** Only Online */
-      only_online: boolean;
-      /** Tuner Count */
-      tuner_count: number;
-    };
-    /** TunerSettingsUpdate */
-    TunerSettingsUpdate: {
-      /** Experimental Transcoding */
-      experimental_transcoding?: boolean | null;
-      /** Friendly Name */
-      friendly_name?: string | null;
-      /** Max Channels */
-      max_channels?: number | null;
-      /** Only Online */
-      only_online?: boolean | null;
-      /** Tuner Count */
-      tuner_count?: number | null;
-    };
-    /** TunerStatusResponse */
-    TunerStatusResponse: {
-      /** Allowed Networks */
-      allowed_networks: string[];
-      /** Channel Count */
-      channel_count: number;
-      /** Client Allowed */
-      client_allowed: boolean;
-      /** Client Ip */
-      client_ip?: string | null;
-      /**
-       * Client Source
-       * @enum {string}
-       */
-      client_source: "direct" | "forwarded" | "docker-gateway" | "loopback";
-      /** Device Id */
-      device_id: string;
-      /** Ffmpeg Available */
-      ffmpeg_available: boolean;
-      /** Overflow */
-      overflow: number;
-      /** Peer */
-      peer?: string | null;
-      /** Recent Denials */
-      recent_denials: components["schemas"]["TunerDenial"][];
-      /** Renumbered */
-      renumbered: components["schemas"]["TunerRenumbered"][];
-      urls: components["schemas"]["TunerUrls"];
-      /** Warnings */
-      warnings: string[];
-    };
-    /** TunerUrls */
-    TunerUrls: {
-      /** Epg */
-      epg: string;
-      /** Guide */
-      guide: string;
-      /** Lineup */
-      lineup: string;
-      /** Playlist */
-      playlist: string;
-      /**
-       * Stream Template
-       * @description Stable TV channel playback URL template; replace {tv_channel_id} with its numeric ID
-       */
-      stream_template: string;
-      /** Tuner */
-      tuner: string;
-    };
-    /**
-     * URLCreate
-     * @description Schema for creating a scraped URL
-     */
-    URLCreate: {
-      /**
-       * Enabled
-       * @default true
-       */
-      enabled?: boolean;
-      extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
-      /**
-       * Scrape Bare Ids
-       * @default false
-       */
-      scrape_bare_ids?: boolean;
-      /**
-       * Status
-       * @default active
-       */
-      status?: string;
-      /** Url */
-      url: string;
-      /**
-       * Url Type
-       * @default regular
-       */
-      url_type?: string;
-    };
-    /**
-     * URLResponse
-     * @description Schema for scraped URL information
-     */
-    URLResponse: {
-      /**
-       * Added At
-       * Format: date-time
-       */
-      added_at: string;
-      /**
-       * Channels Found
-       * @default 0
-       */
-      channels_found?: number;
-      /**
-       * Enabled
-       * @default true
-       */
-      enabled?: boolean;
-      /** Error */
-      error?: string | null;
-      /**
-       * Error Count
-       * @default 0
-       */
-      error_count?: number;
-      extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
-      /** Id */
-      id: number;
-      /** Last Error */
-      last_error?: string | null;
-      /** Last Processed */
-      last_processed?: string | null;
-      /** Last Scraped */
-      last_scraped?: string | null;
-      /**
-       * Scrape Bare Ids
-       * @default false
-       */
-      scrape_bare_ids?: boolean;
-      /** Status */
-      status: string;
-      /** Url */
-      url: string;
-      /** Url Type */
-      url_type: string;
-    };
-    /** URLStats */
-    URLStats: {
-      /** Channel Count */
-      channel_count: number;
-      /** Enabled */
-      enabled: boolean;
-      /** Error Count */
-      error_count: number;
-      /** Id */
-      id: number;
-      /** Last Error */
-      last_error?: string | null;
-      /** Last Processed */
-      last_processed?: string | null;
-      /** Status */
-      status: string;
-      /** Url */
-      url: string;
-      /** Url Type */
-      url_type: string;
-    };
-    /**
-     * URLUpdate
-     * @description Schema for updating a scraped URL
-     */
-    URLUpdate: {
-      /** Enabled */
-      enabled?: boolean | null;
-      extraction_recipe?: components["schemas"]["ExtractionRecipe"] | null;
-      /** Scrape Bare Ids */
-      scrape_bare_ids?: boolean | null;
-      /** Status */
-      status?: string | null;
-      /** Url */
-      url?: string | null;
-      /** Url Type */
-      url_type?: string | null;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Context */
-      ctx?: Record<string, never>;
-      /** Input */
-      input?: unknown;
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-    };
-    /**
-     * WarpModeEnum
-     * @description Available WARP modes for API use
-     * @enum {string}
-     */
-    WarpModeEnum: "warp" | "dot" | "proxy" | "off";
-    /**
-     * WarpModeRequest
-     * @description Request schema for changing WARP mode
-     */
-    WarpModeRequest: {
-      /** @description The WARP mode to set */
-      mode: components["schemas"]["WarpModeEnum"];
-    };
-    /** BaseUrlUpdate */
-    app__schemas__base_url__BaseUrlUpdate: {
-      /** Is Default */
-      is_default?: boolean | null;
-      /** Name */
-      name?: string | null;
-      /** Pattern */
-      pattern?: string | null;
-    };
-    /**
-     * BaseUrlUpdate
-     * @description Schema for updating the base URL for Acestream links
-     */
-    app__schemas__config__BaseUrlUpdate: {
-      /**
-       * Base Url
-       * @description Base URL for Acestream links
-       */
-      base_url?: string | null;
-      /**
-       * Value
-       * @description Compatibility alias for base_url
-       */
-      value?: string | null;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
-
 export type $defs = Record<string, never>;
-
-export type external = Record<string, never>;
-
 export interface operations {
-
-  /**
-   * Read Index
-   * @description Serve the React frontend index page.
-   */
-  read_index__get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/html": string;
-        };
-      };
-    };
-  };
-  /**
-   * Legacy All Streams Playlist
-   * @description Legacy v1 all-streams playlist URL. Behaves identically to
-   * /api/v1/playlists/all-streams/m3u.
-   */
-  legacy_all_streams_playlist_api_playlists_all_streams_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        include_unassigned?: boolean;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Legacy Epg Xml
-   * @description Legacy v1 EPG XML URL. Behaves identically to /api/v1/epg/xml.
-   */
-  legacy_epg_xml_api_playlists_epg_xml_get: {
-    parameters: {
-      query?: {
-        search_term?: string | null;
-        favorites_only?: boolean;
-        days_back?: number;
-        days_forward?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Legacy Api M3U Playlist
-   * @description Legacy v1 playlist API URL. Behaves identically to /api/v1/playlists/m3u
-   * (API error contract, unlike the player-facing /playlists/m3u route).
-   */
-  legacy_api_m3u_playlist_api_playlists_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        group?: string | null;
-        only_online?: boolean;
-        include_unassigned?: boolean | null;
-        include_groups?: string | null;
-        exclude_groups?: string | null;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Legacy Tv Channels Playlist
-   * @description Legacy v1 TV-channels playlist URL. Behaves identically to
-   * /api/v1/playlists/tv-channels/m3u.
-   */
-  legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        favorites_only?: boolean;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Acestream Channels
-   * @description Get all channels with optional filtering.
-   * Supports both skip/limit and page/page_size parameters.
-   * Set assigned=false to list only streams not linked to a TV channel.
-   * Returns paginated items and total count.
-   */
-  get_acestream_channels_api_v1_acestream_channels__get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-        page?: number;
-        page_size?: number;
-        active_only?: boolean | null;
-        search?: string | null;
-        group?: string | null;
-        is_active?: boolean | null;
-        is_online?: boolean | null;
-        assigned?: boolean | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelListResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Create Acestream Channel
-   * @description Create a new Acestream channel. If a channel with the same ID exists, update it.
-   */
-  create_acestream_channel_api_v1_acestream_channels__post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AcestreamChannelCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Bulk Activate Acestream Channels
-   * @description Activate/deactivate multiple Acestream channels by IDs.
-   * data: {"acestreamchannel_ids": [...], "active": true/false}
-   */
-  bulk_activate_acestream_channels_api_v1_acestream_channels_bulk_activate_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkChannelActivateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Bulk Delete Acestream Channels
-   * @description Delete multiple Acestream channels by IDs.
-   */
-  bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Bulk Edit Acestream Channels
-   * @description Update multiple Acestream channels by IDs and fields.
-   * updates: {"acestreamchannel_ids": [...], "fields": {...}}
-   */
-  bulk_edit_acestream_channels_api_v1_acestream_channels_bulk_edit_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkChannelEditRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Export Acestream Channels Csv
-   * @description Export all Acestream channels as a CSV file.
-   */
-  export_acestream_channels_csv_api_v1_acestream_channels_export_csv_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Get Channel Groups
-   * @description Get unique channel groups.
-   */
-  get_channel_groups_api_v1_acestream_channels_groups_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Get Channel Status Summary
-   * @description Get summary of channel statuses.
-   */
-  get_channel_status_summary_api_v1_acestream_channels_status_summary_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ChannelStatusSummary"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Acestream Channel
-   * @description Get a specific Acestream channel by ID.
-   */
-  get_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__get: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Acestream Channel
-   * @description Update an existing Acestream channel.
-   */
-  update_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__put: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AcestreamChannelUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Delete Acestream Channel
-   * @description Delete an Acestream channel.
-   */
-  delete_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__delete: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Check Acestream Channel Status
-   * @description Check the online status of a specific Acestream channel via Acestream engine.
-   */
-  check_acestream_channel_status_api_v1_acestream_channels__acestreamchannel_id__check_status_post: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ChannelStatusResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Acestream Engine status */
-  get_acestream_status_api_v1_acestream_status_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamStatusResponse"];
-        };
-      };
-    };
-  };
-  /** Get Channel Activity Log */
-  get_channel_activity_log_api_v1_activity_channels__channel_id__activity_log_get: {
-    parameters: {
-      query?: {
-        /** @description Number of days to look back */
-        days?: number;
-        /** @description Filter by activity type */
-        type?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        page_size?: number;
-      };
-      path: {
-        channel_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Recent Activity */
-  get_recent_activity_api_v1_activity_recent_get: {
-    parameters: {
-      query?: {
-        /** @description Number of days to look back */
-        days?: number;
-        /** @description Filter by activity type */
-        type?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        page_size?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Run Channel Status Job */
-  run_channel_status_job_api_v1_background_tasks_channel_status_run_post: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ChannelStatusJobRunResponse"];
-        };
-      };
-    };
-  };
-  /** Get Background Tasks Status */
-  get_background_tasks_status_api_v1_background_tasks_status_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["BackgroundTaskStatus"][];
-        };
-      };
-    };
-  };
-  /** List Base Urls */
-  list_base_urls_api_v1_base_urls_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["BaseUrlResponse"][];
-        };
-      };
-    };
-  };
-  /** Create Base Url */
-  create_base_url_api_v1_base_urls_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BaseUrlCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["BaseUrlResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Delete Base Url */
-  delete_base_url_api_v1_base_urls__base_url_id__delete: {
-    parameters: {
-      path: {
-        base_url_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Update Base Url */
-  update_base_url_api_v1_base_urls__base_url_id__patch: {
-    parameters: {
-      path: {
-        base_url_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["app__schemas__base_url__BaseUrlUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["BaseUrlResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Acestream Channels
-   * @description Get all channels with optional filtering.
-   * Supports both skip/limit and page/page_size parameters.
-   * Set assigned=false to list only streams not linked to a TV channel.
-   * Returns paginated items and total count.
-   */
-  get_acestream_channels_api_v1_channels__get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-        page?: number;
-        page_size?: number;
-        active_only?: boolean | null;
-        search?: string | null;
-        group?: string | null;
-        is_active?: boolean | null;
-        is_online?: boolean | null;
-        assigned?: boolean | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelListResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Create Acestream Channel
-   * @description Create a new Acestream channel. If a channel with the same ID exists, update it.
-   */
-  create_acestream_channel_api_v1_channels__post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AcestreamChannelCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Bulk Activate Acestream Channels
-   * @description Activate/deactivate multiple Acestream channels by IDs.
-   * data: {"acestreamchannel_ids": [...], "active": true/false}
-   */
-  bulk_activate_acestream_channels_api_v1_channels_bulk_activate_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkChannelActivateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Bulk Delete Acestream Channels
-   * @description Delete multiple Acestream channels by IDs.
-   */
-  bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Bulk Edit Acestream Channels
-   * @description Update multiple Acestream channels by IDs and fields.
-   * updates: {"acestreamchannel_ids": [...], "fields": {...}}
-   */
-  bulk_edit_acestream_channels_api_v1_channels_bulk_edit_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkChannelEditRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Export Acestream Channels Csv
-   * @description Export all Acestream channels as a CSV file.
-   */
-  export_acestream_channels_csv_api_v1_channels_export_csv_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Get Channel Groups
-   * @description Get unique channel groups.
-   */
-  get_channel_groups_api_v1_channels_groups_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Get Channel Status Summary
-   * @description Get summary of channel statuses.
-   */
-  get_channel_status_summary_api_v1_channels_status_summary_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ChannelStatusSummary"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Acestream Channel
-   * @description Get a specific Acestream channel by ID.
-   */
-  get_acestream_channel_api_v1_channels__acestreamchannel_id__get: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Acestream Channel
-   * @description Update an existing Acestream channel.
-   */
-  update_acestream_channel_api_v1_channels__acestreamchannel_id__put: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AcestreamChannelUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Delete Acestream Channel
-   * @description Delete an Acestream channel.
-   */
-  delete_acestream_channel_api_v1_channels__acestreamchannel_id__delete: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Check Acestream Channel Status
-   * @description Check the online status of a specific Acestream channel via Acestream engine.
-   */
-  check_acestream_channel_status_api_v1_channels__acestreamchannel_id__check_status_post: {
-    parameters: {
-      path: {
-        acestreamchannel_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ChannelStatusResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Ace Engine Url
-   * @description Get the Acestream Engine URL.
-   */
-  get_ace_engine_url_api_v1_config_ace_engine_url_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Ace Engine Url
-   * @description Update the Acestream Engine URL.
-   */
-  update_ace_engine_url_api_v1_config_ace_engine_url_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AceEngineUrlUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Check Acestream Status
-   * @description Check the status of the Acestream Engine.
-   */
-  check_acestream_status_api_v1_config_acestream_status_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Get Addpid
-   * @description Get whether to add PID to Acestream links.
-   */
-  get_addpid_api_v1_config_addpid_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Addpid
-   * @description Update whether to add PID to Acestream links.
-   */
-  update_addpid_api_v1_config_addpid_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AddPidUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get All Settings
-   * @description Get all settings.
-   */
-  get_all_settings_api_v1_config_all_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Appid
-   * @description Get whether to use AppID in Acestream links.
-   */
-  get_appid_api_v1_config_appid_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Appid
-   * @description Update whether to use AppID in Acestream links.
-   */
-  update_appid_api_v1_config_appid_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AppIdUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Base Url
-   * @description Get the base URL for Acestream links.
-   */
-  get_base_url_api_v1_config_base_url_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Base Url
-   * @description Update the base URL for Acestream links.
-   */
-  update_base_url_api_v1_config_base_url_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["app__schemas__config__BaseUrlUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Check Engine */
-  get_check_engine_api_v1_config_check_engine_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["CheckEngineConfigResponse"];
-        };
-      };
-    };
-  };
-  /** Update Check Engine */
-  update_check_engine_api_v1_config_check_engine_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CheckEngineConfig"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["CheckEngineConfigResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Dashboard Config */
-  get_dashboard_config_api_v1_config_dashboard_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["DashboardConfigResponse"];
-        };
-      };
-    };
-  };
-  /** Update Dashboard Config */
-  update_dashboard_config_api_v1_config_dashboard_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["DashboardConfigUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["DashboardConfigResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg Refresh Interval
-   * @description Get the interval between automatic EPG refreshes in hours.
-   */
-  get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Epg Refresh Interval
-   * @description Update the interval between automatic EPG refreshes in hours (reschedules the job).
-   */
-  update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RescrapeIntervalUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Playback Routing */
-  get_playback_routing_api_v1_config_playback_routing_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlaybackRouting"];
-        };
-      };
-    };
-  };
-  /** Update Playback Routing */
-  update_playback_routing_api_v1_config_playback_routing_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PlaybackRouting"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlaybackRouting"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Public Base Url
-   * @description Externally reachable origin used for tuner, player and copy links.
-   */
-  get_public_base_url_api_v1_config_public_base_url_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Public Base Url
-   * @description Update the externally reachable origin (empty value clears the override).
-   */
-  update_public_base_url_api_v1_config_public_base_url_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PublicBaseUrlUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Rescrape Interval
-   * @description Get the interval between automatic rescrapes in hours.
-   */
-  get_rescrape_interval_api_v1_config_rescrape_interval_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Rescrape Interval
-   * @description Update the interval between automatic rescrapes in hours.
-   */
-  update_rescrape_interval_api_v1_config_rescrape_interval_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RescrapeIntervalUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Schedule Anchors */
-  get_schedule_anchors_api_v1_config_schedule_anchors_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ScheduleAnchors"];
-        };
-      };
-    };
-  };
-  /** Update Schedule Anchors */
-  update_schedule_anchors_api_v1_config_schedule_anchors_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ScheduleAnchors"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ScheduleAnchors"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Config Key
-   * @description Generic GET for config keys.
-   */
-  get_config_key_api_v1_config__key__get: {
-    parameters: {
-      path: {
-        key: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Config Key
-   * @description Generic PUT for config keys.
-   */
-  update_config_key_api_v1_config__key__put: {
-    parameters: {
-      path: {
-        key: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ConfigKeyUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConfigUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Auto Map Channels
-   * @description Auto-map TV channels to EPG channels based on string patterns
-   */
-  auto_map_channels_api_v1_epg_auto_scan_post: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg Channels
-   * @description Get EPG channels, optionally filtered by source ID
-   */
-  get_epg_channels_api_v1_epg_channels_get: {
-    parameters: {
-      query?: {
-        source_id?: number | null;
-        skip?: number;
-        limit?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGChannelListResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Map Epg Channel To Tv
-   * @description Map an EPG channel to a TV channel
-   */
-  map_epg_channel_to_tv_api_v1_epg_channels_map_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGChannelMappingRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Resolve Epg Channel
-   * @description Resolve an EPG channel by source ID and channel XML ID.
-   */
-  resolve_epg_channel_api_v1_epg_channels_resolve_get: {
-    parameters: {
-      query: {
-        source_id: number;
-        channel_xml_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Unmap Epg Channel From Tv
-   * @description Remove a mapping between an EPG channel and a TV channel
-   */
-  unmap_epg_channel_from_tv_api_v1_epg_channels_unmap_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGChannelMappingRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg Channel
-   * @description Get a specific EPG channel by ID
-   */
-  get_epg_channel_api_v1_epg_channels__channel_id__get: {
-    parameters: {
-      path: {
-        channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg String Mappings
-   * @description Get string mappings for an EPG channel
-   */
-  get_epg_string_mappings_api_v1_epg_channels__channel_id__mappings_get: {
-    parameters: {
-      path: {
-        channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGStringMappingResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Add Epg String Mapping
-   * @description Add a string mapping for an EPG channel. Accepts both direct JSON and Pydantic schema for backward compatibility.
-   */
-  add_epg_string_mapping_api_v1_epg_channels__channel_id__mappings_post: {
-    parameters: {
-      path: {
-        channel_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGStringMappingUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["EPGStringMappingResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg Programs
-   * @description Get programs for an EPG channel, optionally filtered by date range
-   */
-  get_epg_programs_api_v1_epg_channels__channel_id__programs_get: {
-    parameters: {
-      query?: {
-        start_date?: string | null;
-        end_date?: string | null;
-        skip?: number;
-        limit?: number;
-      };
-      path: {
-        channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGProgramResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get All Epg String Mappings
-   * @description Get all EPG string mappings across all channels
-   */
-  get_all_epg_string_mappings_api_v1_epg_mappings_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGStringMappingResponse"][];
-        };
-      };
-    };
-  };
-  /**
-   * Delete Epg String Mapping
-   * @description Delete a string mapping
-   */
-  delete_epg_string_mapping_api_v1_epg_mappings__mapping_id__delete: {
-    parameters: {
-      path: {
-        mapping_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Epg String Mapping
-   * @description Update an existing EPG string mapping. Accepts both direct JSON and Pydantic schema for backward compatibility.
-   */
-  update_epg_string_mapping_api_v1_epg_mappings__mapping_id__patch: {
-    parameters: {
-      path: {
-        mapping_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGStringMappingUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGStringMappingResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg Sources
-   * @description Get all EPG sources
-   */
-  get_epg_sources_api_v1_epg_sources_get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGSourceResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Create Epg Source
-   * @description Create a new EPG source
-   */
-  create_epg_source_api_v1_epg_sources_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGSourceCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["EPGSourceResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Refresh All Epg Sources
-   * @description Refresh EPG data for all enabled sources
-   */
-  refresh_all_epg_sources_api_v1_epg_sources_refresh_all_post: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGRefreshResponse"][];
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg Source
-   * @description Get a specific EPG source by ID
-   */
-  get_epg_source_api_v1_epg_sources__source_id__get: {
-    parameters: {
-      path: {
-        source_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGSourceResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Delete Epg Source
-   * @description Delete an EPG source
-   */
-  delete_epg_source_api_v1_epg_sources__source_id__delete: {
-    parameters: {
-      path: {
-        source_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Epg Source
-   * @description Update an EPG source
-   */
-  update_epg_source_api_v1_epg_sources__source_id__patch: {
-    parameters: {
-      path: {
-        source_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGSourceUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGSourceResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Refresh Epg Source
-   * @description Refresh EPG data for a specific source
-   */
-  refresh_epg_source_api_v1_epg_sources__source_id__refresh_post: {
-    parameters: {
-      path: {
-        source_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGRefreshResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Epg Xml
-   * @description Generate EPG XML data in XMLTV format
-   *
-   * Args:
-   *     search_term: Optional term to filter channels by name
-   *     favorites_only: If True, only include favorite channels
-   *     days_back: Number of days in the past to include programs for
-   *     days_forward: Number of days in the future to include programs for
-   *
-   * Returns:
-   *     XML content in XMLTV format
-   */
-  get_epg_xml_api_v1_epg_xml_get: {
-    parameters: {
-      query?: {
-        search_term?: string | null;
-        favorites_only?: boolean;
-        days_back?: number;
-        days_forward?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Generate Epg Xml
-   * @description Generate EPG XML data with customizable parameters
-   *
-   * Args:
-   *     request: Parameters for XML generation
-   *
-   * Returns:
-   *     XML content in XMLTV format
-   */
-  generate_epg_xml_api_v1_epg_xml_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGXmlGenerationRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Check Health
-   * @description Check the overall system health
-   */
-  check_health_api_v1_health_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
-        };
-      };
-    };
-  };
-  /** Saved media servers */
-  list_media_servers_api_v1_media_servers_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerResponse"][];
-        };
-      };
-    };
-  };
-  /** Create Media Server */
-  create_media_server_api_v1_media_servers_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["MediaServerCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["MediaServerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Probe a media server before saving it */
-  test_media_server_api_v1_media_servers_test_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["MediaServerTestRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerProbeResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Delete Media Server */
-  delete_media_server_api_v1_media_servers__server_id__delete: {
-    parameters: {
-      path: {
-        server_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Update Media Server */
-  update_media_server_api_v1_media_servers__server_id__patch: {
-    parameters: {
-      path: {
-        server_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["MediaServerUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Register the tuner and guide */
-  connect_media_server_api_v1_media_servers__server_id__connect_post: {
-    parameters: {
-      path: {
-        server_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Unregister the tuner and guide */
-  disconnect_media_server_api_v1_media_servers__server_id__disconnect_post: {
-    parameters: {
-      path: {
-        server_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Refresh the guide now
-   * @description Bypasses the sync job's debounce — the user asked for it explicitly.
-   */
-  refresh_media_server_api_v1_media_servers__server_id__refresh_post: {
-    parameters: {
-      path: {
-        server_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerRefreshResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Media Server Status */
-  media_server_status_api_v1_media_servers__server_id__status_get: {
-    parameters: {
-      path: {
-        server_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerStatusResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Probe a saved media server */
-  test_saved_media_server_api_v1_media_servers__server_id__test_post: {
-    parameters: {
-      path: {
-        server_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MediaServerProbeResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Whether the server can prepare streams for browsers */
-  capabilities_api_v1_player_capabilities_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlayerCapabilities"];
-        };
-      };
-    };
-  };
-  /** Active player sessions */
-  list_sessions_api_v1_player_sessions_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlayerSessionListResponse"];
-        };
-      };
-    };
-  };
-  /** Start (or join) playback of a channel */
-  create_session_api_v1_player_sessions_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PlayerSessionCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlayerSessionStatus"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Session status (heartbeat) */
-  get_session_api_v1_player_sessions__session_id__get: {
-    parameters: {
-      path: {
-        session_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlayerSessionStatus"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Leave a session */
-  leave_session_api_v1_player_sessions__session_id__delete: {
-    parameters: {
-      path: {
-        session_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** HLS playlist */
-  playlist_api_v1_player_sessions__session_id__index_m3u8_get: {
-    parameters: {
-      path: {
-        session_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** HLS segment */
-  segment_api_v1_player_sessions__session_id___segment__get: {
-    parameters: {
-      path: {
-        session_id: string;
-        segment: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Everything the server is streaming right now
-   * @description Browser sessions and raw relays in one list, named where we know the name.
-   *
-   * Declared ``def``, not ``async def``: it reads the database, so FastAPI runs
-   * it in the threadpool instead of blocking the event loop that is feeding the
-   * relays this very endpoint reports.
-   */
-  active_streams_api_v1_player_streams_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ActiveStreamListResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Get All Streams Playlist
-   * @description Generate an M3U playlist of numbered TV channels followed by unassigned
-   * acestreams (numbered from 9000).
-   *
-   * - **search**: Optional search term for channel names
-   * - **include_unassigned**: Append streams not assigned to any TV channel
-   * - **refresh**: Trigger a background rescrape of all enabled URLs
-   */
-  get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        include_unassigned?: boolean;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Channel Groups
-   * @description Get list of all available channel groups
-   */
-  get_channel_groups_api_v1_playlists_groups_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": string[];
-        };
-      };
-    };
-  };
-  /**
-   * Get M3U Playlist
-   * @description Generate M3U playlist with specified filters
-   *
-   * - **search**: Optional search term for channel names
-   * - **group**: Optional specific group to filter by
-   * - **only_online**: Whether to include only online channels (default: True)
-   * - **include_groups**: Comma-separated list of groups to include
-   * - **exclude_groups**: Comma-separated list of groups to exclude
-   * - **refresh**: Trigger a background rescrape of all enabled URLs
-   */
-  get_m3u_playlist_api_v1_playlists_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        group?: string | null;
-        only_online?: boolean;
-        /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
-        include_unassigned?: boolean | null;
-        favorites_only?: boolean;
-        include_groups?: string | null;
-        exclude_groups?: string | null;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get M3U Playlist Compat
-   * @description Compatibility route for M3U playlist generation
-   *
-   * This route exists to support legacy URLs. It behaves identically to the
-   * /m3u endpoint.
-   */
-  get_m3u_playlist_compat_api_v1_playlists_playlists_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        group?: string | null;
-        only_online?: boolean;
-        /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
-        include_unassigned?: boolean | null;
-        favorites_only?: boolean;
-        include_groups?: string | null;
-        exclude_groups?: string | null;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Tv Channels Playlist
-   * @description Generate a curated M3U playlist of TV channels with their assigned
-   * acestreams, ordered by channel number then name.
-   *
-   * - **search**: Optional search term for TV channel names
-   * - **favorites_only**: Only include favorite TV channels
-   * - **refresh**: Trigger a background rescrape of all enabled URLs
-   */
-  get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        favorites_only?: boolean;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Saved remote players */
-  list_players_api_v1_remote_players_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RemotePlayerResponse"][];
-        };
-      };
-    };
-  };
-  /** Create Player */
-  create_player_api_v1_remote_players_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RemotePlayerCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["RemotePlayerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Android Pair Finish */
-  android_pair_finish_api_v1_remote_players_android_pair_finish_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AndroidPairFinishRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AndroidPairFinishResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Android Pair Start */
-  android_pair_start_api_v1_remote_players_android_pair_start_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AndroidPairStartRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AndroidPairStartResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Find VLC/Kodi web interfaces on a private network */
-  scan_api_v1_remote_players_scan_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ScanRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ScanResultResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Suggested network to scan */
-  scan_default_api_v1_remote_players_scan_default_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ScanDefaultResponse"];
-        };
-      };
-    };
-  };
-  /** Probe a player before saving it */
-  test_player_api_v1_remote_players_test_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RemotePlayerTestRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RemotePlayerProbeResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Delete Player */
-  delete_player_api_v1_remote_players__player_id__delete: {
-    parameters: {
-      path: {
-        player_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Update Player */
-  update_player_api_v1_remote_players__player_id__patch: {
-    parameters: {
-      path: {
-        player_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RemotePlayerUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RemotePlayerResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Player Command */
-  player_command_api_v1_remote_players__player_id__command_post: {
-    parameters: {
-      path: {
-        player_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RemotePlayerCommandRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Send a channel to the player */
-  play_on_player_api_v1_remote_players__player_id__play_post: {
-    parameters: {
-      path: {
-        player_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RemotePlayerPlayRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": components["schemas"]["RemotePlayerPlayResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Player Status */
-  player_status_api_v1_remote_players__player_id__status_get: {
-    parameters: {
-      path: {
-        player_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RemotePlayerStatusResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Probe a saved player */
-  test_saved_player_api_v1_remote_players__player_id__test_post: {
-    parameters: {
-      path: {
-        player_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RemotePlayerProbeResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Preview Extraction
-   * @description Test a sample in an isolated worker. No source/channel writes.
-   */
-  preview_extraction_api_v1_scrapers_recipes_preview_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RecipePreviewRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RecipePreview"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Fetch Extraction Sample
-   * @description Fetch a bounded source sample using the installed app, without scraping.
-   */
-  fetch_extraction_sample_api_v1_scrapers_recipes_sample_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RecipeFetchRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RecipeSample"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Scrape Url
-   * @description Scrape a URL for Acestream channels.
-   *
-   * Request body:
-   * - url: The URL to scrape
-   * - url_type: (Optional) URL type ('auto', 'regular', 'zeronet', 'ipfs')
-   * - run_async: (Optional) Run scraping in background
-   */
-  scrape_url_api_v1_scrapers_scrape_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ScraperRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ScraperResultExtended"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Scraped Urls
-   * @description Get list of URLs that have been scraped.
-   */
-  get_scraped_urls_api_v1_scrapers_urls_get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["URLResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Create Scraped Url
-   * @description Create a new URL to be scraped.
-   */
-  create_scraped_url_api_v1_scrapers_urls_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["URLCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["URLResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Scrape All Urls
-   * @description Scrape all enabled URLs, with optional limit.
-   */
-  scrape_all_urls_api_v1_scrapers_urls_scrape_all_post: {
-    parameters: {
-      query?: {
-        limit?: number | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ScraperResultExtended"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Scraped Url
-   * @description Get a specific scraped URL by ID.
-   */
-  get_scraped_url_api_v1_scrapers_urls__url_id__get: {
-    parameters: {
-      path: {
-        url_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["URLResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Delete Scraped Url
-   * @description Delete a scraped URL.
-   */
-  delete_scraped_url_api_v1_scrapers_urls__url_id__delete: {
-    parameters: {
-      path: {
-        url_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Scraped Url
-   * @description Update a scraped URL.
-   */
-  update_scraped_url_api_v1_scrapers_urls__url_id__patch: {
-    parameters: {
-      path: {
-        url_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["URLUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["URLResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Scrape Specific Url
-   * @description Scrape a specific URL by ID.
-   */
-  scrape_specific_url_api_v1_scrapers_urls__url_id__scrape_post: {
-    parameters: {
-      path: {
-        url_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ScraperResultExtended"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Search Channels
-   * @description Search for Acestream channels via engine API
-   */
-  search_channels_api_v1_search_get: {
-    parameters: {
-      query?: {
-        /** @description Search query string (optional) */
-        query?: string;
-        /** @description Page number (default: 1, must be >= 1) */
-        page?: number;
-        /** @description Results per page (default: 10, must be >= 1, alias: per_page) */
-        per_page?: number;
-        /** @description Filter by category (optional) */
-        category?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SearchResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Add Channel
-   * @description Add a channel from search results to the database (delegated to service)
-   */
-  add_channel_api_v1_search_add_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AddChannelRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Add Multiple Channels
-   * @description Add multiple channels from search results to the database (delegated to service)
-   */
-  add_multiple_channels_api_v1_search_add_multiple_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AddMultipleRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Check Search Broadcast
-   * @description Verify a search result's broadcast without adding it to the inventory.
-   */
-  check_search_broadcast_api_v1_search__infohash__check_status_post: {
-    parameters: {
-      path: {
-        infohash: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ChannelStatusResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Status */
-  status_api_v1_startup_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["StartupStatus"];
-        };
-      };
-    };
-  };
-  /** Diagnostics */
-  diagnostics_api_v1_startup_diagnostics_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-    };
-  };
-  /** Recover */
-  recover_api_v1_startup_recover_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["StartupRecoveryRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": components["schemas"]["StartupStatus"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Stats
-   * @description Get system statistics
-   */
-  get_stats_api_v1_stats_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["HealthStatsResponse"];
-        };
-      };
-    };
-  };
-  /** Get Stats */
-  get_stats_api_v1_stats__get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["StatsResponse"];
-        };
-      };
-    };
-  };
-  /** Get Tv Channel Stats */
-  get_tv_channel_stats_api_v1_stats_tv_channels__get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelStatsResponse"];
-        };
-      };
-    };
-  };
-  /** Get Active Streams */
-  get_active_streams_api_v1_streams_active_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /** Download recent runtime diagnostics */
-  download_diagnostics_api_v1_system_diagnostics_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/zip": string;
-        };
-      };
-    };
-  };
-  /**
-   * Origin external clients must use
-   * @description Sync on purpose: it reads the settings table.
-   */
-  get_public_url_api_v1_system_public_url_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PublicUrlResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Status of the sidecar services
-   * @description Sync endpoint on purpose: the probes block for up to a couple of seconds each.
-   */
-  list_services_api_v1_system_services_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ServicesStatusResponse"];
-        };
-      };
-    };
-  };
-  /** Start the supervised checking engine */
-  start_check_engine_api_v1_system_services_acestream_check_start_post: {
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ServiceRestartResponse"];
-        };
-      };
-    };
-  };
-  /** Stop channel checks until Start or container restart */
-  stop_check_engine_api_v1_system_services_acestream_check_stop_post: {
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ServiceRestartResponse"];
-        };
-      };
-    };
-  };
-  /** Start the supervised AceStream engine */
-  start_engine_api_v1_system_services_acestream_start_post: {
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ServiceRestartResponse"];
-        };
-      };
-    };
-  };
-  /** Stop AceStream until Start or container restart */
-  stop_engine_api_v1_system_services_acestream_stop_post: {
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ServiceRestartResponse"];
-        };
-      };
-    };
-  };
-  /** Status of one sidecar service */
-  get_service_api_v1_system_services__name__get: {
-    parameters: {
-      path: {
-        name: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ServiceStatus"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Restart a service supervised by this container */
-  restart_service_api_v1_system_services__name__restart_post: {
-    parameters: {
-      path: {
-        name: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ServiceRestartResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Container directories and filesystem space */
-  get_storage_api_v1_system_storage_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["StorageReport"];
-        };
-      };
-    };
-  };
-  /** Tuner settings */
-  get_tuner_settings_api_v1_tuner_settings_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TunerSettingsResponse"];
-        };
-      };
-    };
-  };
-  /** Change the tuner settings */
-  update_tuner_settings_api_v1_tuner_settings_put: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TunerSettingsUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TunerSettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Lineup, URLs and allowlist state
-   * @description Everything the Integrations page needs to explain the tuner: the lineup
-   * it would serve, the URLs to paste into a media server, and whether the
-   * allowlist can actually tell this caller apart from any other.
-   */
-  tuner_status_api_v1_tuner_status_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TunerStatusResponse"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Tv Channels
-   * @description Get all TV channels with pagination and total count.
-   * Optional filters: search (name substring), favorites=true.
-   */
-  get_tv_channels_api_v1_tv_channels__get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-        page?: number;
-        page_size?: number;
-        search?: string;
-        favorites?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelListResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Create Tv Channel
-   * @description Create a new TV channel.
-   */
-  create_tv_channel_api_v1_tv_channels__post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["TVChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Analyze Epg Matches */
-  analyze_epg_matches_api_v1_tv_channels_analyze_epg_matches_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EPGMatchAnalysisRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EPGMatchAnalysisResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Associate By Epg
-   * @description Associate acestream channels with TV channels based on EPG IDs.
-   *
-   * This endpoint attempts to match acestream channels with TV channels
-   * using EPG IDs and channel names.
-   */
-  associate_by_epg_api_v1_tv_channels_associate_by_epg_post: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /** Apply Tv Matches */
-  apply_tv_matches_api_v1_tv_channels_automatch_apply_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVMatchApplyRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVMatchApplyResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Preview Tv Matches */
-  preview_tv_matches_api_v1_tv_channels_automatch_preview_post: {
-    requestBody?: {
-      content: {
-        "application/json": components["schemas"]["TVMatchOptions"] | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVMatchPreview"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Batch Assign Acestreams
-   * @description Batch assign acestream channels to TV channels.
-   *
-   * The request body should be a dictionary where keys are TV channel IDs
-   * and values are lists of acestream channel IDs.
-   *
-   * Example:
-   * {
-   *     "1": ["acestream1", "acestream2"],
-   *     "2": ["acestream3"]
-   * }
-   */
-  batch_assign_acestreams_api_v1_tv_channels_batch_assign_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelBatchAssignRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelBatchAssignResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Bulk Update Epg
-   * @description Update EPG IDs for multiple TV channels.
-   *
-   * This endpoint updates EPG IDs for multiple TV channels in a batch.
-   *
-   * Request format:
-   * {
-   *     "updates": [
-   *         {"tv_channel_id": 1, "epg_id": "new.epg.id1"},
-   *         {"tv_channel_id": 2, "epg_id": "new.epg.id2"}
-   *     ]
-   * }
-   */
-  bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelBulkEPGUpdateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelBulkEPGUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Create Tv Channels From Epg Analysis */
-  create_tv_channels_from_epg_analysis_api_v1_tv_channels_create_from_epg_analysis_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelCreateFromEPGAnalysisRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelCreateFromEPGAnalysisResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Create Tv Channels From Epg */
-  create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelCreateFromEPGRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelCreateFromEPGResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Reorder Tv Channels
-   * @description Save the complete channel order atomically using consecutive channel numbers.
-   */
-  reorder_tv_channels_api_v1_tv_channels_reorder_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelReorderRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MessageResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Tv Channel
-   * @description Get a specific TV channel by ID.
-   */
-  get_tv_channel_api_v1_tv_channels__tv_channel_id__get: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update Tv Channel
-   * @description Update an existing TV channel.
-   */
-  update_tv_channel_api_v1_tv_channels__tv_channel_id__put: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Delete Tv Channel
-   * @description Delete a TV channel.
-   */
-  delete_tv_channel_api_v1_tv_channels__tv_channel_id__delete: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Tv Channel Acestream Matches
-   * @description Suggest unassigned acestreams matching this TV channel by EPG id or
-   * normalized name, for the assign flow.
-   */
-  get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Get Tv Channel Acestreams
-   * @description Get all acestream channels associated with a TV channel.
-   */
-  get_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_get: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AcestreamChannelResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Associate Acestream
-   * @description Associate an acestream channel with a TV channel.
-   */
-  associate_acestream_api_v1_tv_channels__tv_channel_id__acestreams_post: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TVChannelAssociationRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MessageResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Remove Acestream Association
-   * @description Remove association between an acestream channel and a TV channel.
-   */
-  remove_acestream_association_api_v1_tv_channels__tv_channel_id__acestreams__acestream_id__delete: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-        acestream_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Set Tv Channel Favorite
-   * @description Toggle (or explicitly set, via ?value=) a TV channel's favorite flag.
-   */
-  set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post: {
-    parameters: {
-      query?: {
-        /** @description Explicit favorite state; omit to toggle */
-        value?: boolean;
-      };
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TVChannelResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Refresh All Urls
-   * @description Manually refresh all URLs.
-   */
-  refresh_all_urls_api_v1_urls_refresh_all_post: {
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Refresh Url
-   * @description Manually refresh a specific URL by ID.
-   */
-  refresh_url_api_v1_urls__url_id__refresh_post: {
-    parameters: {
-      path: {
-        url_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Connect to WARP */
-  connect_to_warp_api_v1_warp_connect_post: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /** Disconnect from WARP */
-  disconnect_from_warp_api_v1_warp_disconnect_post: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /** Register WARP license */
-  register_warp_license_api_v1_warp_license_post: {
-    requestBody: {
-      content: {
-        "application/json": {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Set WARP mode */
-  set_warp_mode_api_v1_warp_mode_post: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["WarpModeRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get WARP status */
-  get_warp_status_api_v1_warp_status_get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-    };
-  };
-  /**
-   * Legacy M3U Playlist
-   * @description Legacy v1 playlist URL. Behaves identically to /playlists/m3u.
-   */
-  legacy_m3u_playlist_playlist_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        group?: string | null;
-        only_online?: boolean;
-        include_unassigned?: boolean | null;
-        include_groups?: string | null;
-        exclude_groups?: string | null;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Public M3U Playlist
-   * @description Public route for M3U playlist (no /api prefix)
-   */
-  public_m3u_playlist_playlists_m3u_get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        group?: string | null;
-        only_online?: boolean;
-        include_unassigned?: boolean | null;
-        include_groups?: string | null;
-        exclude_groups?: string | null;
-        base_url?: string | null;
-        base_url_id?: number | null;
-        format?: string | null;
-        refresh?: boolean;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "text/plain": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** TV channel MPEG-TS with automatic source failover */
-  tuner_channel_tuner_channel__tv_channel_id__ts_get: {
-    parameters: {
-      path: {
-        tv_channel_id: number;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "video/mp2t": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * MPEG-TS relay of one channel
-   * @description Relays the engine's MPEG-TS bytes. Unknown query params (transcode,
-   * duration) are ignored. HEAD answers headers only and never starts a
-   * session.
-   */
-  tuner_stream_tuner_stream__content_id__ts_get: {
-    parameters: {
-      path: {
-        content_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "video/mp2t": string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
+    read_index__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+        };
+    };
+    legacy_all_streams_playlist_api_playlists_all_streams_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                include_unassigned?: boolean;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    legacy_epg_xml_api_playlists_epg_xml_get: {
+        parameters: {
+            query?: {
+                search_term?: string | null;
+                favorites_only?: boolean;
+                days_back?: number;
+                days_forward?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    legacy_api_m3u_playlist_api_playlists_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                group?: string | null;
+                only_online?: boolean;
+                include_unassigned?: boolean | null;
+                per_source?: boolean;
+                include_groups?: string | null;
+                exclude_groups?: string | null;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                favorites_only?: boolean;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_acestream_channels_api_v1_acestream_channels__get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                page?: number;
+                page_size?: number;
+                active_only?: boolean | null;
+                search?: string | null;
+                group?: string | null;
+                is_active?: boolean | null;
+                is_online?: boolean | null;
+                assigned?: boolean | null;
+                source_url?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_acestream_channel_api_v1_acestream_channels__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcestreamChannelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_activate_acestream_channels_api_v1_acestream_channels_bulk_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkChannelActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_edit_acestream_channels_api_v1_acestream_channels_bulk_edit_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkChannelEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_acestream_channels_csv_api_v1_acestream_channels_export_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_channel_groups_api_v1_acestream_channels_groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_channel_sources_api_v1_acestream_channels_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelSourceFilter"][];
+                };
+            };
+        };
+    };
+    get_channel_status_summary_api_v1_acestream_channels_status_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelStatusSummary"];
+                };
+            };
+        };
+    };
+    get_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcestreamChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_acestream_channel_status_api_v1_acestream_channels__acestreamchannel_id__check_status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_acestream_status_api_v1_acestream_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamStatusResponse"];
+                };
+            };
+        };
+    };
+    get_channel_activity_log_api_v1_activity_channels__channel_id__activity_log_get: {
+        parameters: {
+            query?: {
+                /** @description Number of days to look back */
+                days?: number;
+                /** @description Filter by activity type */
+                type?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_recent_activity_api_v1_activity_recent_get: {
+        parameters: {
+            query?: {
+                /** @description Number of days to look back */
+                days?: number;
+                /** @description Filter by activity type */
+                type?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bootstrap_api_v1_auth_bootstrap_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Bootstrap"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    credentials_api_v1_auth_credentials_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialView"][];
+                };
+            };
+        };
+    };
+    issue_credential_api_v1_auth_credentials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CredentialCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialIssued"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_credential_api_v1_auth_credentials__credential_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_api_v1_auth_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisableAccess"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    change_password_api_v1_auth_password_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    policy_api_v1_auth_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessPolicy"];
+                };
+            };
+        };
+    };
+    update_policy_api_v1_auth_policy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessPolicy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessPolicy"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sessions_api_v1_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionView"][];
+                };
+            };
+        };
+    };
+    revoke_session_api_v1_auth_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    access_status_api_v1_auth_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessStatus"];
+                };
+            };
+        };
+    };
+    users_api_v1_auth_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"][];
+                };
+            };
+        };
+    };
+    create_user_api_v1_auth_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_auth_users__user_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_channel_status_job_api_v1_background_tasks_channel_status_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelStatusJobRunResponse"];
+                };
+            };
+        };
+    };
+    get_background_tasks_status_api_v1_background_tasks_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackgroundTaskStatus"][];
+                };
+            };
+        };
+    };
+    list_base_urls_api_v1_base_urls_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseUrlResponse"][];
+                };
+            };
+        };
+    };
+    create_base_url_api_v1_base_urls_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BaseUrlCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseUrlResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_base_url_api_v1_base_urls__base_url_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                base_url_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_base_url_api_v1_base_urls__base_url_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                base_url_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["app__schemas__base_url__BaseUrlUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseUrlResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    browser_api_v1_cast_browser_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_cast_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastCapabilities"];
+                };
+            };
+        };
+    };
+    devices_api_v1_cast_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastDevice"][];
+                };
+            };
+        };
+    };
+    sessions_api_v1_cast_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastStatus"][];
+                };
+            };
+        };
+    };
+    start_api_v1_cast_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CastStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    command_api_v1_cast_sessions__cast_id__commands_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cast_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CastCommand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_catalogues_api_v1_catalogues_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueSummary"][];
+                };
+            };
+        };
+    };
+    save_catalogue_api_v1_catalogues_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_catalogue_api_v1_catalogues_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CataloguePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_catalogue_api_v1_catalogues__catalogue_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                catalogue_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_catalogue_api_v1_catalogues__catalogue_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                catalogue_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_event_api_v1_catalogues__catalogue_id__events_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                catalogue_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueEventPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_acestream_channels_api_v1_channels__get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                page?: number;
+                page_size?: number;
+                active_only?: boolean | null;
+                search?: string | null;
+                group?: string | null;
+                is_active?: boolean | null;
+                is_online?: boolean | null;
+                assigned?: boolean | null;
+                source_url?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_acestream_channel_api_v1_channels__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcestreamChannelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_activate_acestream_channels_api_v1_channels_bulk_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkChannelActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_edit_acestream_channels_api_v1_channels_bulk_edit_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkChannelEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_acestream_channels_csv_api_v1_channels_export_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_channel_groups_api_v1_channels_groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_channel_sources_api_v1_channels_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelSourceFilter"][];
+                };
+            };
+        };
+    };
+    get_channel_status_summary_api_v1_channels_status_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelStatusSummary"];
+                };
+            };
+        };
+    };
+    get_acestream_channel_api_v1_channels__acestreamchannel_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_acestream_channel_api_v1_channels__acestreamchannel_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcestreamChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_acestream_channel_api_v1_channels__acestreamchannel_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_acestream_channel_status_api_v1_channels__acestreamchannel_id__check_status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acestreamchannel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ace_engine_url_api_v1_config_ace_engine_url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_ace_engine_url_api_v1_config_ace_engine_url_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AceEngineUrlUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_acestream_status_api_v1_config_acestream_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_addpid_api_v1_config_addpid_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_addpid_api_v1_config_addpid_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPidUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_all_settings_api_v1_config_all_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+        };
+    };
+    get_appid_api_v1_config_appid_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_appid_api_v1_config_appid_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppIdUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_base_url_api_v1_config_base_url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_base_url_api_v1_config_base_url_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["app__schemas__config__BaseUrlUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_check_engine_api_v1_config_check_engine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckEngineConfigResponse"];
+                };
+            };
+        };
+    };
+    update_check_engine_api_v1_config_check_engine_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckEngineConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckEngineConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dashboard_config_api_v1_config_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardConfigResponse"];
+                };
+            };
+        };
+    };
+    update_dashboard_config_api_v1_config_dashboard_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardConfigUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_epg_matching_api_v1_config_epg_matching_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGMatchingConfig"];
+                };
+            };
+        };
+    };
+    update_epg_matching_api_v1_config_epg_matching_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGMatchingConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGMatchingConfig"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    epg_matching_last_run_api_v1_config_epg_matching_last_run_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGMatchingRun"];
+                };
+            };
+        };
+    };
+    get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescrapeIntervalUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_notification_webhook_url_api_v1_config_notification_webhook_url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_notification_webhook_url_api_v1_config_notification_webhook_url_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationWebhookUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_notification_webhook_api_v1_config_notification_webhook_url_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+        };
+    };
+    get_playback_routing_api_v1_config_playback_routing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackRouting"];
+                };
+            };
+        };
+    };
+    update_playback_routing_api_v1_config_playback_routing_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaybackRouting"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackRouting"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_base_url_api_v1_config_public_base_url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_public_base_url_api_v1_config_public_base_url_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicBaseUrlUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_api_v1_config_recordings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingSettings"];
+                };
+            };
+        };
+    };
+    configure_api_v1_config_recordings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordingSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rescrape_interval_api_v1_config_rescrape_interval_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+        };
+    };
+    update_rescrape_interval_api_v1_config_rescrape_interval_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescrapeIntervalUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_schedule_anchors_api_v1_config_schedule_anchors_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleAnchors"];
+                };
+            };
+        };
+    };
+    update_schedule_anchors_api_v1_config_schedule_anchors_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleAnchors"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleAnchors"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_config_key_api_v1_config__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_config_key_api_v1_config__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigKeyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auto_map_channels_api_v1_epg_auto_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_epg_channels_api_v1_epg_channels_get: {
+        parameters: {
+            query?: {
+                source_id?: number | null;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGChannelListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_epg_channel_to_tv_api_v1_epg_channels_map_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGChannelMappingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_epg_channel_api_v1_epg_channels_resolve_get: {
+        parameters: {
+            query: {
+                source_id: number;
+                channel_xml_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unmap_epg_channel_from_tv_api_v1_epg_channels_unmap_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGChannelMappingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_epg_channel_api_v1_epg_channels__channel_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_epg_string_mappings_api_v1_epg_channels__channel_id__mappings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGStringMappingResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_epg_string_mapping_api_v1_epg_channels__channel_id__mappings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGStringMappingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGStringMappingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_epg_programs_api_v1_epg_channels__channel_id__programs_get: {
+        parameters: {
+            query?: {
+                start_date?: string | null;
+                end_date?: string | null;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGProgramResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_all_epg_string_mappings_api_v1_epg_mappings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGStringMappingResponse"][];
+                };
+            };
+        };
+    };
+    delete_epg_string_mapping_api_v1_epg_mappings__mapping_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mapping_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_epg_string_mapping_api_v1_epg_mappings__mapping_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mapping_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGStringMappingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGStringMappingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_epg_sources_api_v1_epg_sources_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGSourceResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_epg_source_api_v1_epg_sources_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGSourceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGSourceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_all_epg_sources_api_v1_epg_sources_refresh_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGRefreshResponse"][];
+                };
+            };
+        };
+    };
+    get_epg_source_api_v1_epg_sources__source_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGSourceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_epg_source_api_v1_epg_sources__source_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_epg_source_api_v1_epg_sources__source_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGSourceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGSourceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_epg_source_api_v1_epg_sources__source_id__refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGRefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_epg_xml_api_v1_epg_xml_get: {
+        parameters: {
+            query?: {
+                search_term?: string | null;
+                favorites_only?: boolean;
+                days_back?: number;
+                days_forward?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_epg_xml_api_v1_epg_xml_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGXmlGenerationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_events_api_v1_events_get: {
+        parameters: {
+            query?: {
+                search?: string;
+                sport?: string;
+                competition?: string;
+                source?: string;
+                day?: string | null;
+                zone?: string;
+                upcoming?: boolean;
+                followed?: boolean;
+                archived?: boolean;
+                selection?: "agenda" | "dashboard";
+                interests?: string;
+                window_days?: number | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_events_api_v1_events_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    event_broadcast_targets_api_v1_events_broadcast_targets_get: {
+        parameters: {
+            query?: {
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventChannelTarget"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    event_interests_api_v1_events_interests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventInterestChoices"];
+                };
+            };
+        };
+    };
+    preview_events_api_v1_events_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventImport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    event_providers_api_v1_events_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventProviderCatalog"];
+                };
+            };
+        };
+    };
+    event_retention_api_v1_events_retention_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventRetention"];
+                };
+            };
+        };
+    };
+    save_event_retention_api_v1_events_retention_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventRetention"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventRetention"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    event_sources_api_v1_events_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSourceView"][];
+                };
+            };
+        };
+    };
+    preview_event_source_api_v1_events_sources_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventSourcePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    queue_event_refresh_api_v1_events_sources_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventRefreshQueued"];
+                };
+            };
+        };
+    };
+    delete_event_source_api_v1_events_sources__source_id__delete: {
+        parameters: {
+            query: {
+                revision: number;
+            };
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_event_source_api_v1_events_sources__source_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventSourceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSourceView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_api_v1_events__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_event_api_v1_events__event_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    event_artwork_api_v1_events__event_id__artwork_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                    "image/webp": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_event_broadcast_api_v1_events__event_id__broadcast_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventBroadcastMapping"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_event_overlays_api_v1_events__event_id__guide_overlays_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOverlayView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_event_overlay_api_v1_events__event_id__guide_overlays_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventOverlayApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOverlayView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_event_overlay_api_v1_events__event_id__guide_overlays_delete: {
+        parameters: {
+            query: {
+                revision: number;
+                broadcast_id: string;
+            };
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_event_overlay_api_v1_events__event_id__guide_overlays_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventOverlayRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOverlayPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_health_api_v1_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    list_rules_api_v1_import_exclusions_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                enabled?: boolean | null;
+                rule_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExclusionList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_rule_api_v1_import_exclusions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExclusionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExclusionWrite"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_v1_import_exclusions_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExclusionPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExclusionPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_rule_api_v1_import_exclusions__rule_id__delete: {
+        parameters: {
+            query: {
+                expected_revision: number;
+            };
+            header?: never;
+            path: {
+                rule_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_rule_api_v1_import_exclusions__rule_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExclusionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExclusionWrite"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_media_servers_api_v1_media_servers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerResponse"][];
+                };
+            };
+        };
+    };
+    create_media_server_api_v1_media_servers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaServerCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_media_server_api_v1_media_servers_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaServerTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerProbeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_media_server_api_v1_media_servers__server_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_media_server_api_v1_media_servers__server_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaServerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    connect_media_server_api_v1_media_servers__server_id__connect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disconnect_media_server_api_v1_media_servers__server_id__disconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_media_server_api_v1_media_servers__server_id__refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerRefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    media_server_status_api_v1_media_servers__server_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_saved_media_server_api_v1_media_servers__server_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                server_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaServerProbeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_player_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerCapabilities"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_player_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerSessionListResponse"];
+                };
+            };
+        };
+    };
+    create_session_api_v1_player_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerSessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerSessionStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_player_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerSessionStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    leave_session_api_v1_player_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    playlist_api_v1_player_sessions__session_id__index_m3u8_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    video_playlist_api_v1_player_sessions__session_id__video_m3u8_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    segment_api_v1_player_sessions__session_id___segment__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                segment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    active_streams_api_v1_player_streams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveStreamListResponse"];
+                };
+            };
+        };
+    };
+    get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                include_unassigned?: boolean;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_channel_groups_api_v1_playlists_groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    guide_coverage_api_v1_playlists_guide_coverage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaylistGuideCoverage"];
+                };
+            };
+        };
+    };
+    get_m3u_playlist_api_v1_playlists_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                group?: string | null;
+                only_online?: boolean;
+                /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
+                include_unassigned?: boolean | null;
+                /** @description TV relay formats: list each source under its channel, to switch by hand. */
+                per_source?: boolean;
+                favorites_only?: boolean;
+                include_groups?: string | null;
+                exclude_groups?: string | null;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_m3u_playlist_compat_api_v1_playlists_playlists_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                group?: string | null;
+                only_online?: boolean;
+                /** @description Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats. */
+                include_unassigned?: boolean | null;
+                /** @description TV relay formats: list each source under its channel, to switch by hand. */
+                per_source?: boolean;
+                favorites_only?: boolean;
+                include_groups?: string | null;
+                exclude_groups?: string | null;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                favorites_only?: boolean;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listing_api_v1_recordings_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                state?: ("scheduled" | "starting" | "recording" | "recovering" | "finalizing" | "completed" | "partial" | "failed" | "missed" | "cancelled" | "deleting" | "deleted") | null;
+                search?: string | null;
+                tv_channel_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_v1_recordings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_recordings_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingCapabilities"];
+                };
+            };
+        };
+    };
+    current_programme_api_v1_recordings_current_programme_get: {
+        parameters: {
+            query: {
+                tv_channel_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgrammeSelection"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upcoming_api_v1_recordings_upcoming_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingList"];
+                };
+            };
+        };
+    };
+    detail_api_v1_recordings__rid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_recordings__rid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_api_v1_recordings__rid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordingEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_recordings__rid__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convert_api_v1_recordings__rid__conversions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordingConversion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingFile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_api_v1_recordings__rid__files__fid__get: {
+        parameters: {
+            query?: {
+                download?: boolean;
+            };
+            header?: never;
+            path: {
+                rid: string;
+                fid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_api_v1_recordings__rid__files__fid__head: {
+        parameters: {
+            query?: {
+                download?: boolean;
+            };
+            header?: never;
+            path: {
+                rid: string;
+                fid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_playback_api_v1_recordings__rid__playback_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordingPlaybackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingPlaybackView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    playback_status_api_v1_recordings__rid__playback_sessions__sid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingPlaybackView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_playback_api_v1_recordings__rid__playback_sessions__sid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_api_v1_recordings__rid__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_players_api_v1_remote_players_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemotePlayerResponse"][];
+                };
+            };
+        };
+    };
+    create_player_api_v1_remote_players_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemotePlayerCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemotePlayerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    android_pair_finish_api_v1_remote_players_android_pair_finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AndroidPairFinishRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AndroidPairFinishResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    android_pair_start_api_v1_remote_players_android_pair_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AndroidPairStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AndroidPairStartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scan_api_v1_remote_players_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScanResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scan_default_api_v1_remote_players_scan_default_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScanDefaultResponse"];
+                };
+            };
+        };
+    };
+    test_player_api_v1_remote_players_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemotePlayerTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemotePlayerProbeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_player_api_v1_remote_players__player_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_player_api_v1_remote_players__player_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemotePlayerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemotePlayerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    player_command_api_v1_remote_players__player_id__command_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemotePlayerCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    play_on_player_api_v1_remote_players__player_id__play_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemotePlayerPlayRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemotePlayerPlayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    player_status_api_v1_remote_players__player_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemotePlayerStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_saved_player_api_v1_remote_players__player_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemotePlayerProbeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_searches_api_v1_saved_searches_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_search_api_v1_saved_searches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedSearchInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_v1_saved_searches_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedSearchPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_search_api_v1_saved_searches__search_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                search_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_search_api_v1_saved_searches__search_id__delete: {
+        parameters: {
+            query: {
+                expected_revision: number;
+            };
+            header?: never;
+            path: {
+                search_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_search_api_v1_saved_searches__search_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                search_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedSearchUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_search_api_v1_saved_searches__search_id__run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                search_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedSearchRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    builtin_providers_api_v1_scrapers_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuiltinProvider"][];
+                };
+            };
+        };
+    };
+    preview_extraction_api_v1_scrapers_recipes_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fetch_extraction_sample_api_v1_scrapers_recipes_sample_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeFetchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeSample"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scrape_url_api_v1_scrapers_scrape_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScraperRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScraperResultExtended"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scraped_urls_api_v1_scrapers_urls_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["URLResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_scraped_url_api_v1_scrapers_urls_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["URLCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["URLResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scrape_all_urls_api_v1_scrapers_urls_scrape_all_post: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScraperResultExtended"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scraped_url_api_v1_scrapers_urls__url_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                url_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["URLResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_scraped_url_api_v1_scrapers_urls__url_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                url_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_scraped_url_api_v1_scrapers_urls__url_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                url_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["URLUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["URLResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scrape_specific_url_api_v1_scrapers_urls__url_id__scrape_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                url_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScraperResultExtended"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_channels_api_v1_search_get: {
+        parameters: {
+            query?: {
+                /** @description Search query string (optional) */
+                query?: string;
+                /** @description Page number (default: 1, must be >= 1) */
+                page?: number;
+                /** @description Results per page (default: 10, must be >= 1, alias: per_page) */
+                per_page?: number;
+                /** @description Filter by category (optional) */
+                category?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_channel_api_v1_search_add_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddChannelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchImportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_multiple_channels_api_v1_search_add_multiple_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddMultipleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchImportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_search_results_api_v1_search_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchImportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_search_broadcast_api_v1_search__infohash__check_status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                infohash: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_search_result_api_v1_search__infohash__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                infohash: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvedSearchResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_setup_api_v1_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupState"];
+                };
+            };
+        };
+    };
+    save_setup_api_v1_setup_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    status_api_v1_startup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartupStatus"];
+                };
+            };
+        };
+    };
+    diagnostics_api_v1_startup_diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    recover_api_v1_startup_recover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartupRecoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartupStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stats_api_v1_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthStatsResponse"];
+                };
+            };
+        };
+    };
+    get_stats_api_v1_stats__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatsResponse"];
+                };
+            };
+        };
+    };
+    get_tv_channel_stats_api_v1_stats_tv_channels__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelStatsResponse"];
+                };
+            };
+        };
+    };
+    get_active_streams_api_v1_streams_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    download_diagnostics_api_v1_system_diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+        };
+    };
+    get_public_url_api_v1_system_public_url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicUrlResponse"];
+                };
+            };
+        };
+    };
+    list_services_api_v1_system_services_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServicesStatusResponse"];
+                };
+            };
+        };
+    };
+    start_check_engine_api_v1_system_services_acestream_check_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRestartResponse"];
+                };
+            };
+        };
+    };
+    stop_check_engine_api_v1_system_services_acestream_check_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRestartResponse"];
+                };
+            };
+        };
+    };
+    start_engine_api_v1_system_services_acestream_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRestartResponse"];
+                };
+            };
+        };
+    };
+    stop_engine_api_v1_system_services_acestream_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRestartResponse"];
+                };
+            };
+        };
+    };
+    get_service_api_v1_system_services__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restart_service_api_v1_system_services__name__restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRestartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_storage_api_v1_system_storage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageReport"];
+                };
+            };
+        };
+    };
+    get_updates_api_v1_system_updates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStatus"];
+                };
+            };
+        };
+    };
+    logout_api_v1_telegram_account_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStatus"];
+                };
+            };
+        };
+    };
+    chats_api_v1_telegram_chats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramPeer"][];
+                };
+            };
+        };
+    };
+    topics_api_v1_telegram_chats__chat_id__topics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chat_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramPeer"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    code_api_v1_telegram_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramCode"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disconnect_api_v1_telegram_disconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStatus"];
+                };
+            };
+        };
+    };
+    login_api_v1_telegram_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramLogin"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_api_v1_telegram_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramPassword"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preset_api_v1_telegram_preset_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractionRecipe"];
+                };
+            };
+        };
+    };
+    preview_api_v1_telegram_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconnect_api_v1_telegram_reconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStatus"];
+                };
+            };
+        };
+    };
+    resolve_api_v1_telegram_resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramResolve"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramPeer"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sources_api_v1_telegram_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramSource"][];
+                };
+            };
+        };
+    };
+    create_source_api_v1_telegram_sources_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramSourceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramSource"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_source_api_v1_telegram_sources__source_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramSourceConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramSource"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_source_api_v1_telegram_sources__source_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scan_api_v1_telegram_sources__source_id__scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    status_api_v1_telegram_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStatus"];
+                };
+            };
+        };
+    };
+    get_tuner_settings_api_v1_tuner_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunerSettingsResponse"];
+                };
+            };
+        };
+    };
+    update_tuner_settings_api_v1_tuner_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TunerSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunerSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tuner_status_api_v1_tuner_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunerStatusResponse"];
+                };
+            };
+        };
+    };
+    get_tv_channels_api_v1_tv_channels__get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                page?: number;
+                page_size?: number;
+                search?: string;
+                favorites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_tv_channel_api_v1_tv_channels__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_epg_matches_api_v1_tv_channels_analyze_epg_matches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EPGMatchAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EPGMatchAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    associate_by_epg_api_v1_tv_channels_associate_by_epg_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    apply_tv_matches_api_v1_tv_channels_automatch_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVMatchApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVMatchApplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_tv_matches_api_v1_tv_channels_automatch_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TVMatchOptions"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVMatchPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_assign_acestreams_api_v1_tv_channels_batch_assign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelBatchAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelBatchAssignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelBulkEPGUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelBulkEPGUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_tv_channels_from_epg_analysis_api_v1_tv_channels_create_from_epg_analysis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelCreateFromEPGAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelCreateFromEPGAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelCreateFromEPGRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelCreateFromEPGResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_tv_channels_api_v1_tv_channels_reorder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tv_channel_api_v1_tv_channels__tv_channel_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_tv_channel_api_v1_tv_channels__tv_channel_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_tv_channel_api_v1_tv_channels__tv_channel_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    associate_acestream_api_v1_tv_channels__tv_channel_id__acestreams_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelAssociationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_reorder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TVChannelStreamReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcestreamChannelResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_acestream_association_api_v1_tv_channels__tv_channel_id__acestreams__acestream_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+                acestream_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post: {
+        parameters: {
+            query?: {
+                /** @description Explicit favorite state; omit to toggle */
+                value?: boolean;
+            };
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_all_urls_api_v1_urls_refresh_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    refresh_url_api_v1_urls__url_id__refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                url_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    channels_api_v1_view_channels_get: {
+        parameters: {
+            query?: {
+                search?: string;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchChannels"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    events_api_v1_view_events_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchEvent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guide_api_v1_view_guide_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchProgramme"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    live_api_v1_view_live_get: {
+        parameters: {
+            query?: {
+                search?: string;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchChannels"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    playlist_link_api_v1_view_playlists_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaylistLink"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_view_recordings_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchRecording"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recording_file_api_v1_view_recordings__rid__files__fid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                fid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_recording_api_v1_view_recordings__rid__playback_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordingPlaybackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingPlaybackView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingPlaybackView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_v1_viewers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerSessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    status_api_v1_viewers__viewer_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                viewer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewerStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    release_api_v1_viewers__viewer_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                viewer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    media_api_v1_viewers__viewer_id__media__resource__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                viewer_id: string;
+                resource: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    connect_to_warp_api_v1_warp_connect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    disconnect_from_warp_api_v1_warp_disconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_exclusions_api_v1_warp_exclusions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpExclusionsState"];
+                };
+            };
+        };
+    };
+    save_exclusions_api_v1_warp_exclusions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarpExclusionsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpExclusionsState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_warp_license_api_v1_warp_license_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_warp_mode_api_v1_warp_mode_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarpModeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_warp_status_api_v1_warp_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    legacy_m3u_playlist_playlist_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                group?: string | null;
+                only_online?: boolean;
+                include_unassigned?: boolean | null;
+                per_source?: boolean;
+                include_groups?: string | null;
+                exclude_groups?: string | null;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_m3u_playlist_playlists_m3u_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                group?: string | null;
+                only_online?: boolean;
+                include_unassigned?: boolean | null;
+                per_source?: boolean;
+                include_groups?: string | null;
+                exclude_groups?: string | null;
+                base_url?: string | null;
+                base_url_id?: number | null;
+                format?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tuner_channel_tuner_channel__tv_channel_id__ts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tv_channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "video/mp2t": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tuner_stream_tuner_stream__content_id__ts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "video/mp2t": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
 }

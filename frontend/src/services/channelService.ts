@@ -2,6 +2,8 @@
  * Acestream Channel API service
  */
 import apiClient from './apiClient';
+
+export type ChannelSourceFilter = components['schemas']['ChannelSourceFilter'];
 import type { components } from '../types/api-generated';
 
 /**
@@ -21,6 +23,7 @@ export interface AcestreamChannel {
   tvg_name?: string;
   m3u_source?: string;
   original_url?: string;
+  id_kind?: components['schemas']['AcestreamChannelResponse']['id_kind'];
   network_status?: components['schemas']['AcestreamChannelResponse']['network_status'];
   is_online: boolean | null;
   last_checked?: string;
@@ -40,6 +43,7 @@ export interface AcestreamChannel {
  * Acestream Channel creation DTO
  */
 export interface CreateAcestreamChannelDTO {
+  allow_excluded?: boolean;
   id: string;
   name: string;
   source_url?: string;
@@ -73,6 +77,7 @@ export interface UpdateAcestreamChannelDTO {
  * Acestream Channel filter parameters
  */
 export interface AcestreamChannelFilters {
+  source_url?: string;
   search?: string;
   group?: string;
   is_active?: boolean;
@@ -161,7 +166,7 @@ const acestreamChannelService = {
       delete params.is_active;
       delete params.active_only;
     }
-    const { data } = await apiClient.get('/v1/acestream-channels', { params });
+    const { data } = await apiClient.get('/v1/acestream-channels/', { params });
     return data;
   },
 
@@ -177,7 +182,7 @@ const acestreamChannelService = {
    * Create a new channel
    */
   createAcestreamChannel: async (channelData: CreateAcestreamChannelDTO): Promise<AcestreamChannel> => {
-    const { data } = await apiClient.post('/v1/acestream-channels', channelData);
+    const { data } = await apiClient.post('/v1/acestream-channels/', channelData);
     return data;
   },
 
@@ -220,6 +225,11 @@ const acestreamChannelService = {
   /**
    * Get all unique channel groups
    */
+  getSources: async (): Promise<ChannelSourceFilter[]> => {
+    const { data } = await apiClient.get('/v1/acestream-channels/sources');
+    return data;
+  },
+
   getGroups: async (): Promise<string[]> => {
     const { data } = await apiClient.get('/v1/acestream-channels/groups');
     return data;

@@ -111,7 +111,7 @@ if [ "$PHASE" = "prepare" ]; then
     exit 0
 fi
 
-export WARP_FORCE_IPV4=true
+export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
 
 if [ "$PHASE" = "all" ]; then
     log "Starting WARP service"
@@ -144,6 +144,18 @@ if [ "$WARP_ENABLE_NAT" = "true" ]; then
     run_privileged nft add table ip nat >> "$WARP_LOG" 2>&1 || true
     run_privileged nft add chain ip nat WARP_NAT '{ type nat hook postrouting priority 100 ; }' >> "$WARP_LOG" 2>&1 || true
     run_privileged nft add rule ip nat WARP_NAT oifname CloudflareWARP masquerade >> "$WARP_LOG" 2>&1 || true
+fi
+
+# The app and startup use one durable desired list. It takes precedence over
+# WARP_EXCLUDE_HOSTS after the first save, including an explicitly empty list.
+exclusions_script="$(dirname "$0")/backend/warp_exclusions.py"
+if [ ! -f "$exclusions_script" ]; then exclusions_script=/app/warp_exclusions.py; fi
+if ! python3 "$exclusions_script" >> "$WARP_LOG" 2>&1; then
+    fail "Could not apply saved WARP exclusions; see warp.log"
+fi
+# A host-policy change can reconnect the tunnel. Preserve the startup barrier.
+if [ "$WARP_ENABLE_NAT" = "true" ]; then
+    wait_for_warp_ready "WARP exclusions" "${WARP_READY_ATTEMPTS:-30}" "${WARP_READY_INTERVAL:-1}" connected
 fi
 
 log "Checking WARP status"

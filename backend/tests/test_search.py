@@ -53,12 +53,12 @@ class TestSearchEndpoints:
     def test_search_channels_with_invalid_page(self, client, mock_search_service):
         """Test searching with invalid page parameter."""
         response = client.get("/api/v1/search?q=test&page=0")
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_search_channels_with_invalid_per_page(self, client, mock_search_service):
         """Test searching with invalid per_page parameter."""
         response = client.get("/api/v1/search?q=test&per_page=0")
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_search_channels_with_large_per_page(self, client, mock_search_service):
         """Test searching with large per_page parameter."""
@@ -69,275 +69,63 @@ class TestSearchEndpoints:
         assert data["pagination"]["page_size"] <= 100
 
 
-class TestSearchAddEndpoints:
-    """Test adding channels from search results."""
-
-    def test_add_channel_from_search(self, client, mock_search_service):
-        """Test adding a channel from search results."""
-        channel_data = {
-            "id": str(uuid.uuid4()),
-            "name": "Test Search Channel",
-            "url": "acestream://test123456789",
-            "category": "Entertainment",
-            "description": "A test channel from search",
-            "logo": "https://example.com/logo.png"
-        }
-        response = client.post("/api/v1/search/add", json=channel_data)
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["message"] == "Channel added successfully"
-        assert "channel" in data
-        assert data["channel"]["name"] == channel_data["name"]
-        assert data["channel"]["source_url"] == channel_data["url"]
-
-    def test_add_channel_from_search_invalid_data(self, client, mock_search_service):
-        """Test adding a channel with invalid data."""
-        invalid_data = {"name": ""}  # Missing required fields
-        response = client.post("/api/v1/search/add", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    def test_add_channel_from_search_missing_id(self, client, mock_search_service):
-        """Test adding a channel without ID."""
-        channel_data = {
-            "name": "Test Search Channel",
-            "url": "acestream://test123456789",
-            "category": "Entertainment"
-        }
-        response = client.post("/api/v1/search/add", json=channel_data)
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert "channel" in data
-        assert data["channel"]["name"] == channel_data["name"]
-        # Should generate an ID
-        assert data["channel"]["id"] is not None
-
-    def test_add_channel_from_search_duplicate(self, client, seed_channels):
-        """Test adding a channel that already exists."""
-        existing_channel = seed_channels[0]
-        channel_data = {
-            "id": existing_channel.id,
-            "name": "Updated Channel Name",
-            "url": "acestream://updated123456789",
-            "category": "Entertainment"
-        }
-        response = client.post("/api/v1/search/add", json=channel_data)
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["message"] == "Channel updated successfully"
-        assert data["channel"]["name"] == channel_data["name"]
-
-    def test_add_channel_with_tv_channel_association(self, client, seed_tv_channels):
-        """Test adding a channel with TV channel association."""
-        tv_channel_id = seed_tv_channels[0].id
-        channel_data = {
-            "id": str(uuid.uuid4()),
-            "name": "Test Search Channel",
-            "url": "acestream://test123456789",
-            "category": "Entertainment",
-            "tv_channel_id": tv_channel_id
-        }
-        response = client.post("/api/v1/search/add", json=channel_data)
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["channel"]["tv_channel_id"] == tv_channel_id
+@pytest.mark.parametrize('route', ['/add', '/add_multiple', '/import'])
+def test_search_import_routes_resolve_and_preserve_existing(client, db_session, monkeypatch, route):
+    from app.models.models import AcestreamChannel
+    from app.repositories.settings_repository import SettingsRepository
+    from app.services.search_catalogue_client import SearchCatalogueClient
+    SettingsRepository(db_session).set_setting('ace_engine_url', 'http://engine')
+    ih, cid = 'a' * 40, 'b' * 40
+    monkeypatch.setattr(SearchCatalogueClient, 'resolve', lambda self, value: cid)
+    item = {'id': ih, 'name': 'Publisher', 'url': 'acestream://' + ih}
+    payload = {'items': [{'infohash': ih, 'name': 'Publisher'}]} if route == '/import' else {'channels': [item]} if route == '/add_multiple' else item
+    first = client.post('/api/v1/search' + route, json=payload)
+    assert first.status_code == 200
+    assert first.json()['items'][0]['content_id'] == cid
+    row = db_session.get(AcestreamChannel, cid)
+    row.name, row.is_active, row.is_online = 'Operator', False, True
+    db_session.commit()
+    second = client.post('/api/v1/search' + route, json=payload)
+    assert second.json()['items'][0]['outcome'] == 'existing'
+    db_session.refresh(row)
+    assert (row.name, row.is_active, row.is_online) == ('Operator', False, True)
+    assert db_session.get(AcestreamChannel, ih) is None
 
 
-class TestSearchAddMultipleEndpoints:
-    """Test adding multiple channels from search results."""
-
-    def test_add_multiple_channels_from_search(self, client):
-        """Test adding multiple channels from search results."""
-        channels_data = [
-            {
-                "id": str(uuid.uuid4()),
-                "name": "Test Search Channel 1",
-                "url": "acestream://test123456789",
-                "category": "Entertainment"
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "name": "Test Search Channel 2",
-                "url": "acestream://test987654321",
-                "category": "Sports"
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "name": "Test Search Channel 3",
-                "url": "acestream://test555666777",
-                "category": "News"
-            }
-        ]
-
-        response = client.post("/api/v1/search/add_multiple", json={"channels": channels_data})
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["message"] == "3 channels processed successfully"
-        assert "added_channels" in data
-        assert data["added_count"] == 3
-        assert len(data["added_channels"]) == 3
-        assert data["updated_count"] == 0
-
-    def test_add_multiple_channels_empty_list(self, client):
-        """Test adding multiple channels with empty list."""
-        response = client.post("/api/v1/search/add_multiple", json={"channels": []})
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_add_multiple_channels_mixed_results(self, client, seed_channels):
-        """Test adding multiple channels with mixed results (new and existing)."""
-        existing_channel = seed_channels[0]
-        channels_data = [
-            {
-                "id": existing_channel.id,
-                "name": "Updated Channel Name",
-                "url": "acestream://updated123456789",
-                "category": "Entertainment"
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "name": "New Search Channel",
-                "url": "acestream://new123456789",
-                "category": "Sports"
-            }
-        ]
-
-        response = client.post("/api/v1/search/add_multiple", json={"channels": channels_data})
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["message"] == "2 channels processed successfully"
-        assert data["added_count"] == 1
-        assert data["updated_count"] == 1
-        assert data["failed_count"] == 0
-
-    def test_add_multiple_channels_with_errors(self, client):
-        """Test adding multiple channels with some invalid data."""
-        channels_data = [
-            {
-                "id": str(uuid.uuid4()),
-                "name": "Valid Channel",
-                "url": "acestream://valid123456789",
-                "category": "Entertainment"
-            },
-            {
-                "name": "",  # Invalid: empty name
-                "url": "acestream://invalid123456789",
-                "category": "Sports"
-            }
-        ]
-
-        response = client.post("/api/v1/search/add_multiple", json={"channels": channels_data})
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["added_count"] == 1
-        assert data["failed_count"] == 1
-        assert len(data["results"]) == 2
-
-        # Check that valid channel was added
-        valid_result = next(r for r in data["results"] if r["success"])
-        assert valid_result["channel"]["name"] == "Valid Channel"
-
-        # Check that invalid channel failed
-        invalid_result = next(r for r in data["results"] if not r["success"])
-        assert "error" in invalid_result
-
-    def test_add_multiple_channels_with_duplicates_in_batch(self, client):
-        """Test adding multiple channels with duplicates within the batch."""
-        duplicate_id = str(uuid.uuid4())
-        channels_data = [
-            {
-                "id": duplicate_id,
-                "name": "Duplicate Channel 1",
-                "url": "acestream://duplicate123456789",
-                "category": "Entertainment"
-            },
-            {
-                "id": duplicate_id,
-                "name": "Duplicate Channel 2",
-                "url": "acestream://duplicate987654321",
-                "category": "Sports"
-            }
-        ]
-
-        response = client.post("/api/v1/search/add_multiple", json={"channels": channels_data})
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        # Should handle duplicates gracefully
-        assert data["added_count"] <= 2
-
-    def test_add_multiple_channels_with_associations(self, client, seed_tv_channels):
-        """Test adding multiple channels with TV channel associations."""
-        tv_channel_id = seed_tv_channels[0].id
-        channels_data = [
-            {
-                "id": str(uuid.uuid4()),
-                "name": "Associated Channel 1",
-                "url": "acestream://assoc123456789",
-                "category": "Entertainment",
-                "tv_channel_id": tv_channel_id
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "name": "Associated Channel 2",
-                "url": "acestream://assoc987654321",
-                "category": "Sports",
-                "tv_channel_id": tv_channel_id
-            }
-        ]
-
-        response = client.post("/api/v1/search/add_multiple", json={"channels": channels_data})
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["added_count"] == 2
-
-        # Verify associations were created
-        for result in data["results"]:
-            if result["success"]:
-                assert result["channel"]["tv_channel_id"] == tv_channel_id
+@pytest.mark.parametrize('route,payload', [
+    ('/add', {'name': 'Missing ID', 'url': 'acestream://invalid'}),
+    ('/add', {'id': 'uuid-not-an-infohash', 'name': 'Invalid ID', 'url': 'acestream://invalid'}),
+    ('/add_multiple', {'channels': []}),
+    ('/import', {'items': []}),
+])
+def test_search_import_rejects_missing_or_invalid_infohash(client, route, payload):
+    assert client.post('/api/v1/search' + route, json=payload).status_code == 422
 
 
-class TestSearchIntegration:
-    """Test search integration with other components."""
+@pytest.mark.parametrize('route', ['/add', '/add_multiple'])
+def test_legacy_imports_enforce_policy(client, db_session, monkeypatch, route):
+    from app.repositories.settings_repository import SettingsRepository
+    from app.services.search_catalogue_client import SearchCatalogueClient
+    SettingsRepository(db_session).set_setting('ace_engine_url', 'http://engine')
+    monkeypatch.setattr(SearchCatalogueClient, 'resolve', lambda *args: 'b' * 40)
+    client.post('/api/v1/import-exclusions', json={'kind': 'stream_id_equals', 'value': 'b' * 40})
+    item = {'id': 'a' * 40, 'name': 'Blocked', 'url': 'acestream://' + 'a' * 40}
+    result = client.post('/api/v1/search' + route, json=item if route == '/add' else {'channels': [item]})
+    assert result.status_code == 200
+    assert result.json()['excluded'] == 1
 
-    def test_search_and_verify_channel_creation(self, client, db_session):
-        """Test that adding from search actually creates channels in database."""
-        channel_data = {
-            "id": str(uuid.uuid4()),
-            "name": "Integration Test Channel",
-            "url": "acestream://integration123456789",
-            "category": "Entertainment"
-        }
 
-        # Add channel from search
-        response = client.post("/api/v1/search/add", json=channel_data)
-        assert response.status_code == status.HTTP_201_CREATED
-        created_channel = response.json()["channel"]
-
-        # Verify channel exists in database
-        response = client.get(f"/api/v1/channels/{created_channel['id']}")
-        assert response.status_code == status.HTTP_200_OK
-        channel = response.json()
-        assert channel["name"] == channel_data["name"]
-        assert channel["source_url"] == channel_data["url"]
-
-    def test_search_integration_with_tv_channels(self, client, seed_tv_channels):
-        """Test search integration with TV channel associations."""
-        tv_channel = seed_tv_channels[0]
-
-        # Add channel from search with TV channel association
-        channel_data = {
-            "id": str(uuid.uuid4()),
-            "name": "TV Integration Channel",
-            "url": "acestream://tvintegration123456789",
-            "category": "Entertainment",
-            "tv_channel_id": tv_channel.id
-        }
-
-        response = client.post("/api/v1/search/add", json=channel_data)
-        assert response.status_code == status.HTTP_201_CREATED
-        created_channel = response.json()["channel"]
-
-        # Verify TV channel association
-        response = client.get(f"/api/v1/tv-channels/{tv_channel.id}/acestreams")
-        assert response.status_code == status.HTTP_200_OK
-        acestreams = response.json()
-        assert len(acestreams) == 1
-        assert acestreams[0]["id"] == created_channel["id"]
+def test_empty_search_uses_paginated_catalogue_request(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from app.services.search_service import SearchService
+    from app.services.search_catalogue_client import SearchCatalogueClient
+    requests = []
+    def get(self, path, params):
+        requests.append((path, params))
+        return {'result': {'results': [{'infohash': 'a' * 40, 'name': 'All channel'}], 'total': 201}}
+    monkeypatch.setattr(SearchCatalogueClient, 'get', get)
+    config = SimpleNamespace(get_ace_engine_url=lambda: 'http://engine.example')
+    result = asyncio.run(SearchService(config).search('  ', 3, 25, 'sports'))
+    assert requests == [('/search', {'query': '', 'category': 'sports', 'page': 2, 'page_size': 25})]
+    assert result['pagination'] == dict(page=3, page_size=25, total_results=201, total_pages=9)

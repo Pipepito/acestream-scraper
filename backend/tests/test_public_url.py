@@ -78,7 +78,7 @@ def test_warnings_for_unreachable_hosts(alembic_client, clean_env, value):
 )
 def test_invalid_public_base_url_is_422(alembic_client, clean_env, bad):
     response = alembic_client.put("/api/v1/config/public_base_url", json={"value": bad})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_empty_value_clears_the_override(alembic_client, clean_env):

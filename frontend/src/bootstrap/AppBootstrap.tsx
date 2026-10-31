@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '../App';
 import StartupGate from '../components/StartupGate';
+import AccessGate from '../components/access/AccessGate';
 import { createAppTheme, type ThemeMode } from '../theme';
 
 const APP_THEME_MODE_STORAGE_KEY = 'app-theme-mode';
@@ -102,13 +103,8 @@ const AppBootstrap: React.FC = () => {
       <AppThemeModeContext.Provider value={controller}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
-            <StartupGate><App /></StartupGate>
+          <BrowserRouter>
+            <AccessGate><StartupGate><App /></StartupGate></AccessGate>
           </BrowserRouter>
         </ThemeProvider>
       </AppThemeModeContext.Provider>

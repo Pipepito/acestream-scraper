@@ -15,6 +15,7 @@ class SettingsRepository:
     ACE_ENGINE_URL = 'ace_engine_url'
     PLAYBACK_ROUTING = 'playback_routing'
     RESCRAPE_INTERVAL = 'rescrape_interval'
+    NOTIFICATION_WEBHOOK_URL = 'notification_webhook_url'
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
     CHANNEL_STATUS_INTERVAL = 'channel_status_interval'
@@ -25,7 +26,10 @@ class SettingsRepository:
     TUNER_COUNT = 'tuner_count'
     TUNER_MAX_CHANNELS = 'tuner_max_channels'
     TUNER_ONLY_ONLINE = 'tuner_only_online'
+    TUNER_PLEX_COMPATIBLE_AUDIO = 'tuner_plex_compatible_audio'
     TUNER_EXPERIMENTAL_TRANSCODING = 'tuner_experimental_transcoding'
+    TUNER_SOURCE_START_SECONDS = 'tuner_source_start_seconds'
+    TUNER_STARTUP_BUDGET_SECONDS = 'tuner_startup_budget_seconds'
 
     # Constants for default values
     DEFAULT_BASE_URL = 'acestream://'
@@ -48,6 +52,9 @@ class SettingsRepository:
     DEFAULT_TUNER_COUNT = '4'
     DEFAULT_TUNER_MAX_CHANNELS = '450'
     DEFAULT_TUNER_ONLY_ONLINE = 'false'
+    # The relay's previous constants: a slow P2P host can raise them (#226).
+    DEFAULT_TUNER_SOURCE_START_SECONDS = '15'
+    DEFAULT_TUNER_STARTUP_BUDGET_SECONDS = '45'
 
     # Keys whose stored empty value means "not configured" rather than
     # "deliberately blank". Their DEFAULT_<KEY> comes from the environment, and
@@ -104,12 +111,12 @@ class SettingsRepository:
             setting = self.db.query(Setting).filter(Setting.key == key).first()
 
             if setting:
-                logger.info(f"Updating setting {key} to {value}")
+                logger.info(f"Updating setting {key}")
                 setting.value = str(value)
                 if description:
                     setting.description = description
             else:
-                logger.info(f"Creating setting {key} = {value}")
+                logger.info(f"Creating setting {key}")
                 setting = Setting(
                     key=key,
                     value=str(value),
@@ -120,7 +127,8 @@ class SettingsRepository:
             self.db.commit()
             self.db.flush()
             self.db.expire_all()
-            logger.info(f"Committed setting {key} = {value}")
+            # Key only: some values carry a secret (a webhook's token).
+            logger.info(f"Committed setting {key}")
             return True
         except Exception as e:
             logger.error(f"Error setting {key}: {e}")
@@ -135,11 +143,17 @@ class SettingsRepository:
         except Exception as e:
             return {}
 
+    def get_setup_overrides(self) -> Dict[str, str]:
+        """Only the preferences that can override wizard connection defaults."""
+        keys = [self.ACE_ENGINE_URL, self.PUBLIC_BASE_URL, 'check_engine_config', self.PLAYBACK_ROUTING]
+        return {row.key: row.value for row in self.db.query(Setting).filter(Setting.key.in_(keys)).all()}
+
     def setup_defaults(self) -> bool:
         """Set up default settings if they don't exist"""
         default_settings = {
             self.BASE_URL: (self.DEFAULT_BASE_URL, "Base URL for Acestream links"),
-            self.ACE_ENGINE_URL: (self.DEFAULT_ACE_ENGINE_URL, "Acestream Engine URL"),
+            # Keep the runtime default live until the operator explicitly saves
+            # a database override (including an intentional empty endpoint).
             self.RESCRAPE_INTERVAL: (self.DEFAULT_RESCRAPE_INTERVAL, "Hours between automatic rescrapes"),
             self.ADDPID: (self.DEFAULT_ADDPID, "Add PID to Acestream links"),
             self.EPG_REFRESH_INTERVAL: (self.DEFAULT_EPG_REFRESH_INTERVAL, "Hours between EPG refreshes"),

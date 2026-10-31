@@ -7,8 +7,6 @@ Create Date: 2023-12-01
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
 
 
 # revision identifiers, used by Alembic.
@@ -16,9 +14,6 @@ revision = 't36GeaTCrBqm'
 down_revision = 'h6s6bgh82cxa'
 branch_labels = None
 depends_on = None
-
-Base = declarative_base()
-
 
 def has_column(table, column):
     """Check if column exists in table"""

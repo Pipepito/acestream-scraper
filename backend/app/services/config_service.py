@@ -1,12 +1,19 @@
 from typing import Dict, Any, Optional
 import logging
+from urllib.parse import urlsplit, urlunsplit
 import httpx
 from fastapi import HTTPException
+from pydantic import AnyHttpUrl, TypeAdapter
 import re
 
 from app.repositories.settings_repository import SettingsRepository
+from app.config.version import get_app_version
 from app.schemas.config import PlaybackRouting
 from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
+
+# How a hidden secret reads in the API.
+MASK = "•••"
+_WEBHOOK_URL = TypeAdapter(AnyHttpUrl)
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +92,75 @@ class ConfigService:
             SettingsRepository.PUBLIC_BASE_URL,
             normalized,
             "Externally reachable origin for tuners and players",
+        )
+
+    def get_notification_webhook_url(self) -> str:
+        """Where task notifications are POSTed; empty means notifications are off (#41)"""
+        return self.settings_repo.get_setting(SettingsRepository.NOTIFICATION_WEBHOOK_URL) or ""
+
+    @staticmethod
+    def _parse_webhook_url(url: str):
+        """Validate syntax without resolving DNS or rewriting signed URLs."""
+        if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url) or "\\" in url:
+            raise ValueError("Invalid webhook URL")
+        parts = urlsplit(url)
+        if parts.scheme not in ("http", "https") or not parts.hostname or parts.fragment:
+            raise ValueError("Invalid webhook URL")
+        if parts.port is not None and not 1 <= parts.port <= 65535:
+            raise ValueError("Invalid webhook port")
+        # Also reject malformed authorities/IP literals accepted by urlsplit.
+        # Keep the original bytes: normalization can change webhook signatures.
+        _WEBHOOK_URL.validate_python(url)
+        return parts
+
+    @staticmethod
+    def mask_webhook_url(url: str) -> str:
+        """The webhook as the API shows it: scheme and host only, the rest
+        hidden. Webhooks keep their secret in the query (Gotify's token) or in
+        the path (a Home Assistant webhook id, a Telegram bot token), and
+        secrets are never returned by the API. The host is enough to tell
+        which one is set."""
+        if not url:
+            return ""
+        try:
+            parts = ConfigService._parse_webhook_url(url)
+        except ValueError:
+            # Older versions could persist malformed values before masking
+            # failed. Keep settings readable so the user can replace/clear it.
+            return MASK
+        host = parts.hostname or ""
+        if ":" in host:
+            host = "[" + host + "]"
+        if parts.port:
+            host += ":%d" % parts.port
+        hidden = parts.path not in ("", "/") or parts.query or parts.fragment or parts.username
+        return "%s://%s%s" % (parts.scheme, host, "/" + MASK if hidden else "")
+
+    def get_masked_notification_webhook_url(self) -> str:
+        return self.mask_webhook_url(self.get_notification_webhook_url())
+
+    def set_notification_webhook_url(self, value: str) -> bool:
+        """Set (or, with an empty value, clear) the notification webhook.
+
+        Saving back what the API showed -- the masked URL -- keeps the stored
+        one: the secret never makes the round trip."""
+        value = (value or "").strip()
+        if value and value != MASK and value == self.get_masked_notification_webhook_url():
+            return True
+        if MASK in value:
+            raise HTTPException(status_code=422, detail="Paste the whole webhook URL; the masked one cannot be saved")
+        if value:
+            try:
+                self._parse_webhook_url(value)
+            except ValueError:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Use an HTTP(S) webhook URL with a valid host and port, without spaces or a fragment",
+                ) from None
+        return self.settings_repo.set_setting(
+            SettingsRepository.NOTIFICATION_WEBHOOK_URL,
+            value,
+            "Webhook that receives task notifications (empty = off)",
         )
 
     def get_rescrape_interval(self) -> int:
@@ -168,6 +244,9 @@ class ConfigService:
                 settings[key] = default
             else:
                 settings[key] = str(settings[key])
+        if settings.get(SettingsRepository.NOTIFICATION_WEBHOOK_URL):
+            settings[SettingsRepository.NOTIFICATION_WEBHOOK_URL] = self.mask_webhook_url(
+                str(settings[SettingsRepository.NOTIFICATION_WEBHOOK_URL]))
         return settings
 
     def check_acestream_status(self) -> Dict[str, Any]:
@@ -242,7 +321,7 @@ class ConfigService:
             "acestream": acestream_status,
             "database": database_status,
             "settings": settings,
-            "version": "2.0.0",
+            "version": get_app_version(),
             "uptime": "unknown",
             "memory": {},
             "cpu": {},

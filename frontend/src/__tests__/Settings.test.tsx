@@ -17,9 +17,11 @@ jest.mock('../hooks/useSystemServices', () => ({
 }));
 jest.mock('../hooks/useTuner', () => ({ useTunerStatus: () => ({ data: undefined }) }));
 jest.mock('../hooks/useConfig');
+jest.mock('../services/guideSetupService', () => ({ guideSetupService: { config: jest.fn().mockResolvedValue({ enabled: false }), lastRun: jest.fn().mockResolvedValue({ status: 'never' }) } }));
 jest.mock('../hooks/useBaseUrls');
+jest.mock('../components/recordings/RecordingSettingsFields', () => ({ __esModule: true, default: () => <div>Recording settings</div> }));
 jest.mock('../services/configService', () => ({
-  configService: { getAppId: jest.fn(), updateAppId: jest.fn() },
+  configService: { getAppId: jest.fn(), updateAppId: jest.fn(), getNotificationWebhookUrl: jest.fn().mockResolvedValue('') },
   getScheduleAnchors: jest.fn().mockResolvedValue({ timezone: 'UTC', url_scraping: null, epg_refresh: null, channel_status: null }),
   saveScheduleAnchors: jest.fn(),
 }));

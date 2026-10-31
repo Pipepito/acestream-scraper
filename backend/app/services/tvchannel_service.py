@@ -1,5 +1,8 @@
 """Service for TVChannel operations"""
 import re
+from threading import RLock
+from functools import wraps
+
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -9,10 +12,43 @@ from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 from app.services.epg_match_service import EPGMatchService
 from app.services.epg_link_service import EPGLinkService
+from app.services.stream_ranking import sort_streams_curated
+
+_MATCH_APPLY_LOCK = RLock()
+
+
+def serialized_matching(method):
+    @wraps(method)
+    def wrapped(*args, **kwargs):
+        with _MATCH_APPLY_LOCK:
+            return method(*args, **kwargs)
+    return wrapped
+
+
+class StaleEPGPreview(ValueError):
+    pass
+
 
 class TVChannelService:
     def reorder_channels(self, channel_ids: List[int], expected_order: List[int]) -> None:
         self.repository.reorder_tv_channels(channel_ids, expected_order)
+
+    def reorder_streams(
+        self, tv_channel_id: int, stream_ids: List[str], expected_order: List[str],
+    ) -> List[AcestreamChannel]:
+        try:
+            current = sort_streams_curated(self.repository.lock_tv_channel_streams(tv_channel_id))
+            current_ids = [stream.id for stream in current]
+            if (current_ids != expected_order or set(current_ids) != set(stream_ids)
+                    or len(stream_ids) != len(current_ids)):
+                raise ValueError("The stream list changed. Cancel and retry with the latest order.")
+            by_id = {stream.id: stream for stream in current}
+            ordered = [by_id[stream_id] for stream_id in stream_ids]
+            self.repository.save_stream_order(ordered)
+            return ordered
+        except Exception:
+            self.repository.db.rollback()
+            raise
 
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,
@@ -44,7 +80,11 @@ class TVChannelService:
         return self.repository.update_tv_channel(tv_channel_id=tv_channel_id, updates=updates)
 
     def delete_tv_channel(self, tv_channel_id: int) -> bool:
-        return self.repository.delete_tv_channel(tv_channel_id)
+        deleted = self.repository.delete_tv_channel(tv_channel_id)
+        if deleted:
+            from app.services.recording_coordinator import recording_coordinator
+            recording_coordinator.request_refresh()
+        return deleted
 
     def associate_acestream(self, tv_channel_id: int, acestream_id: str) -> bool:
         return self.repository.associate_acestream_to_tv_channel(tv_channel_id=tv_channel_id, acestream_channel_id=acestream_id)
@@ -111,13 +151,28 @@ class TVChannelService:
             "items": created_channels,
         }
 
-    def create_tv_channels_from_epg_analysis(self, strictness: str, epg_channel_ids: List[int]) -> Dict[str, Any]:
+    @serialized_matching
+    def create_tv_channels_from_epg_analysis(self, strictness: str, epg_channel_ids: List[int],
+                                            source_id=None, expected_previews=None, automatic=False, import_excluded_ids=None) -> Dict[str, Any]:
         selected_ids = sorted(set(epg_channel_ids))
         analysis = EPGMatchService(self.repository.db).analyze_matches(
             strictness=strictness,
             epg_channel_ids=selected_ids,
+            source_id=source_id,
         )
         selected_rows = analysis["rows"]
+        if expected_previews is not None and (
+            set(expected_previews) != set(selected_ids) or
+            {row['epg_channel_id']: row['review_token'] for row in selected_rows} != expected_previews
+        ):
+            raise StaleEPGPreview('Matches changed. Analyze again before applying.')
+        if automatic:
+            from app.services.import_exclusion_service import ImportExclusionService
+            policy = ImportExclusionService(self.repository.db).snapshot(claim=True)
+            blocked = {channel.id for channel in self.repository.db.query(AcestreamChannel).all()
+                       if policy.matches(channel.id, channel.name)} | set(import_excluded_ids or ())
+            selected_rows = [row for row in selected_rows if row['automation_safe'] and
+                not any(c['acestream_channel_id'] in blocked for c in row['candidates'])]
 
         if not selected_rows:
             raise ValueError("No accepted matches found for selected EPG rows.")
@@ -126,8 +181,6 @@ class TVChannelService:
         if not accepted_rows:
             raise ValueError("No accepted matches found for selected EPG rows.")
 
-        links = EPGLinkService(self.repository.db)
-        links.repair()
         epg_channels = {
             channel.id: channel
             for channel in self.repository.get_epg_channels_by_ids([row["epg_channel_id"] for row in selected_rows])
@@ -154,8 +207,7 @@ class TVChannelService:
                 )
                 continue
 
-            existing_channels = links.existing(epg_channel)
-            if len(existing_channels) > 1:
+            if row['has_duplicate_existing_conflict']:
                 skipped_count += 1
                 row_outcomes.append(
                     {
@@ -167,10 +219,17 @@ class TVChannelService:
                 )
                 continue
 
-            if len(existing_channels) == 1:
-                existing = existing_channels[0]
+            if row['existing_tv_channel_id'] is not None:
+                existing = self.repository.get_tv_channel_by_id(row['existing_tv_channel_id'])
+                if not row['can_apply']:
+                    skipped_count += 1
+                    row_outcomes.append({'epg_channel_id': epg_channel.id, 'status': 'manual_conflict',
+                                         'reason': 'Existing channel settings were preserved.', 'associated_count': 0})
+                    continue
                 try:
                     with self.repository.db.begin_nested():
+                        if existing.epg_source_id is None:
+                            existing.epg_source_id = epg_channel.epg_source_id
                         count = self.repository.assign_acestreams_to_tv_channel(
                             [candidate["acestream_channel_id"] for candidate in row["candidates"]], existing.id)
                 except Exception:
@@ -188,7 +247,7 @@ class TVChannelService:
                         "epg_channel_id": epg_channel.id,
                         "status": "skipped_existing",
                         "reason": "Reused the existing TV channel and updated its stream matches.",
-                        "tv_channel_id": existing_channels[0].id,
+                        "tv_channel_id": existing.id,
                         "associated_count": count,
                     }
                 )
@@ -281,7 +340,15 @@ class TVChannelService:
 
     def auto_associate_acestreams(self, tv_channel: TVChannel) -> int:
         candidates = self._find_matching_acestreams(tv_channel)
-        candidate_ids = [candidate.id for candidate in candidates if candidate.tv_channel_id != tv_channel.id]
+        # Only unassigned streams. Hashes already owned by another TV channel
+        # must not be stolen, and including them used to abort TV-channel
+        # creation (and the rest of a scrape) with "already associated".
+        candidate_ids = [
+            candidate.id for candidate in candidates
+            if candidate.tv_channel_id is None
+            and candidate.is_active
+            and not candidate.epg_update_protected
+        ]
         if not candidate_ids:
             return 0
         return self.repository.assign_acestreams_to_tv_channel(candidate_ids, tv_channel.id)

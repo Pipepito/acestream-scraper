@@ -129,6 +129,13 @@ changes, or extra capabilities are needed. `linux/arm/v7` builds and installs
 but has not been runtime-tested on real ARMv7 hardware yet, so treat it as
 experimental.
 
+The bundled ARM engines resolve native connectivity checks and DHT bootstrap
+names through a shared listener backed by the Python resolver. It follows the
+container's configured DNS servers, including WARP changes, and retains local
+host aliases. No public DNS server or fixed hostname list is imposed. See the
+[native DNS investigation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/arm64-mod-detected.md#native-libc-dns-follow-up-issue-253)
+for verification and ARMv7 limitations.
+
 WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (it needs `--cap-add NET_ADMIN --cap-add SYS_ADMIN` and `--device /dev/net/tun`). The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
 
 ZeroNet works in two modes. The `linux/amd64` and `linux/arm64` images bundle a [zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) node, pinned by commit to a state that carries DHT peer discovery — opt-in, nothing runs until `ENABLE_ZERONET=true` (add `ENABLE_TOR=true` for TOR, like the v1 image). The node runs on its own Python 3.11 under `/opt/zeronet` because its dependency set predates the app's Python; 32-bit ARM images ship without it because gevent publishes no armv7l wheels — there, and whenever you prefer it, ZeroNet runs as an external sidecar/service and the app reaches it through `ZERONET_URL`.
@@ -142,6 +149,12 @@ content and identities across container replacement. Back up that volume before
 upgrading; a rollback uses the retained legacy files, not subsequent v2 state.
 
 The bundled node includes a targeted manifest-verification patch. See [verification scope and remaining upstream limitations](../docs/ops/zeronet-verification.md).
+
+Sources written as `zero://<site>/<file>` use the complete configured `ZERONET_URL`,
+including HTTPS, non-default ports, IPv6 and a gateway path prefix. A missing-site
+bootstrap request uses the same prefix before retrying the requested file. Explicit
+HTTP source URLs retain their own address. Bare JSON link lists retain names next
+to their AceStream IDs; direct JSON/M3U fetch failures are reported on the source.
 
 The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On 32-bit ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar. With the embedded node enabled, leave `ZERONET_URL` unset — the entrypoint targets the embedded UI port automatically.
 
@@ -254,6 +267,12 @@ ARM caveats:
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.
 - Repackaging the official APK payload is a grey area under the AceStream user agreement, as with every community ARM image. Enable the engine at your own discretion.
 
+The Docker command generator shows engine access guidance when port 6878 is
+published. `ACESTREAM_HTTP_HOST=localhost` is an internal connection destination,
+not a restriction on accepted clients. Keep it for the bundled engine;
+`ACESTREAM_BIND_ALL=true` already accepts remote clients. Use a published host
+address of `0.0.0.0` when all IPv4 host interfaces should be reachable.
+
 #### Playing streams on ARM
 
 The web player, remote players (VLC/Kodi) and the Jellyfin/Plex tuner all ask the engine to start a stream, so what they can do depends on which engine your platform runs:
@@ -316,6 +335,33 @@ docker run -d \
 - Ports: `4001` tcp/udp is the swarm port (publishing it improves peer connectivity), `8081` is the HTTP gateway (only needed outside the container if you want to browse IPFS content through the node). The RPC API on `5001` has **no authentication** and full control of the node; it binds to the container loopback by default. If you need the WebUI, set `-e IPFS_API_HOST=0.0.0.0` and publish it only on the host loopback: `-p 127.0.0.1:5001:5001`.
 - Port overrides: `IPFS_SWARM_PORT` (default `4001`), `IPFS_API_PORT` (default `5001`), `IPFS_GATEWAY_PORT` (default `8081`; `8080` is taken by Acexy in-container). The entrypoint re-applies these to the IPFS config on every boot.
 - Once running, add sources as `ipfs://<cid>/path/list.m3u` (or `ipns://<name>/...`) in the Scraper page — they are fetched through the embedded gateway. A bare `ipfs://<cid>` whose content is an M3U playlist also works; the scraper detects the playlist by content.
+
+Bundled Kubo is a security rebuild of v0.43.1 from checksum-verified upstream
+source, using a patched Go toolchain and reviewed dependency locks. See
+[`docker/ipfs/README.md`](../docker/ipfs/README.md) for provenance. Upstream provides no ARMv7 binary; that platform still needs an external
+IPFS gateway. Existing persistent IPFS repositories are retained on upgrade.
+
+### Runtime dependency maintenance
+
+WARP retains the official daemon, CLI and diagnostic tools on amd64/arm64.
+The unused desktop taskbar and its GUI libraries are excluded. The signed APT
+package's control information and checksum remain under
+`/usr/share/doc/cloudflare-warp`; startup, state storage and required capabilities
+are unchanged. New vendor dependencies require a packaging review.
+
+Python package managers and their bootstrap wheels are build-only. Install extra
+Python packages in a derived image build or a separate environment; do not rely
+on `pip` being available in the production container. ZeroNet keeps its own
+interpreter and runtime dependencies. Existing encrypted Telegram sessions remain
+compatible with the updated cryptography library.
+
+The AMD64 AceStream executable keeps its required Python 3.10 runtime. Its old
+bundled certifi and IDNA eggs are replaced with maintained packages. Its native
+egg loaders retain setuptools 81's `pkg_resources` compatibility API in the
+engine's private dependency directory. Review this
+engine's dependency inventory separately from ARM: dependencies requiring Python
+3.11 cannot be substituted without an upstream engine update. Verify the real
+playback/checker lifecycle after changing any of its bundled libraries.
 
 ### View Running Containers
 ```bash
@@ -436,3 +482,97 @@ so it does not require mounting the engine's temporary files into the scraper.
 ## Optional DNS override
 
 The command builder's **Use xdp.es DNS** option is off by default. Enabling it adds `--dns=85.208.114.52` to Docker commands or a `dns:` entry to Compose. It selects [xdp.es Standard](https://xdp.es/about), without ad filtering, using ordinary unencrypted DNS. Recreate the container to apply or remove it; WARP may override DNS while connected.
+
+## Gluetun forwarded P2P ports
+
+For a bundled playback engine sharing Gluetun’s network namespace, opt into
+forwarded-port synchronization with `ACESTREAM_GLUETUN_PORT_FILE`. See
+[Gluetun setup](Gluetun.md) for the shared read-only directory, port ownership,
+restart behavior and provider requirements.
+
+
+## First-run configuration on develop
+
+The web wizard at `/setup` saves reviewed runtime options in
+`runtime-config.json` beside the SQLite database (normally `/app/config`). Keep the
+whole directory mounted and writable. Environment values for migrated options seed
+only a missing file; use **Settings → Setup wizard** for subsequent changes, then
+restart. Image selection, ports, volumes, capabilities and private credentials
+remain in Compose. Existing database preferences remain authoritative. See
+[configuration precedence](Configuration.md#first-run-setup) and the
+[option audit](../docs/dev/runtime-configuration-audit.md). This development feature
+is not evidence that the currently published stable image includes it.
+
+## Recording storage
+
+For built-in DVR, mount an existing persistent directory, set `RECORDINGS_DIR` to its absolute container path and enable recordings in Settings → Automation. Keep it separate from player HLS/cache storage. See [Recordings](Recordings.md) for admission, retention, permissions and rollback.
+
+## Reusing image layers when building
+
+Use `scripts/ci/build_multiarch_images.sh` for local image builds. It requires
+BuildKit 0.13 or newer and exports loaded and pushed images with a fixed
+`SOURCE_DATE_EPOCH=946684800` (2000-01-01 UTC) and `rewrite-timestamp=true`.
+This normalizes image/file timestamps; the image creation timestamp is therefore
+not the build date. The SPA HTML uses Cache-Control: no-store so normalized
+file timestamps cannot leave browsers on an obsolete app shell. Use CI records and build provenance for build time and source
+revision. Do not substitute each application commit's timestamp: that changes
+otherwise identical dependency layers on every update.
+
+The Dockerfile uses linked copies for application files, Python dependencies and
+bundled services, so changing an earlier layer need not rebuild or re-export an
+unchanged payload. Runtime package installation precedes application content;
+entrypoint permissions are set during copying instead of a later layer.
+
+The first update using this layout can still download replacement layers.
+Subsequent updates reuse identical content already present on the client. Base
+image updates and changed dependency versions intentionally change layers.
+This is not a guarantee of identical cold builds: floating upstream images,
+package repositories and generated dependency files can still change. Retaining
+the builder cache remains useful; never retain stale packages indefinitely just
+to make downloads smaller.
+
+## Accounts and Chromecast
+
+The first-run screen offers account setup; no authentication Docker variables or
+bootstrap secrets are needed. Administrators manage accounts and passwords in
+Settings → Access. Container owners can recover a forgotten password with
+`docker exec -it <container> python -m app.auth reset-password`.
+
+Server-side Chromecast discovery requires multicast access to the home network;
+published HTTP ports alone do not forward mDNS. Keep the receiver-accessible URL
+and verified home client networks in Settings. See [Accounts and casting](Accounts-and-Casting.md)
+for permissions, Kodi access, HTTPS, browser support and backup/rollback procedures.
+
+## Managing WARP from the app
+
+Open **System → WARP** to connect, disconnect or reconnect, select the current
+routing/DNS mode, and register a license. DNS-only modes do not tunnel video;
+proxy mode only tunnels clients explicitly using the WARP SOCKS5 proxy. Reconnect
+and exclusion changes can interrupt current playback. Automatic startup connection
+continues to select WARP with DNS over HTTPS.
+
+**Excluded hosts** sends selected hostnames directly instead of through WARP.
+Use **Add Atresmedia**, then **Save and apply exclusions** to add
+`api.atresplayer.com` and `atres-live.atresmedia.com`. Enter up to 64 hostnames,
+one per line or separated by commas; URLs, paths, IP addresses, ports and wildcards
+are rejected. An empty list removes app-managed exclusions. Other WARP exclusions
+are preserved and shown separately.
+
+The app verifies the active list after saving. If WARP is unavailable or rejects
+an operation, the desired list remains saved with a visible warning; start WARP
+and use **Save and apply exclusions** again. Partial changes retain removal
+history so retries and service restarts converge on the saved list. A stale tab
+must reload before it can overwrite another session's changes. Managed WARP
+policies using include mode must be changed by their administrator.
+
+The app saves `warp-exclusions.json` beside the SQLite database. Keep that directory
+on persistent storage. WARP startup and supervisor recovery reapply it before the
+startup connection barrier completes. `WARP_EXCLUDE_HOSTS` remains a comma/space
+separated bootstrap input when no saved file exists; after saving, the file wins,
+including an intentionally empty list. Changing the environment later does not
+overwrite saved choices. Exclusion changes apply without recreating the container.
+
+**Startup settings** controls the WARP service, automatic connection before engines,
+and IPv4 preference through the existing saved runtime configuration. Save these
+in the app, then restart the container to apply them. Docker devices/capabilities
+and persistent volumes still belong in the deployment configuration.

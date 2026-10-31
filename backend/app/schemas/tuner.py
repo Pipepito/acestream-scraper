@@ -11,7 +11,10 @@ class TunerSettingsResponse(BaseModel):
     tuner_count: int
     max_channels: int
     only_online: bool
+    plex_compatible_audio: bool = Field(False, description="Convert tuner audio to stereo AAC/LATM for Plex Desktop; copy video unless experimental recovery is enabled")
     experimental_transcoding: bool = Field(False, description="Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection")
+    source_start_seconds: int = Field(15, description="Seconds a source gets to deliver its first byte before the next is tried")
+    startup_budget_seconds: int = Field(45, description="Seconds for the whole start across sources; keep it under the player's own timeout (Kodi gives up after about 30)")
 
 
 class TunerSettingsUpdate(BaseModel):
@@ -19,7 +22,10 @@ class TunerSettingsUpdate(BaseModel):
     tuner_count: Optional[int] = Field(None, ge=1, le=16)
     max_channels: Optional[int] = Field(None, ge=1, le=1000)
     only_online: Optional[bool] = None
+    plex_compatible_audio: Optional[bool] = None
     experimental_transcoding: Optional[bool] = None
+    source_start_seconds: Optional[int] = Field(None, ge=5, le=180)
+    startup_budget_seconds: Optional[int] = Field(None, ge=5, le=180)
 
 
 class TunerRenumbered(BaseModel):

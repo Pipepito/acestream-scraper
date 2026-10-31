@@ -22,13 +22,29 @@ class ChannelResult(BaseModel):
 
 
 class ScraperResult(BaseModel):
+    excluded_count: int = 0
     """Result model for scraper response"""
     message: str
     channels: List[ChannelResult]
     url: str
 
 
-class URLResponse(BaseModel):
+class SourceName(BaseModel):
+    name: Optional[str] = Field(None, max_length=255)
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def clean_name(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+
+class BuiltinProvider(BaseModel):
+    id: str
+    name: str
+    url: str
+
+
+class URLResponse(SourceName):
     """Schema for scraped URL information"""
     id: int
     url: str
@@ -58,7 +74,7 @@ class URLResponse(BaseModel):
         return False if value is None else value
 
 
-class URLCreate(BaseModel):
+class URLCreate(SourceName):
     """Schema for creating a scraped URL"""
     url: str
     url_type: str = "regular"
@@ -68,7 +84,7 @@ class URLCreate(BaseModel):
     scrape_bare_ids: bool = False
 
 
-class URLUpdate(BaseModel):
+class URLUpdate(SourceName):
     """Schema for updating a scraped URL"""
     url: Optional[str] = None
     url_type: Optional[str] = None

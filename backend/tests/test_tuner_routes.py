@@ -57,7 +57,8 @@ def test_settings_and_status_are_token_gated_and_reflect_the_gate(client, db_ses
     assert body["client_allowed"] is True and body["client_source"] == "direct" and body["allowed_networks"] == ["*"]
     assert isinstance(body["ffmpeg_available"], bool)
     updated = client.put("/api/v1/tuner/settings", json={"friendly_name": "Lounge", "tuner_count": 2, "max_channels": 100, "only_online": True}).json()
-    assert updated == {"friendly_name": "Lounge", "tuner_count": 2, "max_channels": 100, "only_online": True, "experimental_transcoding": False}
+    assert updated == {"friendly_name": "Lounge", "tuner_count": 2, "max_channels": 100, "only_online": True, "plex_compatible_audio": False, "experimental_transcoding": False,
+                       "source_start_seconds": 15, "startup_budget_seconds": 45}
     assert client.get("/tuner/discover.json").json()["FriendlyName"] == "Lounge"
     assert client.put("/api/v1/tuner/settings", json={"max_channels": 0}).status_code == 422
 
@@ -179,3 +180,73 @@ def test_experimental_transcoding_requires_explicit_opt_in(client):
     assert client.put(url, json={'experimental_transcoding': True}).json()['experimental_transcoding'] is True
     assert client.put(url, json={'friendly_name': 'Changed'}).json()['experimental_transcoding'] is True
     assert client.put(url, json={'experimental_transcoding': False}).json()['experimental_transcoding'] is False
+
+
+def test_individual_source_json_start_uses_saved_tuner_budget(alembic_client, alembic_db_session, open_gate, monkeypatch):
+    import httpx
+    from app.api.endpoints import tuner
+    from app.services.engine_client import EngineClient
+    from app.services.tuner_service import TunerService
+
+    TunerService(alembic_db_session).update_settings(source_start_seconds=90, startup_budget_seconds=60)
+    starts = []
+
+    def respond(request):
+        starts.append(request.extensions['timeout']['read'])
+        return httpx.Response(200, json={'error': 'test refusal'})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as transport:
+        monkeypatch.setattr(tuner, '_engine', lambda: EngineClient('http://engine', client=transport))
+        assert alembic_client.head(f'/tuner/stream/{IH}.ts').status_code == 200
+        assert starts == []
+        assert alembic_client.get(f'/tuner/stream/{IH}.ts').status_code == 502
+    assert len(starts) == 1 and 59 < starts[0] <= 60
+
+
+@pytest.mark.asyncio
+async def test_cancelled_individual_start_closes_engine_pool(monkeypatch):
+    import asyncio
+    import threading
+    from types import SimpleNamespace
+    import httpx
+    from starlette.requests import Request
+    from app.api.endpoints import tuner
+    from app.services.engine_client import EngineClient
+    from app.services.stream_relay import RelayRegistry
+
+    entered, release = threading.Event(), threading.Event()
+    stops = []
+
+    def respond(request):
+        if request.url.path == '/ace/getstream':
+            entered.set()
+            release.wait(2)
+            return httpx.Response(200, json={'response': {
+                'playback_url': 'http://engine/media', 'stat_url': 'http://engine/stat',
+                'command_url': 'http://engine/stop',
+            }})
+        stops.append(request.url.path)
+        return httpx.Response(200)
+
+    engine = EngineClient('http://engine')
+    engine._client.close()
+    engine._client = httpx.Client(transport=httpx.MockTransport(respond))
+    registry = RelayRegistry()
+    monkeypatch.setattr(tuner, '_engine', lambda: engine)
+    monkeypatch.setattr(tuner, '_tuner_count', lambda: 1)
+    monkeypatch.setattr(tuner, '_relay_settings', lambda: SimpleNamespace(source_start_seconds=5, startup_budget_seconds=5))
+    monkeypatch.setattr(tuner, 'relay_registry', registry)
+    opening = asyncio.create_task(tuner.tuner_stream(IH, Request({'type': 'http', 'method': 'GET'})))
+    try:
+        assert await asyncio.to_thread(entered.wait, 2)
+        opening.cancel()
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await opening
+        assert stops == ['/stop']
+        assert engine._client.is_closed
+        assert registry.count_active() == 0
+    finally:
+        release.set()
+        await asyncio.gather(opening, return_exceptions=True)
+        engine.close()

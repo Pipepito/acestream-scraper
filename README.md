@@ -4,7 +4,7 @@ Discover AceStream streams, organize your TV channels, and watch or share them w
 
 Scraper brings sources, programme guides, playlists, and playback together. Import links from web pages, playlists, JSON, text, ZeroNet, or IPFS, then turn them into a catalogue you can browse and maintain.
 
-**[Get started](https://pipepito.github.io/acestream-scraper/)** · [Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper) · [Docs](https://github.com/Pipepito/acestream-scraper/wiki)
+**[Get started](https://pipepito.github.io/acestream-scraper/)** · [Docker Hub](https://hub.docker.com/r/pipepito/acestream-scraper) · [Docs](https://github.com/Pipepito/acestream-scraper/wiki) · [Support on Ko-fi](https://ko-fi.com/pipepito)
 
 ![Live TV with the channel catalogue and programme guide](wiki/usage-09-live-tv.png)
 
@@ -21,11 +21,43 @@ Scraper brings sources, programme guides, playlists, and playback together. Impo
 - **Inspect streams and storage.** See the latest measured peers, transfer rates, and media bitrate. Overview reports container data directories and mounts, their usage, and available filesystem space.
 - **Choose your setup.** Use optional bundled services or connect your own AceStream engine, Acexy proxy, ZeroNet node, or IPFS gateway.
 
-An engine is optional for scraping and playlist management. In-app playback needs a configured playback engine; signal checks need a playback or checking engine.
+An engine is optional for scraping, playlist management, and supported broadcaster HTTP playback. AceStream playback and AceStream signal checks need a configured engine. Fresh installs contain no scraper sources or streams; you choose what to import.
 
 ## Get started
 
 Use the **[Docker command builder](https://pipepito.github.io/acestream-scraper/)** to generate a command or Compose file for your machine, then follow the **[installation guide](https://github.com/Pipepito/acestream-scraper/wiki/Installation)** and **[first-run walkthrough](https://github.com/Pipepito/acestream-scraper/wiki/Usage)**.
+
+### Set up with ChatGPT or a coding agent
+
+Copy this prompt into ChatGPT for guided steps, or into your coding agent to have it run the setup:
+
+```text
+Help me set up https://github.com/Pipepito/acestream-scraper on my machine.
+Read this repository's current README, AGENTS.md, wiki/Installation.md,
+wiki/Configuration.md and wiki/Docker.md before choosing commands. Ask me
+about my OS/CPU, Docker availability, storage folder, local or remote access,
+and whether I need AceStream, HTTP broadcaster playback or media-server integration.
+Prefer the stable release unless I request develop. Preserve existing files,
+volumes, databases and secrets. Choose only the optional services I need and
+explain required ports, mounts and permissions. Keep unauthenticated service
+ports private. Never print credentials or commit my local configuration.
+If you have shell access, inspect the machine, prepare and run the appropriate
+Docker Compose setup, and verify startup, health and persistent storage.
+If you cannot run commands, give me one step at a time and check the results.
+Check which features are available in the selected release. When available,
+open the web setup wizard (/setup), explain the runtime-config.json file beside
+the database and that migrated environment values seed it only when absent.
+Walk me through playback, access, authorized sources, programme guides,
+TV channels, schedules and integrations. Use broadcaster-owned sources such
+as Atresplayer only when I choose them; do not add third-party stream indexes,
+paid-channel search presets or unsolicited scraper sources. Check a source
+and playback only with content I am authorized to access. Finish with the local
+app URL, verification results and backup/update instructions.
+```
+
+The development version includes a **web setup wizard** at `/setup`, also linked
+from Settings. See [first-run configuration](wiki/Configuration.md#first-run-setup)
+for file precedence, restart behavior and settings that stay in Docker.
 
 ## Extraction builder
 
@@ -47,7 +79,7 @@ The starter catalogue provides editable examples. Sources without a recipe keep 
 | **IPFS (Kubo)** | Fetch sources from IPFS and IPNS | Off until enabled |
 | **ZeroNet and Tor** | Fetch sources through a local ZeroNet node, with optional Tor | Off until enabled |
 
-**Included does not mean running.** With no service options set, `latest` starts the web app; the engine, proxy, and other optional services stay off. Enable the ones you want in the [Docker command builder](https://pipepito.github.io/acestream-scraper/). Browser playback needs a bundled or external playback engine.
+**Included does not mean running.** With no service options set, `latest` starts the web app; the engine, proxy, and other optional services stay off. Enable the ones you want in the [Docker command builder](https://pipepito.github.io/acestream-scraper/). AceStream browser playback needs a bundled or external playback engine; supported broadcaster HTTP playback does not.
 
 WARP, Kubo, ZeroNet, and Tor are bundled on **amd64 and arm64**. The app, FFmpeg, and the relevant engine/proxy variants also cover **arm/v7**, where bundled AceStream remains experimental. See [platform requirements](https://github.com/Pipepito/acestream-scraper/wiki/Requirements) for details.
 
@@ -102,5 +134,9 @@ The [illustrated walkthrough](https://github.com/Pipepito/acestream-scraper/wiki
 Found a bug or have an idea? [Open an issue](https://github.com/Pipepito/acestream-scraper/issues). To help with source formats, see [contributing scraper data](https://github.com/Pipepito/acestream-scraper/wiki/Contributing-Scraper-Data).
 
 For code contributions, start with the [development guide](https://github.com/Pipepito/acestream-scraper/wiki/Development) and [technical documentation](docs/README.md). Pull requests target `develop`.
+
+## Support the project
+
+If Acestream Scraper is useful to you, you can [support its development on Ko-fi](https://ko-fi.com/pipepito). Thank you for helping keep the project going.
 
 Licensed under MIT.

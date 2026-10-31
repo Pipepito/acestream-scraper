@@ -103,6 +103,9 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'is_active',
             'is_online',
             'network_status',
+            'id_kind',
+            'stream_url',
+            'stream_headers',
             'last_checked',
             'check_error',
             'bitrate_bps',
@@ -112,7 +115,11 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'original_url',
             'epg_update_protected',
             'tv_channel_id',
+            'stream_order',
         }
+
+        assert columns['id_kind']['nullable'] is True
+        assert _sqlite_type_name(columns['id_kind']) == 'VARCHAR(16)'
 
         channel_id = columns['id']
         channel_id_type = _sqlite_type_name(channel_id)
@@ -138,6 +145,7 @@ def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
         assert set(columns) == {
             'id',
             'url',
+            'name',
             'url_type',
             'status',
             'last_processed',
@@ -155,6 +163,7 @@ def test_scraped_urls_schema_matches_runtime_contract(tmp_path):
         assert primary_key['constrained_columns'] == ['id']
         assert 'INT' in _sqlite_type_name(columns['id'])
 
+        assert columns['name']['nullable'] is True
         assert columns['url']['nullable'] is False
         assert 'DATE' in _sqlite_type_name(columns['last_scraped']) or 'TIME' in _sqlite_type_name(columns['last_scraped'])
         assert 'TEXT' in _sqlite_type_name(columns['error'])

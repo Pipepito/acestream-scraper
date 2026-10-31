@@ -6,6 +6,14 @@ IPNS-hosted channel lists, the public EPG feed, and the engine's search API.
 Every test records browser console errors, page errors, failed `/api` responses and
 new `ERROR`/`Traceback` lines from the backend log, and attaches them to the report.
 
+For Docker targets, stream `/app/logs/scraper.log` from the container to a local
+file and set `E2E_BACKEND_LOG` to that file when running with `E2E_STRICT=1`.
+`acestream.log` also contains engine output and is not the scraper console.
+Inspect sidecar logs separately alongside the runtime/health assertions.
+Tests that deliberately provoke failures can declare an exact, test-scoped
+`errors.allowBackend(...)` pattern, just as they use `allowApi`. The original
+backend lines remain attached in `allBackendErrors`; unrelated errors still fail.
+
 ## Layout
 
 ```
@@ -15,7 +23,7 @@ e2e/
   src/
     scenario/            zod schema + loader (E2E_SCENARIO=<name|path>, E2E_TARGET=local|docker)
     api.ts               typed helper over /api/v1 for seeding, polling background jobs, cross-checks
-    error-monitor.ts     per-test console/network/backend-log watchdog (E2E_STRICT=1 fails on any error)
+    error-monitor.ts     per-test console/network/backend-log watchdog (E2E_STRICT=1 fails on unexpected errors)
     fixtures.ts          `test`/`expect` with scenario, api, app and errors fixtures
     pages/               page objects (roles/labels, no CSS selectors)
   tests/                 journeys, run in file order: stack → navigation → settings → scraper →
@@ -51,8 +59,40 @@ Useful variants:
 
 ## Scenarios
 
-`scenarios/default.json` describes what the journey uses; add another file and select it with
-`E2E_SCENARIO=<name>`. Validated by `src/scenario/schema.ts`:
+For reproducible application journeys, start the owned upstream fixtures in a
+separate terminal from the repository root:
+
+```bash
+backend/venv/bin/python e2e/stack/fixture-server.py
+```
+
+This writes `e2e/.stack/controlled-scenario.json` and serves a three-channel
+playlist, a synthetic search catalogue, a rolling nine-day XMLTV feed (covering
+the full seven-day guide), and the committed generated MPEG-TS sample on port
+18799. It needs no external feed or private configuration. Start an isolated
+backend with `E2E_ENGINE_URL=http://127.0.0.1:18799`. From `e2e/`,
+`E2E_RESET_DB=1 E2E_ENGINE_URL=http://127.0.0.1:18799 npm run backend:start`
+resets only the isolated E2E database and runtime configuration. Then run:
+
+```bash
+E2E_SCENARIO=.stack/controlled-scenario.json E2E_STRICT=1 npm test
+```
+
+For a Docker application, start the fixture server with `--target docker` and
+set the app's engine URL and `E2E_APP_ENGINE_URL` to
+`http://host.docker.internal:18799`. The generated guide/playlist URLs then use
+that address too. This mode binds the fixture listener to all host interfaces
+so Docker Desktop can reach it; stop it after the run. Use an isolated writable
+database and an FFmpeg-equipped application image. The first journey completes
+the real setup form before the other journeys use the installation.
+
+These fixtures exercise the real API, database, scheduler, SPA and media pipeline;
+their engine/proxy protocol responses are synthetic. They do **not** replace
+`backend/tests/docker` or the architecture/flavour image and runtime smoke matrix.
+Keep real-sidecar validation separate and report both results. An operator-owned
+live scenario remains supported below.
+
+`scenarios/example.json` is an inert template with reserved `example.invalid` URLs and synthetic names. Live journeys require an explicit `E2E_SCENARIO=<name|path>`; there is no automatic external source catalogue. Copy the template into `e2e/.stack/scenario.json`, replace its placeholders with operator-owned or authorized fixtures, and export `E2E_SCENARIO` before running the live suite. Keep private source data out of Git. The independent mocked mobile suite needs no scenario. Validated by `src/scenario/schema.ts`:
 
 | Section | Purpose |
 | --- | --- |

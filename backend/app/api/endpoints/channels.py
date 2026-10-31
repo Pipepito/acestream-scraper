@@ -16,6 +16,7 @@ from app.models.models import AcestreamChannel, TVChannel
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.channel_status_service import ChannelStatusService
 from app.schemas.channel import (
+    ChannelSourceFilter,
     AcestreamChannelCreate,
     AcestreamChannelListResponse,
     AcestreamChannelResponse,
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=AcestreamChannelListResponse)
-async def get_acestream_channels(
+def get_acestream_channels(
     skip: int = Query(0, alias="skip"),
     limit: int = Query(100, alias="limit"),
     page: int = Query(None, alias="page"),
@@ -42,6 +43,7 @@ async def get_acestream_channels(
     is_active: Optional[bool] = None,
     is_online: Optional[bool] = None,
     assigned: Optional[bool] = None,
+    source_url: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -69,7 +71,8 @@ async def get_acestream_channels(
         group=group,
         is_active=is_active,
         is_online=is_online,
-        assigned=assigned
+        assigned=assigned,
+        source_url=source_url
     )
     return {"items": items, "total": total}
 
@@ -81,6 +84,11 @@ async def get_channel_status_summary(db: Session = Depends(get_db)):
     """
     status_service = ChannelStatusService(db)
     return status_service.get_channel_status_summary()
+
+
+@router.get('/sources', response_model=List[ChannelSourceFilter])
+def get_channel_sources(db: Session = Depends(get_db)):
+    return AcestreamChannelService(db).get_source_filters()
 
 
 @router.get("/groups")
@@ -192,38 +200,31 @@ def check_acestream_channel_status(acestreamchannel_id: str, db: Session = Depen
     status_service = ChannelStatusService(db)
     # FastAPI runs this endpoint in a worker: SQLite lock waits and synchronous
     # repository calls must not block health, startup diagnostics, or playback.
-    result = asyncio.run(status_service.check_channel_status(channel))
+    result = asyncio.run(status_service.check_channel_status_manually(channel))
     return result
 
 
 @router.post("/", response_model=AcestreamChannelResponse, status_code=status.HTTP_201_CREATED)
-async def create_acestream_channel(acestreamchannel: AcestreamChannelCreate, db: Session = Depends(get_db)):
+def create_acestream_channel(acestreamchannel: AcestreamChannelCreate, db: Session = Depends(get_db)):
     """
     Create a new Acestream channel. If a channel with the same ID exists, update it.
     """
-    service = AcestreamChannelService(db)
-    channel_id = acestreamchannel.id
-    existing_channel = service.get_channel_by_id(channel_id)
-
-    if existing_channel:
-        # Update existing channel (upsert behavior for V1 compatibility)
-        updated_channel = service.update_channel(
-            channel_id=channel_id,
-            updates=acestreamchannel.model_dump(exclude_unset=True)
-        )
-        return updated_channel
-    else:
-        # Create new channel
-        return service.create_channel(
-            channel_id=channel_id,
-            name=acestreamchannel.name,
-            source_url=acestreamchannel.source_url,
-            group=acestreamchannel.group,
-            logo=acestreamchannel.logo,
-            tvg_id=acestreamchannel.tvg_id,
-            tvg_name=acestreamchannel.tvg_name,
-            is_online=acestreamchannel.is_online
-        )
+    from app.services.import_pipeline import ImportEntry, ImportPipeline, ImportReference
+    # allow_excluded overrides import exclusions for this request only; it is
+    # never stored and never reaches automatic imports.
+    result = ImportPipeline.apply(db, ImportReference(acestreamchannel.source_url,
+                                                      allow_excluded=acestreamchannel.allow_excluded), [
+        ImportEntry(acestreamchannel.id, acestreamchannel.name, group=acestreamchannel.group,
+                    logo=acestreamchannel.logo, tvg_id=acestreamchannel.tvg_id,
+                    tvg_name=acestreamchannel.tvg_name, is_online=acestreamchannel.is_online,
+                    # An existing row (upsert behavior for V1 compatibility)
+                    # only takes the fields the request sent.
+                    updates=acestreamchannel.model_dump(exclude_unset=True, exclude={"allow_excluded"}))],
+        'manual')
+    db.commit()
+    channel = result.items[0].channel
+    db.refresh(channel)
+    return channel
 
 
 @router.put("/{acestreamchannel_id}", response_model=AcestreamChannelResponse)

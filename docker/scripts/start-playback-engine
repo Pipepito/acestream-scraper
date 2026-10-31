@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Shared packaged command for every architecture. The supervisor alone selects
+# the forwarded port; the checker keeps its own command, state and port.
+set -euo pipefail
+if [ -n "${ACESTREAM_FORWARDED_PORT:-}" ]; then
+    set -- --port "$ACESTREAM_FORWARDED_PORT" "$@"
+fi
+exec env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine \
+    --client-console --http-port "${ACESTREAM_HTTP_PORT:-6878}" \
+    --cache-auto 0 --cache-max-bytes 536870912 --disk-cache-limit 536870912 \
+    --live-cache-type memory --live-mem-cache-size 67108864 "$@"

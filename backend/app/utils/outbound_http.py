@@ -102,11 +102,22 @@ class PinnedHTTPAdapter(HTTPAdapter):
         return self._connection(url)
 
     def add_headers(self, request, **kwargs):
+        # Host goes FIRST, where an ordinary client puts it. The connection
+        # goes to a pinned address, so urllib3 does not add Host itself;
+        # appended after requests' default headers, Dailymotion's CDN answered
+        # 403 to the same request a plain `requests.get` got 200 for.
+        others = [(key, value) for key, value in request.headers.items() if key.lower() != 'host']
+        request.headers.clear()
         request.headers['Host'] = urlsplit(request.url).netloc.rsplit('@', 1)[-1]
+        request.headers.update(others)
 
 
-def source_get(url, *, timeout=60, allow_redirects=False):
-    """Fetch one hop synchronously. Callers must validate/follow redirects."""
+def source_get(url, *, timeout=60, allow_redirects=False, headers=None):
+    """Fetch one hop synchronously. Callers must validate/follow redirects.
+
+    `headers` are sent as given: some CDNs answer 403 without the Referer
+    or User-Agent their playlist publishes.
+    """
     if allow_redirects:
         raise ValueError('Source redirects must be handled explicitly')
     with requests.Session() as session:
@@ -114,4 +125,13 @@ def source_get(url, *, timeout=60, allow_redirects=False):
         session.mount('http://', PinnedHTTPAdapter())
         session.mount('https://', PinnedHTTPAdapter())
         # Content is materialized before the session is closed (stream=False).
-        return session.get(url, timeout=timeout, allow_redirects=False)
+        return session.get(url, timeout=timeout, allow_redirects=False, headers=headers)
+
+
+def source_post_json(url, payload, *, timeout=10):
+    """POST JSON to one validated, pinned address. Redirects are not followed."""
+    with requests.Session() as session:
+        session.trust_env = False
+        session.mount('http://', PinnedHTTPAdapter())
+        session.mount('https://', PinnedHTTPAdapter())
+        return session.post(url, json=payload, timeout=timeout, allow_redirects=False)

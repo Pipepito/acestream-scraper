@@ -7,6 +7,10 @@
  */
 export enum WarpMode {
   WARP = 'warp',
+  DOH = 'doh',
+  WARP_DOH = 'warp+doh',
+  WARP_DOT = 'warp+dot',
+  TUNNEL_ONLY = 'tunnel_only',
   DOT = 'dot',
   PROXY = 'proxy',
   OFF = 'off'

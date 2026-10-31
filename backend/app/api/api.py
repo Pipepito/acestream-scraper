@@ -3,8 +3,13 @@ API router configuration
 """
 from fastapi import APIRouter
 from app.api.endpoints import channels, scrapers, epg, playlists, tv_channels, search, config, health, warp, urls, acestream, stats, activity, background_tasks, streams, base_urls, system, player, remote_players, media_servers, tuner
+from app.api.endpoints import access, watch, viewers, cast
 
 api_router = APIRouter()
+api_router.include_router(access.router, prefix='/auth', tags=['access'])
+api_router.include_router(watch.router, prefix='/view', tags=['watch'])
+api_router.include_router(viewers.router, prefix='/viewers', tags=['viewers'])
+api_router.include_router(cast.router, prefix='/cast', tags=['cast'])
 api_router.include_router(channels.router, prefix="/acestream-channels", tags=["channels"])
 # Backward-compatible alias retained for parity and existing test expectations.
 api_router.include_router(channels.router, prefix="/channels", tags=["channels"])
@@ -13,6 +18,8 @@ api_router.include_router(scrapers.router, prefix="/scrapers", tags=["scrapers"]
 api_router.include_router(epg.router, prefix="/epg", tags=["epg"])
 api_router.include_router(playlists.router, prefix="/playlists", tags=["playlists"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
+from app.api.endpoints import recordings
+api_router.include_router(recordings.config_router, prefix="/config", tags=["config"])
 api_router.include_router(config.router, prefix="/config", tags=["config"])
 api_router.include_router(health.router, tags=["health"])
 api_router.include_router(warp.router, prefix="/warp", tags=["warp"])
@@ -33,3 +40,25 @@ api_router.include_router(tuner.router, prefix="/tuner", tags=["tuner"])
 
 from app.api.endpoints import startup
 api_router.include_router(startup.router, prefix="/startup")
+
+from app.api.endpoints import catalogues
+api_router.include_router(catalogues.router, prefix='/catalogues', tags=['catalogues'])
+
+
+from app.api.endpoints import events
+api_router.include_router(events.router, prefix='/events', tags=['events'])
+
+
+from app.api.endpoints import telegram
+api_router.include_router(telegram.router, prefix="/telegram", tags=["telegram"])
+
+from app.api.endpoints import setup
+api_router.include_router(setup.router, prefix='/setup', tags=['setup'])
+
+from app.api.endpoints import import_exclusions
+api_router.include_router(import_exclusions.router, prefix='/import-exclusions', tags=['import-exclusions'])
+
+from app.api.endpoints import saved_searches
+api_router.include_router(saved_searches.router, prefix='/saved-searches', tags=['saved-searches'])
+
+api_router.include_router(recordings.router, prefix="/recordings", tags=["recordings"])

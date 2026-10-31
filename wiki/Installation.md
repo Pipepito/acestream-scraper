@@ -59,7 +59,7 @@ Docker Compose provides the easiest way to get started with Acestream Ids Scrape
    
    Open your browser and navigate to `http://localhost:8000`
    
-   Follow the [illustrated walkthrough](Usage.md): **Settings → Playback** for the engine, **Automation** for schedules/checks, **Stream links** for player formats, **Integrations → Public address** for client-facing links and **Scraper** for source URLs. Scraper has no setup wizard.
+   Follow the [illustrated walkthrough](Usage.md): **Settings → Playback** for the engine, **Automation** for schedules/checks, **Stream links** for player formats, **Integrations → Public address** for client-facing links and **Scraper** for source URLs. On develop, **Settings → Setup wizard** (`/setup`) guides first-run runtime configuration and saves runtime-config.json beside the database. Restart after runtime changes; existing saved application preferences stay in place. See [file precedence](Configuration.md#first-run-setup).
 
 ## Docker Method
 

@@ -79,15 +79,16 @@ def test_no_engine_does_not_launch_job(client, db_session, monkeypatch):
     assert response.json()['status'] == 'disabled'
     trigger.assert_not_called()
     # Direct jobs create their own session; API dependency overrides do not apply.
+    # Without an engine the job still looks for HTTP streams, which need none
+    # (test_iptv_status_check); with only AceStream ones it checks nothing.
+    db_session.add(AcestreamChannel(id='a' * 40, name='Ace', is_active=True))
+    db_session.commit()
     monkeypatch.setattr(channel_status_task, 'SessionLocal', lambda: db_session)
-    original_query = db_session.query
-
-    def query_without_channels(*entities, **kwargs):
-        assert AcestreamChannel not in entities, 'Disabled checks must not load channels'
-        return original_query(*entities, **kwargs)
-
-    monkeypatch.setattr(db_session, 'query', query_without_channels)
+    monkeypatch.setattr(db_session, 'close', lambda: None)
+    probe = Mock()
+    monkeypatch.setattr(channel_status_task.ChannelStatusService, 'check_channel_status', probe)
     result = channel_status_task.run_channel_status_task()
+    probe.assert_not_called()
     assert result == {
         'checked': 0, 'skipped': 0, 'failed': 0,
         'message': 'No engine configured; status checks are disabled.',

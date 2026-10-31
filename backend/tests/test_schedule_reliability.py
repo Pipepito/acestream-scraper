@@ -129,7 +129,9 @@ def test_scan_counts_outcomes_and_continues_after_failed_flush(alembic_db_sessio
         calls.append(channel.id)
         if i == 0:
             db.add(AcestreamChannel(id=channel.id, name="Duplicate"))  # Real flush failure.
-            db.flush()
+            from sqlalchemy.exc import SAWarning
+            with pytest.warns(SAWarning, match="conflicts with persistent instance"):
+                db.flush()
         if i == 1:
             return {'status': 'online', 'is_online': True}
         if i == 2:

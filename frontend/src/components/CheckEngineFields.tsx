@@ -22,7 +22,7 @@ export default function CheckEngineFields() {
       ? 'Stream checks use this engine. If it becomes unavailable, previous results are preserved; checks do not fall back to playback.'
       : 'Stream checks use the playback engine from the Playback tab. With no engine configured, status checks are skipped and previous results are preserved.'}</Typography>
     {config.use_dedicated && <TextField label="Checking engine URL" type="url" required size="small" value={config.url} disabled={config.managed || save.isPending} onChange={event => change({ url: event.target.value })} helperText="HTTP(S) address reachable from the scraper, including the port." sx={{ maxWidth: 480 }} />}
-    {config.managed ? <Alert severity="info">The container manages this checking engine. Use Overview to start or stop it; change its configuration when deploying the container.</Alert>
+    {config.managed ? <Alert severity="info">The container manages this checking engine. Use System status to start or stop it; change its configuration when deploying the container.</Alert>
       : <Typography variant="caption" color="text.secondary">This connects to an existing engine; it does not install or start one.</Typography>}
     {save.isError && <Alert severity="error">{getErrorMessage(save.error)}</Alert>}
     {saved && <Alert severity="success">Checking engine settings saved.</Alert>}

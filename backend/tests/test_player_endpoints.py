@@ -42,6 +42,9 @@ def player(client, tmp_path, monkeypatch):
     ``stop()`` — must share one loop, exactly as they do under uvicorn.
     """
     import app.api.endpoints.player as endpoint
+    # Endpoint contracts need stable media, not the fake's 50 ms rotation race.
+    # Deletion during transfer is exercised deterministically below.
+    monkeypatch.setenv("FAKE_FFMPEG_MODE", "static_playlist")
     svc = PlayerService(settings_getter=lambda: _Settings(tmp_path / "hls"), engine_factory=_engine, ffmpeg_path=str(FAKE_FFMPEG))
     monkeypatch.setattr(endpoint, "player_service", svc)
     with anyio.from_thread.start_blocking_portal(**client.async_backend) as portal:
@@ -155,14 +158,7 @@ def _wait_ready_with_token(client, session_id, token=TOKEN, tries=60):
 
 
 def test_segment_missing_is_404_and_served_response_carries_its_own_stat(client, player):
-    """A vanished segment is a 404, and a served one is not re-stat'ed at send time.
-
-    ffmpeg deletes old segments while it runs (``-hls_flags delete_segments``) and
-    teardown removes the whole directory, so a segment can disappear between the
-    handler and the response body being written. ``FileResponse`` without
-    ``stat_result`` stats again inside ``__call__`` and raises ``RuntimeError`` when
-    the file has gone — a 500 where the contract says 404.
-    """
+    """Missing/non-file paths are 404; valid segments retain their stat headers."""
     import app.api.endpoints.player as endpoint
 
     created = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
@@ -178,8 +174,8 @@ def test_segment_missing_is_404_and_served_response_carries_its_own_stat(client,
     (player.get(created["id"]).dir / "seg99998.ts").mkdir()
     assert client.get(f"/api/v1/player/sessions/{created['id']}/seg99998.ts").status_code == 404
 
-    # The served response carries the stat the handler took, so Starlette skips its
-    # own send-time stat and cannot raise RuntimeError if the file is deleted next.
+    # File metadata stays consistent with the handler's check. The separate
+    # rotation tests exercise deletion before open and during delivery.
     response = client.portal.call(endpoint.segment, created["id"], newest)
     assert response.stat_result is not None
     assert response.headers["content-length"] == str(response.stat_result.st_size)
@@ -230,3 +226,230 @@ def test_audio_track_request_validation_and_status(client, player):
     assert response.status_code == 200
     assert response.json()['audio_index'] == 1
     assert isinstance(response.json()['audio_tracks'], list)
+
+
+@pytest.mark.parametrize('when', ['before_send', 'after_headers', 'cancel_during_body'])
+@pytest.mark.parametrize('byte_range', [None, 'bytes=7-31', 'bytes=0-3,20-23'])
+def test_segment_rotation_during_response(client, player, when, byte_range, monkeypatch):
+    """Force deletion at both sides of the response's file-open boundary."""
+    import asyncio
+    import builtins
+    from starlette.exceptions import HTTPException
+    import app.api.endpoints.player as endpoint
+
+    created = client.post('/api/v1/player/sessions', json={'content_id': IH}).json()
+    path = player.get(created['id']).dir / 'seg99997.ts'
+    content = bytes(range(256)) * 1024  # More than one response chunk.
+    path.write_bytes(content)
+    response = client.portal.call(endpoint.segment, created['id'], path.name)
+    opened = []
+    original_open = builtins.open
+
+    def record_open(file, *args, **kwargs):
+        handle = original_open(file, *args, **kwargs)
+        if file == path:
+            opened.append(handle)
+        return handle
+
+    monkeypatch.setattr(builtins, 'open', record_open)
+    messages = []
+
+    async def deliver():
+        async def send(message):
+            messages.append(message)
+            if message['type'] == 'http.response.start' and when != 'before_send':
+                path.unlink()
+            if message['type'] == 'http.response.body' and when == 'cancel_during_body':
+                raise asyncio.CancelledError
+
+        async def receive():
+            raise AssertionError('ASGI 2.4 should not poll disconnects')
+
+        if when == 'before_send':
+            path.unlink()
+        scope = {'type': 'http', 'method': 'GET', 'asgi': {'spec_version': '2.4'},
+                 'headers': [(b'range', byte_range.encode())] if byte_range else [],
+                 'extensions': {'http.response.pathsend': {}}}
+        if when == 'cancel_during_body':
+            with pytest.raises(asyncio.CancelledError):
+                await response(scope, receive, send)
+        else:
+            await response(scope, receive, send)
+
+    if when == 'before_send':
+        with pytest.raises(HTTPException) as error:
+            client.portal.call(deliver)
+        assert error.value.status_code == 404
+        assert messages == []  # Never send a successful status before opening.
+    elif when == 'cancel_during_body':
+        client.portal.call(deliver)
+        assert opened and all(handle.closed for handle in opened)
+    else:
+        client.portal.call(deliver)
+        assert messages[0]['status'] == (206 if byte_range else 200)
+        assert all(message['type'] != 'http.response.pathsend' for message in messages)
+        body = b''.join(message.get('body', b'') for message in messages)
+        headers = dict(messages[0]['headers'])
+        assert len(body) == int(headers[b'content-length'])
+        if byte_range is None:
+            assert body == content
+        elif byte_range == 'bytes=7-31':
+            assert body == content[7:32]
+        else:
+            assert content[:4] in body and content[20:24] in body
+        assert opened and all(handle.closed for handle in opened)
+
+
+def test_segment_removed_before_open_returns_http_404(client, player, monkeypatch):
+    from starlette.responses import FileResponse
+
+    created = client.post('/api/v1/player/sessions', json={'content_id': IH}).json()
+    path = player.get(created['id']).dir / 'seg99996.ts'
+    path.write_bytes(b'G' * 188)
+    original_call = FileResponse.__call__
+
+    async def remove_before_send(response, scope, receive, send):
+        if response.path == path:
+            path.unlink()
+        await original_call(response, scope, receive, send)
+
+    monkeypatch.setattr(FileResponse, '__call__', remove_before_send)
+    response = client.get(f"/api/v1/player/sessions/{created['id']}/{path.name}")
+    assert response.status_code == 404
+    assert response.json() == {'detail': 'Segment not ready'}
+
+
+def test_imported_http_stream_plays_without_engine_or_probe(client, player, db_session, monkeypatch):
+    from app.models.models import AcestreamChannel
+    from app.api.endpoints.player import tuner_probe_service
+
+    from sqlalchemy.orm import sessionmaker
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    stream_id = 'url:' + 'b' * 40
+    db_session.add(AcestreamChannel(id=stream_id, name='laSexta', stream_url='https://media.example/live.m3u8'))
+    db_session.commit()
+    def no_engine(*args, **kwargs):
+        raise AssertionError('HTTP streams must not start or probe AceStream')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    monkeypatch.setattr(tuner_probe_service, 'start_for_stream', no_engine)
+    monkeypatch.setenv('API_TOKEN', TOKEN)
+    assert client.post('/api/v1/player/sessions', json={'content_id': stream_id}).status_code == 401
+    response = client.post('/api/v1/player/sessions', json={'content_id': stream_id}, headers={'X-Api-Token': TOKEN})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['content_id'] == stream_id and body['error'] is None and body['stats'] is None
+    ready = _wait_ready_with_token(client, body['id'])
+    assert client.get(ready['playlist_url'], params={'token': TOKEN}).status_code == 200
+    assert player.get(body['id']).http_source is not None
+
+
+def test_unknown_http_id_fails_cleanly_without_engine(client, player, db_session, monkeypatch):
+    from sqlalchemy.orm import sessionmaker
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    def no_engine():
+        raise AssertionError('Missing HTTP sources must not fall back to AceStream')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    response = client.post('/api/v1/player/sessions', json={'content_id': 'url:' + 'c' * 40})
+    assert response.status_code == 200
+    assert response.json()['error'] == 'source_unavailable'
+    assert client.post('/api/v1/player/sessions', json={'content_id': 'https://media.example/live.m3u8'}).status_code == 422
+
+
+def test_subtitle_playlists_and_vtt_preserve_authentication(client, player, monkeypatch):
+    monkeypatch.setenv('API_TOKEN', 'a b&c')
+    headers = {'X-Api-Token': 'a b&c'}
+    created = client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 0}, headers=headers).json()
+    assert created['subtitle_index'] == 0
+    session = player.get(created['id'])
+    (session.dir / 'index_vtt.m3u8').write_text('#EXTM3U\n#EXTINF:2,\nindex0.vtt\n')
+    (session.dir / 'index0.vtt').write_text('WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nCaption\n')
+    root = f"/api/v1/player/sessions/{session.id}"
+    master = client.get(root + '/index.m3u8', params={'token': 'a b&c'})
+    assert 'URI="subtitles.m3u8?token=a+b%26c"' in master.text
+    assert 'video.m3u8?token=a+b%26c' in master.text
+    subs = client.get(root + '/subtitles.m3u8', params={'token': 'a b&c'})
+    assert 'index0.vtt?token=a+b%26c' in subs.text
+    assert client.get(root + '/subtitles.m3u8').status_code == 401
+    assert client.get(root + '/index0.vtt').status_code == 401
+    caption = client.get(root + '/index0.vtt', headers=headers)
+    assert caption.headers['content-type'].startswith('text/vtt') and 'Caption' in caption.text
+    assert client.get(root + '/anything.vtt', headers=headers).status_code == 404
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': -1}, headers=headers).status_code == 422
+    assert client.post('/api/v1/player/sessions', json={'content_id': IH, 'subtitle_index': 64}, headers=headers).status_code == 422
+
+
+def test_w3u_http_import_uses_existing_player_and_releases_viewer(client, player, db_session, monkeypatch):
+    import json
+    from sqlalchemy.orm import sessionmaker
+    from app.api.endpoints.player import tuner_probe_service
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    def no_engine(*args, **kwargs):
+        raise AssertionError('W3U HTTP playback must remain engine-independent')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    monkeypatch.setattr(tuner_probe_service, 'start_for_stream', no_engine)
+    preview = client.post('/api/v1/catalogues/preview', json={'sample': json.dumps({
+        'stations': [{'name': 'Synthetic HLS', 'url': 'https://media.example/live.m3u8', 'userAgent': 'Fixture'}]})})
+    assert preview.status_code == 200
+    imported = client.post('/api/v1/catalogues', json={'preview_token': preview.json()['preview_token'],
+        'name': 'Player fixture', 'confirm_live': True, 'selected_branches': ['root']})
+    assert imported.status_code == 200
+    stream_id = imported.json()['entries'][1]['channel_id']
+    response = client.post('/api/v1/player/sessions', json={'content_id': stream_id})
+    assert response.status_code == 200
+    session_id = response.json()['id']
+    ready = _wait_ready(client, session_id)
+    assert client.get(ready['playlist_url']).status_code == 200
+    assert player.get(session_id).http_source is not None
+    stopped = client.delete(f'/api/v1/player/sessions/{session_id}')
+    assert stopped.status_code in (200, 204)
+    assert client.get(f'/api/v1/player/sessions/{session_id}').json()['viewers'] == 0
+
+
+def test_event_refresh_and_alternate_playback_preserve_other_viewers(client, player, db_session, monkeypatch):
+    """Event-only HTTP sources share the player lifecycle without channel insertion."""
+    from sqlalchemy.orm import sessionmaker
+    from app.models.models import AcestreamChannel, TVChannel
+    from app.api.endpoints.player import tuner_probe_service
+    from app.services.player_http_source import stored_http_source
+    monkeypatch.setattr('app.config.database.SessionLocal', sessionmaker(bind=db_session.get_bind()))
+    settings = player._settings()
+    settings.PLAYER_MAX_SESSIONS = 3
+    monkeypatch.setattr(player, '_settings', lambda: settings)
+
+    def no_engine(*args, **kwargs):
+        raise AssertionError('Event HTTP playback must not touch AceStream')
+    monkeypatch.setattr(player, '_engine_factory', no_engine)
+    monkeypatch.setattr(tuner_probe_service, 'start_for_stream', no_engine)
+    payload = {'observations': [{'source_id': 'test', 'source_name': 'Guide', 'external_id': 'match',
+        'title': 'Match', 'timezone': 'UTC', 'broadcasts': [
+            {'id': 'es', 'label': 'Spanish', 'url': 'https://media.example/live.m3u8?token=first'},
+            {'id': 'en', 'label': 'English', 'url': 'https://media.example/alternate.m3u8'}]}]}
+
+    def import_event():
+        preview = client.post('/api/v1/events/preview', json=payload)
+        assert preview.status_code == 200
+        result = client.post('/api/v1/events/apply', json={'token': preview.json()['token'],
+            'selected_ids': [preview.json()['events'][0]['id']]})
+        assert result.status_code == 200
+        return result.json()[0]
+
+    event = import_event()
+    original_id = event['broadcasts'][0]['content_id']
+    original = client.post('/api/v1/player/sessions', json={'content_id': original_id}).json()
+    joined = client.post('/api/v1/player/sessions', json={'content_id': original_id}).json()
+    assert joined['id'] == original['id'] and joined['viewers'] == 2
+    assert original['error'] is None
+    alternate = client.post('/api/v1/player/sessions', json={'content_id': event['broadcasts'][1]['content_id']}).json()
+    assert alternate['error'] is None and alternate['id'] != original['id']
+    client.delete('/api/v1/player/sessions/' + original['id'])
+    assert client.get('/api/v1/player/sessions/' + original['id']).json()['viewers'] == 1
+    payload['observations'][0]['broadcasts'][0]['url'] = 'https://media.example/live.m3u8?token=rotated'
+    refreshed = import_event()
+    assert refreshed['id'] == event['id']
+    assert refreshed['broadcasts'][0]['content_id'] != original_id
+    assert stored_http_source(original_id) is None
+    retained = player.get(original['id'])
+    assert retained.viewers == 1 and retained.http_source.url.endswith('token=first')
+    assert db_session.query(AcestreamChannel).count() == db_session.query(TVChannel).count() == 0
+    client.delete('/api/v1/player/sessions/' + alternate['id'])
+    assert retained.viewers == 1

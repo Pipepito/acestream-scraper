@@ -5,6 +5,9 @@ import {
 } from '../config/runtime';
 
 describe('runtime config', () => {
+  it('uses the same-origin Vite proxy for cookie sessions by default', () => {
+    expect(getApiBaseUrl({ dev: true })).toBe('/api');
+  });
   it('uses the backend origin for API requests during local development', () => {
     expect(getApiBaseUrl({ dev: true, backendOrigin: 'http://localhost:8000' })).toBe(
       'http://localhost:8000/api'

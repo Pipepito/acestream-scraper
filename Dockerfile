@@ -1,3 +1,10 @@
+# syntax=docker/dockerfile:1.7
+
+# A stable epoch keeps identical exported layers identical across fresh checkouts.
+# Build with rewrite-timestamp=true (see build_multiarch_images.sh). Do not use
+# the application commit time here: that would change every dependency layer.
+ARG SOURCE_DATE_EPOCH=946684800
+
 # Two Python interpreters live in the engine-bearing images and they are
 # pinned independently:
 #   APP_PYTHON_VERSION             the FastAPI app's runtime (scraper flavors can
@@ -9,10 +16,8 @@
 #                                  Android engine on ARM ships its own CPython 3.8.
 ARG APP_PYTHON_VERSION=3.13
 ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10
-# The bundled ZeroNet node (zeronet-conservancy v0.7.10) needs gevent 23.9.x
-# (newer gevent deadlocks its import-time ThreadPool), which tops out at
-# CPython 3.12 — so ZeroNet, like the AceStream engine, runs on its own
-# interpreter, carried inside /opt/zeronet.
+# ZeroNet has its own Python 3.11 runtime and dependency set under
+# /opt/zeronet, independent of the application and AceStream interpreters.
 ARG ZERONET_PYTHON_VERSION=3.11
 
 # ARM64 and ARMv7 use the maintained, non-premium-gated Android payloads packaged
@@ -32,6 +37,7 @@ COPY frontend/package*.json ./
 RUN npm install
 
 COPY frontend/ ./
+COPY version.txt /build/version.txt
 RUN npm run build
 
 
@@ -46,10 +52,11 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         python3-dev \
+        libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --upgrade pip \
+RUN pip install --upgrade pip setuptools wheel \
     && pip install --prefix=/install -r requirements.txt
 
 
@@ -110,6 +117,7 @@ RUN apt-get update \
         curl \
         tar \
         unzip \
+        gcc \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/testdata/acestream/ /tmp/acestream-fixture/
@@ -129,20 +137,26 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acestream-vendor,readonly
 
 FROM python:${ACESTREAM_ENGINE_PYTHON_VERSION}-slim AS engine-python
 
+# No package manager is needed by the shipped engine interpreter. Remove its
+# vendored dependencies and bootstrap wheels, not just their metadata.
+RUN python -m pip uninstall --yes pip setuptools wheel \
+    && rm -rf /usr/local/lib/python*/ensurepip
 
-# Kubo (go-ipfs) is a static Go binary: download it once on the build host for
-# the target platform instead of running under QEMU. Upstream ships
+
+# Kubo (go-ipfs) is rebuilt from pinned upstream source with reviewed module
+# locks and a patched Go toolchain, cross-compiled without QEMU. Upstream ships
 # linux-amd64 and linux-arm64 only — on linux/arm/v7 the stage produces an
 # empty /opt/ipfs/bin and the image ships without IPFS.
-FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ipfs-installer
+FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS ipfs-installer
 
 ARG TARGETPLATFORM
-ARG KUBO_VERSION=v0.43.0
+ARG KUBO_VERSION=v0.43.1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar \
     && rm -rf /var/lib/apt/lists/*
 
+COPY docker/ipfs/go.mod docker/ipfs/go.sum /usr/local/lib/ipfs-install/
 COPY docker/scripts/install-ipfs.sh /usr/local/lib/ipfs-install/install-ipfs.sh
 RUN chmod +x /usr/local/lib/ipfs-install/install-ipfs.sh \
     && TARGETPLATFORM=${TARGETPLATFORM} KUBO_VERSION=${KUBO_VERSION} \
@@ -182,7 +196,7 @@ RUN chmod +x /usr/local/lib/zeronet-install/install-zeronet.sh \
 
 # Go cross-compiles: build on the build host for the target platform instead
 # of running the toolchain under QEMU (and pulling golang for every arch).
-FROM --platform=$BUILDPLATFORM golang:1.22 AS acexy-builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS acexy-builder
 
 ARG ACEXY_REPO
 ARG ACEXY_REF
@@ -249,6 +263,9 @@ RUN apt-get update \
         arm64:*) apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross ;; \
         arm:*)   apt-get install -y --no-install-recommends gcc-arm-linux-gnueabihf libc6-dev-armhf-cross ;; \
        esac \
+    && case "${TARGETARCH}" in amd64|arm64) codec_arch="${TARGETARCH}" ;; arm) codec_arch=armhf ;; esac \
+    && if [ "$codec_arch" != "$host" ]; then dpkg --add-architecture "$codec_arch"; apt-get update; fi \
+    && apt-get install -y --no-install-recommends "libx264-dev:$codec_arch" \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/scripts/build-ffmpeg.sh /usr/local/lib/ffmpeg-build/build-ffmpeg.sh
@@ -258,6 +275,15 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/ffmpeg-vendor,readonly \
        FFMPEG_VENDORED_FILE="${FFMPEG_VENDORED_FILE}" FFMPEG_SHA256="${FFMPEG_SHA256}" \
        FFMPEG_SOURCE_URL="${FFMPEG_SOURCE_URL}" FFMPEG_MIRROR_URLS="${FFMPEG_MIRROR_URLS}" \
        /usr/local/lib/ffmpeg-build/build-ffmpeg.sh
+
+
+# Extract the vendor's headless tools from its signed APT package. The desktop
+# taskbar/WebView is never used in this container and brings a large GUI stack.
+FROM python:${APP_PYTHON_VERSION}-slim AS warp-installer
+ARG TARGETARCH
+RUN mkdir -p /opt/warp-root/usr/bin /opt/warp-root/usr/share/doc/cloudflare-warp
+COPY docker/scripts/install-warp-headless.sh /tmp/install-warp-headless.sh
+RUN bash /tmp/install-warp-headless.sh
 
 
 FROM python:${APP_PYTHON_VERSION}-slim AS runtime-base
@@ -293,12 +319,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     IPFS_GATEWAY_PORT=8081 \
     FFMPEG_BINARY_PATH=/opt/ffmpeg/bin/ffmpeg
 
-WORKDIR /app
-
 # Cloudflare publishes cloudflare-warp for amd64 and arm64 (no 32-bit ARM), so
 # those images ship warp-cli; linux/arm/v7 stays without it (ENABLE_WARP is
 # unsupported there). The apt suite follows the base image's Debian codename.
 ARG TARGETARCH
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -312,25 +337,35 @@ RUN apt-get update \
         tini \
         wget \
     && case "$TARGETARCH" in amd64|arm64) \
-        . /etc/os-release \
-        && wget -q https://pkg.cloudflareclient.com/pubkey.gpg -O /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg \
-        && printf 'deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ %s main\n' "${VERSION_CODENAME:-bookworm}" > /etc/apt/sources.list.d/cloudflare-client.list \
-        && apt-get update \
-        && apt-get install -y --no-install-recommends cloudflare-warp ;; \
+        apt-get install -y --no-install-recommends tor gnupg2 libcap2-bin \
+            libnss3-tools libpcap0.8 libtss2-esys-3.0.2-0t64 libtss2-tctildr0t64 ;; \
     esac \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=python-deps /install /usr/local
-COPY backend/ /app/
-RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
-COPY --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
+COPY --link --from=warp-installer /opt/warp-root/usr/bin/ /usr/bin/
+COPY --link --from=warp-installer /opt/warp-root/usr/share/doc/cloudflare-warp/ /usr/share/doc/cloudflare-warp/
+RUN case "$TARGETARCH" in amd64|arm64) \
+        setcap cap_setuid,cap_setgid,cap_net_raw,cap_dac_read_search,cap_net_admin,cap_net_bind_service,cap_sys_ptrace+ei /usr/bin/warp-svc \
+        && for tool in warp-cli warp-svc warp-dex warp-diag; do \
+            ldd "/usr/bin/$tool" > /tmp/warp-libraries \
+            && ! grep -q 'not found' /tmp/warp-libraries || exit 1; \
+        done \
+        && warp-cli --version ;; \
+    esac \
+    && rm -f /tmp/warp-libraries
+
+COPY --link --from=python-deps /install /usr/local
+# Runtime dependencies are built above. Shipping pip/ensurepip would retain
+# vulnerable private copies of urllib3/msgpack/setuptools inside their wheels.
+RUN python -m pip uninstall --yes pip setuptools wheel \
+    && rm -rf /usr/local/lib/python*/ensurepip
 
 # Kubo IPFS daemon (all flavors; /opt/ipfs/bin is empty on linux/arm/v7 where
 # upstream ships no 32-bit ARM build — the entrypoint detects the missing
 # binary and refuses ENABLE_IPFS=true there). The daemon is opt-in at runtime:
 # ENABLE_IPFS=false by default. Its gateway defaults to 8081 in-container
 # because Acexy already owns 8080.
-COPY --from=ipfs-installer /opt/ipfs/ /opt/ipfs/
+COPY --link --from=ipfs-installer /opt/ipfs/ /opt/ipfs/
 RUN mkdir -p /data/ipfs \
     && if [ -x /opt/ipfs/bin/ipfs ]; then ln -sf /opt/ipfs/bin/ipfs /usr/local/bin/ipfs; fi
 
@@ -341,28 +376,32 @@ RUN mkdir -p /data/ipfs \
 # way. tor rides along for the ENABLE_TOR toggle, on the same platforms where
 # the bundled node exists — Debian ships tor for arm64, so the only reason it
 # was amd64-only was that ZeroNet was.
-COPY --from=zeronet-installer /opt/zeronet/ /opt/zeronet/
-RUN mkdir -p /data/zeronet \
-    && case "$TARGETARCH" in \
-        amd64|arm64) \
-            apt-get update \
-            && apt-get install -y --no-install-recommends tor \
-            && rm -rf /var/lib/apt/lists/* ;; \
-    esac
+COPY --link --from=zeronet-installer /opt/zeronet/ /opt/zeronet/
+RUN mkdir -p /data/zeronet
 
 # Static ffmpeg/ffprobe for the web player (every flavor and platform).
-COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
+COPY --link --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY backend/capture_logs.py /usr/local/bin/capture_logs.py
-COPY backend/engine_cache_cleanup.py /usr/local/bin/engine_cache_cleanup.py
-COPY warp-setup.sh /usr/local/bin/warp-setup.sh
-COPY healthcheck.sh /usr/local/bin/healthcheck.sh
+# Runtime helpers and directories are independent of application source changes.
+RUN mkdir -p /app/frontend_build /app/logs /opt/acestream/bin /opt/acexy/bin
+COPY --link --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --link backend/capture_logs.py /usr/local/bin/capture_logs.py
+COPY --link backend/engine_cache_cleanup.py /usr/local/bin/engine_cache_cleanup.py
+COPY --link backend/gluetun_port.py /usr/local/bin/gluetun_port.py
+COPY --link --chmod=755 warp-setup.sh /usr/local/bin/warp-setup.sh
+COPY --link --chmod=755 healthcheck.sh /usr/local/bin/healthcheck.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/warp-setup.sh /usr/local/bin/healthcheck.sh
+# Linked copies keep each payload reusable when a preceding layer changes.
+# All destinations here are real directories, not inherited directory symlinks.
+WORKDIR /app
+COPY --link backend/ /app/
+COPY --link version.txt /app/version.txt
+COPY --link --from=frontend-builder /build/frontend/dist/ /app/frontend_build/
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--timeout-graceful-shutdown", "3"]
+# Let entrypoint.sh build the default app command from FLASK_PORT.
+# Explicit docker run / Compose commands still pass through unchanged.
+CMD []
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]
 
@@ -378,17 +417,20 @@ FROM scraper AS scraper-acestream
 # links libpython<version>.so.1.0 directly). Harmless on ARM, where the
 # Android engine brings its own CPython.
 ARG ACESTREAM_ENGINE_PYTHON_VERSION
-COPY --from=engine-python /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION}
-COPY --from=engine-python /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION}
-COPY --from=engine-python /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0 /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0
-RUN ldconfig
+COPY --link --from=engine-python /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/bin/python${ACESTREAM_ENGINE_PYTHON_VERSION}
+COPY --link --from=engine-python /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION} /usr/local/lib/python${ACESTREAM_ENGINE_PYTHON_VERSION}
+COPY --link --from=engine-python /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0 /usr/local/lib/libpython${ACESTREAM_ENGINE_PYTHON_VERSION}.so.1.0
+# The auxiliary ldconfig cache records build-host inode/device IDs; it is not
+# used by the runtime linker and would change this layer on every rebuild.
+RUN ldconfig && rm -f /var/cache/ldconfig/aux-cache
 
-COPY --from=acestream-installer /opt/acestream/ /opt/acestream/
+COPY --link --from=acestream-installer /opt/acestream/ /opt/acestream/
 # ARM flavors run the official Android engine payload against a minimal Android 9
 # bionic userland; its ELF interpreter path is hard-coded to /system/bin/linker*.
 # The directory is empty for the native x86_64 engine.
-COPY --from=acestream-installer /opt/acestream-system/ /system/
-COPY --chmod=755 docker/scripts/start-check-engine /opt/acestream/start-check-engine
+COPY --link --from=acestream-installer /opt/acestream-system/ /system/
+COPY --link --chmod=755 docker/scripts/start-check-engine /opt/acestream/start-check-engine
+COPY --link --chmod=755 docker/scripts/start-playback-engine /opt/acestream/start-playback-engine
 RUN mkdir -p /var/lib/acestream /var/lib/acestream-check /data
 
 # The same start command works for every platform: on x86_64 start-engine is
@@ -398,14 +440,14 @@ ENV IMAGE_HAS_ACESTREAM=true \
     ACESTREAM_BINARY_PATH=/opt/acestream/bin/acestreamengine \
     ACESTREAM_HOME=/var/lib/acestream \
     ACESTREAM_BIND_ALL=true \
-    ACESTREAM_START_COMMAND="env PYTHONPATH=/opt/acestream/python-deps /opt/acestream/start-engine --client-console --http-port 6878 --cache-auto 0 --cache-max-bytes 536870912 --disk-cache-limit 536870912 --live-cache-type memory --live-mem-cache-size 67108864"
+    ACESTREAM_START_COMMAND="exec /opt/acestream/start-playback-engine"
 
 
 FROM scraper AS scraper-acexy
 
 ARG ACEXY_BINARY_NAME=acexy
 
-COPY --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
+COPY --link --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
 
 ENV IMAGE_HAS_ACEXY=true \
     ACEXY_BINARY_PATH=/opt/acexy/bin/${ACEXY_BINARY_NAME} \
@@ -416,7 +458,7 @@ FROM scraper-acestream AS scraper-acestream-acexy
 
 ARG ACEXY_BINARY_NAME=acexy
 
-COPY --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
+COPY --link --from=acexy-builder /out/${ACEXY_BINARY_NAME} /opt/acexy/bin/${ACEXY_BINARY_NAME}
 
 ENV IMAGE_HAS_ACEXY=true \
     ACEXY_BINARY_PATH=/opt/acexy/bin/${ACEXY_BINARY_NAME} \

@@ -4,7 +4,7 @@ import { SearchPage } from '../src/pages/search';
 test.describe.configure({ mode: 'serial' });
 
 test.describe('engine search', () => {
-  test('search results come from the live engine and can be added one by one', async ({ page, api, scenario }, testInfo) => {
+  test('search results come from the configured engine and can be added one by one', async ({ page, api, scenario }, testInfo) => {
     const search = new SearchPage(page);
     await search.open();
     let addedThisSession = 0;
@@ -22,12 +22,13 @@ test.describe('engine search', () => {
 
       const toAdd = apiResults.results.slice(0, q.addFirst).filter((r) => r.id);
       for (const r of toAdd) {
-        await api.deleteChannel(r.id);
+        const { content_id: contentId } = await api.resolveSearchResult(r.id);
+        await api.deleteChannel(contentId);
         await search.addRow(r.name);
-        await search.expectAlert(`Added ${r.name} to your channels.`);
+        await search.expectAlert(`${r.name}: added.`);
         await expect(search.addedChip(r.name)).toBeVisible();
         await expect
-          .poll(async () => (await api.getChannel(r.id))?.name, { timeout: 15_000, message: `channel ${r.id} added from search` })
+          .poll(async () => (await api.getChannel(contentId))?.name, { timeout: 15_000, message: `channel ${contentId} added from search` })
           .toBe(r.name);
       }
       addedThisSession += toAdd.length;
@@ -43,15 +44,19 @@ test.describe('engine search', () => {
     await expect(search.resultRows().first()).toBeVisible();
     const apiResults = await api.search(q.query);
     const batch = apiResults.results.slice(0, Math.min(3, apiResults.results.length)).filter((r) => r.id);
+    const contentIds = new Map<string, string>();
     for (const r of batch) {
-      await api.deleteChannel(r.id);
+      const { content_id: contentId } = await api.resolveSearchResult(r.id);
+      contentIds.set(r.id, contentId);
+      await api.deleteChannel(contentId);
       await search.selectRow(r.name);
     }
     await expect(search.summary()).toContainText(new RegExp(`Selected\\s*${batch.length}`));
     await search.addSelected();
-    await search.expectAlert(`Added ${batch.length} channels.`);
+    await search.expectAlert(`${batch.length} added, 0 existing, 0 excluded, 0 unresolved, 0 deferred.`);
     for (const r of batch) {
-      await expect.poll(async () => (await api.getChannel(r.id))?.id, { timeout: 15_000 }).toBe(r.id);
+      const contentId = contentIds.get(r.id)!;
+      await expect.poll(async () => (await api.getChannel(contentId))?.id, { timeout: 15_000 }).toBe(contentId);
     }
   });
 

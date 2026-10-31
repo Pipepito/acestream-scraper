@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -59,6 +60,11 @@ class AppIdUpdate(BaseModel):
 class PublicBaseUrlUpdate(BaseModel):
     """Schema for updating the externally reachable origin (spec 4.3)."""
     value: str = Field("", description="http(s)://host[:port]; empty clears the override")
+
+
+class NotificationWebhookUpdate(BaseModel):
+    """Schema for updating the notification webhook (#41)."""
+    value: str = Field("", description="HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off")
 
 
 class DashboardConfigUpdate(BaseModel):
@@ -159,3 +165,15 @@ class ScheduleAnchors(BaseModel):
         except (ZoneInfoNotFoundError, ValueError) as exc:
             raise ValueError("Use an IANA timezone such as Europe/Madrid or UTC") from exc
         return value
+
+
+class EPGMatchingConfig(BaseModel):
+    enabled: bool = Field(False, description='Automatically apply unambiguous exact guide matches after successful scraping or EPG refresh')
+
+
+class EPGMatchingRun(BaseModel):
+    status: str = 'never'
+    finished_at: Optional[datetime] = None
+    created: int = 0
+    assigned: int = 0
+    review_needed: int = 0

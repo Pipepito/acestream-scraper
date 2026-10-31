@@ -119,7 +119,7 @@ def test_main_registers_the_middleware_as_the_outermost_user_middleware():
     """
     registered = [middleware.cls for middleware in main.app.user_middleware]
     assert registered[0] is ForwardedHeadersMiddleware, registered
-    assert CORSMiddleware in registered[1:], registered
+    assert any(issubclass(cls, CORSMiddleware) for cls in registered[1:]), registered
     assert main.app.user_middleware[0].kwargs["trusted"] == parse_trusted(
         get_settings().FORWARDED_ALLOW_IPS
     )

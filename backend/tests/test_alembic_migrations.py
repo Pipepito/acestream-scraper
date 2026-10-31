@@ -491,3 +491,53 @@ def test_alembic_upgrade_repairs_partial_activity_log_channel_id_migration(tmp_p
         assert migrated_activity['user'] == 'tester'
     finally:
         engine.dispose()
+
+
+def test_stream_order_upgrade_and_downgrade_preserve_existing_streams(tmp_path):
+    db_path = tmp_path / 'stream-order.db'
+    upgrade_to_revision(db_path, '20261023_1500')
+    engine = create_engine(database_url_for(db_path))
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO acestream_channels (id, name) VALUES ('existing', 'Existing')"))
+        upgrade_to_revision(db_path, 'head')
+        with engine.begin() as connection:
+            assert connection.execute(text('SELECT stream_order FROM acestream_channels')).scalar() is None
+            connection.execute(text('UPDATE acestream_channels SET stream_order = 1'))
+        downgrade_to_revision(db_path, '20261023_1500')
+        assert 'stream_order' not in _column_map(inspect(engine), 'acestream_channels')
+        with engine.connect() as connection:
+            assert connection.execute(text('SELECT name FROM acestream_channels')).scalar() == 'Existing'
+        upgrade_to_revision(db_path, 'head')
+        assert _column_map(inspect(engine), 'acestream_channels')['stream_order']['nullable'] is True
+    finally:
+        engine.dispose()
+
+
+def test_import_policy_and_search_upgrade_downgrade_preserve_inventory(tmp_path):
+    db_path = tmp_path / 'import-sources.db'
+    upgrade_to_revision(db_path, '20261026_1200')
+    engine = create_engine(database_url_for(db_path))
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO tv_channels (id, name, is_favorite, channel_number) VALUES (1, 'Operator TV', 1, 9)"))
+            conn.execute(text("INSERT INTO acestream_channels (id, name, is_active, is_online, tv_channel_id, stream_order) VALUES ('existing', 'Operator', 0, 1, 1, 2)"))
+        upgrade_to_revision(db_path, 'head')
+        with engine.begin() as conn:
+            assert conn.execute(text('SELECT revision FROM import_policy_state')).scalar() == 0
+            assert conn.execute(text('SELECT COUNT(*) FROM saved_searches')).scalar() == 0
+            conn.execute(text("INSERT INTO saved_searches (id, name, query, category, fingerprint, refresh_enabled, revision, created_at, updated_at) VALUES (1, 'Test', 'Test', '', 'hash', 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"))
+            conn.execute(text("INSERT INTO saved_search_channels VALUES (1, 'existing', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"))
+        with engine.connect() as conn:
+            conn.execute(text('PRAGMA foreign_keys=ON'))
+            conn.execute(text('DELETE FROM saved_searches WHERE id=1'))
+            conn.commit()
+            assert conn.execute(text('SELECT COUNT(*) FROM saved_search_channels')).scalar() == 0
+        downgrade_to_revision(db_path, '20261026_1200')
+        with engine.connect() as conn:
+            assert tuple(conn.execute(text('SELECT name, is_active, is_online, tv_channel_id, stream_order FROM acestream_channels')).one()) == ('Operator', 0, 1, 1, 2)
+            assert tuple(conn.execute(text('SELECT is_favorite, channel_number FROM tv_channels')).one()) == (1, 9)
+        assert 'saved_searches' not in inspect(engine).get_table_names()
+        upgrade_to_revision(db_path, 'head')
+    finally:
+        engine.dispose()

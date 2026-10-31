@@ -55,6 +55,15 @@ runtime_sources = "\n".join(
 )
 errors = []
 
+# Every offered setting declares whether the wizard owns it after first boot.
+file_options = {item["name"] for item in json.loads(
+    (root / "backend/app/config/runtime-options.json").read_text(encoding="utf-8")
+)}
+for item in data["runtimeSettings"]:
+    expected_owner = "runtime-file" if item["env"] in file_options else "deployment"
+    if item.get("configurationOwner") != expected_owner:
+        errors.append(f"configuration ownership differs for {item['env']}")
+
 # Every flavor on the page must be a real Dockerfile target, and vice versa.
 targets = set(re.findall(r"^FROM .+ AS (scraper[\w-]*)$", dockerfile, flags=re.M))
 flavors = {f["id"] for f in data["flavors"]}

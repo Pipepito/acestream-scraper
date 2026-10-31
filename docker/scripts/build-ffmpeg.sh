@@ -73,26 +73,31 @@ SRC="$WORK/src"
 rm -rf "$SRC"; mkdir -p "$SRC"
 tar -xJf "$TARBALL" -C "$SRC" --strip-components=1
 cd "$SRC"
+export PKG_CONFIG_LIBDIR="/usr/lib/${target_triplet}/pkgconfig:/usr/share/pkgconfig"
 ./configure \
     --prefix=/usr/local \
     --disable-everything --disable-doc --disable-debug --disable-programs \
     --enable-ffmpeg --enable-ffprobe \
     --disable-avdevice --disable-autodetect \
-    --enable-static --disable-shared --extra-ldflags=-static --pkg-config-flags=--static \
-    --enable-demuxer=mpegts,hls,mov,matroska,aac,mp3,ac3,mpegvideo,h264,hevc,data \
-    --enable-muxer=hls,mpegts,mp4,segment,stream_segment,null \
-    --enable-decoder=h264,hevc,aac,aac_latm,ac3,eac3,mp2,mp3,mpeg2video \
-    --enable-encoder=aac,mpeg2video \
+    --enable-static --disable-shared --extra-ldflags=-static --pkg-config=pkg-config --pkg-config-flags=--static \
+    --enable-gpl --enable-libx264 \
+    --enable-demuxer=mpegts,hls,mov,matroska,aac,mp3,ac3,mpegvideo,h264,hevc,data,webvtt \
+    --enable-muxer=hls,mpegts,mp4,segment,stream_segment,null,webvtt \
+    --enable-decoder=h264,hevc,aac,aac_latm,ac3,eac3,mp2,mp3,mpeg2video,webvtt,subrip,ass,mov_text \
+    --enable-encoder=aac,mpeg2video,webvtt,libx264 \
     --enable-parser=h264,hevc,aac,aac_latm,ac3,mpegaudio,mpegvideo \
     --enable-bsf=aac_adtstoasc,h264_mp4toannexb,hevc_mp4toannexb,extract_extradata,dump_extradata,setts \
-    --enable-filter=aformat,aresample,anull,null,copy,format,scale,asetnsamples,volume \
+    --enable-filter=aformat,aresample,anull,null,copy,format,scale,fps,asetnsamples,volume \
     --enable-protocol=file,pipe,http,tcp,unix,data,crypto \
     ${extra_cflags:+--extra-cflags="$extra_cflags"} \
-    "${cross_args[@]}" > "$WORK/configure.log" 2>&1 || { tail -40 "$WORK/configure.log" >&2; fail "configure failed"; }
+    "${cross_args[@]}" > "$WORK/configure.log" 2>&1 || { tail -40 "$WORK/configure.log" >&2; tail -80 ffbuild/config.log >&2; fail "configure failed"; }
 make -j"$(nproc)" > "$WORK/make.log" 2>&1 || { tail -40 "$WORK/make.log" >&2; fail "make failed"; }
 "$STRIP" ffmpeg ffprobe
 install -m 0755 ffmpeg "$OUT_DIR/ffmpeg"
 install -m 0755 ffprobe "$OUT_DIR/ffprobe"
+mkdir -p "$OUT_DIR/licenses"
+install -m 0644 COPYING.GPLv2 "$OUT_DIR/licenses/FFmpeg-GPLv2.txt"
+install -m 0644 /usr/share/doc/libx264-dev/copyright "$OUT_DIR/licenses/x264-copyright.txt"
 version="${VENDORED_FILE#ffmpeg-}"
 printf 'ffmpeg_version=%s\ntargetarch=%s\ntargetvariant=%s\nsha256=%s\n' \
     "${version%.tar.*}" "$TARGETARCH" "$TARGETVARIANT" "$SHA256" > "$OUT_DIR/install-metadata.txt"

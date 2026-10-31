@@ -37,7 +37,7 @@ def logical_instructions(text: str) -> list[str]:
 
 
 def runtime_command_errors(runtime: list[str]) -> list[str]:
-    """Validate the required Uvicorn command while allowing extra safe flags."""
+    """Keep default app command construction in the environment-aware entrypoint."""
     commands = [instruction for instruction in runtime if instruction.startswith("CMD ")]
     if len(commands) != 1:
         return [f"runtime-base must define exactly one CMD instruction; found {len(commands)}"]
@@ -50,20 +50,9 @@ def runtime_command_errors(runtime: list[str]) -> list[str]:
 
     if not isinstance(argv, list) or not all(isinstance(arg, str) for arg in argv):
         return ["runtime-base CMD must be a JSON array of strings"]
-    if argv[:2] != ["uvicorn", "main:app"]:
-        return ["runtime-base CMD must launch uvicorn main:app"]
-
-    errors: list[str] = []
-    for option, expected in (("--host", "0.0.0.0"), ("--port", "8000")):
-        positions = [index for index, arg in enumerate(argv) if arg == option]
-        if len(positions) != 1:
-            errors.append(f"runtime-base CMD must define {option} exactly once")
-            continue
-        position = positions[0]
-        actual = argv[position + 1] if position + 1 < len(argv) else None
-        if actual != expected:
-            errors.append(f"runtime-base CMD must set {option} to {expected}")
-    return errors
+    if argv:
+        return ["runtime-base CMD must be empty so entrypoint.sh honors FLASK_PORT"]
+    return []
 
 
 def main() -> int:
@@ -96,9 +85,9 @@ def main() -> int:
 
     runtime = stages.get("runtime-base", [])
     required_runtime = {
-        "COPY entrypoint.sh /usr/local/bin/entrypoint.sh",
-        "COPY warp-setup.sh /usr/local/bin/warp-setup.sh",
-        "COPY healthcheck.sh /usr/local/bin/healthcheck.sh",
+        "COPY --link --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh",
+        "COPY --link --chmod=755 warp-setup.sh /usr/local/bin/warp-setup.sh",
+        "COPY --link --chmod=755 healthcheck.sh /usr/local/bin/healthcheck.sh",
         'ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]',
         'HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/local/bin/healthcheck.sh"]',
     }

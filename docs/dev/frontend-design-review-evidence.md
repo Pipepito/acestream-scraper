@@ -1,5 +1,33 @@
 # Frontend Design Review Evidence
 
+## Import exclusions and saved searches — 2026-10-27
+
+Validated against the working implementation based on develop `db25aaae`.
+Recheck with `cd e2e && npx playwright test --config playwright.mobile.config.ts mobile/import-management.spec.ts`.
+
+- Eight mocked browser journeys passed: light/dark at 320px WebKit, 390px Chromium,
+  768px Firefox and 1440px Chromium. No horizontal page overflow or browser errors.
+- Verified read-only exclusion preview, visible incomplete counts, explicit rule
+  save, configuration-only saved-search creation with automation off, FIFO waiting
+  feedback, disabled duplicate Run now, and browser Back restoring the prior tab.
+- Keyboard activation submits the explicit Save button inside the dialog. Shared
+  MUI controls retain focus management, semantic labels and non-color run states.
+  No custom animation was introduced; the shared reduced-motion behavior remains.
+- Inspected small-phone dark and desktop light screenshots. Long names wrap,
+  actions stack on phones, tabs have scroll controls, and Waiting/Paused remain
+  distinct labels. Captures are local ignored Playwright artifacts under
+  `e2e/test-results/import-management-*/imports-{light,dark}.png`.
+- Jest covers the submitted-query Save action, mixed Search import outcomes,
+  exclusion links independent of pagination, bounded previews and saved run state.
+  The journey uses mocked APIs; live catalogue/swarm behavior is covered separately
+  by backend contract and ingress tests, not claimed by these screenshots.
+
+## Ko-fi Support Link (2026-10-27)
+
+- Built SPA checked with local Playwright Chromium at 1440×900 and 320×640 in both light and dark themes, with reduced motion and mocked API readiness. Screenshots confirmed the navigation footer link fits both layouts; no horizontal overflow or browser warnings/errors occurred.
+- Keyboard Tab from Changelog reaches Support on Ko-fi with a visible focus indicator. Enter opens `https://ko-fi.com/pipepito` in a new tab; the destination was intercepted locally for this check. The phone drawer closes after activation. The link has a 44px minimum height, announces the new tab, and uses `noopener noreferrer`.
+- `NavBarResponsive.test.tsx`: all six existing navigation tests passed. Typecheck, ESLint with zero warnings, production build and strict legacy-path guard passed. Vite reported its chunk-size warning for the player and data-grid bundles. This static link has no loading/error states.
+
 ## Shared Layout Primitives
 - Light theme: method=`CI=true npm test -- --runInBand --watch=false src/__tests__/layoutPrimitives.test.tsx src/__tests__/Dashboard.test.tsx` covering `createAppTheme('light')` for shared primitives and dashboard; result=pass; notes=verified the page header, `Controls`, `Recent Activity`, and `Background Tasks` render with semantic typography and surface tokens in light mode.
 - Dark theme: method=`CI=true npm test -- --runInBand --watch=false src/__tests__/layoutPrimitives.test.tsx src/__tests__/Dashboard.test.tsx` covering `createAppTheme('dark')` for shared primitives and dashboard; result=pass; notes=verified the same shared layout artifacts render under dark tokens without light-only color assumptions.
@@ -222,6 +250,35 @@ becomes archaeology.
 
 ### Status
 
-Pending. Captured evidence will be added by whoever runs the visual
-review pass post-release. The behavior-level evidence above is
-sufficient for v2 ship sign-off.
+The complete cross-page capture set remains pending. Feature-specific curated
+captures are indexed below; they do not establish full release sign-off.
+
+## Visual Evidence Index — Import Management (2026-10-27)
+
+Application commit `fbb5c1a`, local ARM64 `scraper-acestream-acexy` image,
+real SPA and migrated SQLite API with a controlled upstream catalogue/source:
+
+- [Saved searches, light, 1440 × 960](screenshots/import-exclusions-saved-searches/searches-light-1440.png).
+- [Import exclusions, dark, 1440 × 960](screenshots/import-exclusions-saved-searches/exclusions-dark-1440.png).
+- [Import exclusions, light, 390 × 960](screenshots/import-exclusions-saved-searches/exclusions-light-390.png).
+- [Saved searches, dark, 390 × 960](screenshots/import-exclusions-saved-searches/searches-dark-390.png).
+
+All four were visually inspected and passed horizontal-overflow assertions.
+`e2e/tests/18-import-management.spec.ts` passed with strict browser/backend error
+monitoring, verifying configuration-only creation, manual/scheduled coalescing,
+automatic refresh, canonical IDs, metadata preservation, source reconciliation
+and explicit manual override. The deliberately provoked `IMPORT_EXCLUDED` log
+has a local expected-error assertion. See the [capture instructions and fixture
+scope](screenshots/import-exclusions-saved-searches/README.md).
+
+Separate live-engine Search journeys passed (3 tests), as did real-container
+navigation and guarded HTTP media/probe journeys (5 tests). Docker health,
+AceStream 3.2.17 and Acexy responded successfully; rules, saved-search history
+and engine configuration matched exactly after restart. These checks do not
+claim successful live P2P media playback or other architecture/flavor coverage.
+
+The complete deterministic responsive suite also passed: 140 tests in 2.1 minutes,
+covering Chromium phone/desktop, 320px WebKit and Firefox tablet in both themes.
+Existing Events test assumptions were aligned with the current accessible labels,
+mapping mode, manual-event selection and date controls; application behavior was
+unchanged. E2E TypeScript validation and the strict legacy-path guard passed.

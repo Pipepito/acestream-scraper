@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Load the persisted data options before selecting or launching any service.
+RUNTIME_CONFIG_SCRIPT="$(dirname "$0")/backend/runtime_config.py"
+if [ ! -f "$RUNTIME_CONFIG_SCRIPT" ]; then RUNTIME_CONFIG_SCRIPT=/app/runtime_config.py; fi
+if [ "${SCRAPER_RUNTIME_LOADED:-}" != 1 ] && [ -f "$RUNTIME_CONFIG_SCRIPT" ]; then
+    exec python3 "$RUNTIME_CONFIG_SCRIPT" run bash "$0" "$@"
+fi
+
 LOG_DIR=${LOG_DIR:-/app/logs}
 mkdir -p "$LOG_DIR"
 export LOG_DIR
@@ -96,6 +103,8 @@ supervise_engine() {
     local command="$1" inner_pid="" sleeper_pid="" next_launch=0
     local restart_delay="${SUPERVISED_RESTART_DELAY_SECONDS:-5}"
     local state_dir="$SUPERVISOR_RUN_DIR" action status
+    local forwarded_port="" candidate_port="" pending_port="" port_notice="" port_poll=0
+    unset ACESTREAM_FORWARDED_PORT
     # Always leave a delay on repeated startup failures; never spin or give up.
     case "$restart_delay" in ''|*[!0-9]*) restart_delay=5 ;; esac
     [ "$restart_delay" -ge 1 ] || restart_delay=1
@@ -149,6 +158,29 @@ supervise_engine() {
                 next_launch=0
                 ;;
         esac
+        # Port updates stay inside the process owner, never overwrite the UI
+        # mailbox, and never clear intentional Stop. Poll only when opted in.
+        if [ "$slug" = acestream ] && [ -n "${ACESTREAM_GLUETUN_PORT_FILE:-}" ] && [ "$SECONDS" -ge "$port_poll" ]; then
+            port_poll=$((SECONDS + 5))
+            if candidate_port=$("${CAPTURE_PYTHON:-python3}" "$(dirname "$CAPTURE_SCRIPT")/gluetun_port.py"); then
+                port_notice=""
+                # Two observations avoid reacting to a partially rewritten file.
+                if [ "$candidate_port" != "$forwarded_port" ] && [ "$candidate_port" = "$pending_port" ]; then
+                    forwarded_port="$candidate_port"
+                    export ACESTREAM_FORWARDED_PORT="$forwarded_port"
+                    log "$label Gluetun P2P port changed to $forwarded_port; applying on engine launch"
+                    engine_terminate
+                    next_launch=0
+                fi
+                pending_port="$candidate_port"
+            else
+                pending_port=""
+                if [ "$port_notice" != unavailable ]; then
+                    log "$label Gluetun port unavailable, invalid or conflicting; retaining current P2P port"
+                    port_notice=unavailable
+                fi
+            fi
+        fi
         if [ -n "$inner_pid" ] && ! kill -0 "$inner_pid" 2>/dev/null; then
             status=0
             wait "$inner_pid" || status=$?
@@ -366,6 +398,11 @@ export ENABLE_WARP ENABLE_ACESTREAM_ENGINE ENABLE_ACEXY ENABLE_IPFS ENABLE_ZERON
 export FLASK_PORT="${FLASK_PORT:-8000}"
 export ACESTREAM_HTTP_HOST="${ACESTREAM_HTTP_HOST:-localhost}"
 export ACESTREAM_HTTP_PORT="${ACESTREAM_HTTP_PORT:-6878}"
+export ACESTREAM_GLUETUN_PORT_FILE="${ACESTREAM_GLUETUN_PORT_FILE:-}"
+if [ -n "$ACESTREAM_GLUETUN_PORT_FILE" ]; then
+    feature_enabled "$ENABLE_ACESTREAM_ENGINE" && image_has_feature "$IMAGE_HAS_ACESTREAM" || fail "Gluetun sync requires the bundled playback engine"
+    [ "${ACESTREAM_START_COMMAND:-}" = 'exec /opt/acestream/start-playback-engine' ] || fail "Gluetun sync requires the packaged playback command; remove ACESTREAM_START_COMMAND override"
+fi
 export ZERONET_DATA_DIR="${ZERONET_DATA_DIR:-/data/zeronet}"
 export ZERONET_UI_PORT="${ZERONET_UI_PORT:-43110}"
 export ZERONET_FILESERVER_PORT="${ZERONET_FILESERVER_PORT:-26552}"
@@ -378,11 +415,11 @@ export ZERONET_FILESERVER_PORT="${ZERONET_FILESERVER_PORT:-26552}"
 export ZERONET_TRACKERS="${ZERONET_TRACKERS:-udp://tracker.opentrackr.org:1337/announce udp://open.stealth.si:80/announce udp://tracker.torrent.eu.org:451/announce}"
 if feature_enabled "$ENABLE_ZERONET"; then
     # Keep the scraper pointed at the embedded node when the operator hasn't
-    # chosen an explicit external endpoint. Also rewrite the conventional
-    # 43110 default when the UI port moved.
+    # chosen an explicit endpoint. The runtime loader derives the first-boot
+    # default from the UI port; a saved URL remains authoritative thereafter.
     ZERONET_URL="${ZERONET_URL:-${ZERONET_BASE_URL:-}}"
     case "${ZERONET_URL:-}" in
-        ""|http://127.0.0.1:43110)
+        "")
             ZERONET_URL="http://127.0.0.1:$ZERONET_UI_PORT"
             ;;
     esac
@@ -405,6 +442,7 @@ export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT
 # MEDIA_SERVER_MIN_REFRESH_MINUTES debounces Jellyfin/Plex guide refreshes.
 export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"
+export RECORDINGS_DIR="${RECORDINGS_DIR:-}"
 export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"
 export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"
 export PLAYER_START_TIMEOUT_SECONDS="${PLAYER_START_TIMEOUT_SECONDS:-45}"

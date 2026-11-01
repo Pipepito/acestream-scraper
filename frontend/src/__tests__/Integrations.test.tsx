@@ -1,9 +1,15 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import Integrations from '../pages/Integrations';
+import PublicAddress from '../pages/integrations/PublicAddress';
+import WebPlayer from '../pages/integrations/WebPlayer';
+import RemotePlayers from '../pages/integrations/RemotePlayers';
+import MediaServers from '../pages/integrations/MediaServers';
+import Telegram from '../pages/integrations/Telegram';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
+
+jest.mock('../components/integrations/TelegramSection', () => function MockTelegramSection() { return <div>Telegram sources</div>; });
 
 const mockPublicUrl = jest.fn();
 const mockUpdatePublicBaseUrl = jest.fn();
@@ -106,19 +112,22 @@ const tunerStatus = (overrides: Record<string, unknown> = {}) => ({
   },
 });
 
-const renderPage = () =>
-  render(
+const pages = { 'public-address': PublicAddress, 'web-player': WebPlayer, 'remote-players': RemotePlayers, 'media-servers': MediaServers, telegram: Telegram };
+const renderPage = (page: keyof typeof pages = 'remote-players') => {
+  const Page = pages[page];
+  return render(
     <ThemeProvider theme={createAppTheme('light')}>
       <TestMemoryRouter>
-        <Integrations />
+        <Page />
       </TestMemoryRouter>
     </ThemeProvider>
   );
+};
 
-describe('Integrations page', () => {
+describe('Integration pages', () => {
   it('offers Android pause and volume but no unsupported stop button', () => {
     mockPlayers.mockReturnValue({ data: [{ id: 5, name: 'Android TV', kind: 'vlc_android', host: '192.168.1.20', port: 8443, has_password: true }], isLoading: false });
-    renderPage();
+    renderPage('remote-players');
     expect(screen.getByRole('button', { name: 'Pause Android TV' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Stop Android TV' })).not.toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Volume Android TV' })).toHaveAttribute('aria-valuemax', '100');
@@ -169,22 +178,32 @@ describe('Integrations page', () => {
     mockTunerSettings.mockReturnValue({ data: { friendly_name: 'AceStream Tuner', tuner_count: 4, max_channels: 450, only_online: false }, isLoading: false });
   });
 
-  it('renders the page skeleton with the four sections', () => {
-    renderPage();
-    expect(screen.getByRole('heading', { level: 1, name: 'Integrations' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
-      'Public address',
-      'Web player',
-      'Remote players',
-      'Media servers',
-    ]);
-    expect(screen.getByRole('status', { name: 'Integration summary' })).toHaveTextContent('Players1');
-    expect(screen.getByRole('status', { name: 'Integration summary' })).toHaveTextContent('Media servers2');
+  it.each([
+    ['public-address', 'Public address'], ['web-player', 'Web player'],
+    ['remote-players', 'Remote players'], ['media-servers', 'Media servers'], ['telegram', 'Telegram'],
+  ] as const)('renders only the %s setup and its queries', (page, title) => {
+    renderPage(page);
+    expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument();
+    for (const [name, hook] of [
+      ['public-address', mockPublicUrl], ['web-player', mockStreams],
+      ['remote-players', mockPlayers], ['media-servers', mockServers],
+    ] as const) {
+      if (name === page) expect(hook).toHaveBeenCalled();
+      else expect(hook).not.toHaveBeenCalled();
+    }
+    expect(screen.queryByRole('heading', { level: 1, name: 'Integrations' })).not.toBeInTheDocument();
+  });
+
+  it('does not allow saving an unknown public address after a failed read', () => {
+    mockPublicUrl.mockReturnValue({ data: undefined, error: new Error('Read failed'), refetch: jest.fn() });
+    renderPage('public-address');
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load the public address');
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 
   it('warns about a localhost public address and saves a new one', async () => {
     mockUpdatePublicBaseUrl.mockResolvedValue(undefined);
-    renderPage();
+    renderPage('public-address');
     const section = screen.getByRole('region', { name: 'Public address' });
     const warnings = within(section).getAllByRole('alert');
     expect(warnings).toHaveLength(2);
@@ -197,29 +216,23 @@ describe('Integrations page', () => {
     await waitFor(() => expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['media-servers'] }));
   });
 
-  it('reports a failed load instead of showing an empty list or claiming ffmpeg is ready', () => {
-    mockServers.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: new Error('Request failed'), refetch: jest.fn() });
-    mockPlayers.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: new Error('Request failed'), refetch: jest.fn() });
-    mockCapabilities.mockReturnValue({ data: undefined, isError: true, error: new Error('Request failed') });
-    renderPage();
-
-    const servers = screen.getByRole('region', { name: 'Media servers' });
-    expect(within(servers).getByText('Unable to load media servers')).toBeInTheDocument();
-    expect(within(servers).queryByText('No media servers yet')).not.toBeInTheDocument();
-    expect(within(servers).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
-
-    const players = screen.getByRole('region', { name: 'Remote players' });
-    expect(within(players).getByText('Unable to load players')).toBeInTheDocument();
-    expect(within(players).queryByText('No players yet')).not.toBeInTheDocument();
-
-    const web = screen.getByRole('region', { name: 'Web player' });
-    expect(within(web).getByText('Unable to check the web player')).toBeInTheDocument();
-    expect(within(web).queryByText(/ffmpeg ready/)).not.toBeInTheDocument();
+  it.each([
+    ['media-servers', 'Unable to load media servers', 'No media servers yet'],
+    ['remote-players', 'Unable to load players', 'No players yet'],
+    ['web-player', 'Unable to check the web player', 'ffmpeg ready'],
+  ] as const)('reports a failed load on %s', (page, message, empty) => {
+    const failed = { data: undefined, isLoading: false, isError: true, error: new Error('Request failed'), refetch: jest.fn() };
+    mockServers.mockReturnValue(failed);
+    mockPlayers.mockReturnValue(failed);
+    mockCapabilities.mockReturnValue(failed);
+    renderPage(page);
+    expect(screen.getByText(message)).toBeVisible();
+    expect(screen.queryByText(empty)).not.toBeInTheDocument();
   });
 
   it('does not claim ffmpeg is ready before the capabilities answer', () => {
     mockCapabilities.mockReturnValue({ data: undefined, isError: false, error: null });
-    renderPage();
+    renderPage('web-player');
     const web = screen.getByRole('region', { name: 'Web player' });
     expect(within(web).getByText('Checking ffmpeg…')).toBeInTheDocument();
     expect(within(web).queryByText(/ffmpeg ready/)).not.toBeInTheDocument();
@@ -254,7 +267,7 @@ describe('Integrations page', () => {
         ],
       },
     });
-    renderPage();
+    renderPage('web-player');
 
     const web = screen.getByRole('region', { name: 'Web player' });
     const rows = within(web).getAllByRole('listitem');
@@ -268,16 +281,16 @@ describe('Integrations page', () => {
     expect(within(rows[0]).getByText('Playing')).toBeInTheDocument();
 
     // A relay is a stream too, and without a known channel the head of the id names it.
-    expect(within(rows[1]).getByText('Unnamed channel ffeeddcc…')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('Unnamed stream ffeeddcc…')).toBeInTheDocument();
     expect(within(rows[1]).getByText(/Media server or player at 192\.168\.1\.5 · started 4 min ago/)).toBeInTheDocument();
     expect(within(rows[1]).getByText('Streaming')).toBeInTheDocument();
 
-    expect(screen.getByRole('status', { name: 'Integration summary' })).toHaveTextContent('Active streams2');
+    expect(screen.getByRole('status', { name: 'Web player summary' })).toHaveTextContent('Sessions2');
   });
 
   it('shows player cards with live status, transport and a menu with confirm on delete', async () => {
     mockDelete.mockResolvedValue(undefined);
-    renderPage();
+    renderPage('remote-players');
     const card = screen.getByRole('group', { name: 'Player Living room' });
     expect(within(card).getByText(/Playing.*Arena TV/)).toBeInTheDocument();
     fireEvent.click(within(card).getByRole('button', { name: 'Pause Living room' }));
@@ -292,7 +305,7 @@ describe('Integrations page', () => {
 
   it('keeps the volume where the user left it instead of snapping back to the last poll', async () => {
     mockCommand.mockResolvedValue(undefined);
-    renderPage();
+    renderPage('remote-players');
     const card = screen.getByRole('group', { name: 'Player Living room' });
     const slider = within(card).getByRole('slider', { name: 'Volume Living room' }) as HTMLInputElement;
     expect(slider.value).toBe('50');
@@ -312,7 +325,7 @@ describe('Integrations page', () => {
       ],
       isLoading: false,
     });
-    renderPage();
+    renderPage('remote-players');
 
     const vlc = within(screen.getByRole('group', { name: 'Player Living room' })).getByRole('slider', { name: 'Volume Living room' });
     const kodi = within(screen.getByRole('group', { name: 'Player Bedroom' })).getByRole('slider', { name: 'Volume Bedroom' });
@@ -330,7 +343,7 @@ describe('Integrations page', () => {
       hint: "VLC's web interface has no password. In VLC: Tools > Preferences",
       tuner_access: { addresses: ['192.168.1.20'], allowed: true },
     });
-    renderPage();
+    renderPage('remote-players');
     fireEvent.click(screen.getByRole('button', { name: 'Add player' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add player' });
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Bedroom' } });
@@ -351,7 +364,7 @@ describe('Integrations page', () => {
       hint: null,
       tuner_access: { addresses: ['192.168.1.20'], allowed: false },
     });
-    renderPage();
+    renderPage('remote-players');
 
     const card = screen.getByRole('group', { name: 'Player Living room' });
     fireEvent.click(within(card).getByRole('button', { name: 'More actions for Living room' }));
@@ -370,7 +383,7 @@ describe('Integrations page', () => {
       message: 'Jellyfin is reachable',
       tuner_access: { addresses: ['192.168.1.12'], allowed: false },
     });
-    renderPage();
+    renderPage('media-servers');
 
     const card = screen.getByRole('group', { name: 'Media server Jelly' });
     fireEvent.click(within(card).getByRole('button', { name: 'More actions for Jelly' }));
@@ -390,7 +403,7 @@ describe('Integrations page', () => {
       message: 'Jellyfin needs an administrator API key. In Jellyfin open Dashboard > API Keys, create one, and paste it here.',
       tuner_access: { addresses: ['192.168.1.12'], allowed: true },
     });
-    renderPage();
+    renderPage('media-servers');
 
     fireEvent.click(screen.getByRole('button', { name: 'Add media server' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add media server' });
@@ -415,7 +428,7 @@ describe('Integrations page', () => {
       message: 'Jellyfin rejected this API key. It must be an administrator API key from Dashboard > API Keys.',
       tuner_access: { addresses: ['192.168.1.12'], allowed: true },
     });
-    renderPage();
+    renderPage('media-servers');
 
     fireEvent.click(screen.getByRole('button', { name: 'Add media server' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add media server' });
@@ -430,7 +443,7 @@ describe('Integrations page', () => {
   it('shows a connected Jellyfin card with two visible actions and confirms Disconnect and Delete', async () => {
     mockDisconnectServer.mockResolvedValue(undefined);
     mockDeleteServer.mockResolvedValue(undefined);
-    renderPage();
+    renderPage('media-servers');
     const card = screen.getByRole('group', { name: 'Media server Jelly' });
     expect(within(card).getByText('Connected')).toBeInTheDocument();
     expect(within(card).getByText('Guide up to date')).toBeInTheDocument();
@@ -457,7 +470,7 @@ describe('Integrations page', () => {
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     mockDisconnectServer.mockResolvedValue(undefined);
-    renderPage();
+    renderPage('media-servers');
     const card = screen.getByRole('group', { name: 'Media server Plex' });
     expect(within(card).getByText('Rescan the guide in Plex')).toBeInTheDocument();
     expect(within(card).getByText(/Set Up Plex Tuner/)).toBeInTheDocument();
@@ -483,7 +496,7 @@ describe('Integrations page', () => {
       message: 'Jellyfin is reachable',
       tuner_access: { addresses: ['192.168.1.12'], allowed: false },
     });
-    renderPage();
+    renderPage('media-servers');
     fireEvent.click(screen.getByRole('button', { name: 'Add media server' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add media server' });
     expect(within(dialog).getByRole('radiogroup', { name: 'Channels reach Jellyfin as' })).toBeInTheDocument();
@@ -505,7 +518,7 @@ describe('Integrations page', () => {
         recent_denials: [{ client_ip: '203.0.113.9', peer: '203.0.113.9', path: '/tuner/lineup.json', at: 1 }],
       })
     );
-    renderPage();
+    renderPage('public-address');
     const section = screen.getByRole('region', { name: 'Public address' });
     const alerts = within(section).getAllByRole('alert');
     expect(alerts).toHaveLength(4);
@@ -523,7 +536,7 @@ describe('Integrations page', () => {
     };
     mockServers.mockReturnValue({ data: [plex], isLoading: false });
     mockConnectServer.mockResolvedValue(plex);
-    renderPage();
+    renderPage('media-servers');
     const card = screen.getByRole('group', { name: 'Media server Plex' });
     fireEvent.click(within(card).getByRole('button', { name: 'Connect Plex' }));
     await waitFor(() => expect(mockConnectServer).toHaveBeenCalledWith(2));
@@ -539,14 +552,14 @@ describe('Integrations page', () => {
     };
     mockServers.mockReturnValue({ data: [jelly], isLoading: false });
     mockConnectServer.mockResolvedValue({ ...jelly, connected: true, tuner_host_id: 'th-1', listing_provider_id: 'lp-1' });
-    renderPage();
+    renderPage('media-servers');
     const card = screen.getByRole('group', { name: 'Media server Jelly' });
     fireEvent.click(within(card).getByRole('button', { name: 'Connect Jelly' }));
     expect(await screen.findByText('Jelly is connected.')).toBeInTheDocument();
   });
 
   it('keeps tuner numbers the API would reject out of the request', async () => {
-    renderPage();
+    renderPage('media-servers');
     const section = screen.getByRole('region', { name: 'Media servers' });
     fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
     const streams = within(section).getByRole('spinbutton', { name: 'Streams at once' });
@@ -569,8 +582,44 @@ describe('Integrations page', () => {
     await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({ tuner_count: 2, max_channels: 300 })));
   });
 
+  it('lets a slow engine have more time to start a channel', async () => {
+    // A cold P2P start can take longer than 15 s per source (#226).
+    renderPage('media-servers');
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    const perSource = within(section).getByRole('spinbutton', { name: 'Seconds per source' });
+    const total = within(section).getByRole('spinbutton', { name: 'Seconds to start a channel' });
+    const save = within(section).getByRole('button', { name: 'Save tuner settings' });
+    expect(perSource).toHaveValue(15);
+    expect(total).toHaveValue(45);
+
+    fireEvent.change(perSource, { target: { value: '200' } });
+    expect(within(section).getByText('Enter a whole number between 5 and 180.')).toBeInTheDocument();
+    expect(save).toBeDisabled();
+
+    fireEvent.change(perSource, { target: { value: '40' } });
+    fireEvent.change(total, { target: { value: '58' } });
+    fireEvent.click(save);
+    await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ source_start_seconds: 40, startup_budget_seconds: 58 })));
+  });
+
+  it('saves Plex Desktop audio compatibility independently of video recovery', async () => {
+    renderPage('media-servers');
+    const section = screen.getByRole('region', { name: 'Media servers' });
+    fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
+    const toggle = within(section).getByRole('checkbox', { name: 'Plex Desktop compatible audio' });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(within(section).getByText(/video passes through without encoding/)).toBeVisible();
+    fireEvent.click(within(section).getByRole('button', { name: 'Save tuner settings' }));
+    await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledWith(expect.objectContaining({
+      plex_compatible_audio: true, experimental_transcoding: false,
+    })));
+  });
+
   it('requires explicitly enabling experimental transcoding recovery', async () => {
-    renderPage();
+    renderPage('media-servers');
     const section = screen.getByRole('region', { name: 'Media servers' });
     fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
     const toggle = within(section).getByRole('checkbox', { name: 'Experimental transcoding recovery' });
@@ -584,7 +633,7 @@ describe('Integrations page', () => {
 
   it('saves the tuner settings from the collapsible block', async () => {
     mockUpdateTunerSettings.mockResolvedValue({ friendly_name: 'Living room tuner', tuner_count: 4, max_channels: 450, only_online: false });
-    renderPage();
+    renderPage('media-servers');
     const section = screen.getByRole('region', { name: 'Media servers' });
     fireEvent.click(within(section).getByRole('button', { name: 'Tuner settings' }));
     fireEvent.change(within(section).getByRole('textbox', { name: 'Tuner name' }), { target: { value: 'Living room tuner' } });

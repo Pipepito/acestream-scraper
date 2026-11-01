@@ -10,7 +10,7 @@ Run inside `frontend/`:
 npm ci
 npm start
 npm test -- --runInBand
-npm test -- --runInBand src/__tests__/Overview.test.tsx
+npm test -- --runInBand src/__tests__/SystemDashboard.test.tsx
 npm run typecheck
 npm run lint -- --max-warnings=0
 npm run build
@@ -40,8 +40,8 @@ testing the SPA through FastAPI rather than the Vite server.
 
 ## UI contract
 
-- Navigation has eleven primary destinations: Live TV, Overview, Scraper, Search,
-  Acestream Channels, TV Channels, EPG, Playlist, Integrations, WARP, and Settings, grouped by Watch, Manage and System.
+- Navigation includes TV dashboard, Live TV, Recordings, Catalogues and Events under Watch; other destinations are System status, Scraper, Search,
+  Acestream Channels, TV Channels, EPG, Playlist, Public address, Web player, TV casting, Remote players, Media servers, Telegram, WARP, Settings and Changelog, grouped by Watch, Manage, Integrations and System.
 - Live TV (`/live-tv`) is the viewing catalog; TV Channels remains the management
   inventory. Use `ChannelPlayerDialog` to retain or resolve TV context and
   `StreamPlayerDialog` for the underlying HLS lifecycle.
@@ -69,8 +69,11 @@ testing the SPA through FastAPI rather than the Vite server.
   meaningful UI changes.
 - For navigation, API integration, or cross-page workflows, add/update Playwright
   journeys as appropriate after focused Jest coverage.
-- Preserve Vite `manualChunks` behavior unless bundle tuning is the task; a casual
-  import change can move large MUI/data-grid/page chunks back into the entry bundle.
+- Preserve Vite/Rolldown dependency groups unless bundle tuning is the task. Keep
+  React/scheduler together and MUI with its Emotion/transition helpers to avoid
+  initialization cycles. HLS uses pinned full-feature source modules; upgrades must
+  update its build dependencies/flags and pass the compatibility test. See
+  `docs/dev/frontend-bundles.md`; verify the built SPA, not only the dev server.
 
 ## Player audio
 
@@ -84,8 +87,8 @@ testing the SPA through FastAPI rather than the Vite server.
 Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
 does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage and System, with WARP always discoverable. Settings uses deep-linkable
-`?tab=playback|automation|links|access` sections; public address belongs to
+Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
+`?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
 
@@ -114,3 +117,39 @@ URL, and with neither URL probes are skipped without changing channel results.
 A configured dedicated checker never falls back on failure. Bundled checker
 configuration remains supervisor-owned and read-only in Settings. New scraper-only
 installs default to an empty playback URL; existing saved endpoints are preserved.
+
+## TV and system dashboards
+
+The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
+diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
+`/stats` redirect to `/`. Keep section failures independent and missing data unknown.
+Playback summaries only read the shared streams query; never touch session heartbeats
+or ownership. Event summaries use server-side `selection=dashboard` before pagination,
+with six results over seven local calendar days. Display interests/timezone are
+browser preferences; Following remains installation-wide. Reuse agenda rows and
+`/events?event=<id>&zone=<timezone>` details; never import or play during dashboard
+reads. See `docs/dev/dashboard-split.md`.
+
+## Integration navigation
+
+Integrations is a sidebar category with independent pages at
+`/integrations/public-address`, `/integrations/web-player`,
+`/integrations/tv-casting`, `/integrations/remote-players`, `/integrations/media-servers` and
+`/integrations/telegram`. The old `/integrations` URL redirects to Public address.
+Keep tuner settings with Media servers, WARP under System, and contextual links
+pointing directly to the relevant setup. Each page mounts only its own section;
+shared query keys and page-scoped feedback preserve existing operations.
+
+
+## Built-in recordings
+
+Recordings are opt-in with an explicit persistent `RECORDINGS_DIR`. Keep DVR
+capture on its dedicated coordinator, outside the maintenance FIFO; prioritize
+scheduled capture over local MP4/AAC preparation. Preserve direct-engine source
+leases, guarded HTTP input, control-pipe/process-group cleanup, journal recovery,
+stop intent and immutable guide snapshots. Never replace originals during
+conversion or delete protected/active/reader-held media. File routes retain the
+optional API-token policy and descriptor-relative no-follow access. Recordings
+is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
+`docs/ops/recordings.md` for limits, qualification and rollback.

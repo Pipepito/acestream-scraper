@@ -14,7 +14,7 @@ export const usePlayerCapabilities = () =>
     staleTime: 60_000,
   });
 
-/** Everything streaming right now — browser sessions and relays; polled while the Integrations page is open. */
+/** Everything streaming right now — browser sessions and relays; polled while a playback summary is mounted. */
 export const useActiveStreams = () =>
   useQuery<{ streams: ActiveStream[] }>({
     queryKey: PLAYER_STREAMS_QUERY_KEY,
@@ -23,8 +23,8 @@ export const useActiveStreams = () =>
   });
 
 export const useStartPlayerSession = () =>
-  useMutation<PlayerSessionStatus, ApiError, string | { contentId: string; audioIndex: number }>({
-    mutationFn: (input) => typeof input === 'string' ? playerService.startSession(input) : playerService.startSession(input.contentId, input.audioIndex),
+  useMutation<PlayerSessionStatus, ApiError, string | { contentId: string; audioIndex?: number; subtitleIndex?: number }>({
+    mutationFn: (input) => typeof input === 'string' ? playerService.startSession(input) : playerService.startSession(input.contentId, input.audioIndex, input.subtitleIndex),
   });
 
 /** Polls the session: 2 s while starting (also the heartbeat), 10 s while ready, stops on error or once the session is gone. */

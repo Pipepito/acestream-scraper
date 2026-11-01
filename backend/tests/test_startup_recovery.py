@@ -1,4 +1,5 @@
 """Recovery must preserve source files and fail closed before installation."""
+from contextlib import closing
 import json
 import sqlite3
 import threading
@@ -29,7 +30,7 @@ def isolated(tmp_path, monkeypatch):
 
 
 def seed(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.execute('CREATE TABLE settings (id INTEGER PRIMARY KEY, key TEXT, value TEXT)')
         conn.executemany('INSERT INTO settings VALUES (?, ?, ?)', [(1, 'one', 'secret-value'), (2, 'one', 'duplicate'), (3, 'two', 'kept')])
 
@@ -40,7 +41,7 @@ def test_salvage_preserves_readable_rows_and_reports_skips(isolated):
     original = path.read_bytes()
     events = []
     recovery.recover_database('salvage', lambda message, *args: events.append(message))
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         assert conn.execute('SELECT key, value FROM settings ORDER BY id').fetchall() == [('one', 'secret-value'), ('two', 'kept')]
         assert conn.execute('PRAGMA integrity_check').fetchone() == ('ok',)
         assert conn.execute('SELECT version_num FROM alembic_version').fetchone()
@@ -60,7 +61,7 @@ def test_fresh_can_preserve_and_replace_an_unreadable_database(isolated):
     backup = next((isolated / 'backups').glob('recovery-*'))
     assert (backup / 'current' / 'current.db').read_bytes() == b'broken database'
     assert (backup / 'legacy' / 'legacy.db').read_bytes() == b'original legacy'
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         assert conn.execute('SELECT COUNT(*) FROM settings').fetchone() == (0,)
     assert recovery.legacy_disabled()
 
@@ -103,10 +104,10 @@ def test_wal_rows_are_in_the_backup_and_salvaged(isolated):
         conn.execute("INSERT INTO settings VALUES (1, 'wal', 'preserved')")
         conn.commit()
         recovery.recover_database('salvage', lambda *args: None)
-        with sqlite3.connect(path) as rebuilt:
+        with closing(sqlite3.connect(path)) as rebuilt, rebuilt:
             assert rebuilt.execute('SELECT value FROM settings').fetchone() == ('preserved',)
         backup = next((isolated / 'backups').glob('recovery-*'))
-        with sqlite3.connect(backup / 'current' / 'current.db') as saved:
+        with closing(sqlite3.connect(backup / 'current' / 'current.db')) as saved, saved:
             assert saved.execute('SELECT value FROM settings').fetchone() == ('preserved',)
     finally:
         conn.close()
@@ -185,7 +186,7 @@ def test_interrupted_install_salvages_the_preserved_backup(isolated, monkeypatch
     path.write_bytes(b'partial replacement')
     monkeypatch.setattr(recovery.os, 'replace', replace)
     recovery.recover_database('salvage', lambda *args: None)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         assert conn.execute('SELECT COUNT(*) FROM settings').fetchone() == (2,)
 
 
@@ -220,7 +221,7 @@ def test_sources_are_recovered_first_despite_missing_metadata(isolated):
     from app.schemas.epg import EPGSourceResponse
 
     path = isolated / 'current.db'
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.executescript('''
             CREATE TABLE scraped_urls (id INTEGER, url TEXT, enabled INTEGER,
                 url_type TEXT, scrape_bare_ids INTEGER, last_processed TEXT, error_count TEXT);

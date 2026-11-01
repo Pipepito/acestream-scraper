@@ -8,6 +8,7 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('TV channels', () => {
   let stream: AcestreamChannel;
+  let streamInfohash: string;
 
   test.beforeAll(async ({ request, baseURL }) => {
     const { Api } = await import('../src/api');
@@ -17,7 +18,9 @@ test.describe('TV channels', () => {
     const results = await api.search(spec.streamSearchQuery);
     const first = results.results.find((r) => r.id);
     if (!first) throw new Error(`engine search "${spec.streamSearchQuery}" returned nothing to attach`);
-    stream = await api.createChannel({ id: first.id, name: first.name, group: first.categories[0] });
+    streamInfohash = first.id;
+    const { content_id: contentId } = await api.resolveSearchResult(first.id);
+    stream = await api.createChannel({ id: contentId, name: first.name, group: first.categories[0] });
     const existing = await api.findTvChannel(spec.name);
     if (existing) await api.deleteTvChannel(existing.id);
   });
@@ -139,9 +142,10 @@ test.describe('TV channels', () => {
     await expect.poll(async () => (await api.findTvChannel(spec.name))?.category).toBe('Sports E2E');
 
     // Attach a second stream from the Acestream Channels grid.
-    const second = (await api.search(spec.streamSearchQuery)).results.filter((r) => r.id && r.id !== stream.id)[0];
+    const second = (await api.search(spec.streamSearchQuery)).results.filter((r) => r.id && r.id !== streamInfohash)[0];
     test.skip(!second, 'engine returned a single result');
-    const created = await api.createChannel({ id: second.id, name: second.name });
+    const { content_id: contentId } = await api.resolveSearchResult(second.id);
+    const created = await api.createChannel({ id: contentId, name: second.name });
     const tvId = (await api.findTvChannel(spec.name))!.id;
     await api.raw('delete', `/api/v1/tv-channels/${tvId}/acestreams/${created.id}`); // re-runnable: start unassigned
     const channels = new ChannelsPage(page);

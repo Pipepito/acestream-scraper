@@ -31,7 +31,7 @@ def test_cors_origins_default_when_unset(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 DEFAULT_TUNER_NETWORKS = "127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10"
-DEFAULT_FORWARDED_ALLOW_IPS = "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+DEFAULT_FORWARDED_ALLOW_IPS = "auto"
 
 
 def test_media_integration_defaults(monkeypatch: pytest.MonkeyPatch) -> None:

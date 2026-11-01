@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "observations": [
+    {
+      "source_id": "sports-guide",
+      "source_name": "Example sports guide",
+      "source_kind": "guide",
+      "external_id": "fixture-101",
+      "title": "North United vs South City",
+      "sport": "Football",
+      "competition": "Example Cup",
+      "participants": ["North United", "South City"],
+      "timezone": "Europe/Madrid",
+      "starts_at": "2026-10-24T23:30:00+02:00",
+      "state": "scheduled",
+      "broadcasts": [
+        {"id": "es-hd", "label": "Sports One", "language": "Spanish", "quality": "HD", "url": "acestream://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+        {"id": "en-hd", "label": "Sports One International", "language": "English", "quality": "HD", "url": "https://media.example/live.m3u8?token=private-fixture", "headers": {"Referer": "https://guide.example/"}},
+        {"id": "unresolved", "label": "DAZN"},
+        {"id": "website", "label": "Publisher player", "url": "https://player.example/watch/101"}
+      ]
+    },
+    {
+      "source_id": "sports-guide",
+      "source_name": "Example sports guide",
+      "source_kind": "guide",
+      "external_id": "fixture-102",
+      "title": "East vs West",
+      "sport": "Basketball",
+      "competition": "Example League",
+      "timezone": "Europe/Madrid",
+      "starts_at": null,
+      "state": "postponed",
+      "time_notes": "New start not announced",
+      "broadcasts": []
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { scraperService } from '../services/scraperService';
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -45,6 +46,7 @@ describe('Scraper', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(scraperService, 'getProviders').mockResolvedValue([{ id: 'atresplayer', name: 'Atresmedia', url: 'https://www.atresplayer.com' }, { id: 'mediaset', name: 'Mediaset', url: 'https://www.mediasetinfinity.es' }]);
 
     mockUseURLs.mockReturnValue({
       data: [
@@ -65,6 +67,26 @@ describe('Scraper', () => {
     mockUsePatchURL.mockReturnValue({ mutateAsync: jest.fn().mockResolvedValue({}), isPending: false });
     mockUseDeleteURL.mockReturnValue({ mutateAsync: jest.fn() });
     mockUseScrapeAllURLs.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
+  });
+
+  it('selects a built-in broadcaster and saves its friendly name without scraping', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Add URL' }));
+    await waitFor(() => expect(scraperService.getProviders).toHaveBeenCalled());
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Built-in provider' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Atresmedia' }));
+    expect(screen.getByLabelText('URL')).toHaveValue('https://www.atresplayer.com');
+    expect(screen.getByLabelText('Friendly name (optional)')).toHaveValue('Atresmedia');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Built-in provider' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Mediaset' }));
+    expect(screen.getByLabelText('Friendly name (optional)')).toHaveValue('Mediaset');
+    fireEvent.change(screen.getByLabelText('Friendly name (optional)'), { target: { value: 'My broadcaster' } });
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Built-in provider' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Atresmedia' }));
+    expect(screen.getByLabelText('Friendly name (optional)')).toHaveValue('My broadcaster');
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(mockUseCreateURL().mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ name: 'My broadcaster', url_type: 'broadcaster', url: 'https://www.atresplayer.com' })));
+    expect(mockUseScrapeAllURLs().mutateAsync).not.toHaveBeenCalled();
   });
 
   it('shows the outcome of the last scrape so failing sources are visible', () => {
@@ -164,3 +186,5 @@ describe('Scraper', () => {
   });
 });
 
+
+// Provider selection only saves a definition; importing remains a separate action.

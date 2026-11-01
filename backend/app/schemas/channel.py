@@ -10,6 +10,12 @@ from app.services.stream_ranking import sort_streams_curated
 
 
 
+class ChannelSourceFilter(BaseModel):
+    value: str
+    label: str
+    kind: Literal['scrape', 'broadcaster', 'catalogue', 'import']
+
+
 class AcestreamChannelBase(BaseModel):
     """Base model for Acestream channel data"""
     id: str = Field(..., description="Acestream channel ID (required, GUID string)")
@@ -19,6 +25,7 @@ class AcestreamChannelBase(BaseModel):
 
 class AcestreamChannelCreate(AcestreamChannelBase):
     """Schema for Acestream channel creation"""
+    allow_excluded: bool = False
     source_url: Optional[str] = None
     group: Optional[str] = None
     logo: Optional[str] = None
@@ -54,12 +61,14 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     is_active: bool
     is_online: Optional[bool] = None
     network_status: Optional[Literal["found", "not_found", "unknown"]] = Field(None, description="Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence")
+    id_kind: Optional[Literal["id", "infohash"]] = Field(None, description="Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet")
     last_checked: Optional[datetime] = None
     check_error: Optional[str] = None
     stream_stats: Optional[StreamStats] = None
     audio_tracks: Optional[List[AudioTrack]] = Field(None, description="Audio tracks found at the last successful media probe; null means unknown")
     bitrate_bps: Optional[int] = Field(None, ge=1, description="Last measured encoded media bitrate in bits per second; not P2P download speed")
     bitrate_checked_at: Optional[datetime] = None
+    stream_order: Optional[int] = Field(None, ge=1, description="Priority preference order among streams for this channel; 1 is highest priority.")
     tv_channel_id: Optional[int] = None
     tv_channel_name: Optional[str] = None
     tv_channel_is_favorite: Optional[bool] = None
@@ -221,6 +230,10 @@ class EPGMatchRowResponse(BaseModel):
     best_match_type: Optional[str] = None
     best_match_confidence: Optional[str] = None
     is_creatable: bool
+    can_apply: bool = False
+    automation_safe: bool = False
+    ambiguous_count: int = 0
+    review_token: str = ""
 
 
 class EPGMatchAnalysisSummaryResponse(BaseModel):
@@ -248,7 +261,9 @@ class TVChannelCreateFromEPGAnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     strictness: MatchStrictness
-    epg_channel_ids: List[int] = Field(..., min_length=1)
+    epg_channel_ids: List[int] = Field(..., min_length=1, max_length=1000)
+    source_id: Optional[int] = None
+    expected_previews: Optional[Dict[int, str]] = None
 
 
 class TVChannelCreateFromEPGAnalysisResponse(BaseModel):
@@ -302,3 +317,22 @@ class TVChannelReorderRequest(BaseModel):
         if any(value <= 0 for value in values) or len(values) != len(set(values)):
             raise ValueError("Channel IDs must be positive and unique")
         return values
+
+
+class TVChannelStreamReorderRequest(BaseModel):
+    """Desired stream IDs in preference order; saved with stream_order 1 through N."""
+    stream_ids: List[str] = Field(..., min_length=1, description="Desired complete acestream ID ordering for this TV channel.")
+    expected_order: List[str] = Field(..., min_length=1, description="Original complete acestream ID ordering; rejects stale reorder edits.")
+
+    @field_validator("stream_ids", "expected_order")
+    @classmethod
+    def unique_stream_ids(cls, values: List[str]) -> List[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("Stream IDs must be unique")
+        return values
+
+
+class PlaylistGuideCoverage(BaseModel):
+    streams: int
+    linked_streams: int
+    guide_channels: int

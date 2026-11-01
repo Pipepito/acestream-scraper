@@ -2,8 +2,9 @@
 SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
+from uuid import uuid4
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, false
+from sqlalchemy import text, JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -68,6 +69,7 @@ class ScrapedURL(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String(2048), unique=True, index=True, nullable=False)
+    name = Column(String(255), nullable=True)
     extraction_recipe = Column(JSON, nullable=True)
     url_type = Column(String(255), default="regular")  # 'regular', 'zeronet', 'ipfs', etc.
     status = Column(String(255), default="pending")
@@ -114,6 +116,11 @@ class AcestreamChannel(Base):
     is_active = Column(Boolean, default=True)
     is_online = Column(Boolean, nullable=True)
     network_status = Column(String(16), nullable=True)
+    # Which parameter the engine accepts for this id: 'id' (transport
+    # file content id) or 'infohash'. Both are 40 hex digits and cannot
+    # be told apart by looking at them, so this is only ever written
+    # after the engine has confirmed it. NULL means "not probed yet".
+    id_kind = Column(String(16), nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
     audio_tracks = Column(JSON, nullable=True)
@@ -121,10 +128,25 @@ class AcestreamChannel(Base):
     bitrate_checked_at = Column(UtcDateTime(), nullable=True)
     stream_stats = Column(JSON, nullable=True)
     original_url = Column(String(2048), nullable=True)
+    # The direct URL when this stream is not an acestream id at all: an
+    # HLS/IPTV playlist served over HTTP. NULL for acestream streams, which
+    # are addressed by `id` through the engine.
+    #
+    # Why a column and not a convention on `id`: the id stays opaque and
+    # stable, and every existing check that asks the engine about a 40 hex
+    # id keeps working untouched -- a stream with `stream_url` set simply
+    # has an id that no engine pattern matches.
+    stream_url = Column(String(2048), nullable=True)
+    # HTTP headers the source playlist publishes for `stream_url`
+    # (User-Agent, Referer, Origin). Some CDNs answer 403 without them.
+    # none_as_null: without it None is stored as the JSON text 'null', which
+    # SQL counts as NOT NULL.
+    stream_headers = Column(JSON(none_as_null=True), nullable=True)
     epg_update_protected = Column(Boolean, default=False)
 
     # Relationship with TVChannel
     tv_channel_id = Column(Integer, ForeignKey("tv_channels.id"), nullable=True)
+    stream_order = Column(Integer, nullable=True)
     tv_channel = relationship("TVChannel", back_populates="acestream_channels")
 
     @property
@@ -143,6 +165,7 @@ class AcestreamChannel(Base):
 class EPGSource(Base):
     """Model for EPG sources"""
     __tablename__ = "epg_sources"
+    recording_uuid = Column(String(32), nullable=False, unique=True, default=lambda: uuid4().hex, server_default=text('(lower(hex(randomblob(16))))'))
 
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String(2048), nullable=False)
@@ -361,3 +384,151 @@ class ScheduledTaskState(Base):
     status = Column(String(32), nullable=False)
     last_error = Column(Text, nullable=True)
     last_result = Column(JSON, nullable=True)
+
+
+class W3UCatalogue(Base):
+    """Source-scoped hierarchy and private refresh inputs, never a TV assignment."""
+    __tablename__ = 'w3u_catalogues'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    source_url = Column(String(2048), nullable=True)
+    revision = Column(Integer, nullable=False, default=1)
+    snapshot = Column(JSON, nullable=False)
+    selected_branches = Column(JSON, nullable=False)
+    mode = Column(String(16), nullable=False, default='compatible')
+    refresh_enabled = Column(Boolean, nullable=False, default=False)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
+class SportingEvent(Base):
+    __tablename__ = 'sporting_events'
+    guide_overlays = Column(JSON, nullable=True)
+    archived_at = Column(UtcDateTime(), nullable=True)
+    broadcast_mappings = Column(JSON, nullable=True)
+    owner_id = Column(String(32), nullable=False)
+    id = Column(String(32), primary_key=True)
+    revision = Column(Integer, nullable=False, default=1)
+    fields = Column(JSON, nullable=False)
+    correction = Column(JSON, nullable=True)
+    followed = Column(Boolean, nullable=False, default=False)
+    archived = Column(Boolean, nullable=False, default=False)
+
+
+class EventObservationRecord(Base):
+    __tablename__ = 'event_observations'
+    __table_args__ = (UniqueConstraint('source_id', 'external_id', name='uq_event_observation_identity'),)
+    id = Column(String(32), primary_key=True)
+    event_id = Column(String(32), ForeignKey('sporting_events.id', ondelete='CASCADE'), nullable=False, index=True)
+    source_id = Column(String(160), nullable=False)
+    external_id = Column(String(200), nullable=False)
+    payload = Column(JSON, nullable=False)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
+class EventMedia(Base):
+    __tablename__ = 'event_media'
+    content_id = Column(String(44), primary_key=True)
+    observation_id = Column(String(32), ForeignKey('event_observations.id', ondelete='CASCADE'), nullable=False, index=True)
+    url = Column(Text, nullable=False)
+    headers = Column(JSON, nullable=False)
+
+
+class EventScheduleSource(Base):
+    __tablename__ = 'event_schedule_sources'
+    adapter = Column(JSON, nullable=True)
+    id = Column(String(32), primary_key=True)
+    source_identity = Column(String(160), nullable=False, unique=True)
+    name = Column(String(200), nullable=False)
+    url = Column(Text, nullable=False)
+    revision = Column(Integer, nullable=False, default=1)
+    enabled = Column(Boolean, nullable=False, default=False)
+    reviewed_ids = Column(JSON, nullable=False)
+    last_attempt = Column(UtcDateTime(), nullable=True)
+    last_success = Column(UtcDateTime(), nullable=True)
+    last_result = Column(JSON, nullable=True)
+
+
+class TelegramSourceRow(Base):
+    __tablename__ = 'telegram_sources'
+    id = Column(Integer, primary_key=True)
+    account_id = Column(String(32), nullable=False)
+    config = Column(JSON, nullable=False)
+    chat_label = Column(String(255), nullable=False)
+    sender_labels = Column(JSON, nullable=False)
+    cursor = Column(Integer, nullable=False, default=0)
+    state = Column(String(32), nullable=False, default='waiting')
+    last_success = Column(UtcDateTime(), nullable=True)
+    imported_count = Column(Integer, nullable=False, default=0)
+    excluded_count = Column(Integer, nullable=False, default=0)
+    message = Column(String(255), nullable=False, default='')
+    generation = Column(Integer, nullable=False, default=0)
+
+
+class TelegramObservation(Base):
+    __tablename__ = 'telegram_observations'
+    __table_args__ = (Index('ix_telegram_observation_time', 'source_id', 'observed_at'),)
+    source_id = Column(Integer, ForeignKey('telegram_sources.id', ondelete='CASCADE'), primary_key=True)
+    message_id = Column(Integer, primary_key=True)
+    revision = Column(String(64), nullable=False)
+    channel_ids = Column(JSON, nullable=False)
+    observed_at = Column(UtcDateTime(), nullable=False)
+
+
+from sqlalchemy import CheckConstraint
+
+class ImportPolicyState(Base):
+    __tablename__ = 'import_policy_state'
+    __table_args__ = (CheckConstraint('id = 1', name='ck_import_policy_singleton'),)
+    id = Column(Integer, primary_key=True)
+    revision = Column(Integer, nullable=False, default=0)
+
+
+class ImportExclusionRule(Base):
+    __tablename__ = 'import_exclusion_rules'
+    __table_args__ = (
+        UniqueConstraint('kind', 'match_value', name='uq_import_exclusion_match'),
+        CheckConstraint("kind IN ('name_contains', 'name_equals', 'stream_id_equals')", name='ck_import_exclusion_kind'),
+    )
+    id = Column(Integer, primary_key=True)
+    kind = Column(String(32), nullable=False)
+    value = Column(String(256), nullable=False)
+    match_value = Column(String(768), nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True, index=True)
+    note = Column(String(500), nullable=True)
+    revision = Column(Integer, nullable=False, default=1)
+    created_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
+class SavedSearch(Base):
+    __tablename__ = 'saved_searches'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    query = Column(String(256), nullable=False)
+    category = Column(String(100), nullable=False)
+    fingerprint = Column(String(64), nullable=False, unique=True)
+    refresh_enabled = Column(Boolean, nullable=False, default=False)
+    revision = Column(Integer, nullable=False, default=1)
+    created_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    last_attempt_at = Column(UtcDateTime())
+    last_started_at = Column(UtcDateTime())
+    last_finished_at = Column(UtcDateTime())
+    last_success_at = Column(UtcDateTime())
+    last_outcome = Column(String(32))
+    last_result = Column(JSON)
+    error_code = Column(String(64))
+    error_message = Column(String(255))
+    run_id = Column(String(32))
+    run_state = Column(String(32))
+
+
+class SavedSearchChannel(Base):
+    __tablename__ = 'saved_search_channels'
+    saved_search_id = Column(Integer, ForeignKey('saved_searches.id', ondelete='CASCADE'), primary_key=True)
+    channel_id = Column(String(255), ForeignKey('acestream_channels.id', ondelete='CASCADE'), primary_key=True)
+    first_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    last_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+# Register operational models for both Alembic and metadata-created test databases.
+from app.models import recordings as _recording_models  # noqa: E402,F401

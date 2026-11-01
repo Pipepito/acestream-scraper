@@ -219,9 +219,12 @@ def test_shared_source_stop_waits_for_last_owner_across_clients():
     assert len(calls) == 2  # no stop while another viewer owns the source
     second.stop(b)
     assert calls[-1].url.params['method'] == 'stop'
+    assert {request.url.path for request in calls[2:]} == {
+        httpx.URL(a.command_url).path, httpx.URL(b.command_url).path,
+    }
     first.stop(a)
     second.stop(b)
-    assert len(calls) == 3  # duplicate cleanup cannot stop a later session
+    assert len(calls) == 4  # both sessions stop once; duplicate cleanup is inert
 
 
 def test_ownership_is_separate_for_each_engine_and_source():
@@ -265,7 +268,7 @@ def test_start_in_flight_prevents_old_viewer_cleanup():
             stopping.result(timeout=3)
         assert len(calls) == 2
         second.stop(b)
-        assert len(calls) == 3
+        assert len(calls) == 4
     finally:
         release.set()
 
@@ -289,3 +292,17 @@ def test_cleanup_keeps_original_ownership_after_routing_changes():
     assert not changed_calls
     changed.stop(b)
     assert changed_calls[-1].url.host == 'engine'
+
+
+def test_late_probe_cleanup_waits_for_recording_or_viewer_lease():
+    from app.services.channel_status_service import ChannelStatusService
+    client, calls = _ownership_client()
+    session = client.start(CID)
+    probe_url = 'http://engine:6878/ace/cmd/hash/probe'
+    service = object.__new__(ChannelStatusService)
+    service._release_probe('http://engine:6878', CID, probe_url)
+    assert len(calls) == 1
+    client.stop(session)
+    assert {str(request.url).split('?')[0] for request in calls[1:]} == {session.command_url, probe_url}
+    client.stop(session)
+    assert len(calls) == 3

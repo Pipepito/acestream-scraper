@@ -92,7 +92,7 @@ def _validated_base_url(service: MediaServerService, base_url: str) -> str:
         raise APIError(
             code="MEDIA_SERVER_URL_FORBIDDEN",
             message=str(exc),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             context={"base_url": base_url},
         ) from exc
 

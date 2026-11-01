@@ -10,3 +10,10 @@ class AudioTrack(BaseModel):
     codec: Optional[str] = None
     channels: Optional[int] = None
     channel_layout: Optional[str] = None
+
+
+class SubtitleTrack(BaseModel):
+    index: int = Field(ge=0, description="Zero-based subtitle track index (ffmpeg 0:s:index)")
+    language: Optional[str] = None
+    codec: Optional[str] = None
+    supported: bool = True

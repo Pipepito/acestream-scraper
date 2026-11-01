@@ -4,7 +4,27 @@ Play a channel straight in your browser — no VLC, no Acestream engine plugin, 
 
 ## What it does
 
-Every image ships a small, statically-linked ffmpeg (built during the image build, one static binary per platform/flavor — no extra install step). When you press **Play**, the backend asks the AceStream engine for that channel and starts one ffmpeg process for it: the video track is copied through untouched, the audio track is re-encoded to AAC (AceStream channels are often MPEG-2 audio or AC-3, which browsers cannot play), and the result is repackaged as an HLS stream (2-second segments, a 6-segment sliding window) that `hls.js` (or the browser's native HLS support on Safari/iOS) plays back.
+Every image ships a small, statically-linked ffmpeg (built during the image build, one static binary per platform/flavor — no extra install step). When you press **Play** on an AceStream source, the backend asks the engine for that channel and starts one ffmpeg process for it: the video track is copied through untouched, the audio track is re-encoded to AAC (AceStream channels are often MPEG-2 audio or AC-3, which browsers cannot play), and the result is repackaged as an HLS stream (2-second segments, a 6-segment sliding window) that `hls.js` (or the browser's native HLS support on Safari/iOS) plays back.
+
+Imported HTTP/HLS streams, including Atresmedia, also play in the browser without
+an AceStream engine. Add `https://www.atresplayer.com` as a scraper source, scrape
+it, then select the imported stream (its ID starts with `url:`) in **Live TV** or
+the channel's player. The server resolves a fresh broadcaster link at playback
+start, fetches the media with the imported headers, and uses the same video-copy,
+AAC-audio pipeline. Broadcaster availability and regional restrictions still apply.
+
+HTTP manifests, segments, encryption keys and initialization data pass through
+the guarded source client. Its private-source policy, metadata-address blocking,
+DNS pinning and TLS checks apply to every request and redirect. The temporary
+loopback proxy is private to the shared browser session and closes with it.
+Unencrypted and AES-128 HLS, fragmented MP4 HLS and direct MPEG-TS are supported;
+DRM and HLS variable substitution are not supported. Select available audio and
+text subtitle tracks in the player. Subtitles default to Off; changing either
+track restarts only your viewer. Other viewers retain their choices. Text
+subtitles are converted to WebVTT alongside the video/audio so they share the
+playback timeline. Bitmap subtitles remain unsupported. Engine-only **Copy stream
+link** and **Play on** controls are hidden for HTTP streams in the browser player;
+use the generated playlist for external players.
 
 Playback can connect directly to the engine (with a unique PID per session) or
 through Acexy. Choose **Route playback through Acexy** under **Settings → Playback**;
@@ -12,7 +32,12 @@ see [Playback routing](Remote-Players.md#playback-routing).
 
 That segmenting and buffering means the player runs roughly 6–10 seconds behind live — expected for HLS, not a fault.
 
-One ffmpeg process is shared per channel and selected audio track: if two browser tabs (or two people) play the same channel with the same audio selection, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
+Old HLS segments are removed as playback advances. A request for a segment that
+has already disappeared returns 404 before delivery starts; deletion during an
+active transfer does not interrupt that transfer. Segment delivery keeps bounded
+reads and byte-range support.
+
+One ffmpeg process is shared per channel and selected audio/subtitle tracks: if two browser tabs (or two people) play the same channel with the same audio and subtitle selections, they join the same session instead of doubling the transcode cost. A session is torn down automatically a few seconds after its last viewer leaves, or after it sits idle, so it does not keep using engine and CPU resources in the background.
 
 Because the video track is passed through as-is, a browser that cannot decode it natively (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) still cannot play the channel — the player tells you so and points you at VLC or Kodi instead of pretending it will work.
 
@@ -26,7 +51,7 @@ Because the video track is passed through as-is, a browser that cannot decode it
 
 Wherever a channel appears in the app — Acestream Channels, TV Channels (including the channel detail page) and Search — its row actions carry a **Play** button (alongside **Check status**; anything else lives under "More actions" on crowded rows). Press it to open the player dialog: it starts a session, waits for the first HLS segments, and then plays automatically.
 
-While a channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it shows **Buffering…** until the browser starts playback, then **Playing**. Pausing shows **Paused**. Temporary status-request failures are displayed and polled again automatically; an expired session or rejected access token requires your attention. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
+While an AceStream channel is starting, the dialog shows the engine's peer count and download speed as they become available. Once segments are ready it shows **Buffering…** until the browser starts playback, then **Playing**. Pausing shows **Paused**. Temporary status-request failures are displayed and polled again automatically; an expired session or rejected access token requires your attention. Closing the dialog (or navigating away) releases the session; if you are the only viewer, the backend stops ffmpeg and the engine stream a few seconds later.
 
 ## Live TV and choosing a stream
 
@@ -58,7 +83,7 @@ schedule. Online is a saved check result, not a guarantee that playback will sta
 
 Press **Watch** to open the embedded player and schedule. Filtering the catalogue leaves playback running; **Stop watching**, changing the channel or leaving the page releases that viewer. The **Stream** selector lists every
 attached stream, its last known online status and a short ID. Switching releases
-the previous viewer and starts the selected stream. Copy stream link and Play on
+the previous viewer and starts the selected stream. For AceStream sources, Copy stream link and Play on
 both follow the selected stream. A channel can be opened directly at
 `/live-tv?channel=123` (replace 123 with its TV channel ID).
 
@@ -92,6 +117,7 @@ The player explains problems in plain language instead of raw codes:
 |---|---|---|
 | "This server can't prepare streams for the browser. Open the channel in VLC instead." | No ffmpeg is available on the server | Use VLC/Kodi with the stream link, or fix `FFMPEG_BINARY_PATH` |
 | "The stream did not become ready in time. Check the engine or proxy, retry, or pick another stream." | The engine never produced a usable stream before the start timeout | Try another channel, or retry later |
+| "The HTTP stream could not be opened. Retry or choose another stream." | The imported HTTP source is missing, unavailable or did not become ready in time | Retry or select another stream; check the broadcaster and the server’s network access |
 | "The stream stopped unexpectedly. Try again." | ffmpeg exited mid-stream | Press **Retry** |
 | "The AceStream engine could not start this channel: …" | The engine refused or was unreachable | Check the engine URL under Settings, or that the engine is running |
 | "Your browser can't play this channel's video format (…). Send it to VLC or Kodi instead." | The source video codec (MPEG-2, MPEG-1, VC-1, MPEG-4 v3) is not one browsers decode | Open the stream link in VLC or Kodi |
@@ -100,6 +126,14 @@ The player explains problems in plain language instead of raw codes:
 | "The stream ended." | The session was released after nobody watched it for a while | Press **Retry** |
 
 Errors that are not a dead end (everything except "ffmpeg is missing") offer a **Retry** button in the dialog.
+
+When a server session fails or ends, the browser stops fetching its old playlist.
+For HTTP playback failures, the scraper log records the session ID, FFmpeg exit
+code, a bounded sanitized stderr tail and recent upstream HTTP status/transport
+errors. Signed URLs and credentials are masked; the browser keeps the concise
+error message. Download **Overview → Diagnostics** after a failure to include
+these details. A truncated upstream media transfer closes the connection rather
+than inserting an HTTP error response into the video bytes.
 
 ## VLC, Kodi and other players
 
@@ -111,7 +145,7 @@ The web player has three settings, all environment variables (see [Configuration
 
 - **`PLAYER_MAX_SESSIONS`** (default `3`) — how many *distinct* channels the player prepares at once. Each one costs one engine stream and one ffmpeg process; raise it if you regularly want more channels playing side by side.
 - **`PLAYER_HLS_DIR`** (default `/tmp/acestream-player`) — where segments are written. Point it at `/dev/shm/acestream-player` (with a larger `--shm-size`/`shm_size`) to keep them in RAM instead of on disk.
-- **`PLAYER_START_TIMEOUT_SECONDS`** (default `45`) — how long a session may sit in "starting" before it is reported as stalled. Raise it on slow links where a channel takes longer to buffer its first segments.
+- **`PLAYER_START_TIMEOUT_SECONDS`** (default `45`) — how long a session may sit in "starting" before it is reported as stalled. Raise it on slow links where a channel takes longer to buffer its first segments. Direct-engine JSON startup uses the remaining session budget too; time spent starting the engine does not grant a fresh HLS-buffering budget. Cancelling a pending start releases a late engine session and frees the player slot.
 
 The [Docker command builder](https://pipepito.github.io/acestream-scraper/) can set `PLAYER_MAX_SESSIONS` for you under Advanced settings → Web player & guide refresh; startup timeout and temporary folder are available there too under Advanced settings → Web player & guide refresh.
 
@@ -138,7 +172,7 @@ is currently receiving video. The documented [engine status API](https://docs.ac
 does not provide an engine-wide playback total.
 
 
-## Choosing audio
+## Choosing audio and subtitles
 
 The player discovers input audio tracks as ffmpeg opens the stream. **Audio track**
 shows the track number, language, codec and channel layout when the source provides
@@ -146,7 +180,7 @@ them. Choose a track to restart your browser playback with that audio; other
 viewers keep their own selection. The first audio track is the default. A source
 without detectable audio metadata has no selector.
 
-Different audio selections use separate HLS/ffmpeg sessions and count against the
+Different audio or subtitle selections use separate HLS/ffmpeg sessions and count against the
 player session limit. The previous session closes after its normal grace period;
 at capacity, close another player or wait for that cleanup before retrying.
 Selected audio is converted to stereo AAC. Copied raw stream links and remote
@@ -156,3 +190,12 @@ forcing the browser's selection on that player.
 The channel stream picker also displays saved bitrate and audio-track counts when
 available from status checks. The tuner alone uses bitrate order; the web player's
 existing manual stream selection remains available.
+
+**Subtitles** lists detected text tracks and includes **Off** (the default).
+WebVTT, SubRip, ASS and MP4 text subtitles are converted to WebVTT; bitmap
+subtitles are listed as unsupported. HLS WebVTT timestamp maps are translated
+to the media clock before remuxing. A broadcaster may advertise a subtitle track
+without sending captions during every programme or advertisement. Changing
+subtitles restarts only your viewer and preserves your audio choice. Native
+installations need FFmpeg 8.1 or newer for HLS subtitle renditions, with WebVTT
+demuxing, decoding and encoding enabled. Docker images include this build.

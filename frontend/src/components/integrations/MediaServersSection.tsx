@@ -256,6 +256,7 @@ interface NumberRange {
 /** The ranges `TunerSettingsUpdate` accepts; anything else comes back as a bare 422. */
 const TUNER_COUNT_RANGE: NumberRange = { min: 1, max: 16 };
 const MAX_CHANNELS_RANGE: NumberRange = { min: 1, max: 1000 };
+const START_SECONDS_RANGE: NumberRange = { min: 5, max: 180 };
 
 /** The two numbers stay text while editing so a cleared field stays cleared instead of turning into 0. */
 interface TunerFormState {
@@ -263,7 +264,10 @@ interface TunerFormState {
   tuner_count: string;
   max_channels: string;
   only_online: boolean;
+  plex_compatible_audio: boolean;
   experimental_transcoding: boolean;
+  source_start_seconds: string;
+  startup_budget_seconds: string;
 }
 
 const rangeError = (value: string, { min, max }: NumberRange): string | null => {
@@ -277,7 +281,10 @@ const toForm = (settings: TunerSettings): TunerFormState => ({
   tuner_count: String(settings.tuner_count),
   max_channels: String(settings.max_channels),
   only_online: settings.only_online,
+  plex_compatible_audio: settings.plex_compatible_audio ?? false,
   experimental_transcoding: settings.experimental_transcoding ?? false,
+  source_start_seconds: String(settings.source_start_seconds ?? 15),
+  startup_budget_seconds: String(settings.startup_budget_seconds ?? 45),
 });
 
 /** Friendly name, stream cap and lineup size the tuner reports to Jellyfin and Plex. */
@@ -292,7 +299,9 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
 
   const countError = form ? rangeError(form.tuner_count, TUNER_COUNT_RANGE) : null;
   const channelsError = form ? rangeError(form.max_channels, MAX_CHANNELS_RANGE) : null;
-  const canSave = form !== null && countError === null && channelsError === null;
+  const sourceStartError = form ? rangeError(form.source_start_seconds, START_SECONDS_RANGE) : null;
+  const budgetError = form ? rangeError(form.startup_budget_seconds, START_SECONDS_RANGE) : null;
+  const canSave = form !== null && countError === null && channelsError === null && sourceStartError === null && budgetError === null;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -303,7 +312,10 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
         tuner_count: Number(form.tuner_count),
         max_channels: Number(form.max_channels),
         only_online: form.only_online,
+        plex_compatible_audio: form.plex_compatible_audio,
         experimental_transcoding: form.experimental_transcoding,
+        source_start_seconds: Number(form.source_start_seconds),
+        startup_budget_seconds: Number(form.startup_budget_seconds),
       });
       notify('Tuner settings saved.', 'success');
     } catch (err) {
@@ -353,6 +365,30 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
               fullWidth
             />
           </Stack>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              size="small"
+              type="number"
+              label="Seconds per source"
+              value={form?.source_start_seconds ?? ''}
+              onChange={(event) => setForm((prev) => (prev ? { ...prev, source_start_seconds: event.target.value } : prev))}
+              inputProps={{ 'aria-label': 'Seconds per source', min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
+              error={sourceStartError !== null}
+              helperText={sourceStartError ?? 'Time a source gets to start before the next one is tried. A cold engine can take 20 s.'}
+              fullWidth
+            />
+            <TextField
+              size="small"
+              type="number"
+              label="Seconds to start a channel"
+              value={form?.startup_budget_seconds ?? ''}
+              onChange={(event) => setForm((prev) => (prev ? { ...prev, startup_budget_seconds: event.target.value } : prev))}
+              inputProps={{ 'aria-label': 'Seconds to start a channel', min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
+              error={budgetError !== null}
+              helperText={budgetError ?? 'Total for all its sources. Keep it under the player timeout: Kodi gives up after about 30 s.'}
+              fullWidth
+            />
+          </Stack>
           <FormControlLabel
             control={
               <Switch
@@ -363,6 +399,14 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
             label="Publish only channels that are online"
           />
           <FormControlLabel
+            control={<Switch checked={form?.plex_compatible_audio ?? false} disabled={!form || update.isPending}
+              onChange={(event) => setForm(prev => prev ? { ...prev, plex_compatible_audio: event.target.checked } : prev)} />}
+            label="Plex Desktop compatible audio"
+          />
+          <Typography variant="body2" color="text.secondary">
+            Converts audio tracks to stereo AAC/LATM for Plex Desktop. Keeps the original video quality unless experimental recovery is enabled. Uses server CPU and requires FFmpeg. Applies to new TV channel connections.
+          </Typography>
+          <FormControlLabel
             control={<Switch checked={form?.experimental_transcoding ?? false} disabled={!form || update.isPending}
               onChange={(event) => setForm(prev => prev ? { ...prev, experimental_transcoding: event.target.checked } : prev)} />}
             label="Experimental transcoding recovery"
@@ -370,7 +414,9 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
           <Alert severity={form?.experimental_transcoding ? 'warning' : 'info'}>
             {form?.experimental_transcoding
               ? 'Use at your own risk. Each viewer uses CPU-intensive video and audio encoding. This can overload the server, increase bandwidth and reduce quality. Recovery without reconnecting is experimental and may not work in every player. Requires FFmpeg. Applies to new TV relay connections.'
-              : 'Default: original streams pass through without encoding. If a source fails, your player must reconnect to the same TV channel URL; the relay then prefers another working source. Enable automatic reconnection in your player.'}
+              : form?.plex_compatible_audio
+                ? 'Audio compatibility is enabled; video passes through without encoding. If a source fails, reconnect to the same TV channel URL.'
+                : 'Default: original streams pass through without encoding. If a source fails, your player must reconnect to the same TV channel URL; the relay then prefers another working source. Enable automatic reconnection in your player.'}
           </Alert>
           <Box>
             <Button type="submit" variant="contained" size="small" aria-label="Save tuner settings" disabled={!canSave || update.isPending}>

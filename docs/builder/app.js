@@ -84,6 +84,7 @@
     });
     const activeVolumes = data.volumes.filter((v) => {
       if (v.id === 'config' || v.id === 'playerHls') return true;
+      if (v.id === 'recordings') return Boolean(String(state.runtimeSettings.recordingsDir || '').trim());
       if (v.id === 'engineCache') return engineOn && platform.id === 'amd64';
       if (v.id === 'engineState') return engineOn && platform.id !== 'amd64';
       if (v.id === 'checkEngineState') return checkEngineOn;
@@ -218,6 +219,7 @@
   }
 
   function volumeTarget(v) {
+    if (v.id === 'recordings') return String(state.runtimeSettings.recordingsDir || '').trim() || v.target;
     if (v.id === 'playerHls') return String(state.runtimeSettings.playerHlsDir || '').trim() || v.target;
     return v.target;
   }
@@ -343,7 +345,10 @@
         out.push(['info', 'The external checking address is left out while the bundled checker is enabled. Turn off the separate engine to use the external address.']);
       }
     }
-    if (state.channel === 'develop') out.push(['info', notes.developChannel]);
+    if (state.channel === 'develop') {
+      out.push(['info', notes.developChannel]);
+      out.push(['info', notes.runtimeConfiguration]);
+    }
     if (state.channel === 'version' && !state.version.trim()) {
       out.push(['error', 'Enter the version to pin (for example v2.0.0). Release tags are listed on Docker Hub.']);
     }
@@ -354,6 +359,20 @@
         const kind = setting.integer ? 'a whole number' : 'a number';
         out.push(['error', `${setting.label} must be ${kind}${range}. The invalid value is left out of the command.`]);
       }
+    }
+    const recordingsDir = String(state.runtimeSettings.recordingsDir || '').trim();
+    if (recordingsDir) {
+      const playerDir = String(state.runtimeSettings.playerHlsDir || '').trim() || data.player.hlsDirDefault;
+      if (!recordingsDir.startsWith('/') || recordingsDir === '/' || /[\n\r:]/.test(recordingsDir)) {
+        out.push(['error', 'Recording folder must be an absolute container directory, for example /recordings.']);
+      }
+      if (recordingsDir.replace(/\/+$/, '') === playerDir.replace(/\/+$/, '')) {
+        out.push(['error', 'Recording storage must be separate from the player temporary folder.']);
+      }
+      if (!state.volumes.recordings.enabled) {
+        out.push(['warn', 'Recording storage has no persistent mount. Enable the Recordings folder mapping before enabling recordings in Settings.']);
+      }
+      out.push(['info', 'Create the recording host folder with write permission for the application. Enable recordings and set capacity, space limits and retention in Settings → Automation.']);
     }
     const publicBaseUrl = String(state.runtimeSettings.publicBaseUrl || '').trim();
     if (publicBaseUrl && !validPublicOrigin(publicBaseUrl)) {
@@ -382,6 +401,9 @@
     const engineApi = data.ports.find((p) => p.id === 'engineApi');
     if (d.engineOn && engineApi && state.ports.engineApi && state.ports.engineApi.enabled) {
       out.push(['warn', engineApi.securityNote]);
+      out.push(['info', state.runtimeSettings.engineBindAll === false
+        ? 'The engine address filter is enabled. For VPN or Docker clients that cannot connect, turn on “Accept engine clients from any address” in Advanced settings.'
+        : 'The engine accepts clients from any address by default (ACESTREAM_BIND_ALL=true). Publishing this port allows remote clients. A mapping of 0.0.0.0:6878:6878 makes the all-IPv4 binding explicit; 127.0.0.1:6878:6878 restricts it to this host.']);
     }
     if (state.volumes.config && !state.volumes.config.enabled) {
       out.push(['warn', 'Without the configuration folder your channels and settings are lost whenever the container is replaced.']);
@@ -655,7 +677,7 @@
     const input = el('input', attrs);
     input.addEventListener('input', () => {
       state.runtimeSettings[setting.id] = input.value;
-      if (setting.id === 'playerHlsDir') renderVolumes(derive());
+      if (setting.id === 'playerHlsDir' || setting.id === 'recordingsDir') renderVolumes(derive());
       updateOutput();
     });
     return el('div', { class: 'field runtime-field' }, [

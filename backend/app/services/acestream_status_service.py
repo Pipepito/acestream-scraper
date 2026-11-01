@@ -29,7 +29,8 @@ class AcestreamStatusService:
 
     def _get_timeout(self) -> float:
         """Status probe timeout in seconds (env ACESTREAM_STATUS_TIMEOUT, default 10)."""
-        raw = os.environ.get('ACESTREAM_STATUS_TIMEOUT', '10')
+        from runtime_config import active_value
+        raw = active_value('ACESTREAM_STATUS_TIMEOUT', '10')
         try:
             value = float(raw)
         except (TypeError, ValueError):

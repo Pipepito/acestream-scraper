@@ -15,19 +15,41 @@ This guide provides detailed information about configuring Acestream Ids Scraper
 
 ## Application Settings
 
-Scraper stores application settings in the database. Container environment variables set runtime defaults; saved engine and public-address settings take precedence. Source URLs belong in **Scraper**, XMLTV feeds in **EPG → Sources**. Scraper has no setup wizard and does not read `config/config.json`.
+Scraper stores catalogue and application preferences in the database. The development version adds a web setup wizard and `runtime-config.json` beside that database. Saved engine, checker and public-address settings still take precedence. Source URLs belong in **Scraper**, XMLTV feeds in **EPG → Sources**.
+
+## First-run setup
+
+Open **Set up scraper** on a fresh installation, or **Settings → Setup wizard** (`/setup`). The two steps are **Add channels** and **Programme guide (optional)**:
+
+1. Paste a channel-list or playlist link, or choose a built-in broadcaster, then select **Add source and find channels**. The source is saved immediately and channels are imported. Failed imports can be retried without adding the source again.
+2. Optionally choose **EPG dobleM** or paste another XMLTV guide link. The built-in choice uses [guiaiptv.xml](https://raw.githubusercontent.com/davidmuma/EPG_dobleM/master/guiaiptv.xml) from [EPG dobleM](https://github.com/davidmuma/EPG_dobleM), mainly for Spanish channels. It is also available in **EPG → Add EPG Source**. Nothing is downloaded until you choose it. Wait for the guide to download, select **Find matching channels**, review the suggested stream-to-guide pairs and select only the matches you want to save. This can create TV channels; preview alone never changes assignments.
+
+Select **Finish setup** even if you skip the guide. You can leave at any point; added sources and guides remain saved. No source is preloaded automatically. Deployment values are already loaded under **Connection settings (advanced)**, where playback, network and optional-service settings remain available.
+
+The default file is `config/runtime-config.json`, next to `config/scraper.db`; a custom `DATABASE_URL` places it in that database's directory. It is separate from the legacy v1 `config.json`. The directory must be writable and mounted persistently. Back up both the database and runtime file; treat the file as private even though credential variables are excluded.
+
+- On first start, supported environment values initialize the versioned JSON file. Upgrades import newly supported or missing keys once. Native startup also reads compatible application values from `.env`.
+- Each saved key wins over its environment variable. Change them in the wizard or edit the file while stopped. Removing a key imports its current deployment value again, or its default if none is supplied.
+- Save reports when a restart is required. Restart the container/application to apply runtime changes; playback is interrupted. Setup does not restart it for you. Docker health checks keep using the running settings until restart.
+- Existing database preferences are retained. A saved playback URL, checker selection or public address takes precedence over the corresponding runtime default; edit those in their existing Settings/Integrations pages.
+- If the runtime file was missing, setup opens as a modal even when the database already exists. It is prefilled from deployment values, including the bundled engine address and port. **Set up later** postpones it for this visit; **Finish setup** completes it. Reopen it from Settings at any time. Existing files and saved database preferences are preserved.
+- Invalid JSON, unknown options or unsupported versions stop configuration loading without replacing the file. Restore a known-good copy or correct it while stopped. Do not delete the file merely to apply one environment change: deletion reimports all bootstrap values and loses file-only choices.
+
+Docker still owns image choice, published port mappings, mounts, capabilities, executable overrides and secrets (`API_TOKEN`, Telegram credentials/key location, WARP license). Setup cannot install missing services or grant Docker permissions. Keep API protection and public exposure in your deployment configuration. See the [complete option audit](../docs/dev/runtime-configuration-audit.md) for the exact migrated and retained options.
+
 
 | Where | What to configure |
 |---|---|
 | **Settings → Playback** | Optional **Acestream Engine URL**, direct/Acexy routing and backend-facing Acexy URL. Save the engine URL and playback routing separately. |
 | **Settings → Automation** | Dedicated checker selection, scraping interval (1–168 hours), EPG interval (1–168 hours), stream-check interval (1–10080 minutes). Saved intervals apply immediately. |
 | **Settings → Stream links** | Named playlist formats and default, optional PID/AppID compatibility. Shared with **Playlist → Manage link formats**. |
-| **Settings → API access** | The token this browser sends when the server has `API_TOKEN` configured. Stored locally in the browser. |
+| **Settings → Network** | Trusted reverse proxies, private source access, tuner networks, browser origins and public-address runtime default. Shares the setup controls; save and restart to apply. |
+| **Settings → Access** | The token this browser sends when the server has `API_TOKEN` configured. Stored locally in the browser. |
 | **Integrations → Public address** | The HTTP(S) origin other devices use to reach the scraper, including its published port. |
 | **Integrations** | Remote players, media servers and tuner limits/recovery. |
 | **Overview → Services** | Runtime health, separate playback/checker controls and diagnostic downloads. |
 
-The Settings tabs use `/settings?tab=playback|automation|links|access`.
+The Settings tabs use `/settings?tab=playback|automation|links|access|network`.
 
 ### Key settings
 
@@ -36,10 +58,41 @@ The Settings tabs use `/settings?tab=playback|automation|links|access`.
 - `check-engine`: `{use_dedicated, url}` selects an external checker. With dedicated checks off, checks use the playback URL; without either URL they are skipped. A bundled checker is container-managed and read-only here. A configured checker's failure never falls back to playback.
 - `base_url`: default stream-link format. Named formats can be selected using `base_url_id`. `{channel_id}` is the AceStream hash; `{tv_channel_id}` is the TV-channel database ID. Use `/tuner/channel/{tv_channel_id}.ts` for one stable station URL with fallback sources, or `/tuner/stream/{channel_id}.ts` for one exact source. `{pid}` supplies a player/session ID where supported; a format without placeholders is a prefix.
 - `rescrape_interval`: default 24 hours; `epg_refresh_interval`: default 6 hours; `channel_status_interval`: default 60 minutes.
+- `notification_webhook_url`: empty by default (off). Settings → Automation → Notifications sends JSON after scheduled/run-now scrapes and stream checks, manual scrapes, and individual channel checks. Events are `url_scraping.completed`, `channel_status.completed`, `channel_check.completed` and their `.failed` variants. Scrape-all sends one summary; skipped individual checks send nothing. A failure includes the exception class, never its text. The payload is `{"event": "...", "title": "...", "message": "...", "data": {...}}`; Gotify accepts the `title` and `message` fields directly at `https://host/message?token=...`. Delivery failure does not fail the action; *Send test* checks delivery. These are action notifications, not offline-transition monitoring or native Telegram integration. See [manual-action notification details](../docs/ops/manual-notifications.md).
+  The API masks secret-bearing path/query/credentials with `•••`. Saving the returned mask preserves the stored URL; other masked values are refused. Delivery uses the same outbound policy as source fetches: `ALLOW_PRIVATE_SCRAPE_TARGETS=false` refuses LAN webhooks.
 
 See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-Players.md#playback-routing) for examples.
 
+### Shorten the Docker command
+
+Setup imports any supported key missing from `runtime-config.json`, including
+new service options added by an upgrade. An existing key always wins, even when
+it is false, zero or empty. After reviewing and saving setup, remove the matching
+`-e` arguments if desired; keep the configuration volume.
+
+For example, an enabled bundled engine with `ACESTREAM_HTTP_PORT=6878` displays
+`http://localhost:6878`. An enabled bundled checker displays its managed address
+`http://127.0.0.1:6880`; do not enter that as an external checker. Under Optional
+services, expand Acexy to review `ACEXY_HOST`, `ACEXY_PORT`, `ACEXY_LISTEN_ADDR`,
+`ACEXY_NO_RESPONSE_TIMEOUT` and `ACEXY_BUFFER_SIZE`. A listener of `:8084`, timeout
+of `10s` and buffer of `5MiB` are imported and saved as supplied. IPFS/ZeroNet
+ports and UI access, engine connection details and the advanced timezone can
+also move into the file. Restart the container after saving.
+
+Internal service connections use container ports: mapping host `8085` to container
+`8081` still means the scraper connects to `http://127.0.0.1:8081`. Changing an
+internal listener requires updating its Docker mapping if published. Volumes,
+`RECORDINGS_DIR`, devices, capabilities, credentials and command overrides stay
+in Docker. `ALLOW_REMOTE_ACCESS` is not a supported setting; use the wizard's
+**Allow remote engine clients** (`ACESTREAM_BIND_ALL`) for the engine address filter.
+
+Existing database preferences are shown separately with links to Playback,
+Automation or Public address. They retain precedence. Enabling Acexy starts the
+service; choosing it for app playback remains an explicit Playback setting.
+
 ## Environment Variables
+
+For migrated options listed in the [runtime audit](../docs/dev/runtime-configuration-audit.md), the following environment values are **seeds for missing configuration keys only**. Deployment-only options remain environment-controlled. The wizard/file is available on develop; check release notes before expecting it in a published stable image.
 
 ### Database and backend settings
 
@@ -57,7 +110,7 @@ See the [illustrated walkthrough](Usage.md) and [playback routing guide](Remote-
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: `entrypoint.sh` passes it to `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. Change it if port 8000 is in use |
+| `FLASK_PORT` | Port the web app (uvicorn) listens on | `8000` | Name kept from v1 but still the real setting: the default container command uses it for `uvicorn --port` and `healthcheck.sh` probes `http://localhost:${FLASK_PORT}/api/v1/health`. A custom Compose `command:` or `docker run` command is used unchanged; keep its bind port consistent with this value |
 | `FLASK_ENV` | *Superseded (2026-08-28)* — v1 Flask environment mode, not read by the v2 (FastAPI) runtime | – | For local debugging run `uvicorn main:app --reload` from `backend/` instead |
 | `API_TOKEN` | Require a token on API and playlist routes | unset (open) | Sent as `Authorization: Bearer`, `X-Api-Token`, or `?token=` (for IPTV players); `/api/v1/health` stays public |
 | `ALLOW_PRIVATE_SCRAPE_TARGETS` | Allow scrape/EPG URLs on private/LAN addresses | `true` | Set `false` to block loopback/private/link-local targets; the cloud metadata endpoint is always blocked. It does not affect remote players, media servers or player discovery, which are LAN targets by design; the metadata/link-local block still applies to them |
@@ -73,11 +126,11 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
 | `PUBLIC_BASE_URL` | Origin (`http://host:port`) that Jellyfin/Plex/VLC use to reach this server | *(empty)* | Empty derives it from each request. The same value is editable at runtime as the `public_base_url` setting, which wins over the variable |
-| `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16` | Comma-separated addresses/CIDRs, or `*` to trust every peer. uvicorn's own handling is disabled (`--no-proxy-headers`) — the app does it |
+| `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `auto` | Loopback and detected Docker bridge peers, excluding gateways. Saved values are preserved. Override with actual proxy IPs/CIDRs; avoid entire LAN ranges. uvicorn's own handling is disabled (`--no-proxy-headers`) |
 | `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead. Publish the web port as `-p 0.0.0.0:8000:8000` (never the bare `8000:8000`): an unaddressed mapping also listens on `[::]`, and Docker then presents every IPv6 client to the app as the bridge gateway (`172.17.0.1`), which is inside this default list |
 | `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
 | `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |
-| `PLAYER_START_TIMEOUT_SECONDS` | Seconds a web-player session may stay in "starting" before it is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
+| `PLAYER_START_TIMEOUT_SECONDS` | Seconds for direct-engine JSON startup and initial web-player buffering before the session is reported as stalled | `45` | Raise it on slow links where streams take longer to buffer |
 | `FFMPEG_BINARY_PATH` | ffmpeg used by the web player | *(empty)* | Empty falls back to `ffmpeg` on `PATH`; images that bundle ffmpeg set it to `/opt/ffmpeg/bin/ffmpeg` |
 | `MEDIA_SERVER_MIN_REFRESH_MINUTES` | Minimum minutes between automatic Jellyfin/Plex guide refreshes | `30` | `0` disables the debounce |
 
@@ -102,7 +155,7 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 | `ACEXY_HOST` | Hostname of Acestream Engine | `localhost` | Hostname or IP where Acestream Engine runs |
 | `ACEXY_PORT` | Port of Acestream Engine | `6878` | Port where Acestream Engine is accessible |
 | `ACEXY_NO_RESPONSE_TIMEOUT` | Timeout for Acestream responses | `15s` | Format: `15s`, `1m`, etc. |
-| `ACEXY_BUFFER_SIZE` | Buffer size for data transfers | `5MiB` | Format: `5MiB`, `10MiB`, etc. |
+| `ACEXY_BUFFER_SIZE` | Buffer size for data transfers | `4MiB` | Format: `5MiB`, `10MiB`, etc. |
 
 ### Why both Acexy and an engine?
 
@@ -222,6 +275,22 @@ When using Docker, map these ports as needed:
 | 8081 | IPFS HTTP gateway | Only if `ENABLE_IPFS=true` and you want to browse IPFS through the node |
 | 5001 | IPFS RPC API / WebUI | Unauthenticated — publish only as `127.0.0.1:5001:5001` if needed |
 
+To change the container's listening port, set `FLASK_PORT` and map that same
+container port. For example:
+
+```yaml
+environment:
+  FLASK_PORT: "8002"
+ports:
+  - "0.0.0.0:8002:8002"
+```
+
+No `command:` override is needed. With host networking or a shared network
+namespace (such as `network_mode: service:gluetun`), choose a free port in that
+namespace; publish it on the container that owns the namespace when needed.
+If only the host port conflicts under ordinary bridge networking, keep
+`FLASK_PORT=8000` and use `0.0.0.0:8002:8000` instead.
+
 ## Volumes
 
 When using Docker, mount these volumes:
@@ -266,7 +335,7 @@ Either way, add your ZeroNet sources in the Scraper page with the **ZeroNet** UR
 The application includes proper headers handling for running behind a reverse proxy:
 
 - Automatic handling of SSL/TLS termination
-- Correct handling of X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers, honoured only when the proxy's own address is listed in `FORWARDED_ALLOW_IPS` (default: loopback and private ranges)
+- Correct handling of X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For headers, honoured only when the proxy's own address is listed in `FORWARDED_ALLOW_IPS` (default: loopback only)
 - Works with nginx, Apache, Traefik or other reverse proxies
 - Set `PUBLIC_BASE_URL` when the proxy rewrites `Host` or serves the app under a sub-path, so playlist and tuner links stay reachable
 
@@ -333,3 +402,13 @@ Update these names in your Compose file, container settings or `.env` file when 
 - `ACESTREAM_ENGINE_URL` -> `ACE_ENGINE_URL`
 
 `ENABLE_LEGACY_ENV_ALIASES` is no longer required and does not disable compatibility. See the [v2.1 upgrade notes](../docs/release/v2.1-release-notes.md).
+
+### Import policy and automatic saved searches
+
+Global exclusions live in Scraper → Import exclusions. Saved catalogue queries
+live in Scraper → Saved searches. Both are database settings, with no new environment
+variables or ports. Saving a query is configuration only; automatic imports are
+opt-in on the existing source refresh schedule (Settings → Automation). Editing its
+query/category pauses refresh until explicitly enabled again. Run now uses the
+shared maintenance queue and may run a paused query once. Exclusions skip future
+imports across sources and never delete existing channels. See [Usage](Usage.md#import-exclusions-and-saved-searches).

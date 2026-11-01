@@ -119,7 +119,7 @@ class TestChannelEndpoints:
         """Test creating a channel with invalid data."""
         invalid_data = {"name": ""}  # Missing required fields
         response = client.post("/api/v1/channels/", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_channel(self, client, seed_channels):
         """Test updating an existing channel."""

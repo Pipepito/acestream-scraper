@@ -83,6 +83,7 @@ const EPG: React.FC = () => {
     openSourceDialog,
     isEditSource,
     sourceFormData,
+    selectSourceProvider,
     refreshingSourceId,
     isRefreshingAll,
     handleAddSourceClick,
@@ -99,6 +100,7 @@ const EPG: React.FC = () => {
     matchStrictness,
     setMatchStrictness,
     isAnalyzingMatches,
+    isApplyingMatches,
     matchAnalysis,
     matchFilter,
     setMatchFilter,
@@ -171,7 +173,7 @@ const EPG: React.FC = () => {
   const sourceSelect = (
     <FormControl size="small" sx={{ minWidth: 240 }}>
       <InputLabel id="epg-source-filter-label">EPG Source</InputLabel>
-      <Select labelId="epg-source-filter-label" label="EPG Source" value={selectedSourceId?.toString() ?? 'all'} onChange={handleSourceFilterChange}>
+      <Select labelId="epg-source-filter-label" label="EPG Source" disabled={isApplyingMatches} value={selectedSourceId?.toString() ?? 'all'} onChange={handleSourceFilterChange}>
         <MenuItem value="all">All sources</MenuItem>
         {(epgSources || []).map((source) => (
           <MenuItem key={source.id} value={source.id.toString()}>
@@ -266,13 +268,13 @@ const EPG: React.FC = () => {
               {sourceSelect}
               <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="text.secondary">
-                  {totalEPGChannels === 0
+                  {isLoadingChannels && !epgChannelPage ? 'Loading channels…' : totalEPGChannels === 0
                     ? 'Showing 0-0 of 0 channels'
                     : `Showing ${(channelPage - 1) * channelPageSize + 1}-${Math.min(channelPage * channelPageSize, totalEPGChannels)} of ${totalEPGChannels} channels`}
                 </Typography>
                 <TablePagination
                   component="div"
-                  count={totalEPGChannels}
+                  count={isLoadingChannels && !epgChannelPage ? -1 : totalEPGChannels}
                   page={Math.max(channelPage - 1, 0)}
                   onPageChange={handleChannelPageChange}
                   rowsPerPage={channelPageSize}
@@ -312,19 +314,19 @@ const EPG: React.FC = () => {
         {activeTab === 'matching' ? (
           <ContentSection
             title="Matching"
-            description="Find scraped streams that belong to unlinked guide channels and create the TV channels in one go."
+            description="Preview stream assignments, select the guide channels you reviewed, then apply. Existing channel settings are preserved."
             actions={
               <>
-                <Button variant="outlined" color="primary" onClick={handleAnalyzeMatches} disabled={isAnalyzingMatches}>
+                <Button variant="outlined" color="primary" onClick={handleAnalyzeMatches} disabled={isAnalyzingMatches || isApplyingMatches}>
                   Analyze Matches
                 </Button>
                 <Button
                   variant="contained"
                   color="primary"
-                  disabled={!matchAnalysis || selectedMatchRowIds.length === 0}
+                  disabled={isAnalyzingMatches || isApplyingMatches || !matchAnalysis || selectedMatchRowIds.length === 0}
                   onClick={handleCreateMatchedTVChannels}
                 >
-                  Create Matched TV Channels
+                  {isApplyingMatches ? 'Applying…' : 'Apply reviewed matches'}
                 </Button>
               </>
             }
@@ -333,7 +335,7 @@ const EPG: React.FC = () => {
               {sourceSelect}
               <FormControl size="small" sx={{ minWidth: 180 }}>
                 <InputLabel id="epg-match-strictness-label">Match Strictness</InputLabel>
-                <Select labelId="epg-match-strictness-label" label="Match Strictness" value={matchStrictness} onChange={handleMatchStrictnessChange}>
+                <Select labelId="epg-match-strictness-label" label="Match Strictness" value={matchStrictness} disabled={isApplyingMatches} onChange={handleMatchStrictnessChange}>
                   <MenuItem value="loose">Loose</MenuItem>
                   <MenuItem value="balanced">Balanced</MenuItem>
                   <MenuItem value="strict">Strict</MenuItem>
@@ -378,6 +380,7 @@ const EPG: React.FC = () => {
         open={openSourceDialog}
         isEdit={isEditSource}
         formData={sourceFormData}
+        onSelectProvider={selectSourceProvider}
         onChange={handleSourceFormChange}
         onClose={handleCloseSourceDialog}
         onSubmit={handleSourceFormSubmit}

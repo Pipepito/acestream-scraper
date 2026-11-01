@@ -1,3 +1,4 @@
+jest.mock('../components/recordings/RecordButton', () => ({ __esModule: true, default: () => <span>Recordings</span> }));
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
@@ -19,6 +20,13 @@ describe('channel-aware player', () => {
     fireEvent.click(screen.getByRole('option', { name: /Backup/ }));
     expect(screen.getByRole('status')).toHaveTextContent('two');
     expect(screen.getByRole('button', { name: 'Remote two' })).toBeInTheDocument();
+  });
+  it('keeps HTTP streams playable without offering an engine-only remote action', () => {
+    const id = 'url:' + 'a'.repeat(40);
+    mockTV.mockReturnValue({ data: { ...channel, acestream_channels: [{ id, name: 'laSexta' }] } });
+    render(<ChannelPlayerDialog open contentId={id} title="laSexta" onClose={jest.fn()} />);
+    expect(screen.getByRole('status')).toHaveTextContent(id);
+    expect(screen.queryByRole('button', { name: /Remote/ })).not.toBeInTheDocument();
   });
   it('keeps unmapped IDs playable without inventing a schedule', () => {
     mockStream.mockReturnValue({ data: {} }); mockTV.mockReturnValue({ data: undefined });

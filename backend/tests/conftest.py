@@ -33,8 +33,9 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -105,9 +106,9 @@ def backend_runtime():
 
 
 @pytest.fixture(scope="function")
-def alembic_test_db():
+def alembic_test_db(tmp_path):
     """Create a temp SQLite file and run Alembic to head against it."""
-    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+    db_fd, db_path = tempfile.mkstemp(suffix='.db', dir=tmp_path)
     os.close(db_fd)
     db_path = Path(db_path)
 
@@ -142,9 +143,9 @@ def alembic_backend_runtime(alembic_test_db):
 
 # Test database setup
 @pytest.fixture(scope="function")
-def test_db(backend_runtime):
+def test_db(backend_runtime, tmp_path):
     """Create a temp SQLite engine using ``Base.metadata.create_all`` (legacy fast path)."""
-    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+    db_fd, db_path = tempfile.mkstemp(suffix='.db', dir=tmp_path)
     os.close(db_fd)
 
     database_url = f"sqlite:///{db_path}"
@@ -346,17 +347,17 @@ def alembic_client(alembic_backend_runtime, alembic_override_get_db):
     return TestClient(alembic_backend_runtime.app)
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_client(backend_runtime, override_get_db):
     """Create an async test client."""
-    async with AsyncClient(app=backend_runtime.app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=backend_runtime.app), base_url="http://test") as ac:
         yield ac
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def alembic_async_client(alembic_backend_runtime, alembic_override_get_db):
     """Create an async migrated test client."""
-    async with AsyncClient(app=alembic_backend_runtime.app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=alembic_backend_runtime.app), base_url="http://test") as ac:
         yield ac
 
 
@@ -565,7 +566,7 @@ acestream://fedcba987654321
 @pytest.fixture
 def mock_acestream_search():
     """Mock Acestream search API."""
-    with patch('app.services.search_service.requests.get') as mock_get:
+    with patch('app.services.search_catalogue_client.SearchCatalogueClient.get') as mock_get:
         mock_search_response = {
             "result": {
                 "results": [
@@ -606,13 +607,13 @@ def mock_acestream_engine():
                             "items": [
                                 {
                                     "name": "Test Channel 1",
-                                    "acestream_id": "test123456789",
+                                    "infohash": "a" * 40,
                                     "category": "Entertainment",
                                     "group": "Test Group"
                                 },
                                 {
                                     "name": "Test Channel 2",
-                                    "acestream_id": "test987654321",
+                                    "infohash": "b" * 40,
                                     "category": "Sports",
                                     "group": "Sports Group"
                                 }
@@ -639,28 +640,13 @@ def mock_acestream_engine():
 
 
 @pytest.fixture
-def mock_search_service(mock_acestream_engine):
-    """Mock the search service to avoid external API calls."""
-    with patch('requests.get') as mock_get:
-        def _mock_requests_get(url, params=None, timeout=None):
-            # Mock the requests.get call to the Acestream Engine
-            mock_response = Mock()
-            mock_response.status_code = 200
-
-            # Get query parameters from the params
-            query = params.get('query', '') if params else ''
-            page = params.get('page', 0) if params else 0
-            page_size = params.get('page_size', 10) if params else 10
-            category = params.get('category', '') if params else ''
-
-            # Generate mock response based on parameters
-            mock_data = mock_acestream_engine(query, page, page_size, category)
-            mock_response.json.return_value = mock_data
-            mock_response.text = json.dumps(mock_data)
-
-            return mock_response
-
-        mock_get.side_effect = _mock_requests_get
+def mock_search_service(mock_acestream_engine, db_session):
+    from app.repositories.settings_repository import SettingsRepository
+    SettingsRepository(db_session).set_setting('ace_engine_url', 'http://engine')
+    with patch('app.services.search_catalogue_client.SearchCatalogueClient.get') as mock_get:
+        def response(path, params):
+            return mock_acestream_engine(params.get('query', ''), params.get('page', 0), params.get('page_size', 10), params.get('category', ''))
+        mock_get.side_effect = response
         yield mock_get
 
 
@@ -735,3 +721,40 @@ def assert_epg_program_response(response_data, expected_data):
     assert response_data["description"] == expected_data["description"]
     assert response_data["category"] == expected_data["category"]
     assert response_data["image_url"] == expected_data["image_url"]
+
+
+@pytest.fixture(autouse=True)
+def _isolated_access_storage(tmp_path_factory, monkeypatch):
+    """Existing domain tests model an upgraded installation with accounts off.
+
+    Never read/write a developer's access store, or let a lifespan test's fresh
+    setup mode affect later API tests. Account tests override this path and
+    explicitly migrate a fresh pending store; browser journeys cover fresh boot.
+    """
+    from app.repositories import access_repository
+    access_dir = tmp_path_factory.mktemp('access-storage')
+    monkeypatch.setattr(access_repository, 'config_path', lambda url: access_dir / 'runtime-config.json')
+    access_repository.AccessRepository().initialize(fresh=False)
+
+
+@pytest.fixture(autouse=True)
+def _relay_registry_left_clean():
+    """Every test leaves the relay registry as it found it.
+
+    relay_registry is process-wide. A claim a test leaves open is an active
+    relay for every later test: it takes a tuner slot, shows in the active
+    streams and makes status checks skip its source, so the failure lands in
+    an unrelated test. Closing it here stops the leak; failing names the test
+    that leaked it.
+    """
+    from app.services.stream_relay import relay_registry
+    # Preserve the real registry accessor when a test mocks its projection.
+    active = relay_registry.active
+    before = {info.id for info in active()}
+    yield
+    left = [info for info in active() if info.id not in before]
+    for info in left:
+        relay_registry.close(info.id)
+    if left:
+        pytest.fail("test left %d relay claim(s) open: %s" % (
+            len(left), ", ".join(f"{i.content_id[:12] or '-'} ({i.client_label})" for i in left)))

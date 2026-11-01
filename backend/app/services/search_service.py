@@ -1,16 +1,12 @@
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, Optional
 import logging
-import requests
-import json
 import asyncio
 from fastapi import HTTPException
 
-from app.config.settings import get_settings
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.url_repository import URLRepository
 from app.services.channel_service import ChannelService
 from app.schemas.search import AddChannelRequest, AddMultipleRequest
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -33,15 +29,16 @@ class SearchService:
             self.channel_service = None
 
     def _get_engine_url(self) -> str:
-        """Get engine URL from config service or fallback to default."""
+        """Get the configured engine URL without inventing a fallback."""
         if self._engine_url:
             return self._engine_url
 
         if self.config_service:
             engine_url = self.config_service.get_ace_engine_url()
         else:
-            # Fallback to default
-            engine_url = "http://127.0.0.1:6878"
+            engine_url = ''
+        if not (engine_url or '').strip():
+            raise HTTPException(status_code=503, detail='AceStream Engine URL is not configured')
 
         # If URL doesn't start with a protocol, assume http://
         if not engine_url.startswith('http'):
@@ -55,122 +52,23 @@ class SearchService:
         return engine_url
 
     async def search(self, query: str = "", page: int = 1, page_size: int = 10, category: str = "") -> Dict[str, Any]:
-        """
-        Search for Acestream channels using the engine API.
-
-        Args:
-            query: The search query string (optional, defaults to empty string for all channels)
-            page: Page number for pagination (1-based)
-            page_size: Number of results per page
-            category: Filter by category (optional)
-
-        Returns:
-            Dict containing search results, pagination info, and status
-        """
+        from app.services.search_catalogue_client import SearchCatalogueClient, CatalogueReadError, flatten_results
+        from app.api.error_handlers import APIError
+        url = self.config_service.get_ace_engine_url() if self.config_service else ''
+        if self.db:
+            self.db.rollback()
+        def read():
+            with SearchCatalogueClient(url) as client:
+                payload = client.get('/search', dict(query=query.strip(), category=category, page=page - 1, page_size=page_size))
+                return flatten_results(payload)
         try:
-            # Construct search URL
-            engine_url = self._get_engine_url()
-            search_url = f"{engine_url}/search"
-
-            # Convert from 1-based pagination (UI) to 0-based pagination (API)
-            api_page = page - 1
-
-            # Prepare query parameters
-            params = {
-                'query': query,
-                'page': api_page,  # Send 0-based page index to the API
-                'page_size': page_size
-            }
-
-            # Add category parameter if provided
-            if category:
-                params['category'] = category
-
-            # Make request to Acestream engine
-
-            response = await asyncio.to_thread(requests.get, search_url, params=params, timeout=10)
-
-            # Enhanced logging - log the actual status code
-            logger.info(f"Search API response status code: {response.status_code}")
-
-            # Check if request was successful
-            if response.status_code == 200:
-                # Log the raw API response for debugging
-                raw_response = response.text
-                logger.debug(f"Raw API response: {raw_response[:1000]}..." if len(raw_response) > 1000 else raw_response)
-
-                try:
-                    search_data = response.json()
-
-                    # Handle the nested structure from Acestream API
-                    api_result = search_data.get('result', {})
-                    raw_results = api_result.get('results', [])
-                    total_results = api_result.get('total', 0)
-
-                    # Transform the results to have a proper ID field
-                    processed_results = []
-
-                    for result in raw_results:
-                        # Handle the expected structure with 'name' and 'items'
-                        if 'items' in result and isinstance(result['items'], list) and len(result['items']) > 0:
-                            for item in result['items']:
-                                # Create a processed result with the required fields
-                                processed_item = {
-                                    'name': result.get('name', 'Unnamed Channel'),
-                                    'id': item.get('infohash', ''), # Use the infohash as ID
-                                    'categories': item.get('categories', []),
-                                    'bitrate': item.get('bitrate', 0)
-                                }
-                                # Add any other useful fields from the item
-                                for key, value in item.items():
-                                    if key not in processed_item and key != 'infohash':
-                                        processed_item[key] = value
-
-                                processed_results.append(processed_item)
-                        else:
-                            # If the expected structure is not present, try to use the result directly
-                            logger.warning(f"Unexpected result structure without 'items': {result}")
-                            # Try to extract an ID from the result if possible
-                            result_id = result.get('infohash', result.get('id', ''))
-                            if result_id:
-                                result['id'] = result_id
-                                processed_results.append(result)
-
-                    # Log the number of results found
-                    logger.debug(f"Extracted {len(processed_results)} processed results from API response")
-                    logger.debug(f"Total results reported by API: {total_results}")
-
-                    # Process and structure the response
-                    result = {
-                        'success': True,
-                        'message': 'Search successful',
-                        'results': processed_results,
-                        'pagination': {
-                            'page': page,  # Return the original 1-based page for the UI
-                            'page_size': page_size,
-                            'total_results': total_results,
-                            'total_pages': (total_results + page_size - 1) // page_size if total_results > 0 else 0
-                        }
-                    }
-
-                    query_description = query if query else "all channels"
-                    return result
-                except json.JSONDecodeError as json_err:
-                    logger.error(f"Failed to parse JSON response: {json_err}")
-                    logger.error(f"Raw response content (first 500 chars): {response.text[:500]}")
-                    raise HTTPException(status_code=500, detail=f"Failed to parse API response: {json_err}")
-            else:
-                error_msg = f"Acestream search failed with status code {response.status_code}"
-                logger.error(error_msg)
-                logger.error(f"Response content: {response.text[:500]}..." if len(response.text) > 500 else response.text)
-                raise HTTPException(status_code=response.status_code, detail=error_msg)
-        except HTTPException:
-            raise
-        except Exception as e:
-            error_msg = f"Error searching Acestream: {str(e)}"
-            logger.error(error_msg)
-            logger.exception("Exception details:")
-            raise HTTPException(status_code=500, detail=error_msg)
+            items, total, invalid, capped = await asyncio.to_thread(read)
+        except CatalogueReadError as exc:
+            raise APIError(exc.code, 'Configure a reachable AceStream engine in Settings → Playback.', 503) from None
+        return dict(success=True, message='Search partial: invalid or excess entries were omitted' if invalid or capped else 'Search successful',
+            results=[dict(item, id=item['infohash']) for item in items],
+            pagination=dict(page=page, page_size=page_size, total_results=total,
+                            total_pages=(total + page_size - 1) // page_size))
 
     async def check_broadcast(self, infohash: str) -> Dict[str, Any]:
         from app.models.models import AcestreamChannel
@@ -182,6 +80,26 @@ class SearchService:
         return await service.check_channel_status(
             AcestreamChannel(id=infohash, name=infohash), identifier='infohash', persist=False
         )
+
+    async def resolve_content_id(self, infohash: str) -> str:
+        from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError
+
+        # Resolve against the catalogue/playback engine, never the checker or
+        # Acexy. Do not start playback or persist anything during this lookup.
+        if self.config_service and not (self.config_service.get_ace_engine_url() or "").strip():
+            raise HTTPException(status_code=503, detail="AceStream Engine URL is not configured")
+        engine_url = self._get_engine_url()
+
+        def resolve():
+            with EngineClient(engine_url) as engine:
+                return engine.resolve_content_id(infohash)
+
+        try:
+            return await asyncio.to_thread(resolve)
+        except EngineRefusedError:
+            raise HTTPException(status_code=502, detail="The engine could not resolve this search result. Try again later.") from None
+        except EngineUnavailableError:
+            raise HTTPException(status_code=502, detail="Could not resolve the search result. Check the AceStream engine and try again.") from None
 
     def extract_acestream_id(self, url: str) -> Optional[str]:
         """
@@ -198,161 +116,24 @@ class SearchService:
         return None
 
     async def add_channel(self, channel: AddChannelRequest):
-        """
-        Add or update a channel from search results, including TV channel association.
-        """
-        if not self.db or not self.channel_repo or not self.url_repo:
-            raise HTTPException(status_code=500, detail="Database session not initialized")
-
-        # Generate UUID if ID is not provided
-        if not channel.id:
-            from uuid import uuid4
-            channel.id = str(uuid4())
-
-        # Check if channel already exists
-        existing_channel = self.channel_repo.get_channel_by_id(channel.id)
-        if existing_channel:
-            # Update existing channel
-            existing_channel.name = channel.name
-            existing_channel.source_url = channel.url
-            if channel.tv_channel_id:
-                self.channel_service.associate_acestream(channel.tv_channel_id, channel.id)
-                existing_channel.tv_channel_id = channel.tv_channel_id
-            self.db.commit()
-            self.db.refresh(existing_channel)
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "success": True,
-                    "message": "Channel updated successfully",
-                    "channel": self.serialize_channel(existing_channel)
-                }
-            )
-
-        # Create or get the Acestream Search URL entry
-        acestream_search_url = self.url_repo.get_or_create_by_type_and_url(
-            url_type="search",
-            url="Acestream Search",
-            trigger_scrape=False
-        )
-
-        # Create new channel
-        new_channel = self.channel_repo.create_or_update_channel(
-            channel_id=channel.id,
-            name=channel.name,
-            source_url=channel.url
-        )
-        new_channel.scraped_url_id = acestream_search_url.id
-        if channel.tv_channel_id:
-            self.channel_service.associate_acestream(channel.tv_channel_id, channel.id)
-            new_channel.tv_channel_id = channel.tv_channel_id
-        self.db.commit()
-        self.db.refresh(new_channel)
-        return JSONResponse(
-            status_code=201,
-            content={
-                "success": True,
-                "message": "Channel added successfully",
-                "channel": self.serialize_channel(new_channel)
-            }
-        )
+        from app.schemas.search import SearchImportItem, SearchImportRequest
+        # Legacy IDs explicitly mean catalogue infohashes, just like /import.
+        request = SearchImportRequest(items=[SearchImportItem(infohash=channel.id or '',
+            name=channel.name, category=channel.category or '')])
+        return await self._import_in_worker(request)
 
     async def add_multiple_channels(self, request: AddMultipleRequest):
-        """
-        Add or update multiple channels from search results, including TV channel associations.
-        """
-        if not self.db or not self.channel_repo or not self.url_repo:
-            raise HTTPException(status_code=500, detail="Database session not initialized")
-        if not request.channels:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "message": "No channels provided",
-                    "error": "Empty channel list"
-                }
-            )
-        acestream_search_url = self.url_repo.get_or_create_by_type_and_url(
-            url_type="search",
-            url="Acestream Search",
-            trigger_scrape=False
-        )
-        added_channels = []
-        updated_channels = []
-        failed_channels = []
-        results = []
-        for channel_data in request.channels:
-            try:
-                if not channel_data.name or not channel_data.url:
-                    raise ValueError("Name and URL are required fields")
-                if not channel_data.id:
-                    from uuid import uuid4
-                    channel_data.id = str(uuid4())
-                existing_channel = self.channel_repo.get_channel_by_id(channel_data.id)
-                if existing_channel:
-                    existing_channel.name = channel_data.name
-                    existing_channel.source_url = channel_data.url
-                    if channel_data.tv_channel_id:
-                        self.channel_service.associate_acestream(channel_data.tv_channel_id, channel_data.id)
-                        existing_channel.tv_channel_id = channel_data.tv_channel_id
-                    updated_channels.append(existing_channel)
-                    results.append({
-                        "success": True,
-                        "message": "Channel updated",
-                        "channel": self.serialize_channel(existing_channel)
-                    })
-                    continue
-                new_channel = self.channel_repo.create_or_update_channel(
-                    channel_id=channel_data.id,
-                    name=channel_data.name,
-                    source_url=channel_data.url
-                )
-                new_channel.scraped_url_id = acestream_search_url.id
-                if channel_data.tv_channel_id:
-                    self.channel_service.associate_acestream(channel_data.tv_channel_id, channel_data.id)
-                    new_channel.tv_channel_id = channel_data.tv_channel_id
-                added_channels.append(new_channel)
-                results.append({
-                    "success": True,
-                    "message": "Channel added",
-                    "channel": self.serialize_channel(new_channel)
-                })
-            except Exception as e:
-                failed_channels.append({
-                    "data": channel_data.dict() if hasattr(channel_data, 'dict') else vars(channel_data),
-                    "error": str(e)
-                })
-                results.append({
-                    "success": False,
-                    "message": f"Failed to add channel: {str(e)}",
-                    "error": str(e)
-                })
-        self.db.commit()
-        total_processed = len(added_channels) + len(updated_channels) + len(failed_channels)
-        status_code = 201
-        added_channel_objects = [result["channel"] for result in results if result["success"] and result["message"] == "Channel added"]
-        response = {
-            "success": len(failed_channels) == 0,
-            "message": f"{total_processed} channels processed successfully",
-            "added_count": len(added_channels),
-            "updated_count": len(updated_channels),
-            "failed_count": len(failed_channels),
-            "results": results,
-            "added_channels": added_channel_objects
-        }
-        return JSONResponse(content=response, status_code=status_code)
+        from app.schemas.search import SearchImportItem, SearchImportRequest
+        items = SearchImportRequest(items=[SearchImportItem(infohash=c.id or '', name=c.name,
+            category=c.category or '') for c in request.channels])
+        return await self._import_in_worker(items)
 
-    def serialize_channel(self, channel):
-        return {
-            "id": channel.id,
-            "name": channel.name,
-            "source_url": channel.source_url,
-            "tv_channel_id": getattr(channel, 'tv_channel_id', None),
-            "last_checked": channel.last_checked.isoformat() if channel.last_checked else None,
-            "last_seen": channel.last_seen.isoformat() if channel.last_seen else None,
-            "check_error": channel.check_error,
-            "group": channel.group,
-            "is_active": channel.is_active,
-            "is_online": channel.is_online,
-            "epg_update_protected": channel.epg_update_protected
-        }
+    async def _import_in_worker(self, request):
+        from starlette.concurrency import run_in_threadpool
+        from app.services.search_import_service import SearchImportService
+        bind = self.db.get_bind()
+        self.db.rollback()
+        def import_items():
+            with Session(bind=bind) as db:
+                return SearchImportService(db).import_items(request)
+        return await run_in_threadpool(import_items)

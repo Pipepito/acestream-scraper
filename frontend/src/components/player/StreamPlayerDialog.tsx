@@ -24,10 +24,13 @@ import { usePlayerSessionStatus, useStartPlayerSession } from '../../hooks/usePl
 import { usePublicUrl } from '../../hooks/useSystemServices';
 import { playerService } from '../../services/playerService';
 import { getApiToken } from '../../services/apiToken';
+import { accessSession } from '../../services/accessSession';
 import { buildPublicUrl } from '../../services/playlistService';
 import { getErrorMessage } from '../../utils/errorUtils';
 import { formatBitrate } from '../../utils/format';
 import { describePlayerError } from './playerCopy';
+import CastControls from './CastControls';
+import { useAccess } from '../access/AccessContext';
 
 export interface StreamPlayerDialogProps {
   open: boolean;
@@ -48,6 +51,7 @@ export interface StreamPlayerDialogProps {
 const MAX_RECOVERIES = 3;
 
 const withToken = (url: string): string => {
+  if (accessSession.managed()) return url;
   const token = getApiToken();
   if (!token) return url;
   return `${url}${url.includes('?') ? '&' : '?'}${new URLSearchParams({ token }).toString()}`;
@@ -63,6 +67,8 @@ const startPlayback = (video: HTMLVideoElement): void => {
 
 /** Plays one channel through the backend's HLS pipeline. */
 const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details, schedule, largePlayer, onTogglePlayerSize, inline = false }) => {
+  const access = useAccess();
+  const canManage = !access || access.status.mode === 'open' || Boolean(access.status.user?.administrator);
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -84,10 +90,12 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   const requestGeneration = useRef(0);
 
   const [audioSelection, setAudioSelection] = useState<{ contentId: string | null; index: number | null }>({ contentId: null, index: null });
+  const [subtitleSelection, setSubtitleSelection] = useState<{ contentId: string | null; index: number | null }>({ contentId: null, index: null });
+  const subtitleIndex = subtitleSelection.contentId === contentId ? subtitleSelection.index : null;
   const audioIndex = audioSelection.contentId === contentId ? audioSelection.index : null;
   const start = useStartPlayerSession();
   const { data: status, error: statusError } = usePlayerSessionStatus(sessionId);
-  const { data: publicUrl } = usePublicUrl();
+  const { data: publicUrl } = usePublicUrl({ enabled: canManage });
 
   const leave = useCallback(() => {
     const id = sessionIdRef.current;
@@ -115,7 +123,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     setSessionId(null);
     const generation = ++requestGeneration.current;
     // Promise handlers also run after unmount; stale starts must release their viewer.
-    void start.mutateAsync(audioIndex === null ? contentId : { contentId, audioIndex }).then((session) => {
+    void start.mutateAsync(audioIndex === null && subtitleIndex === null ? contentId : { contentId, ...(audioIndex !== null ? { audioIndex } : {}), ...(subtitleIndex !== null ? { subtitleIndex } : {}) }).then((session) => {
         if (generation !== requestGeneration.current) {
           playerService.leaveSession(session.id);
           return;
@@ -134,7 +142,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentId, audioIndex, leave]);
+  }, [contentId, audioIndex, subtitleIndex, leave]);
 
   useEffect(() => {
     if (open && contentId) startSession();
@@ -154,7 +162,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       setSessionId(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, contentId, audioIndex]);
+  }, [open, contentId, audioIndex, subtitleIndex]);
 
   useEffect(() => {
     const onPageHide = () => leave();
@@ -164,6 +172,17 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
 
   useEffect(() => {
     const video = videoRef.current;
+    if (status?.state === 'error' || status?.state === 'stopped' || statusError?.status === 404) {
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      attachedUrl.current = null;
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+      return;
+    }
     if (!video || !status || !status.hls_ready || attachedUrl.current === status.playlist_url) return;
     attachedUrl.current = status.playlist_url;
     hlsRef.current?.destroy();
@@ -173,7 +192,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         enableWorker: true,
         liveSyncDurationCount: 3,
         xhrSetup: (xhr) => {
-          const token = getApiToken();
+          const token = accessSession.managed() ? null : getApiToken();
           if (token) xhr.setRequestHeader('X-Api-Token', token);
         },
       });
@@ -201,6 +220,10 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         if (hlsRef.current === hls) hlsRef.current = null;
         setPlaybackError('Playback stopped in your browser. Try again.');
       });
+      hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
+        hls.subtitleTrack = status.subtitle_index != null ? 0 : -1;
+        hls.subtitleDisplay = status.subtitle_index != null;
+      });
       hls.loadSource(status.playlist_url);
       hls.attachMedia(video);
       hlsRef.current = hls;
@@ -209,9 +232,10 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       video.src = withToken(status.playlist_url);
     }
     startPlayback(video);
-  }, [status]);
+  }, [status, statusError]);
 
-  const streamLink = contentId ? buildPublicUrl(`/tuner/stream/${contentId}.ts`, publicUrl?.url) : '';
+  const isHttpStream = contentId?.startsWith('url:') ?? false;
+  const streamLink = contentId && !isHttpStream ? buildPublicUrl(`/tuner/stream/${contentId}.ts`, publicUrl?.url) : '';
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(streamLink);
@@ -235,7 +259,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     status?.state === 'ready'
       ? mediaState === 'playing' ? 'Playing' : mediaState === 'paused' ? 'Paused' : 'Buffering…'
       : status?.state === 'starting'
-        ? `Starting… ${stats ? `${stats.peers} peers · ${formatBitrate(stats.speed_down * 8000)}` : 'contacting the engine'}`
+        ? `Starting… ${stats ? `${stats.peers} peers · ${formatBitrate(stats.speed_down * 8000)}` : isHttpStream ? 'opening the HTTP stream' : 'contacting the engine'}`
         : start.isPending
           ? 'Starting…'
           : '';
@@ -255,6 +279,15 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
               {`Track ${track.index + 1}${track.language ? ` · ${track.language}` : ''}${track.title ? ` · ${track.title}` : ''}${track.codec ? ` · ${track.codec.toUpperCase()}` : ''}${track.channel_layout ? ` · ${track.channel_layout}` : ''}`}
             </MenuItem>)}
           </TextField> : null}
+          {status?.subtitle_tracks?.length ? <TextField select fullWidth label="Subtitles" value={subtitleIndex ?? 'off'}
+            onChange={(event) => setSubtitleSelection({ contentId, index: event.target.value === 'off' ? null : Number(event.target.value) })}
+            helperText="Changing subtitles restarts your playback. Other viewers keep their selected track.">
+            <MenuItem value="off">Off</MenuItem>
+            {status.subtitle_tracks.map((track) => <MenuItem key={track.index} value={track.index} disabled={!track.supported}
+              sx={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+              {`Track ${track.index + 1}${track.language ? ` · ${track.language}` : ''}${track.codec ? ` · ${track.codec.toUpperCase()}` : ''}${track.supported ? '' : ' · not supported in the browser'}`}
+            </MenuItem>)}
+          </TextField> : null}
           {details}
   </>;
 
@@ -264,7 +297,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       <DialogContent>
         <Stack spacing={1.5}>
           <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', backgroundColor: '#000', borderRadius: 1, overflow: 'hidden' }}>
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live AceStream streams carry no caption track */}
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- available live subtitles are attached through HLS */}
             <video ref={videoRef} controls autoPlay playsInline
               onPlaying={() => setMediaState('playing')} onWaiting={() => setMediaState('buffering')} onPause={() => setMediaState('paused')} style={{ width: '100%', height: '100%' }} aria-label={`Video player for ${title}`} />
           </Box>
@@ -291,9 +324,10 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       </DialogContent>
       <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 'max(16px, env(safe-area-inset-bottom))' }}>
         {extraActions}
-        <Button onClick={handleCopy} disabled={!streamLink}>
+        {access && contentId && open ? <CastControls contentId={contentId} audioIndex={audioIndex} subtitleIndex={subtitleIndex} /> : null}
+        {!isHttpStream && canManage && access?.status.mode !== 'accounts' ? <Button onClick={handleCopy} disabled={!streamLink}>
           Copy stream link
-        </Button>
+        </Button> : null}
         <Button variant="contained" onClick={handleClose}>
           {inline ? 'Stop watching' : 'Close'}
         </Button>

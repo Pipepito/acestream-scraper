@@ -80,7 +80,7 @@ class TestEPGSourceEndpoints:
         """Test creating an EPG source with invalid data."""
         invalid_data = {"name": ""}  # Missing required fields
         response = client.post("/api/v1/epg/sources", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_delete_epg_source(self, client, seed_epg_sources):
         """Test deleting an EPG source."""
@@ -429,10 +429,10 @@ class TestEPGStringMappingEndpoints:
         channel_id = seed_epg_channels[0].id
         # Empty pattern
         response = client.post(f"/api/v1/epg/channels/{channel_id}/mappings", json={"search_pattern": "", "is_exclusion": False})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         # Non-boolean is_exclusion
         response = client.post(f"/api/v1/epg/channels/{channel_id}/mappings", json={"search_pattern": "Pattern", "is_exclusion": "notabool"})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_epg_string_mapping_invalid(self, client, seed_epg_channels, db_session):
         """Test updating an EPG string mapping with invalid input."""
@@ -446,10 +446,10 @@ class TestEPGStringMappingEndpoints:
         db_session.commit()
         # Empty pattern
         response = client.patch(f"/api/v1/epg/mappings/{mapping.id}", json={"search_pattern": "", "is_exclusion": False})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         # Non-boolean is_exclusion
         response = client.patch(f"/api/v1/epg/mappings/{mapping.id}", json={"search_pattern": "Pattern", "is_exclusion": "notabool"})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_auto_map_channels_regex(self, client, seed_epg_channels, seed_tv_channels, db_session):
         """Test auto-mapping with regex pattern."""

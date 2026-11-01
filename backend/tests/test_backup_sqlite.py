@@ -3,6 +3,7 @@
 The rollback documented in the release notes restores one of these copies, so a
 file that is not a complete database must never be presented as one.
 """
+from contextlib import closing
 import sqlite3
 
 import pytest
@@ -26,7 +27,7 @@ def test_backup_copies_the_database_and_reuses_the_copy(tmp_path):
 
     first = backup_sqlite(url, label="pre-upgrade-a-b")
     assert first is not None
-    with sqlite3.connect(first) as conn:
+    with closing(sqlite3.connect(first)) as conn, conn:
         assert conn.execute("SELECT COUNT(*) FROM t").fetchone()[0] == 2
     assert not list((tmp_path / "backups").glob("*/*.part"))
 
@@ -67,7 +68,7 @@ def test_an_unfinished_copy_is_never_reused_as_a_backup(tmp_path, monkeypatch):
     # The next boot takes a real backup rather than reusing the wreckage.
     second = backup_sqlite(url, label="pre-upgrade-a-b")
     assert second is not None
-    with sqlite3.connect(second) as conn:
+    with closing(sqlite3.connect(second)) as conn, conn:
         assert conn.execute("SELECT COUNT(*) FROM t").fetchone()[0] == 2
 
 
@@ -79,7 +80,7 @@ def test_a_zero_byte_file_left_by_an_older_build_is_not_reused(tmp_path):
 
     taken = backup_sqlite(url, label="pre-upgrade-a-b")
     assert taken is not None and taken != str(stale_dir / "scraper.db")
-    with sqlite3.connect(taken) as conn:
+    with closing(sqlite3.connect(taken)) as conn, conn:
         assert conn.execute("SELECT COUNT(*) FROM t").fetchone()[0] == 2
 
 

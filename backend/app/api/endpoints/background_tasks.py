@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.repositories.settings_repository import SettingsRepository
 from app.services.check_engine_config_service import CheckEngineConfigService
+from app.models.models import AcestreamChannel
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -34,7 +35,9 @@ def get_background_tasks_status():
 
 @router.post("/background-tasks/channel_status/run", response_model=ChannelStatusJobRunResponse, tags=["background-tasks"])
 def run_channel_status_job(db: Session = Depends(get_db)):
-    if not CheckEngineConfigService(SettingsRepository(db)).effective_url():
+    if (not CheckEngineConfigService(SettingsRepository(db)).effective_url()
+            and not db.query(AcestreamChannel.id).filter(AcestreamChannel.stream_url.isnot(None)).first()):
+        # HTTP streams need no engine; with none of them there is nothing to check.
         return ChannelStatusJobRunResponse(status="disabled", message="No engine configured. Add a playback or checking engine in Settings to enable stream checks.")
     outcome = task_service.run_task_now("channel_status")
     if outcome == "unavailable":

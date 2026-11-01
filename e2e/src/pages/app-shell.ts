@@ -1,19 +1,29 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-export type NavLabel = 'Live TV' | 'WARP' | 'Overview' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Integrations' | 'Settings';
+export type NavLabel = 'Live TV' | 'Recordings' | 'WARP' | 'TV dashboard' | 'System status' | 'Events' | 'Catalogues' | 'Changelog' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Public address' | 'Web player' | 'TV casting' | 'Remote players' | 'Media servers' | 'Telegram' | 'Settings';
 
 export const NAV_ROUTES: Record<NavLabel, string> = {
+  'TV dashboard': '/',
   'Live TV': '/live-tv',
+  Recordings: '/recordings',
+  Catalogues: '/catalogues',
+  Events: '/events',
   Scraper: '/scraper',
   Search: '/search',
   'Acestream Channels': '/acestream-channels',
   'TV Channels': '/tv-channels',
   EPG: '/epg',
   Playlist: '/playlist',
-  Overview: '/',
-  Integrations: '/integrations',
+  'Public address': '/integrations/public-address',
+  'Web player': '/integrations/web-player',
+  'TV casting': '/integrations/tv-casting',
+  'Remote players': '/integrations/remote-players',
+  'Media servers': '/integrations/media-servers',
+  Telegram: '/integrations/telegram',
+  'System status': '/system',
   WARP: '/warp',
   Settings: '/settings',
+  Changelog: '/changelog',
 };
 
 /** Shell-level interactions shared by every page: navigation, regions, dialogs, MUI widgets. */

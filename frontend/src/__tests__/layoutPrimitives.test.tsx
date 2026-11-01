@@ -374,13 +374,13 @@ describe('layout primitives', () => {
       mode
     );
 
-    const selectedItem = screen.getByRole('link', { name: 'Overview' });
-    const selectedLabel = within(selectedItem).getByText('Overview');
+    const selectedItem = screen.getByRole('link', { name: 'TV dashboard' });
+    const selectedLabel = within(selectedItem).getByText('TV dashboard');
     const appBar = screen.getByRole('banner');
 
-    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Overview' })).not.toBeInTheDocument();
-    expect(appBar).toHaveTextContent('Overview');
+    expect(screen.getByRole('link', { name: 'TV dashboard' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'TV dashboard' })).not.toBeInTheDocument();
+    expect(appBar).toHaveTextContent('TV dashboard');
     expect(selectedItem).toHaveAttribute('aria-current', 'page');
     expect(selectedItem).toHaveStyle({ backgroundColor: theme.appTokens.shell.activeNavBg });
     expect(selectedLabel).toHaveStyle({ color: theme.appTokens.shell.activeNavText });

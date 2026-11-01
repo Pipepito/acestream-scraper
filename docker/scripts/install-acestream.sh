@@ -213,9 +213,21 @@ install_executable() {
         "$PYTHON_BIN" -m pip install \
             --no-warn-script-location \
             --target="$ACE_DIR/python-deps" \
-            -r "$ACE_DIR/requirements.txt"
+            -r "$ACE_DIR/requirements.txt" \
+            'certifi>=2026.10.23' \
+            'idna>=3.15,<4' \
+            'setuptools==81.0.0'
+        # Native egg loaders still import pkg_resources. Keep its last supported
+        # setuptools release in the engine's private dependency directory; 82+
+        # removes that API. The base interpreters still ship without pip/wheel.
+        # Replace the archive's obsolete certificate and IDNA eggs with the
+        # maintained packages, not only their scanner metadata.
+        # PYTHONPATH already exposes python-deps to both engine launchers.
+        rm -f "$ACE_DIR"/lib/certifi-*.egg "$ACE_DIR"/lib/idna-*.egg
         # Fast-fail on ABI issues at build time rather than at first launch.
         PYTHONPATH="$ACE_DIR/python-deps" "$PYTHON_BIN" -c "import apsw; print('apsw ok')"
+        PYTHONPATH="$ACE_DIR/python-deps" "$PYTHON_BIN" -c \
+            "import certifi, idna, ssl; assert certifi.__version__ >= '2026.10.23'; assert tuple(map(int, idna.__version__.split('.'))) >= (3, 15); ssl.create_default_context(cafile=certifi.where())"
     fi
 }
 
@@ -319,6 +331,10 @@ install_oci_image() {
 
     cp -a "$community_root/acestream/." "$ACE_DIR/"
     cp -a "$community_root/system/." "$SYS_DIR/"
+    mkdir -p "$SYS_DIR/etc"
+    if [ ! -e "$SYS_DIR/etc/hosts" ] && [ ! -L "$SYS_DIR/etc/hosts" ]; then
+        ln -s /etc/hosts "$SYS_DIR/etc/hosts"
+    fi
     [ -x "$ACE_DIR/python/bin/python" ] || fail "OCI engine payload has no python/bin/python launcher"
     [ -f "$ACE_DIR/main.py" ] || fail "OCI engine payload has no main.py"
 
@@ -330,9 +346,18 @@ install_oci_image() {
     cp "$android_dir/app_bridge.py" "$ACE_DIR/app_bridge.py"
     cp "$android_dir/main_linux.py" "$ACE_DIR/main_linux.py"
     cp "$android_dir/bionic_dns.py" "$ACE_DIR/bionic_dns.py"
+    cp "$android_dir/bionic_dns_proxy.py" "$ACE_DIR/bionic_dns_proxy.py"
     cp "$android_dir/acestream.conf" "$ACE_DIR/acestream.conf"
     cp "$android_dir/start-engine" "$ACE_DIR/start-engine"
     chmod +x "$ACE_DIR/python/bin/python" "$ACE_DIR/start-engine"
+    # Compile a DNS-only netd transport against the target Linux socket ABI.
+    # No glibc dependency or Android routing hooks enter the bionic process.
+    local libdir=lib
+    [ ! -d "$SYS_DIR/lib64" ] || libdir=lib64
+    cc -shared -fPIC -O2 -Wall -Wextra -Werror -fno-stack-protector \
+        -nostdlib -Wl,-z,defs,-soname,libnetd_client.so \
+        "$android_dir/netd_client.c" -L"$SYS_DIR/$libdir" -l:libc.so \
+        -o "$SYS_DIR/$libdir/libnetd_client.so"
     ln -sf "$ACE_DIR/start-engine" "$ACE_BIN_DIR/acestreamengine"
 
     # Runtime-generated identity/port metadata must not be inherited from the

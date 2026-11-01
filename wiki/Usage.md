@@ -10,27 +10,50 @@ If you have not created the container yet, use the [Docker command builder](http
 
 ## Find your way around
 
-Navigation groups **Watch** (Live TV), **Manage** (sources, Search, stream and TV inventories, EPG, Playlist), and **System** (Overview, Integrations, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
+Navigation groups **Watch** (TV dashboard, Live TV, Catalogues, Events), **Manage** (sources, Search, stream and TV inventories, EPG, Playlist), **Integrations** (Public address, Web player, Remote players, Media servers, Telegram), and **System** (System status, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
 
 A **stream** is one AceStream content ID. A **TV channel** groups stream IDs for one station, with its channel number, favorite flag and programme guide. Scraping discovers streams; assigning them to TV channels creates the viewing catalogue.
 
 Choose **Wiki** in the top bar for these guides and troubleshooting help. It stays available on phones and with the sidebar collapsed, and opens in a new tab so your current page and playback remain open.
 
-## Step 1: Check the Overview
+## Named sources and built-in broadcasters
 
-The **Overview** page is the first place to check after startup. Its status line shows whether the AceStream engine is reachable, how many streams and TV channels are loaded, and when scraping and EPG refresh last ran.
+In **Scraper → Add URL**, choose **Built-in provider** for Atresmedia, Mediaset,
+Telemadrid or 7 Rioja. The form fills the supported URL and marks it **Built-in
+broadcaster**. These adapters import broadcaster channels directly; custom HTTP,
+ZeroNet and IPFS sources retain their extraction workflow. Saving the definition
+never starts an import: use the source's Scrape action when ready.
 
-The **Services** section distinguishes three states:
+**Friendly name (optional)** is available when adding or editing any source. Leave
+it blank to use the URL. **Acestream Channels → Source** searches these names and
+URLs as well as saved W3U catalogue names, before pagination and alongside the
+other filters. Existing broadcaster URLs are recognized without re-adding them.
 
-- **Running**: enabled and answering.
-- **Not running**: installed in the selected image but disabled or unhealthy.
-- **Not installed**: unavailable in the selected image flavor or platform.
+## Step 1: Open the TV dashboard
 
-The inventory and scheduled-jobs sections show what is loaded and when automation runs next. Engines are optional: a scraper-only installation can manage sources and playlists without one. Browser playback and engine search need a reachable playback engine; status checks need a playback or dedicated checking engine.
+The **TV dashboard** at `/` is the landing page. It shows browser playback and server
+relays, immediate and followed events, saved channels and streams, guide coverage, and time until the next source, guide and stream-check updates. Running and queued
+updates show their current state; results and history stay on System status. **Watch TV** opens the viewing catalogue; **Events** opens saved schedules.
+**Up next** shows up to six saved events. Choose All upcoming, Following or My interests;
+Customize events saves sports, competitions, teams and timezone for this browser.
+Open an event to view broadcasts or follow it. See [Sports events](Sports-Events.md).
+Players connected directly to an external engine are outside the playback summary.
+Starting or failed sessions have their own labels and are not counted as playing.
 
-The playback and checking engines have separate Start, Stop and Restart controls. Stop pauses automatic engine recovery until Start/Restart or a container restart. **Download diagnostics** collects recent scraper and service logs. Scheduled jobs retain their last launch and result across restarts; an unfinished run is marked interrupted.
+Open **System status** under System (`/system`) for service health, software version,
+storage, diagnostics and the complete scheduled-job history. Services distinguish
+running, stopped, disabled, external and not-installed states. An unavailable status
+read stays unknown; it is not reported as healthy.
 
-![Overview page with service, inventory, and scheduled-job status](usage-01-overview.png)
+The playback and checking engines have separate Start, Stop and Restart controls.
+Stop pauses automatic engine recovery until Start/Restart or a container restart.
+**Download diagnostics** collects recent scraper and service logs. Scheduled jobs
+retain their last launch and result across restarts; unfinished runs are interrupted.
+
+Engines are optional. A scraper-only installation can manage sources and playlists;
+HTTP browser playback does not require AceStream. AceStream playback and engine
+search need a reachable playback engine. Checks of AceStream streams need a playback
+or dedicated checking engine.
 
 ## Step 2: Configure playback, checks and links
 
@@ -39,9 +62,11 @@ Open **Settings**. Its four tabs can be bookmarked independently:
 | Tab | Use it for |
 |---|---|
 | **Playback** (`/settings?tab=playback`) | Save the optional engine URL reachable from the backend. A bundled engine normally uses `http://localhost:6878`. Optionally enable **Route playback through Acexy** and save its backend-facing URL. This does not start Acexy and applies to new sessions. |
-| **Automation** (`/settings?tab=automation`) | Choose a dedicated checking engine and save source-scrape, EPG-refresh and stream-check intervals. Changes apply immediately. A bundled checker is read-only here; its controls are in Overview. |
+| **Automation** (`/settings?tab=automation`) | Choose a dedicated checking engine and save source-scrape, EPG-refresh and stream-check intervals. Changes apply immediately. A bundled checker is read-only here; its controls are in System status. |
 | **Stream links** (`/settings?tab=links`) | Add named player formats, choose the default, and set optional PID/AppID compatibility flags. The same editor is available in Playlist. |
 | **API access** (`/settings?tab=access`) | Store the server's `API_TOKEN` in this browser, if one is configured. This does not set or change the server token. |
+
+Integrations is a menu category: each setup has its own page. Public address (`/integrations/public-address`), Web player (`/integrations/web-player`), Remote players (`/integrations/remote-players`), Media servers (`/integrations/media-servers`) and Telegram (`/integrations/telegram`) can be bookmarked directly. Shared tuner settings remain on Media servers; old `/integrations` bookmarks open Public address.
 
 Set the address other devices use in **Integrations → Public address**. A backend engine URL may use `localhost` when it shares the container; a link opened on another device must use the server's reachable address.
 
@@ -130,11 +155,27 @@ Open **EPG**. The five tabs form one workflow:
 
 1. **Sources**: add an XMLTV URL and refresh it.
 2. **Channels**: review guide channels and create TV channels from selected unlinked entries.
-3. **Matching**: analyze scraped stream names and create matched TV channels in bulk.
+3. **Matching**: analyze scraped stream names, review the proposed streams and guide source, select rows, then **Apply reviewed matches**. Existing compatible TV channels are reused. Nothing is selected automatically.
 4. **Rules**: manage include/exclude patterns used by matching.
 5. **Export**: download XMLTV containing only your configured TV channels.
 
-Large imports can continue in the background. Progress and future runs appear on **Overview**.
+Large imports can continue in the background. Progress and future runs appear on **System status**.
+
+**Playlist → Programme guide** shows how many catalogue streams have a linked guide
+and links directly to reviewed matching. A guide imported under Sources is not
+linked to streams until stations are assigned. Select a particular EPG source to
+resolve competing providers; ambiguous matches are left for review.
+
+Optional **Settings → Automation → Automatically match guide channels** applies
+unambiguous exact matches after future successful scrapes and EPG refreshes. It is
+off by default. It preserves assignments, favorites and channel numbers, and
+leaves similar names or conflicting editions for review. The last run result is
+shown below the switch. Disabling it preserves existing assignments.
+
+M3U exports include the guide address and use the linked TV channel's guide ID.
+When different sources reuse an ID, exports qualify it by source to keep their
+programmes separate. Token-protected exports include the credential needed by
+players to fetch XMLTV; handle downloaded playlists like the protected URL.
 
 ![EPG page showing the Sources, Channels, Matching, Rules, and Export tabs](usage-05-epg.png)
 
@@ -178,6 +219,20 @@ Choose **Watch**. The player and scrollable catalogue stay on the same page. Sea
 
 Use **Search** to query the connected AceStream engine catalogue. Add one result or select several and add them together. Use **Add channel** on **Acestream Channels** when you already know a content ID.
 
+Search returns infohashes, which are different from playback content IDs. **Add**
+and **Play** resolve the selected result through the configured playback engine
+before saving or opening it. A failed lookup leaves the inventory unchanged and
+can be retried; **Play** does not add a channel. Saved channels and exported links
+use the resolved content ID, including with Acexy routing. Catalogue search and
+resolution still require the playback engine, even when a dedicated checker or
+Acexy is configured.
+
+If a result added by an older version passes **Check broadcast** but fails with
+“failed to load content”, add it again from Search. The corrected content ID may
+create a separate entry: move any TV assignment to it, then remove the old entry
+when no longer needed. Existing entries are not rewritten automatically because
+a 40-character hash alone cannot identify which kind it is.
+
 Search shows the catalogue's availability and last update separately from the
 current broadcast. **Catalogue: available** is an upstream report, not proof of
 an emission now. **Check broadcast** opens a temporary engine session for that
@@ -203,7 +258,7 @@ All current application APIs are under `/api/v1`. A small set of v1 playlist ali
 
 ## WARP
 
-Open **WARP** under System, or choose **Manage WARP** in Overview. When installed and enabled, The page shows connection state, mode, account, and exit location, and provides connect/disconnect controls. Enabling WARP in Docker requires `ENABLE_WARP=true`, the `NET_ADMIN` and `SYS_ADMIN` capabilities, and the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically, or use the page's connect control. WARP is available on `linux/amd64` and `linux/arm64`; it is unavailable on `linux/arm/v7` because Cloudflare does not publish a 32-bit ARM package.
+Open **WARP** under System, or choose **Manage WARP** in System status. When installed and enabled, The page shows connection state, mode, account, and exit location, and provides connect/disconnect controls. Enabling WARP in Docker requires `ENABLE_WARP=true`, the `NET_ADMIN` and `SYS_ADMIN` capabilities, and the `/dev/net/tun` device. Set `WARP_ENABLE_NAT=true` to connect automatically, or use the page's connect control. WARP is available on `linux/amd64` and `linux/arm64`; it is unavailable on `linux/arm/v7` because Cloudflare does not publish a 32-bit ARM package.
 
 ## Next steps
 
@@ -212,3 +267,33 @@ Open **WARP** under System, or choose **Manage WARP** in Overview. When installe
 - [Troubleshooting and startup recovery](Troubleshooting.md)
 - [Frequently asked questions](FAQ.md)
 - [Bug reporting](Bug-Reporting.md)
+
+## Import exclusions and saved searches
+
+Open **Scraper → Import exclusions** to skip future imports by Name contains,
+Name equals or Stream ID equals. Matching is literal and ignores name case and
+repeated spaces; accents and regional markers still matter. **Preview matches**
+checks current inventory without changing it. A limited preview shows “at least”.
+Existing channels, favorites, TV assignments and playback stay available. Removing
+or disabling a rule permits future discoveries; it does not replay Telegram history.
+Manual Add can use **Add anyway** after a separate confirmation for that one stream.
+
+On Search, **Save search** captures the last submitted query/category, even if you
+have since edited the search form. Saving does not fetch or import. Manage it under
+**Scraper → Saved searches**. **Run now** imports discoveries once; **Preview**
+reads results without saving them, and **Import this preview** imports only that
+private snapshot. Previews expire after five minutes. Automatic refresh is off by
+default. Enable it to import matching results on the source refresh schedule in
+Settings → Automation. Changing query/category pauses automatic refresh again.
+
+Waiting means another maintenance job has the shared queue. A second Run now does
+not create another copy. Existing channels are preserved, including operator names
+and signal results. Missing results never remove channels. Deleting a saved search
+keeps imported channels. Complete, partial, skipped and failed outcomes distinguish
+excluded candidates from unresolved IDs and deferred work. Configure the catalogue
+engine in Settings → Playback; no engine is selected silently.
+
+Leave **Search Query** empty and click **Search** to browse all channels published
+in the AceStream catalogue. Category filters and pagination still apply; each
+page is fetched separately. Whitespace-only input is treated as empty. Browsing
+starts only after clicking Search (or pressing Enter), not when opening the page.

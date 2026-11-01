@@ -165,13 +165,67 @@ Two reliability improvements accompany this evidence:
   behavior.
 
 No native resolver ABI patch, binary modification, forced WARP default or increased
-playback timeout was introduced. Raw bionic connectivity diagnostics still have
-limitations outside Android; they are not used as a substitute for verified media.
+playback timeout was introduced in that September change. Its DNS checks covered
+the Python resolver and explicit socket requests, not libc's path to the socket.
+The native lookup gap discovered later is described below; engine connectivity
+remains separate from verified media delivery.
 
 Validation for the reliability follow-up: 30 bootstrap, DNS, WARP-startup and
 manifest tests plus 32 WARP API/status tests passed. The canonical ARM64 image
 built successfully, and documentation, manifest, strict legacy-path and shell
 syntax checks passed. Images were built locally, not published.
+
+## Native libc DNS follow-up (issue #253)
+
+Investigation date: 2026-10-27; `develop` baseline: `aafdd17`, with the fix
+described in this section applied for validation. The pinned ARM64 OCI userland contains no
+`libnetd_client.so`. Its bionic DNS dispatch consequently never opens the shared
+socket: unpatched `_socket.getaddrinfo` returns error 7 for valid public names
+and a DHT bootstrap name, even with a working Python resolver. The earlier
+listener ownership tests did not exercise this native dispatch path.
+
+The OCI installer now builds a small DNS-only `libnetd_client.so` for each ARM
+target and links it explicitly against that payload's `libc.so`, without glibc
+or Android socket-routing/fwmark hooks. Its `netdClientInitDnsOpenProxy` hook
+opens the existing shared Unix socket with bounded I/O. No engine binary,
+hostname allowlist, public resolver, hosts-file rewrite or WARP default changes.
+amd64 and legacy APK installation retain their existing native resolver setup.
+
+The listener in `bionic_dns_proxy.py` replaces the upstream response that always
+returned one IPv4/TCP address on port 80. It serializes actual IPv4/IPv6 results,
+service ports, TCP/UDP types, canonical names and legacy hostent responses.
+It preserves `/system/etc/hosts` aliases, bounds request size and concurrency,
+and uses the existing dnspython resolver that follows container DNS changes.
+The persistent file lock and survivor takeover remain in `bionic_dns.py`;
+bootstrap waits for an accepting listener before starting the engine.
+
+The transport contract is documented in AOSP's
+[DNS dispatch](https://android.googlesource.com/platform/bionic/+/android-11.0.0_r1/libc/bionic/NetdClientDispatch.cpp),
+[addrinfo protocol](https://android.googlesource.com/platform/bionic/+/android-11.0.0_r1/libc/dns/net/getaddrinfo.c), and
+[hostent protocol](https://android.googlesource.com/platform/bionic/+/android-11.0.0_r1/libc/dns/net/gethnamaddr.c).
+The adapter declares only Linux socket ABI types/constants, avoiding the
+ARMv7 glibc headers' time64 redirects; the linker rejects unresolved symbols.
+
+The installer regression runs the actual bionic interpreter offline on native
+ARM64. A local DNS fixture verifies direct `ctypes` libc calls and unpatched
+`_socket` calls, IPv4/IPv6, TCP/UDP ports, host aliases, reverse lookups, NXDOMAIN,
+and nameserver changes/partial rewrites. Run it with:
+
+```bash
+PYTHONPATH=backend backend/venv/bin/pytest -q \
+  backend/tests/test_android_engine_bootstrap.py \
+  backend/tests/test_bionic_dns_proxy.py
+PYTHONPATH=backend backend/venv/bin/pytest -q \
+  backend/tests/docker/test_install_acestream.py -k arm_oci_image_install_layout
+```
+
+Public-name and DHT-bootstrap native lookups also succeeded in the local ARM64
+container. A fresh-state engine started through the installed launcher returned
+`{"result": {"connected": true}}` from `get_network_connection_status` without
+WARP or a fixed-host workaround. These checks establish DNS resolution and
+native connectivity monitoring, not DHT peer acquisition,
+infohash playback, or performance gains. ARMv7 remains build-tested only and
+needs runtime verification on real hardware.
 
 ## Rechecking
 

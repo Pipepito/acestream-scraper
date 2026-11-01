@@ -8,6 +8,7 @@ API token protects like every other ``/api/v1`` route.
 from __future__ import annotations
 
 import asyncio
+import time
 
 import html
 import re
@@ -21,6 +22,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 
 from app.api.error_handlers import APIError
+from app.api.auth import authenticated_player_url
 from app.config.database import SessionLocal, get_db
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.tuner import TunerSettingsResponse, TunerSettingsUpdate, TunerStatusResponse, TunerUrls
@@ -30,7 +32,7 @@ from app.services.player_service import player_service
 from app.services.public_url_service import resolve_public_base_url
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream, relay_registry
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
-from app.services.tuner_service import TunerService
+from app.services.tuner_service import TunerService, TunerSettings
 from app.services.tuner_playback_service import relay_ranked_streams, prefer_recovered_sources
 from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
@@ -54,6 +56,11 @@ def _engine() -> EngineClient:
         return playback_client_from_settings(SettingsRepository(db))
     finally:
         db.close()
+
+
+def _relay_settings() -> TunerSettings:
+    with SessionLocal() as db:
+        return TunerService(db).settings()
 
 
 def _tuner_count() -> int:
@@ -96,7 +103,7 @@ def _discover(request: Request, db: Session) -> dict:
     return {
         "FriendlyName": settings.friendly_name, "Manufacturer": "Silicondust", "ModelNumber": "HDTC-2US",
         "FirmwareName": "hdhomeruntc_atsc", "FirmwareVersion": "20240101", "DeviceID": service.device_id(), "DeviceAuth": "",
-        "BaseURL": f"{public}/tuner", "LineupURL": f"{public}/tuner/lineup.json", "TunerCount": settings.tuner_count,
+        "BaseURL": f"{public}/tuner", "LineupURL": authenticated_player_url(request, f"{public}/tuner/lineup.json"), "TunerCount": settings.tuner_count,
     }
 
 
@@ -113,7 +120,7 @@ def lineup_json(request: Request, db: Session = Depends(get_db)) -> JSONResponse
     public = _public(request, db)
     entries = TunerService(db).build_lineup().entries
     return JSONResponse(
-        [{"GuideNumber": e.guide_number, "GuideName": e.guide_name, "URL": f"{public}/tuner/channel/{e.tv_channel_id}.ts"} for e in entries],
+        [{"GuideNumber": e.guide_number, "GuideName": e.guide_name, "URL": authenticated_player_url(request, f"{public}/tuner/channel/{e.tv_channel_id}.ts")} for e in entries],
         headers={"Cache-Control": "no-store"},
     )
 
@@ -166,13 +173,53 @@ def guide_xml(db: Session = Depends(get_db)) -> Response:
 def playlist_m3u(request: Request, db: Session = Depends(get_db)) -> PlainTextResponse:
     """The same lineup as an M3U, for servers configured with an M3U tuner."""
     service = TunerService(db)
-    return PlainTextResponse(service.build_playlist_m3u(service.build_lineup(), _public(request, db)),
+    content = service.build_playlist_m3u(service.build_lineup(), _public(request, db))
+    base = _public(request, db)
+    content = re.sub(re.escape(base) + r'/tuner/[^\s"<>]+', lambda match: authenticated_player_url(request, match.group(0)), content)
+    return PlainTextResponse(content,
                              headers={"Cache-Control": "no-store"})
+
+
+@hdhr_router.head('/source/{content_id}.ts', include_in_schema=False)
+@hdhr_router.get('/source/{content_id}.ts', include_in_schema=False)
+async def tuner_http_source(content_id: str, request: Request):
+    """A stored HTTP source uses the bounded, credential-preserving TS relay."""
+    from app.services.watch_service import imported_stream
+    if not re.fullmatch(r'url:[0-9a-f]{40}', content_id) or not await run_in_threadpool(imported_stream, content_id):
+        raise HTTPException(404, 'Channel not found')
+    if request.method == 'HEAD':
+        return Response(status_code=200, headers=RELAY_HEADERS)
+    limit = await run_in_threadpool(_tuner_count)
+    label = f"tuner:{request.client.host if request.client else '?'}"
+    claim = relay_registry.try_open(content_id, label, limit)
+    if claim is None:
+        raise HTTPException(503, 'All tuner slots are in use')
+    iterator = None
+    try:
+        settings = await run_in_threadpool(_relay_settings)
+        iterator = relay_ranked_streams(None, [content_id], label, claim, client_factory=_relay_client_factory,
+            attempt_seconds=settings.source_start_seconds, startup_budget_seconds=settings.startup_budget_seconds)
+        first = await anext(iterator)
+    except BaseException as error:
+        if iterator:
+            await iterator.aclose()
+        relay_registry.close(claim.id)
+        if isinstance(error, (EngineStreamError, EngineUnavailableError, StopAsyncIteration)):
+            raise HTTPException(502, 'The source could not start playback') from None
+        raise
+    async def body():
+        try:
+            yield first
+            async for chunk in iterator:
+                yield chunk
+        finally:
+            await iterator.aclose()
+    return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 
 
 @hdhr_router.get("/epg.xml", include_in_schema=False)
 def epg_xml(db: Session = Depends(get_db)) -> Response:
-    """XMLTV keyed by the upstream EPG ids, restricted to the lineup: the guide
+    """XMLTV keyed by source-qualified EPG identities, restricted to the lineup: the guide
     that goes with playlist.m3u, whose tvg-ids are those same ids."""
     ids = [entry.tv_channel_id for entry in TunerService(db).build_lineup().entries]
     return Response(content=EPGService(db).generate_epg_xml(tv_channel_ids=ids), media_type="application/xml",
@@ -218,11 +265,14 @@ async def tuner_stream(content_id: str, request: Request):
         )
     try:
         # The settings read is a blocking DB call: keep it off the event loop.
+        relay_settings = await run_in_threadpool(_relay_settings)
+        deadline = time.monotonic() + min(relay_settings.source_start_seconds, relay_settings.startup_budget_seconds)
         try:
             engine = await run_in_threadpool(_engine)
         except EngineUnavailableError as exc:
             raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
-        iterator = relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory, claim=claim)
+        iterator = relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory, claim=claim,
+            startup_deadline=deadline, read_seconds=relay_settings.source_start_seconds)
         # The first chunk is pulled here so an engine failure becomes a 502 body
         # instead of a truncated 200 stream. Every path that does not hand the
         # iterator to a response closes the engine's connection pool itself.
@@ -240,6 +290,9 @@ async def tuner_stream(content_id: str, request: Request):
         except StopAsyncIteration:
             engine.close()
             return Response(status_code=200, headers=RELAY_HEADERS)
+        except BaseException:
+            engine.close()
+            raise
     except BaseException:
         # Nothing is streaming, so the slot has to go back now -- including on
         # a cancelled request, which no generator is left to finalise. Closing
@@ -262,7 +315,9 @@ async def tuner_stream(content_id: str, request: Request):
 def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) -> List[str]:
     db = SessionLocal()
     try:
-        return prefer_recovered_sources(TunerService(db).stream_ids(tv_channel_id, online_only=not include_offline))
+        service = TunerService(db)
+        ids = service.stream_ids(tv_channel_id) if include_offline else service.relay_stream_ids(tv_channel_id)
+        return prefer_recovered_sources(ids)
     finally:
         db.close()
 
@@ -275,7 +330,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     candidates = await run_in_threadpool(_channel_candidates, tv_channel_id)
     eligible = candidates or await run_in_threadpool(_channel_candidates, tv_channel_id, include_offline=True)
     if not eligible:
-        raise APIError(code="NO_ONLINE_STREAMS", message="This channel has no online sources available", status_code=503)
+        raise APIError(code="NO_ONLINE_STREAMS", message="This channel has no active supported sources available", status_code=503)
     if request.method == "HEAD":
         return Response(status_code=200, headers=RELAY_HEADERS)
     limit = await run_in_threadpool(_tuner_count)
@@ -304,16 +359,21 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     iterator = None
     engine = None
     try:
-        def read_recovery_mode():
-            with SessionLocal() as db:
-                return TunerService(db).settings().experimental_transcoding
-        experimental_transcoding = await run_in_threadpool(read_recovery_mode)
-        if experimental_transcoding:
+        relay_settings = await run_in_threadpool(_relay_settings)
+        experimental_transcoding = relay_settings.experimental_transcoding
+        if experimental_transcoding or relay_settings.plex_compatible_audio:
             await run_in_threadpool(ffmpeg_binary)
-        engine = await run_in_threadpool(_engine)
+        try:
+            engine = await run_in_threadpool(_engine)
+        except EngineUnavailableError:
+            # HTTP sources are independent of the optional playback engine.
+            engine = None
         iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory,
                                       candidate_provider=refreshed_candidates, on_source_failure=refresh_failed_source,
-                                      experimental_transcoding=experimental_transcoding)
+                                      experimental_transcoding=experimental_transcoding,
+                                      plex_compatible_audio=relay_settings.plex_compatible_audio,
+                                      attempt_seconds=relay_settings.source_start_seconds,
+                                      startup_budget_seconds=relay_settings.startup_budget_seconds)
         first = await anext(iterator)
     except BaseException as exc:
         monitor.cancel()
@@ -324,7 +384,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
             engine.close()
         relay_registry.close(claim.id)
         if isinstance(exc, (EngineStreamError, EngineUnavailableError)):
-            raise APIError(code="CHANNEL_STREAM_FAILED", message="No online source could start playback", status_code=502) from exc
+            raise APIError(code="CHANNEL_STREAM_FAILED", message="No source could start playback within the startup budget", status_code=502) from exc
         raise
 
     async def body():

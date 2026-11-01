@@ -2,7 +2,7 @@
 """Stand-in for ffmpeg in player tests. Reads the output playlist path from
 the last argv entry, prints a codec dump like ffmpeg does, then writes HLS
 segments until it is terminated. Behaviour switches via env FAKE_FFMPEG_MODE:
-  normal (default) | never_ready | exit_early | flood_stderr
+  normal (default) | static_playlist | never_ready | exit_early | flood_stderr
 """
 import os
 import signal
@@ -18,6 +18,9 @@ directory.mkdir(parents=True, exist_ok=True)
 sys.stderr.write("Input #0, mpegts, from 'http://engine':\n")
 sys.stderr.write("  Stream #0:0[0x100]: Video: %s (High) ([27][0][0][0] / 0x001B), yuv420p, 1920x1080\n" % os.environ.get("FAKE_FFMPEG_VIDEO", "h264"))
 sys.stderr.write("  Stream #0:1[0x101]: Audio: %s ([129][0][0][0] / 0x0081), 48000 Hz, stereo\n" % os.environ.get("FAKE_FFMPEG_AUDIO", "ac3"))
+if os.environ.get("FAKE_FFMPEG_SUBTITLES") == "1":
+    sys.stderr.write("  Stream #0:3(es): Subtitle: webvtt\n")
+    sys.stderr.write("  Stream #0:4(eng): Subtitle: dvb_subtitle\n")
 if os.environ.get("FAKE_FFMPEG_MULTI_AUDIO") == "1":
     sys.stderr.write("  Stream #0:2[0x102](eng): Audio: aac (LC), 48000 Hz, stereo\n")
     sys.stderr.write("Stream mapping:\n")
@@ -26,6 +29,12 @@ if os.environ.get("FAKE_FFMPEG_MULTI_AUDIO") == "1":
 sys.stderr.flush()
 
 if mode == "exit_early":
+    if os.environ.get('FAKE_FFMPEG_PRIVATE_ERROR'):
+        # A line exceeding the pipe reader's limit must be discarded whole.
+        sys.stderr.write('https://cdn.example/' + 'x' * 70000 + '?private=partial-signature\n')
+        sys.stderr.write("HTTP error 503 from https://cdn.example/" + 'x' * 400 + "?private=signed-value\n")
+        sys.stderr.write("Authorization: Bearer private-header\n")
+        sys.stderr.write("Output failed: " + str(playlist) + "\n")
     sys.stderr.write("Error opening input: Connection refused\n")
     sys.exit(1)
 
@@ -43,7 +52,7 @@ while running:
     if mode == "flood_stderr" and seq < 400:
         sys.stderr.write("\r" + ("frame=%d fps=25 q=-1.0 size=1024kB time=00:00:01.00 bitrate=8192kbits/s speed=1x" % seq) * 4)
         sys.stderr.flush()
-    if mode != "never_ready":
+    if mode != "never_ready" and not (mode == "static_playlist" and seq >= 2):
         seg = directory / f"seg{seq:05d}.ts"
         seg.write_bytes(b"\x47" + b"\x00" * 187)
         keep = list(range(max(0, seq - 5), seq + 1))

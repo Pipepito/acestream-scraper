@@ -23,6 +23,33 @@ logger = logging.getLogger(__name__)
 
 
 
+def channels_in_check_order(db: Session, *, now: Optional[datetime] = None) -> List[str]:
+    """Age work by the saved check interval so repeated short passes progress.
+
+    Never-checked streams come first. Checked streams are grouped by how many
+    complete check intervals old their observation is, oldest group first.
+    Favorites and assigned channels win within a group; last check and ID give
+    stable tie breaks. A just-checked favorite moves out of the overdue groups.
+    """
+    from app.services.config_service import ConfigService
+    from app.repositories.settings_repository import SettingsRepository
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    interval = ConfigService(SettingsRepository(db)).get_channel_status_interval() * 60
+    rows = ChannelRepository(db).get_status_check_inventory()
+
+    def priority(row):
+        checked = row.last_checked
+        if checked is not None and checked.tzinfo is None:
+            checked = checked.replace(tzinfo=timezone.utc)
+        age_group = max(0, int((now - checked).total_seconds() // interval)) if checked else 0
+        return (checked is not None, -age_group, not row.is_favorite,
+                row.tv_channel_id is None, checked or datetime.min.replace(tzinfo=timezone.utc), row.id)
+
+    return [row.id for row in sorted(rows, key=priority)]
+
+
 class ChannelStatusService:
     """Service for checking Acestream channel status via engine API"""
 
@@ -132,17 +159,37 @@ class ChannelStatusService:
                     previous_downloaded = downloaded
                 await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
         finally:
-            if command_url and not self._in_use(channel_id):
+            if command_url:
                 try:
-                    await self._fetch_engine_response(command_url, {'method': 'stop'}, 3.0)
+                    await asyncio.to_thread(self._release_probe, engine_url, channel_id, command_url)
                 except Exception:
                     logger.warning('Could not stop channel status probe session')
+
+    def _release_probe(self, engine_url, channel_id, command_url):
+        # Hold the same source lock as EngineClient.start/final stop. A probe
+        # finishing after playback started is parked for the final lease release.
+        from app.services.playback_ownership import source_ownership
+        from app.services.engine_client import EngineSession
+        source = source_ownership(engine_url, channel_id)
+        with source.lock:
+            if source.leases:
+                source.parked.append(EngineSession(channel_id, '', '', '', command_url, True))
+            elif not self._in_use(channel_id):
+                asyncio.run(self._fetch_engine_response(command_url, {'method': 'stop'}, 3.0))
+
+    def _recording_reserved(self):
+        from app.services.recording_coordinator import recording_coordinator
+        from app.services.check_engine_config_service import CheckEngineConfigService
+        return bool(recording_coordinator.activity()) and not CheckEngineConfigService(self.settings_repo).get().use_dedicated
 
     @staticmethod
     def _in_use(channel_id: str) -> bool:
         from app.services.stream_relay import relay_registry
         from app.services.player_service import player_service
         key = channel_id.lower()
+        from app.services.recording_coordinator import recording_coordinator
+        if recording_coordinator.source_active(key):
+            return True
         return any(relay.content_id.lower() == key for relay in relay_registry.active()) or any(
             session.content_id.lower() == key and session.state in ('starting', 'ready')
             for session in player_service.list_sessions()
@@ -175,7 +222,8 @@ class ChannelStatusService:
         self, channel: AcestreamChannel, *, identifier: str = 'id', persist: bool = True,
         priority: ProbePriority = ProbePriority.MANUAL, scan_started_at: Optional[datetime] = None,
     ) -> Dict[str, Any]:
-        if not self._get_engine_url():
+        is_http = bool(getattr(channel, 'stream_url', None))
+        if not is_http and not self._get_engine_url():
             result = self._skipped_result(channel)
             result['message'] = 'No engine configured; stream status checks are disabled.'
             return result
@@ -183,13 +231,13 @@ class ChannelStatusService:
         since = submitted if priority == ProbePriority.MANUAL else submitted - timedelta(seconds=30)
         if priority == ProbePriority.BACKGROUND and scan_started_at is not None:
             since = min(since, scan_started_at)
-        if self._in_use(channel.id):
+        if not is_http and (self._in_use(channel.id) or self._recording_reserved()):
             return self._skipped_result(channel)
         ticket = probe_queue.enqueue(priority)
         probed = False
         try:
             await probe_queue.acquire(ticket)
-            if self._in_use(channel.id):
+            if not is_http and (self._in_use(channel.id) or self._recording_reserved()):
                 return self._skipped_result(channel)
             if persist and identifier == 'id':
                 recent = await asyncio.to_thread(self._recent_result, channel.id, since)
@@ -197,10 +245,45 @@ class ChannelStatusService:
                     return recent
             self.engine_unavailable = False
             probed = True
+            if is_http:
+                return await self._check_http_stream(channel, persist=persist)
             return await self._check_channel_status(channel, identifier=identifier, persist=persist)
         finally:
             probe_queue.cancel(ticket)
             probe_queue.release(ticket, probed=probed, engine_unavailable=self.engine_unavailable)
+
+    async def check_channel_status_manually(self, channel: AcestreamChannel) -> Dict[str, Any]:
+        """Notify only an explicit user check, after the probe releases its lease."""
+        from app.services import notification_service
+
+        try:
+            result = await self.check_channel_status(channel)
+        except Exception as exc:
+            await asyncio.to_thread(notification_service.channel_check_failed, channel.id, exc)
+            raise
+        await asyncio.to_thread(notification_service.channel_check_completed, result)
+        return result
+
+    async def _check_http_stream(self, channel: AcestreamChannel, *, persist: bool = True) -> Dict[str, Any]:
+        from app.services import http_stream_check
+        online, error = await http_stream_check.check(channel.stream_url, getattr(channel, 'stream_headers', None))
+        if online is None:
+            result = self._skipped_result(channel)
+            result.update(message=error, error=error)
+            return result
+        if persist:
+            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error)
+        return {
+            'channel_id': channel.id,
+            'id_kind': channel.id_kind,
+            'stream_stats': channel.stream_stats,
+            'network_status': 'unknown',
+            'is_online': online,
+            'status': 'online' if online else 'offline',
+            'message': 'Audio/video packets verified over HTTP' if online else error,
+            'last_checked': datetime.now(timezone.utc),
+            'error': error,
+        }
 
     async def _engine_ready(self, engine_url: str) -> bool:
         try:
@@ -243,7 +326,7 @@ class ChannelStatusService:
                 return self._skipped_result(channel)
             if not await self._wait_for_engine(engine_url):
                 return self._engine_unavailable_result(channel)
-            if self._in_use(channel.id):
+            if self._in_use(channel.id) or self._recording_reserved():
                 return self._skipped_result(channel)
             status_url = f"{engine_url}/ace/getstream"
             params = {identifier: channel.id, 'format': 'json', 'pid': uuid4().hex}
@@ -284,12 +367,18 @@ class ChannelStatusService:
             return self._engine_unavailable_result(channel)
         check_time = datetime.now(timezone.utc)
         error = None if online else message
+        # The engine recognising the key is what tells the two kinds apart: a
+        # content id asked for as an infohash (or the other way round) comes
+        # back as "not found", not as a wrong-key error. Recorded only on a
+        # positive lookup, so a network hiccup never rewrites it.
+        id_kind = identifier if network_status == 'found' else None
         if persist:
             await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
                 audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status,
-                stream_stats=observation or None)
+                stream_stats=observation or None, id_kind=id_kind)
         return {
             'channel_id': channel.id,
+            'id_kind': id_kind or channel.id_kind,
             'stream_stats': observation or channel.stream_stats,
             'network_status': network_status,
             'is_online': online,

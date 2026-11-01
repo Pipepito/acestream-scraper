@@ -275,7 +275,7 @@ def test_entrypoint_exports_media_integration_defaults():
     ) in entrypoint
     assert 'export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"' in entrypoint
     assert 'export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"' in entrypoint
-    assert 'export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-127.0.0.1}"' in entrypoint
+    assert 'export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-auto}"' in entrypoint
 
 
 def test_uvicorn_is_launched_with_app_owned_proxy_trust_and_graceful_timeout():

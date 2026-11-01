@@ -260,6 +260,38 @@ def test_unicast_inventory_expires_but_mdns_inventory_does_not(monkeypatch):
     assert len(discovery.list()) == 1
 
 
+@pytest.mark.asyncio
+async def test_known_tv_is_revalidated_after_expiry_without_subnet_scan(monkeypatch):
+    from app.services.cast_scan import CastScanner
+    from pychromecast.models import CastInfo, HostServiceInfo
+    from unittest.mock import AsyncMock
+    clock = [1000.0]
+    monkeypatch.setattr(time, 'monotonic', lambda: clock[0])
+    discovery = CastDiscovery()
+    identity = uuid4()
+    info = CastInfo({HostServiceInfo('192.168.1.20', 8009)}, identity, 'TV', 'Living room', '192.168.1.20', 8009, 'cast', 'Google')
+    discovery.remember_unicast(info)
+    clock[0] += 301
+    assert discovery.list() == []
+    probe = AsyncMock(return_value=info)
+    monkeypatch.setattr('app.services.cast_scan.device_info', probe)
+    scanner = CastScanner()
+    await scanner.refresh_known(discovery)
+    assert discovery.list()[0].id == str(identity)
+    assert probe.call_args.args[1] == '192.168.1.20'
+    await scanner.refresh_known(discovery)
+    assert probe.await_count == 1
+    # A different device at the same address cannot inherit the identity.
+    clock[0] += 301
+    from dataclasses import replace
+    probe.return_value = replace(info, uuid=uuid4())
+    await scanner.refresh_known(discovery)
+    assert discovery.list() == []
+    # Failed checks do not prolong retention indefinitely.
+    clock[0] += 86401
+    assert discovery.known_unicast() == []
+
+
 def test_scan_infers_client_lan_without_scanning_container_network(monkeypatch):
     from starlette.requests import Request
     from app.services.cast_scan import scan_networks

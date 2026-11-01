@@ -9,7 +9,7 @@ import httpx
 from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
 
-from app.services.access_service import trusted_client
+from app.services.access_service import trusted_client, private_lan_address
 from app.services.cast_service import receiver_address
 from app.services.remote_players.scan import default_scan_cidr
 
@@ -18,6 +18,9 @@ def scan_networks(request):
     """Infer small LANs from the verified client and local interfaces, never DNS."""
     import ifaddr
     networks = []
+    destination = private_lan_address(request)
+    if destination is not None and destination.version == 4:
+        networks.append(str(ipaddress.ip_network(f'{destination}/24', strict=False)))
     client = request.client.host if request.client else None
     try:
         address = ipaddress.ip_address(client or '')
@@ -41,6 +44,35 @@ class CastScanner:
     def __init__(self):
         self.lock = asyncio.Lock()
         self.last_scan = 0.0
+        self.refresh_lock = asyncio.Lock()
+        self.last_refresh = float('-inf')
+
+    async def refresh_known(self, discovery):
+        """Recheck known receivers without rescanning a subnet on each poll."""
+        if not self.refresh_lock.locked() and time.monotonic() - self.last_refresh < 60:
+            return
+        async with self.refresh_lock:
+            if time.monotonic() - self.last_refresh < 60:
+                return
+            known = discovery.known_unicast()
+            if not known:
+                return
+            self.last_refresh = time.monotonic()
+            slots = asyncio.Semaphore(16)
+            async with httpx.AsyncClient(timeout=httpx.Timeout(1.5), trust_env=False, follow_redirects=False) as client:
+                async def probe(previous):
+                    async with slots:
+                        info = await device_info(client, previous.host)
+                        # A reassigned IP must not silently replace a known TV.
+                        if info and info.uuid == previous.uuid:
+                            discovery.remember_unicast(info)
+                try:
+                    async with asyncio.timeout(12):
+                        async with asyncio.TaskGroup() as tasks:
+                            for info in known:
+                                tasks.create_task(probe(info))
+                except TimeoutError:
+                    pass
 
     async def discover(self, request, discovery):
         if self.lock.locked() or time.monotonic() - self.last_scan < 30:

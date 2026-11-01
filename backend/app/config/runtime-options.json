@@ -62,10 +62,10 @@
   {
     "name": "FORWARDED_ALLOW_IPS",
     "group": "network",
-    "default": "127.0.0.1",
+    "default": "auto",
     "label": "Trusted reverse proxies",
     "kind": "networks",
-    "help": "Use only actual proxy addresses. With no proxy, leave 127.0.0.1. Trusting the whole home network prevents local casting from identifying direct clients."
+    "help": "auto trusts loopback and detected Docker bridge peers, excluding gateways. Existing settings are preserved. For other proxies, enter their IP addresses separated by commas. Do not trust your whole home network. Restart after changes."
   },
   {
     "name": "CORS_ORIGINS",

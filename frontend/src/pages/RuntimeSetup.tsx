@@ -4,6 +4,7 @@ import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import ContentSection from '../components/layout/ContentSection';
+import NetworkSettingsFields from '../components/settings/NetworkSettingsFields';
 import { setupQueryKey, setupService, type SetupState, type RuntimeOption } from '../services/setupService';
 import { ApiError } from '../services/apiErrors';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -90,15 +91,14 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
             {Object.prototype.hasOwnProperty.call(overrides, 'ACE_ENGINE_URL') ? <Alert severity="info">Playback currently uses the address saved in Settings: {overrides.ACE_ENGINE_URL || 'Disabled'}. It takes precedence over this runtime default. <Link component={RouterLink} to="/settings?tab=playback">Edit playback settings</Link></Alert> : null}
             {!bundledChecker && Object.prototype.hasOwnProperty.call(overrides, 'ACE_CHECK_ENGINE_URL') ? <Alert severity="info">Saved checking preference: {overrides.ACE_CHECK_ENGINE_URL || 'Use playback engine'}. <Link component={RouterLink} to="/settings?tab=automation">Edit checking settings</Link></Alert> : null}
           </> : null}
-          {step === 1 ? <Alert severity={saved.api_protected ? 'success' : 'warning'}>{saved.api_protected ? 'API token protection is enabled.' : 'No API token is configured. Keep this installation on a trusted network, or set API_TOKEN in your deployment before exposing it.'} Credentials stay outside the setup file.</Alert> : null}
-          {step === 1 && overrides.PUBLIC_BASE_URL ? <Alert severity="info">Public address saved in Integrations: {overrides.PUBLIC_BASE_URL}. This takes precedence over the runtime default. <Link component={RouterLink} to="/integrations/public-address">Edit public address</Link></Alert> : null}
+          {step === 1 ? <NetworkSettingsFields initial={saved} values={draft} disabled={mutation.isPending} onChange={setValues} /> : null}
           {step === 2 ? <>
             <Typography>Enabled services are loaded from your configuration. Expand their controls to change connections, ports and buffering. Restart the container after saving.</Typography>
             {draft.ENABLE_ACEXY === true ? <Alert severity="info">Acexy is enabled at {draft.ACEXY_LISTEN_ADDR || ':8080'}. To use it for app playback, select Acexy in <Link component={RouterLink} to="/settings?tab=playback">Playback settings</Link> with the container&apos;s internal listener port. {overrides.ACEXY_URL ? `Saved proxy address: ${overrides.ACEXY_URL}.` : 'Enabling the service does not change the saved playback route.'}</Alert> : null}
             {draft.ENABLE_WARP === true ? <Typography variant="body2">{draft.WARP_ENABLE_NAT === true ? 'WARP is set to connect before engines start.' : 'WARP is available but will not connect automatically.'} Keep /dev/net/tun, NET_ADMIN and SYS_ADMIN in Docker.</Typography> : null}
             <Typography variant="body2">{saved.recordings_configured ? 'Recordings storage is configured in the deployment.' : 'To record, add a persistent recordings volume and RECORDINGS_DIR to the deployment.'} Volumes, published ports, devices and permissions still need Docker configuration.</Typography>
           </> : null}
-          {step < 3 ? saved.options.filter(option => option.group === groups[step]).map(field) : <>
+          {step === 1 ? null : step < 3 ? saved.options.filter(option => option.group === groups[step]).map(field) : <>
             <Typography>Save these choices to runtime-config.json beside your database. Each saved option overrides its environment variable, so you can remove those variables from Docker after saving. Restart the container to apply them; this interrupts playback. Keep port mappings, volumes, devices, capabilities and credentials in Docker.</Typography>
             <Typography component="h3" variant="subtitle1">{changes.length ? `${changes.length} changes` : 'No runtime changes'}</Typography>
             {changes.map(option => <Typography key={option.name} sx={{ overflowWrap: 'anywhere' }}>{option.label}: {String(draft[option.name]) || 'Not configured'}</Typography>)}

@@ -6,12 +6,18 @@ First-run account setup and later activation live in Settings → Access; no new
 Docker bootstrap credentials are required. Keep the independent migrated access
 store and fail-closed marker outside catalogue exports/recovery. Default-deny
 management applies to all API aliases and ASGI prefixes. Viewer/media capabilities,
-IPTV credentials and administrative headers are separate. Accounts support HTTPS and verified private-IP HTTP on a home network; never infer local access from a proxy/gateway or a public Cast trust entry. TV casting has its own Integrations page and works without accounts for verified
+IPTV credentials and administrative headers are separate. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page and works without accounts for verified
 home clients. With accounts enabled, require casting permission. Remote control
 always requires an account and explicit opt-in. Keep automatic discovery bounded,
-proxy trust explicit, and local-browser ownership separate from accounts. Receiver cleanup must verify exact media ownership; original
+proxy trust scoped (`auto` detects Docker bridge peers but excludes gateways), and local-browser ownership separate from accounts. Preserve explicit saved proxy overrides. Receiver cleanup must verify exact media ownership; original
 video is the default and optional bounded H.264 conversion yields to recording.
 See `docs/ops/access-and-casting.md` and `wiki/Accounts-and-Casting.md`.
+
+Private server IP URLs reached over private connections support local HTTP and
+casting directly, including Docker NAT gateways. Do not require browser pairing,
+console codes or approval cookies. Preserve account permissions, public-address
+restrictions and separate IPTV/proxy trust. Use the private server IPv4 /24 for
+bounded automatic TV discovery when the inventory is empty, including after restart.
 
 ## Private infrastructure authority
 
@@ -308,7 +314,7 @@ Live TV embeds the existing HLS player alongside a scrollable catalogue. Filteri
 does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation groups Watch,
 Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
-`?tab=playback|automation|links|access` sections; public address belongs to
+`?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
 

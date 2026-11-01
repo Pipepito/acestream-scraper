@@ -29,6 +29,7 @@ class CastDiscovery:
         self.zc = None
         self.browser = None
         self.devices = {}
+        self.unicast_receivers = {}
         self.lock = threading.RLock()
 
     def start(self):
@@ -82,9 +83,23 @@ class CastDiscovery:
     def remember_unicast(self, info):
         with self.lock:
             key = str(info.uuid)
+            if key in self.unicast_receivers or len(self.unicast_receivers) < 128:
+                self.unicast_receivers[key] = (info, time.monotonic())
             if ((key not in self.devices and len(self.devices) < 128)
                     or (key in self.devices and self.devices[key][2] is None)):
                 self.devices[key] = (info, time.monotonic(), None)
+
+    def known_unicast(self):
+        """Retain bounded recheck targets after the visible five-minute TTL.
+
+        These are previously verified numeric receiver addresses, not new scan
+        ranges or evidence that a browser is on the home network.
+        """
+        with self.lock:
+            now = time.monotonic()
+            self.unicast_receivers = {key: value for key, value in self.unicast_receivers.items()
+                                      if now - value[1] < 86400}
+            return [value[0] for value in self.unicast_receivers.values()]
 
     def get(self, identity):
         self.list()
@@ -102,6 +117,7 @@ class CastDiscovery:
             self.zc.close()
         self.browser = self.zc = None
         self.devices.clear()
+        self.unicast_receivers.clear()
 
 
 @dataclass

@@ -123,6 +123,38 @@ test('audio track selection requests the chosen language', async ({ page }) => {
 });
 
 for (const mode of ['light', 'dark']) {
+  test(`${mode}: cast directly from the channel list without browser playback`, async ({ page }) => {
+    const { starts } = await fixtures(page);
+    const sends: unknown[] = [];
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    page.on('response', response => { if (response.url().includes('/api/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
+    await page.route('**/api/v1/auth/status', route => route.fulfill({ json: { mode: 'open', user: null, permissions: ['live', 'cast'], csrf: 'test', account_transport: 'local_http' } }));
+    await page.route('**/api/v1/cast/capabilities', route => route.fulfill({ json: { server_devices: true, home_connection: true, media_url_configured: true } }));
+    await page.route('**/api/v1/cast/devices', route => route.fulfill({ json: [{ id: 'tv', name: 'Living room Panasonic television', model: 'Google Cast' }] }));
+    await page.route('**/api/v1/cast/sessions', route => {
+      if (route.request().method() === 'POST') sends.push(route.request().postDataJSON());
+      return route.fulfill({ json: { id: 'cast-session', state: 'playing' } });
+    });
+    await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
+    await page.goto('/live-tv');
+    for (const title of ['Arena TV', 'Independent live stream']) {
+      await page.getByRole('button', { name: `Send to player ${title}`, exact: true }).press('Enter');
+      const tv = page.getByRole('menuitem', { name: /Living room Panasonic television/ });
+      await expect(tv).toBeVisible();
+      await expect(tv).toBeInViewport();
+      await page.screenshot({ path: test.info().outputPath(`cast-menu-${mode}-${sends.length}.png`), animations: 'disabled' });
+      await tv.click();
+      await expect(page.getByText(`Casting ${title} to Living room Panasonic television.`)).toBeVisible();
+    }
+    expect(sends).toEqual([streams[0].id, orphan.id].map(content_id => ({ content_id, device_id: 'tv', audio_index: null, subtitle_index: null, compatibility: false, replace: false })));
+    expect(starts).toEqual([]);
+    await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test(`${mode}: send to an external player without starting browser playback`, async ({ page }) => {
     const { starts } = await fixtures(page);
     const sends: unknown[] = [];

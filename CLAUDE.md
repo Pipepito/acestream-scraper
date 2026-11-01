@@ -346,7 +346,7 @@ Live TV embeds the existing HLS player alongside a scrollable catalogue. Filteri
 does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation groups Watch,
 Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
-`?tab=playback|automation|links|access` sections; public address belongs to
+`?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
 
@@ -853,13 +853,22 @@ First-run account setup and Settings → Access manage optional accounts without
 new Docker bootstrap credentials. Preserve the independently migrated access store
 and fail-closed marker across catalogue restore/recovery. Management is default-deny
 across aliases and ASGI prefixes; viewer-control, media, IPTV and administrative
-credentials have separate scopes. Accounts support HTTPS and verified private-IP HTTP on a home network; never infer local access from a proxy/gateway or a public Cast trust entry. TV casting has its own Integrations page and works without accounts for verified
+credentials have separate scopes. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page and works without accounts for verified
 home clients. When accounts are enabled, require casting permission. Remote control
 always requires an account and explicit opt-in; preserve local-browser ownership,
-bounded discovery and explicit proxy trust. Stop only owned
+bounded discovery and scoped proxy trust. The `auto` proxy default recognizes
+Docker bridge peers while excluding gateways; preserve explicit saved overrides.
+Known unicast receivers are rechecked during device-list reads so reachable TVs
+survive their inventory TTL. Stop only owned
 receiver media; bounded compatibility conversion yields to recording capture.
 See `docs/ops/access-and-casting.md` and `wiki/Accounts-and-Casting.md`.
 
+
+Private server IP URLs reached over private connections support local HTTP and
+casting directly, including Docker NAT gateways. Do not require browser pairing,
+console codes or approval cookies. Preserve account permissions, public-address
+restrictions and separate IPTV/proxy trust. Use the private server IPv4 /24 for
+bounded automatic TV discovery when the inventory is empty, including after restart.
 
 ## WARP management
 

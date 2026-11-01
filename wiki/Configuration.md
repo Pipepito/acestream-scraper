@@ -43,12 +43,13 @@ Docker still owns image choice, published port mappings, mounts, capabilities, e
 | **Settings → Playback** | Optional **Acestream Engine URL**, direct/Acexy routing and backend-facing Acexy URL. Save the engine URL and playback routing separately. |
 | **Settings → Automation** | Dedicated checker selection, scraping interval (1–168 hours), EPG interval (1–168 hours), stream-check interval (1–10080 minutes). Saved intervals apply immediately. |
 | **Settings → Stream links** | Named playlist formats and default, optional PID/AppID compatibility. Shared with **Playlist → Manage link formats**. |
-| **Settings → API access** | The token this browser sends when the server has `API_TOKEN` configured. Stored locally in the browser. |
+| **Settings → Network** | Trusted reverse proxies, private source access, tuner networks, browser origins and public-address runtime default. Shares the setup controls; save and restart to apply. |
+| **Settings → Access** | The token this browser sends when the server has `API_TOKEN` configured. Stored locally in the browser. |
 | **Integrations → Public address** | The HTTP(S) origin other devices use to reach the scraper, including its published port. |
 | **Integrations** | Remote players, media servers and tuner limits/recovery. |
 | **Overview → Services** | Runtime health, separate playback/checker controls and diagnostic downloads. |
 
-The Settings tabs use `/settings?tab=playback|automation|links|access`.
+The Settings tabs use `/settings?tab=playback|automation|links|access|network`.
 
 ### Key settings
 
@@ -125,7 +126,7 @@ External players and media servers (VLC, Kodi, Jellyfin, Plex) fetch streams ove
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
 | `PUBLIC_BASE_URL` | Origin (`http://host:port`) that Jellyfin/Plex/VLC use to reach this server | *(empty)* | Empty derives it from each request. The same value is editable at runtime as the `public_base_url` setting, which wins over the variable |
-| `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `127.0.0.1` | Comma-separated addresses/CIDRs, or `*` to trust every peer. uvicorn's own handling is disabled (`--no-proxy-headers`) — the app does it |
+| `FORWARDED_ALLOW_IPS` | Peers whose `X-Forwarded-*` headers the app trusts | `auto` | Loopback and detected Docker bridge peers, excluding gateways. Saved values are preserved. Override with actual proxy IPs/CIDRs; avoid entire LAN ranges. uvicorn's own handling is disabled (`--no-proxy-headers`) |
 | `TUNER_ALLOWED_NETWORKS` | Networks allowed to use the token-free `/tuner/*` routes | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` | `*` disables the check. Media servers cannot send an `API_TOKEN`, so these routes are gated by address instead. Publish the web port as `-p 0.0.0.0:8000:8000` (never the bare `8000:8000`): an unaddressed mapping also listens on `[::]`, and Docker then presents every IPv6 client to the app as the bridge gateway (`172.17.0.1`), which is inside this default list |
 | `PLAYER_HLS_DIR` | Where the web player writes HLS segments | `/tmp/acestream-player` | `/dev/shm/acestream-player` with a larger `shm_size` keeps them in RAM |
 | `PLAYER_MAX_SESSIONS` | Maximum channels the web player prepares at once | `3` | Each session costs one engine stream and one ffmpeg process |

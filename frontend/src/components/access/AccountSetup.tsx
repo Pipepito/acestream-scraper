@@ -38,7 +38,7 @@ export default function AccountSetup() {
       {access?.status.legacy_token ? <TextField label="Existing API token" type="password" required value={legacy} onChange={e => setLegacy(e.target.value)} autoComplete="off" /> : null}
       {enabled ? <>
         <AccountTransportNotice />
-        <Typography variant="body2">Accounts work over HTTPS or through the server’s private IP address on a verified home network. HTTP on your home network is not encrypted.</Typography>
+        <Typography variant="body2">Accounts work over HTTPS or through the server’s private IP address on your home network. HTTP on your home network is not encrypted.</Typography>
         <TextField label="Administrator username" required value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" inputProps={{ maxLength: 64, pattern: '[a-zA-Z0-9_.\\-]+' }} />
         <NewPasswordField label="Password" value={password} onChange={setPassword} />
         <TextField label="Confirm password" required type="password" value={confirmation} onChange={e => setConfirmation(e.target.value)} autoComplete="new-password" />
@@ -46,7 +46,7 @@ export default function AccountSetup() {
       </> : <Alert severity="warning">Anyone who can reach this installation can manage it when user management is off. Existing API-token protection is retained.</Alert>}
       {error ? <Alert severity="error">{error}</Alert> : null}
       <Button type="submit" variant="contained" disabled={busy || (enabled && (access?.status.account_transport === 'blocked' || (Boolean(access?.status.legacy_token) && !migrate)))}>{busy ? 'Saving…' : enabled ? 'Create administrator and continue' : 'Continue without accounts'}</Button>
-      <Typography variant="body2" color="text.secondary">No Docker settings or setup secrets are needed. If you lose your password, the container owner can reset it with a command.</Typography>
+      <Typography variant="body2" color="text.secondary">If you lose your password, the container owner can reset it with a command.</Typography>
     </Stack>
   </ContentSection>;
 }

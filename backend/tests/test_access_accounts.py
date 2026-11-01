@@ -320,20 +320,24 @@ def test_cast_settings_cannot_be_changed_by_viewer_accounts(access_client):
 @pytest.mark.parametrize('peer,host,headers,proxy,allowed', [
     ('192.168.1.22', '192.168.1.10:8000', {}, '', True),
     ('10.1.2.3', '10.1.2.4', {}, '', True),
+    ('192.168.65.1', '192.168.1.245:18021', {}, 'auto', True),
+    ('192.168.65.1', '169.254.169.254', {}, '', False),
+    ('192.168.65.1', '100.64.1.2', {}, '', False),
+    ('192.168.65.1', '8.8.8.8', {}, '', False),
     ('fd12::2', '[fd12::1]', {}, '', True),
     ('::ffff:192.168.1.22', '192.168.1.10', {}, '', True),
     ('127.0.0.1', 'localhost', {}, '127.0.0.1', True),
     ('127.0.0.1', 'localhost', {'x-forwarded-for': '8.8.8.8'}, '127.0.0.1', False),
     ('8.8.8.8', '192.168.1.10', {}, '', False),
     ('192.168.1.22', 'app.example', {}, '', False),
-    ('172.17.0.1', '192.168.1.10', {}, '', False),
+    ('172.17.0.1', '192.168.1.10', {}, '', True),
     ('127.0.0.1', '192.168.1.10', {}, '', False),
     ('192.168.1.22', '192.168.1.10', {'x-forwarded-for': '192.168.1.25'}, '', False),
-    ('192.168.1.22', '192.168.1.10', {}, '192.168.0.0/16', False),
+    ('192.168.1.22', '192.168.1.10', {}, '192.168.0.0/16', True),
     ('172.17.0.1', '192.168.1.10', {'x-forwarded-for': '192.168.1.22'}, '172.17.0.1', True),
     ('172.17.0.1', '192.168.1.10', {'x-forwarded-for': '8.8.8.8'}, '172.17.0.1', False),
 ])
-def test_plaintext_accounts_require_verified_private_endpoints(peer, host, headers, proxy, allowed, monkeypatch):
+def test_plaintext_accounts_accept_private_endpoints_including_docker_nat(peer, host, headers, proxy, allowed, monkeypatch):
     from types import SimpleNamespace
     from starlette.requests import Request
     from app.services.access_service import account_transport
@@ -395,5 +399,45 @@ def test_public_http_cannot_activate_accounts_even_with_casting_trust(access_cli
         assert response.status_code == 403
         assert repo.state()[0] == 'pending'
         assert repo.users() == []
+    finally:
+        client.close()
+
+
+def test_docker_lan_needs_no_browser_approval_and_discovers_server_lan(access_client, monkeypatch):
+    from unittest.mock import AsyncMock
+    from starlette.requests import Request
+    from app.services.cast_service import cast_service
+    from app.services.cast_scan import cast_scanner, scan_networks
+    import main
+    _, repo = access_client
+    client = TestClient(main.app, base_url='http://192.168.1.245:18021', client=('192.168.65.1', 1234))
+    try:
+        status = client.get('/api/v1/auth/status').json()
+        assert status['account_transport'] == 'local_http'
+        client.headers['X-CSRF-Token'] = status['csrf']
+        assert client.post('/api/v1/auth/bootstrap', json={'enabled': False, 'username': 'unused', 'password': 'unused', 'password_confirmation': 'unused'}).status_code == 200
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
+        monkeypatch.setattr(cast_service, 'devices', AsyncMock(return_value=[]))
+        monkeypatch.setattr(cast_scanner, 'refresh_known', AsyncMock())
+        scan = AsyncMock(return_value=[])
+        monkeypatch.setattr(cast_scanner, 'discover', scan)
+        assert client.get('/api/v1/cast/devices').status_code == 200
+        scan.assert_awaited_once()
+        client.cookies.clear()
+        assert client.get('/api/v1/auth/status').json()['account_transport'] == 'local_http'
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
+        request = Request({'type': 'http', 'scheme': 'http', 'path': '/', 'headers': [(b'host', b'192.168.1.245:18021')], 'client': ('192.168.65.1', 1234), 'state': {'peer': ('192.168.65.1', 1234)}})
+        assert scan_networks(request)[0] == '192.168.1.0/24'
+        assert repo.state()[1].home_networks == []
+        # Browser convenience never widens credential-free IPTV access.
+        from app.services.access_service import trusted_client
+        assert not trusted_client(request, ['192.168.0.0/16'])
+        client.headers['X-CSRF-Token'] = client.get('/api/v1/auth/status').json()['csrf']
+        enable(client)
+        assert client.post('/api/v1/auth/logout').status_code == 204
+        assert client.get('/api/v1/config').status_code == 401
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is False
+        assert client.post('/api/v1/auth/login', json={'username': 'owner', 'password': 'a sufficiently long password'}).status_code == 200
+        assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
     finally:
         client.close()

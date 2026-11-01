@@ -7,9 +7,10 @@ import { loadBrowserCast, startBrowserCast, stopBrowserCast } from '../../servic
 import { useAccess } from '../access/AccessContext';
 import { getAccessErrorMessage } from '../../services/accessErrors';
 
-export default function CastControls({ contentId, audioIndex, subtitleIndex }: { contentId: string; audioIndex: number | null; subtitleIndex: number | null }) {
+interface CastContentProps { contentId: string; audioIndex: number | null; subtitleIndex: number | null; }
+
+export function CastDialog({ contentId, audioIndex, subtitleIndex, open, onClose }: CastContentProps & { open: boolean; onClose: () => void }) {
   const access = useAccess();
-  const [open, setOpen] = useState(false);
   const [device, setDevice] = useState('');
   const [compatible, setCompatible] = useState(false);
   const [replace, setReplace] = useState(false);
@@ -33,9 +34,7 @@ export default function CastControls({ contentId, audioIndex, subtitleIndex }: {
   };
   if (!allowed) return null;
   const payload = { content_id: contentId, audio_index: audioIndex, subtitle_index: subtitleIndex, compatibility: compatible, replace };
-  return <>
-    <Button onClick={() => setOpen(true)}>Cast…</Button>
-    <Dialog open={open} onClose={busy ? undefined : () => setOpen(false)} fullWidth maxWidth="sm" aria-labelledby="cast-title">
+  return <Dialog open={open} onClose={busy ? undefined : onClose} fullWidth maxWidth="sm" aria-labelledby="cast-title">
       <DialogTitle id="cast-title">Cast live video</DialogTitle><DialogContent dividers><Stack spacing={2}>
         {canBrowser ? <><Typography component="h3" variant="subtitle1">My devices</Typography>
           {browserSupported === false ? <Alert severity="info">This browser cannot discover Cast devices. Use server devices below when you have access. Browser casting requires HTTPS and a Cast-capable browser; Chrome on iOS is unsupported.</Alert> : <Button disabled={busy || !browserSupported} onClick={() => void run(() => startBrowserCast(payload), 'Casting to your selected TV. You can close this page.')}>{browserSupported === null ? 'Checking browser support…' : 'Choose a TV through this browser'}</Button>}
@@ -55,7 +54,15 @@ export default function CastControls({ contentId, audioIndex, subtitleIndex }: {
         {capabilities.data?.compatibility_conversion ? <FormControlLabel label="Convert to H.264 for compatibility (720p maximum)" control={<Checkbox checked={compatible} onChange={(_, value) => setCompatible(value)} />} /> : null}
         {error || devices.isError || capabilities.isError ? <Alert severity="error">{error || 'Could not load casting information.'}</Alert> : null}
         {message ? <Alert severity="success">{message}</Alert> : null}
-      </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setOpen(false)}>Close</Button></DialogActions>
-    </Dialog>
-  </>;
+      </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={onClose}>Close</Button></DialogActions>
+    </Dialog>;
+}
+
+export default function CastControls(props: CastContentProps) {
+  const access = useAccess();
+  const [open, setOpen] = useState(false);
+  const permissions = access?.status.permissions ?? [];
+  const allowed = access?.status.mode === 'open' || access?.status.user?.administrator || permissions.includes('cast') || permissions.includes('cast_server');
+  if (!allowed) return null;
+  return <><Button onClick={() => setOpen(true)}>Cast…</Button><CastDialog {...props} open={open} onClose={() => setOpen(false)} /></>;
 }

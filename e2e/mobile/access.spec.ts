@@ -11,7 +11,8 @@ for (const theme of ['light', 'dark']) {
     });
     await page.goto('/');
     await expect(page.getByRole('checkbox', { name: 'Enable user management' })).toBeChecked();
-    await expect(page.getByText(/Accounts are available on this verified local connection/)).toBeVisible();
+    await expect(page.getByText(/Accounts are available on this local connection/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Get approval code' })).toHaveCount(0);
     await page.getByLabel('Administrator username').fill('owner');
     await page.getByLabel(/^Password/).fill('short');
     await page.getByLabel(/^Confirm password/).fill('short');

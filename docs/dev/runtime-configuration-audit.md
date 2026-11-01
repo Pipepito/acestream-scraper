@@ -85,7 +85,7 @@ restart. Values passed with Docker `-e` or Compose seed only missing keys.
 | `PUBLIC_BASE_URL` | network | Empty |
 | `ALLOW_PRIVATE_SCRAPE_TARGETS` | network | `true` |
 | `TUNER_ALLOWED_NETWORKS` | network | `127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10` |
-| `FORWARDED_ALLOW_IPS` | network | `127.0.0.1` |
+| `FORWARDED_ALLOW_IPS` | network | `auto` |
 | `CORS_ORIGINS` | network | `http://localhost:3000` |
 | `ENABLE_ACESTREAM_ENGINE` | services | `false` |
 | `ENABLE_ACESTREAM_CHECK_ENGINE` | services | `false` |

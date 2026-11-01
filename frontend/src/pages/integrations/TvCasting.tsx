@@ -93,14 +93,16 @@ export default function TvCasting() {
             cache.setQueryData(['cast-devices'], await castService.discover()); setSearched(true);
           })}>{busy ? 'Searching…' : 'Find TVs'}</Button></Box>
           {devices.isError ? <Alert severity="error">Could not load TVs. Try Find TVs again.</Alert> : null}
+          {devices.isFetching && !devices.data?.length ? <Typography role="status">Looking for TVs on your home network… This can take up to 20 seconds.</Typography> : null}
           {devices.data?.length ? <List disablePadding>{devices.data.map(tv => <ListItem key={tv.id} disableGutters><ListItemText primary={tv.name} secondary={tv.model} /></ListItem>)}</List> : <Typography variant="body2">{searched ? 'No Google Cast TVs found. Turn on the TV and enable Google Cast. Docker may need host networking for multicast discovery.' : 'Listening for TVs on your home network. Find TVs also checks the local network when multicast is unavailable.'}</Typography>}
-          <Typography variant="body2">Choose a channel in Live TV, open Cast, then select your TV under Server devices.</Typography>
+          <Typography variant="body2">Use Send to player beside a channel in Live TV to cast directly to a TV. Casting options includes playback controls and compatibility settings.</Typography>
           <Box><Button component={RouterLink} to="/live-tv">Open Live TV</Button></Box>
           {capabilities.data?.media_url_configured ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Video address: {capabilities.data.media_url}</Typography> : <Alert severity="info">Open the app using its home-network or HTTPS address so the TV can fetch video.</Alert>}
         </> : null}
         {error ? <Alert severity="error">{error}</Alert> : null}
       </Stack>
     </ContentSection>
+    {access?.status.mode === 'open' || access?.status.user?.administrator ? <Box><Button component={RouterLink} to="/settings?tab=network">Network settings</Button></Box> : null}
     {settings.data ? <CastingSettings key={settingsVersion} initial={settings.data} accounts={access?.status.mode === 'accounts'} /> : settings.isError || (capabilities.data && !canConfigure) ? <Alert severity="info">Casting settings are available to administrators or, without accounts, from a recognized home connection.</Alert> : <Typography role="status">Loading casting settings…</Typography>}
   </>}</IntegrationPage>;
 }

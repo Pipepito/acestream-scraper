@@ -7,14 +7,19 @@ explains user management and lets you create an administrator or continue withou
 accounts. Complete this choice before exposing a new installation to the internet:
 the first person opening an unconfigured installation can configure it.
 
-No new Docker variables, Docker secrets or setup tokens are required. Account
-setup and sign-in work over HTTPS or HTTP through a private server IP on a
-verified home network (for example `http://192.168.1.10:8000`). Localhost also works.
-HTTP is not encrypted; use it only on a home network you trust. Internet access
-still requires HTTPS, including a public address explicitly trusted for casting.
-A trusted reverse proxy must preserve the real client address; a Docker gateway
-alone cannot prove that a visitor is local. The setup/sign-in screen explains
-when the connection cannot be verified before submitting credentials.
+No new Docker variables, secrets or approval codes are required. Open the app at
+its private server IP (for example `http://192.168.1.10:8000`) and sign in normally.
+Private connections work even when Docker replaces the browser address with its
+private gateway. Localhost also works. HTTP is not encrypted; internet access
+still requires HTTPS. Accounts and casting permissions still apply when enabled.
+
+### Finding TVs with Docker
+
+Open **TV casting** using the server's private IP address. The app automatically
+checks that LAN when the device list is empty, including after a container restart.
+Turn on the TV and allow up to 20 seconds. **Find TVs** retries discovery.
+No browser approval, log-reading or Docker network changes are required for this
+private-address flow. Public URLs continue to use the separate access rules below.
 
 New passwords require 12–128 characters. Setup, account creation and password
 changes show this requirement and flag invalid lengths before submission.
@@ -63,8 +68,8 @@ Accounts and IPTV access are separate. Choose any of these:
   for example `192.168.1.0/24`.
 
 Local access is evaluated from the verified client address. A private reverse
-proxy, loopback address or Docker gateway alone does not establish home membership.
-Forwarded client addresses are accepted only from explicitly trusted proxies.
+proxy, loopback address or Docker gateway alone does not establish local IPTV membership, even when the server URL is private. The account/casting convenience for private LAN URLs does not widen IPTV access.
+Forwarded client addresses are accepted only from trusted proxies.
 Check the existing `FORWARDED_ALLOW_IPS` deployment option: it must identify your
 actual reverse proxies, not the entire home network. A client inside a trusted
 proxy range without a verified forwarded address is denied local access. For a
@@ -94,7 +99,8 @@ are never silently switched from token protection to open access.
 2. Turn on the TV. Devices appear automatically through mDNS; **Find TVs** also
    performs a bounded scan of the detected local IPv4 network when multicast is
    unavailable. A response from an ordinary web server is not a Cast receiver.
-3. Open a live channel, choose **Cast…**, select a server device and start playback.
+3. Choose **Send to player** beside a channel and select your TV. Opening the web
+   player first is not required.
 
 The TV uses the application address you opened in the browser, including its port
 and any proxy path prefix. It must be able to fetch that address directly. Use
@@ -102,21 +108,27 @@ and any proxy path prefix. It must be able to fetch that address directly. Use
 needs a different route. No device address is needed.
 
 Accounts are optional for a home-only installation. When enabled, sign in using
-HTTPS with Cast to server devices permission. If you use your public HTTPS address
+HTTPS or the private LAN address with Cast to server devices permission. If you use your public HTTPS address
 at home, an administrator can select **I am connected to my home network now** and
 **Trust this home connection**. This saves the current verified client address,
 without enabling remote casting. Repeat this if your provider changes your address.
 Other people sharing that public address share its network trust, but still need
 account permission. Never trust a connection while away from home.
 
-With no explicit home-network override, verified RFC1918/ULA clients are local.
-An explicit **Allowed home networks** list replaces that default. A trusted proxy
-must forward the real visitor address. Unresolved proxy and Docker-gateway
-connections fail closed. The default proxy trust is loopback only; existing saved
-proxy settings are preserved. If an older installation trusts all private ranges,
-open **Set up scraper → Connection settings → Network access**, set **Trusted
+Private server IPs reached over private connections are local, including Docker
+NAT. For other server addresses, verified RFC1918/ULA clients are local unless an
+explicit **Allowed home networks** list replaces that default; trusted proxies
+must forward the real visitor address. A gateway alone does not make a public URL
+local. New installations default to `auto`: loopback plus
+detected Docker bridge peers, excluding gateways. Native and host-network
+installations default to loopback only. Existing saved proxy settings are
+preserved. Choose `auto` in **Settings → Network → Trusted reverse proxies** to
+use detection, or enter actual proxy IPs. A proxy routed through the Docker
+gateway still needs explicit configuration; automatic trust cannot distinguish
+it from other traffic translated through that gateway. If an older installation trusts all private ranges,
+open **Settings → Network**, set **Trusted
 reverse proxies** to the actual proxy addresses (or `127.0.0.1` without a proxy),
-save, and restart. This can be changed in the app; Docker credentials are unrelated.
+replace the old broad ranges rather than appending to them, save, and restart. This can be changed in the app; Docker credentials are unrelated.
 
 Android TV must provide Google Cast. Docker needs multicast connectivity for mDNS;
 Linux host networking is one option. Ordinary port publishing does not forward
@@ -125,6 +137,15 @@ requests at once, for up to 20 seconds, with a 30-second cooldown. It accepts on
 Cast identities from the fixed local device-info endpoint, including older Android
 TV responses without capability information. Known audio-only devices are excluded; some TVs
 block that endpoint and still require multicast. No Docker socket is used.
+Known TVs are rechecked at most once a minute while device lists are open. A
+reachable TV no longer disappears just because its five-minute discovery entry
+expires. Offline TVs disappear after five minutes without a successful check;
+their addresses are retained for bounded retries for up to 24 hours.
+
+To cast without opening the web player, use **Send to player** beside the channel
+and select your TV. **Find TVs** searches from the server. **Casting options and
+controls** opens playback controls, compatibility conversion and the explicit
+option to replace playback already on a TV. The same menu retains VLC and Kodi.
 
 Cast prepares at least 20 seconds of complete HLS segments before loading the
 receiver. It measures media duration because original-video segments follow the

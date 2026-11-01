@@ -88,7 +88,7 @@ Live TV embeds the existing HLS player alongside a scrollable catalogue. Filteri
 does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation groups Watch,
 Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
-`?tab=playback|automation|links|access` sections; public address belongs to
+`?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
 

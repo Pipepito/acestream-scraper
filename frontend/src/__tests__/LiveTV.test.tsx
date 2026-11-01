@@ -1,5 +1,6 @@
 jest.mock('../components/recordings/RecordButton', () => ({ __esModule: true, default: () => <span>Recordings</span> }));
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TestMemoryRouter as MemoryRouter } from '../testUtils/router';
 import { ThemeProvider } from '@mui/material/styles';
@@ -18,7 +19,7 @@ jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => mockCata
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannels: (...args: unknown[]) => mockUnassigned(...args) }));
 jest.mock('../components/player/ChannelGuide', () => ({ __esModule: true, default: () => <div>Guide</div> }));
 jest.mock('../components/player/ChannelPlayerDialog', () => ({ __esModule: true, default: ({ open, title }: { open: boolean; title: string }) => open ? <div role="dialog" aria-label={title} /> : null }));
-const renderPage = () => render(<MemoryRouter><ThemeProvider theme={createAppTheme('light')}><LiveTV /></ThemeProvider></MemoryRouter>);
+const renderPage = () => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><ThemeProvider theme={createAppTheme('light')}><LiveTV /></ThemeProvider></MemoryRouter></QueryClientProvider>);
 
 beforeEach(() => {
   jest.clearAllMocks();

@@ -102,7 +102,7 @@ def require_csrf(request: Request):
 
 
 def account_transport(request):
-    """Allow plaintext accounts only between verified private-network endpoints."""
+    """Allow accounts at private LAN URLs, including Docker NAT connections."""
     if request.url.scheme == 'https':
         return 'https'
     peer = getattr(request.state, 'peer', ('', 0))[0]
@@ -113,6 +113,8 @@ def account_transport(request):
     except ValueError:
         local = False
     if request.url.scheme == 'http':
+        if private_lan_address(request) is not None:
+            return 'local_http'
         if local and request.url.hostname in ('localhost', '127.0.0.1', '::1') and not any(
                 name in request.headers for name in ('forwarded', 'x-forwarded-for', 'x-real-ip', 'x-forwarded-host')):
             return 'local_http'
@@ -129,7 +131,7 @@ def account_transport(request):
 
 def secure_transport(request):
     if account_transport(request) == 'blocked':
-        raise HTTPException(403, 'Use HTTPS, or open the server’s private IP address from a verified home network. A proxy or Docker gateway must preserve the real client address.')
+        raise HTTPException(403, 'Use HTTPS, or open the server’s private IP address on your home network.')
 
 
 def header_token(request):
@@ -203,8 +205,33 @@ def trusted_client(request, networks):
 DEFAULT_HOME_NETWORKS = ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7')
 
 
+
+def private_lan_address(request):
+    """A private URL reached over a private connection is a local deployment.
+
+    Docker may replace the source with its private gateway. No browser pairing
+    is required. Public destinations and public forwarded clients stay separate;
+    this exception does not change IPTV or reverse-proxy trust.
+    """
+    if request.url.scheme not in ('http', 'https') or not request.client:
+        return None
+    try:
+        destination = ipaddress.ip_address(request.url.hostname or '')
+        client = ipaddress.ip_address(request.client.host)
+        destination = getattr(destination, 'ipv4_mapped', None) or destination
+        client = getattr(client, 'ipv4_mapped', None) or client
+    except ValueError:
+        return None
+    networks = tuple(ipaddress.ip_network(value) for value in DEFAULT_HOME_NETWORKS)
+    if not all(any(address in network for network in networks) for address in (destination, client)):
+        return None
+    if any(name in request.headers for name in ('forwarded', 'x-forwarded-for', 'x-real-ip', 'x-forwarded-host')) and not trusted_client(request, DEFAULT_HOME_NETWORKS):
+        return None
+    return destination
+
+
 def home_client(request):
-    return trusted_client(request, request.state.access_policy.home_networks or DEFAULT_HOME_NETWORKS)
+    return private_lan_address(request) is not None or trusted_client(request, request.state.access_policy.home_networks or DEFAULT_HOME_NETWORKS)
 
 
 def require_server_cast(request):
@@ -220,7 +247,7 @@ def require_server_cast(request):
         from app.middleware.forwarded import parse_trusted
         peer = getattr(request.state, 'peer', (None, 0))[0]
         if parse_trusted(get_settings().FORWARDED_ALLOW_IPS).contains(peer) and request.client and request.client.host == peer:
-            raise HTTPException(403, 'The client address is hidden or listed as a trusted proxy. In setup → Connection settings → Network access, trust only your actual reverse proxy; without a proxy use 127.0.0.1. Save and restart the container.')
+            raise HTTPException(403, 'The client address is hidden or listed as a trusted proxy. In Settings → Network, trust only your actual reverse proxy; without a proxy use 127.0.0.1. Save and restart the container.')
         raise HTTPException(403, 'This connection is not recognized as home. Open TV casting to check the connection or trust your home connection as an administrator.')
     if not same_origin(request):
         raise HTTPException(403, 'Open casting from the application itself')

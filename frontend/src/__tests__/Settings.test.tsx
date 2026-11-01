@@ -9,6 +9,8 @@ import * as configHooks from '../hooks/useConfig';
 import * as baseUrlHooks from '../hooks/useBaseUrls';
 import { ApiError } from '../services/apiErrors';
 import { configService } from '../services/configService';
+import { setupService } from '../services/setupService';
+jest.mock('../services/setupService', () => ({ setupQueryKey: ['installation-setup'], setupService: { get: jest.fn(), save: jest.fn() } }));
 
 jest.mock('../hooks/useSystemServices', () => ({
   usePublicUrl: () => ({ data: { url: 'http://192.168.1.10:8000', source: 'setting', warnings: [] } }),
@@ -77,6 +79,15 @@ describe('Settings page', () => {
     (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
+  });
+
+  it('opens network controls directly from their Settings tab without the wizard', async () => {
+    jest.mocked(setupService.get).mockResolvedValue({ version: 1, setup_complete: true, revision: 'a'.repeat(64), restart_required: false, api_protected: false, unavailable: {},
+      runtime: { FORWARDED_ALLOW_IPS: '127.0.0.1' }, options: [{ name: 'FORWARDED_ALLOW_IPS', label: 'Trusted reverse proxies', default: '127.0.0.1', kind: 'networks', group: 'network', help: '' }] });
+    renderPage('network');
+    expect(await screen.findByRole('textbox', { name: 'Trusted reverse proxies' })).toHaveValue('127.0.0.1');
+    expect(screen.getByRole('tab', { name: 'Network' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('prefills an editable Acexy format using the external host', async () => {

@@ -45,7 +45,17 @@ def home_connection(request: Request):
 @router.get('/devices', response_model=list[CastDevice])
 async def devices(request: Request):
     require_server_cast(request)
-    return await cast_service.devices()
+    await cast_scanner.refresh_known(cast_service.discovery)
+    found = await cast_service.devices()
+    # The private application URL supplies the LAN when Docker hides multicast
+    # and the source address. Keep scans bounded and only scan an empty list.
+    from app.services.access_service import private_lan_address
+    if not found and private_lan_address(request) is not None:
+        try:
+            return await cast_scanner.discover(request, cast_service.discovery)
+        except TimeoutError:
+            return cast_service.discovery.list()
+    return found
 
 
 @router.post('/discover', response_model=list[CastDevice])
@@ -70,6 +80,7 @@ async def start(payload: CastStart, request: Request):
     require_permission(request, 'live')
     if not payload.device_id:
         raise HTTPException(422, 'Select a TV')
+    await cast_scanner.refresh_known(cast_service.discovery)
     try:
         policy = request.state.access_policy.model_copy(update={'cast_media_url': media_base(request)})
         return await cast_service.start(payload, getattr(request.state, 'access_user', None), policy, controller=controller(request))

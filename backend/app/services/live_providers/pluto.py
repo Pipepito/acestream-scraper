@@ -31,6 +31,10 @@ CHANNEL_LIST = '/v2/guide/channels?limit=1000&offset=0&sort=number%3Aasc'
 COUNTRY = 'ES'
 HEADERS = {'User-Agent': base.USER_AGENT}
 PLAY_HEADERS = {'User-Agent': base.USER_AGENT}
+# Behind WARP, Kodi got 403 from the master /live/ had
+# redirected it to: the session the server opened does not follow the
+# player's address. Served from here, like 7 TV's.
+SERVE_MANIFEST = True
 # Well inside the JWT's 24 h, so a channel opened late in the session does
 # not get a token about to expire; renewing costs one request.
 SESSION_SECONDS = 2 * 3600

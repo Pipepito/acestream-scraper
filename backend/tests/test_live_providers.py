@@ -342,6 +342,13 @@ def test_7tv_returns_master(fake):
     assert live_providers.resolve('7riojaplay://x8dhao1') == 'https://cdndirector/live/x8dhao1.m3u8?sec=1'
 
 
+def test_pluto_and_7tv_masters_are_served_not_redirected():
+    """Behind WARP a redirect hands the player a master bound to the server's
+    address: both 7 TV and Pluto answered it 403."""
+    from app.services.live_providers import pluto
+    assert sietetv.SERVE_MANIFEST and pluto.SERVE_MANIFEST
+
+
 def test_7tv_plays_like_a_browser():
     """Measured on 2026-10-15: without a browser User-Agent AND Sec-Fetch-Mode: cors
     the manifest answers 403; with them, 200."""

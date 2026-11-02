@@ -39,6 +39,13 @@ STOP_LINGER_SECONDS = 5.0
 # failed. Only when no other candidate is left: otherwise the next source
 # goes first.
 EMPTY_START_RETRY_SECONDS = 3.0
+# Sources tried only because the others ran out (a recent check marked them
+# offline, or they were not reached) are most likely dead: a shorter wait each.
+LAST_RESORT_SECONDS = 10.0
+# And at most this many of them (Óscar, 02-11): on the box most channels have
+# none or one left by then, but the football ones keep up to 38, which at
+# 10 s each was minutes of waiting card.
+LAST_RESORT_LIMIT = 3
 logger = logging.getLogger(__name__)
 
 # Short, bounded process-local memory prevents reconnects picking a known failure
@@ -106,6 +113,8 @@ class ChannelOpening:
     # When the source being tried runs out of time; None once it plays.
     current_deadline: float | None = None
     failed: list[str] = field(default_factory=list)
+    # In the last resort: a newer GET goes straight into it.
+    last_resort: bool = False
     superseded: bool = False
     done: bool = False
     ended_at: float | None = None
@@ -170,6 +179,8 @@ async def relay_ranked_streams(
     opening: ChannelOpening | None = None,
     resume_deadline: float | None = None,
     skip: Collection[str] = (),
+    last_resort_provider: Callable[[], Awaitable[list[str]]] | None = None,
+    last_resort_now: bool = False,
     tv_channel_id: int | None = None,
 ) -> AsyncIterator[bytes]:
     """Retry startup failures; midstream transcoding recovery is explicit opt-in.
@@ -182,7 +193,9 @@ async def relay_ranked_streams(
     starts no further source once a newer GET of the channel takes the opening
     over, and ends one that plays. ``resume_deadline`` caps the first source's
     attempt (the time the older GET had left on it); ``skip`` are sources not
-    to start.
+    to start. ``last_resort_provider`` gives every source of the channel,
+    offline ones included: when the candidates run out, the ones not tried yet
+    are tried within what is left of the budget, LAST_RESORT_SECONDS each.
     """
     # The tuner settings when the route passes them; the module defaults otherwise.
     attempt_seconds = ATTEMPT_SECONDS if attempt_seconds is None else attempt_seconds
@@ -201,153 +214,178 @@ async def relay_ranked_streams(
     def stop_linger() -> float:
         return 0 if timer[0] is not None and timer[0].cancel_called else STOP_LINGER_SECONDS
 
+    last_resort: list[str] = []
+    last_resort_taken = False
+
+    async def take_last_resort() -> bool:
+        nonlocal last_resort, last_resort_taken
+        if last_resort_taken or last_resort_provider is None or (opening is not None and opening.superseded):
+            return False
+        last_resort_taken = True
+        every = await last_resort_provider()
+        last_resort = [cid for cid in dict.fromkeys(list(candidates) + every) if cid not in attempted]
+        last_resort = last_resort[:LAST_RESORT_LIMIT]
+        if last_resort:
+            if opening is not None:
+                opening.last_resort = True
+            logger.info('TV relay last resort: trying %d sources not tried yet', len(last_resort))
+        return bool(last_resort)
     try:
-        while time.monotonic() < deadline:
-            if opening is not None and opening.superseded:
-                # A newer GET of this channel goes on from here.
-                return
-            candidates = prefer_recovered_sources(candidates)
-            pending = [cid for cid in candidates if cid not in attempted]
-            if not pending:
-                if candidate_provider is None:
-                    break
-                with anyio.move_on_after(max(0, deadline - time.monotonic())) as scope:
-                    candidates, refreshing = await candidate_provider()
-                    candidates = prefer_recovered_sources(candidates)
-                if scope.cancel_called:
-                    break
+        if last_resort_now:
+            # The older GET was already there: go on with it, not after a refresh.
+            await take_last_resort()
+        while True:
+            while time.monotonic() < deadline:
+                if opening is not None and opening.superseded:
+                    # A newer GET of this channel goes on from here.
+                    return
+                candidates = prefer_recovered_sources(list(dict.fromkeys(list(candidates) + last_resort)))
                 pending = [cid for cid in candidates if cid not in attempted]
                 if not pending:
-                    if not refreshing:
+                    if candidate_provider is None:
                         break
-                    await asyncio.sleep(min(.25, max(0, deadline - time.monotonic())))
-                    continue
-            content_id = pending[0]
-            attempted.add(content_id)
-            registry.select_stream(claim.id, content_id)
-            logger.info('TV relay trying content_id=%s', content_id)
-            attempt_deadline = min(deadline, time.monotonic() + attempt_seconds)
-            if resume_deadline is not None:
-                attempt_deadline = min(attempt_deadline, resume_deadline)
-                resume_deadline = None
-            if opening is not None:
-                opening.current, opening.current_deadline = content_id, attempt_deadline
-            is_http = stream_kind(content_id) == 'http'
+                    with anyio.move_on_after(max(0, deadline - time.monotonic())) as scope:
+                        candidates, refreshing = await candidate_provider()
+                        candidates = prefer_recovered_sources(candidates)
+                    if scope.cancel_called:
+                        break
+                    pending = [cid for cid in candidates if cid not in attempted]
+                    if not pending:
+                        if not refreshing:
+                            break
+                        await asyncio.sleep(min(.25, max(0, deadline - time.monotonic())))
+                        continue
+                content_id = pending[0]
+                attempted.add(content_id)
+                registry.select_stream(claim.id, content_id)
+                logger.info('TV relay trying content_id=%s', content_id)
+                wait = min(attempt_seconds, LAST_RESORT_SECONDS) if content_id in last_resort else attempt_seconds
+                attempt_deadline = min(deadline, time.monotonic() + wait)
+                if resume_deadline is not None:
+                    attempt_deadline = min(attempt_deadline, resume_deadline)
+                    resume_deadline = None
+                if opening is not None:
+                    opening.current, opening.current_deadline = content_id, attempt_deadline
+                is_http = stream_kind(content_id) == 'http'
 
-            async def source():
-                if is_http:
-                    upstream = relay_http_stream(content_id, claim, startup_deadline=attempt_deadline,
-                        plex_compatible_audio=plex_compatible_audio and not experimental_transcoding)
+                async def source():
+                    if is_http:
+                        upstream = relay_http_stream(content_id, claim, startup_deadline=attempt_deadline,
+                            plex_compatible_audio=plex_compatible_audio and not experimental_transcoding)
+                    else:
+                        if engine is None:
+                            raise EngineUnavailableError('Acestream Engine URL is not configured')
+                        upstream = relay_engine_stream(engine, content_id, client_label, registry=registry,
+                            client_factory=client_factory, claim=claim, release_claim=False,
+                            stop_linger=stop_linger, read_seconds=wait,
+                            startup_deadline=attempt_deadline)
+                    try:
+                        async for chunk in upstream:
+                            yield chunk
+                    finally:
+                        with anyio.CancelScope(shield=True):
+                            await upstream.aclose()
+
+                raw = source()
+                if experimental_transcoding:
+                    iterator = remux_source(raw, version=version, offset=time.monotonic() - started,
+                        plex_compatible_audio=plex_compatible_audio)
+                elif plex_compatible_audio and not is_http:
+                    iterator = compatible_audio_source(raw)
                 else:
-                    if engine is None:
-                        raise EngineUnavailableError('Acestream Engine URL is not configured')
-                    upstream = relay_engine_stream(engine, content_id, client_label, registry=registry,
-                        client_factory=client_factory, claim=claim, release_claim=False,
-                        stop_linger=stop_linger, read_seconds=attempt_seconds,
-                        startup_deadline=attempt_deadline)
+                    iterator = raw
+                version += 1
+                first_at = last_at = None
+                outcome = None
+                healthy = False
+                attempt_started = time.monotonic()
                 try:
-                    async for chunk in upstream:
+                    with anyio.fail_after(max(0, attempt_deadline - time.monotonic())) as timer[0]:
+                        first = await anext(iterator)
+                    first_at = last_at = time.monotonic()
+                    if opening is not None:
+                        opening.current_deadline = None
+                    yield first
+                    while True:
+                        with anyio.fail_after(STALL_SECONDS) as timer[0]:
+                            chunk = await anext(iterator)
+                        last_at = time.monotonic()
                         yield chunk
+                        if opening is not None and opening.superseded:
+                            # The newer GET plays this source too: Kodi left this one.
+                            return
+                except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError) as exc:
+                    empty_start = (isinstance(exc, StopAsyncIteration) and first_at is None
+                                   and content_id not in retried_empty
+                                   and time.monotonic() - attempt_started < EMPTY_START_RETRY_SECONDS
+                                   and not [cid for cid in candidates if cid not in attempted])
+                    if empty_start:
+                        # Empty at once and nothing else left to try: the same
+                        # source again, not as a failure.
+                        retried_empty.add(content_id)
+                        attempted.discard(content_id)
+                        logger.info('TV relay source %s ended empty at start; retrying it once', content_id)
+                        continue
+                    played = (last_at - first_at) if first_at is not None else 0.0
+                    early_death = first_at is not None and played < EARLY_DEATH_SECONDS
+                    record_source_failure(content_id, EARLY_DEATH_COOLDOWN_SECONDS if early_death else FAILURE_COOLDOWN_SECONDS)
+                    outcome = (
+                        'early_death' if early_death else
+                        'stall' if first_at is not None and isinstance(exc, TimeoutError) else
+                        'ended' if first_at is not None else
+                        'no_data' if isinstance(exc, TimeoutError) else
+                        'empty_session' if isinstance(exc, StopAsyncIteration) else
+                        'engine_refused' if isinstance(exc, EngineRefusedError) else
+                        'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
+                        'upstream_error'
+                    )
+                    record_outcome(content_id, tv_channel_id, outcome, seconds=played)
+                    if opening is not None:
+                        opening.failed.append(content_id)
+                    # Count delivery only through the last chunk, regardless of
+                    # how the source ends. Silence before EOF/transport failure
+                    # must not renew the budget any more than a stall wait does.
+                    if first_at is not None:
+                        healthy = last_at - first_at >= HEALTHY_SECONDS
+                    # Do not include upstream exception text: it can contain URLs
+                    # with credentials. Keep EOF distinct from our read deadline.
+                    reason = (
+                        'read_timeout' if isinstance(exc, TimeoutError) else
+                        'upstream_eof' if isinstance(exc, StopAsyncIteration) else
+                        'engine_refused' if isinstance(exc, EngineRefusedError) else
+                        'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
+                        'upstream_error'
+                    )
+                    logger.info(
+                        'TV relay source ended content_id=%s reason=%s phase=%s route=%s experimental_transcoding=%s',
+                        content_id, reason, 'streaming' if first_at is not None else 'starting',
+                        'http' if is_http else 'acexy' if engine is not None and engine.use_acexy else 'direct', experimental_transcoding,
+                    )
                 finally:
+                    if outcome is None and first_at is not None:
+                        # The viewer left, or a newer GET took over.
+                        record_outcome(content_id, tv_channel_id, 'ok', seconds=last_at - first_at)
                     with anyio.CancelScope(shield=True):
-                        await upstream.aclose()
-
-            raw = source()
-            if experimental_transcoding:
-                iterator = remux_source(raw, version=version, offset=time.monotonic() - started,
-                    plex_compatible_audio=plex_compatible_audio)
-            elif plex_compatible_audio and not is_http:
-                iterator = compatible_audio_source(raw)
-            else:
-                iterator = raw
-            version += 1
-            first_at = last_at = None
-            outcome = None
-            healthy = False
-            attempt_started = time.monotonic()
-            try:
-                with anyio.fail_after(max(0, attempt_deadline - time.monotonic())) as timer[0]:
-                    first = await anext(iterator)
-                first_at = last_at = time.monotonic()
-                if opening is not None:
-                    opening.current_deadline = None
-                yield first
-                while True:
-                    with anyio.fail_after(STALL_SECONDS) as timer[0]:
-                        chunk = await anext(iterator)
-                    last_at = time.monotonic()
-                    yield chunk
-                    if opening is not None and opening.superseded:
-                        # The newer GET plays this source too: Kodi left this one.
-                        return
-            except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError) as exc:
-                empty_start = (isinstance(exc, StopAsyncIteration) and first_at is None
-                               and content_id not in retried_empty
-                               and time.monotonic() - attempt_started < EMPTY_START_RETRY_SECONDS
-                               and not [cid for cid in candidates if cid not in attempted])
-                if empty_start:
-                    # Empty at once and nothing else left to try: the same
-                    # source again, not as a failure.
-                    retried_empty.add(content_id)
-                    attempted.discard(content_id)
-                    logger.info('TV relay source %s ended empty at start; retrying it once', content_id)
-                    continue
-                played = (last_at - first_at) if first_at is not None else 0.0
-                early_death = first_at is not None and played < EARLY_DEATH_SECONDS
-                record_source_failure(content_id, EARLY_DEATH_COOLDOWN_SECONDS if early_death else FAILURE_COOLDOWN_SECONDS)
-                outcome = (
-                    'early_death' if early_death else
-                    'stall' if first_at is not None and isinstance(exc, TimeoutError) else
-                    'ended' if first_at is not None else
-                    'no_data' if isinstance(exc, TimeoutError) else
-                    'empty_session' if isinstance(exc, StopAsyncIteration) else
-                    'engine_refused' if isinstance(exc, EngineRefusedError) else
-                    'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
-                    'upstream_error'
-                )
-                record_outcome(content_id, tv_channel_id, outcome, seconds=played)
-                if opening is not None:
-                    opening.failed.append(content_id)
-                # Count delivery only through the last chunk, regardless of
-                # how the source ends. Silence before EOF/transport failure
-                # must not renew the budget any more than a stall wait does.
-                if first_at is not None:
-                    healthy = last_at - first_at >= HEALTHY_SECONDS
-                # Do not include upstream exception text: it can contain URLs
-                # with credentials. Keep EOF distinct from our read deadline.
-                reason = (
-                    'read_timeout' if isinstance(exc, TimeoutError) else
-                    'upstream_eof' if isinstance(exc, StopAsyncIteration) else
-                    'engine_refused' if isinstance(exc, EngineRefusedError) else
-                    'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
-                    'upstream_error'
-                )
-                logger.info(
-                    'TV relay source ended content_id=%s reason=%s phase=%s route=%s experimental_transcoding=%s',
-                    content_id, reason, 'streaming' if first_at is not None else 'starting',
-                    'http' if is_http else 'acexy' if engine is not None and engine.use_acexy else 'direct', experimental_transcoding,
-                )
-            finally:
-                if outcome is None and first_at is not None:
-                    # The viewer left, or a newer GET took over.
-                    record_outcome(content_id, tv_channel_id, 'ok', seconds=last_at - first_at)
-                with anyio.CancelScope(shield=True):
-                    await iterator.aclose()
-            if healthy:
-                attempted = {content_id}
-                deadline = time.monotonic() + startup_budget_seconds
-            if on_source_failure is not None:
-                await on_source_failure(content_id)
-            if first_at is not None and not experimental_transcoding:
-                # Headers and media have already been sent. End this response so
-                # the client reconnects to the same stable TV URL for a new source.
-                return
-            # Always use current eligibility after a failure, not the startup snapshot.
-            if candidate_provider is not None:
-                with anyio.move_on_after(max(0, deadline - time.monotonic())) as scope:
-                    candidates, _ = await candidate_provider()
-                if scope.cancel_called:
-                    break
+                        await iterator.aclose()
+                if healthy:
+                    attempted = {content_id}
+                    deadline = time.monotonic() + startup_budget_seconds
+                if on_source_failure is not None:
+                    await on_source_failure(content_id)
+                if first_at is not None and not experimental_transcoding:
+                    # Headers and media have already been sent. End this response so
+                    # the client reconnects to the same stable TV URL for a new source.
+                    return
+                # Always use current eligibility after a failure, not the startup snapshot.
+                if candidate_provider is not None:
+                    with anyio.move_on_after(max(0, deadline - time.monotonic())) as scope:
+                        candidates, _ = await candidate_provider()
+                    if scope.cancel_called:
+                        break
+            # Out of candidates: the channel's sources not tried yet, offline
+            # ones too, within what is left of the budget.
+            if time.monotonic() >= deadline or not await take_last_resort():
+                break
         raise EngineStreamError('No source could sustain TV channel playback within the recovery budget')
     finally:
         registry.close(claim.id)

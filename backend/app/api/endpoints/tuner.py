@@ -390,6 +390,9 @@ async def tuner_channel(tv_channel_id: int, request: Request):
                                       attempt_seconds=relay_settings.source_start_seconds,
                                       startup_budget_seconds=relay_settings.startup_budget_seconds,
                                       opening=shared, resume_deadline=resume_deadline, skip=skip,
+                                      last_resort_provider=lambda: run_in_threadpool(
+                                          _channel_candidates, tv_channel_id, include_offline=True),
+                                      last_resort_now=previous is not None and previous.last_resort,
                                       tv_channel_id=tv_channel_id)
         first = await anext(iterator)
     except BaseException as exc:

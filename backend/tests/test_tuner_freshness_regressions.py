@@ -128,8 +128,9 @@ def test_streaming_route_uses_freshness_and_releases_claim(
         tuner.tuner_probe_service.start.assert_not_called()
         response = alembic_client.get(url)
         if all_recent_offline:
-            assert response.status_code == 502
-            assert attempts == []
+            # No candidate, but before giving up the relay tries the
+            # channel's sources it has not tried, recent offline ones too.
+            assert response.status_code == 200
         else:
             assert response.status_code == 200
             assert response.content == b"\x47" + bytes(187)

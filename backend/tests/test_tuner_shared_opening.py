@@ -130,6 +130,39 @@ def test_an_opening_that_ended_long_ago_is_not_taken_over(monkeypatch):
     assert previous is None
 
 
+@pytest.mark.asyncio
+async def test_before_the_end_card_every_source_not_tried_is_tried(sources):
+    """Before giving up, the channel's sources not tried yet: a recent check
+    marked LIVE offline, so it is not a candidate; it plays all the same."""
+    async def every_source():
+        return [DEAD, LIVE]
+    stream = _relay(RelayRegistry(), [DEAD], last_resort_provider=every_source)
+    assert await anext(stream) == b"video"
+    assert [cid for _, cid in sources] == [DEAD, LIVE]
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_the_last_resort_stays_within_the_budget(sources, monkeypatch):
+    """Without anything to show while it looks, the player gives up on its
+    own: the last resort only uses what is left of the startup budget."""
+    monkeypatch.setattr(playback, "relay_engine_stream", _dead_relay(sources))
+    from app.services.stream_relay import EngineStreamError
+
+    async def every_source():
+        return ["d2" * 20, "d3" * 20, "d4" * 20]
+    registry = RelayRegistry()
+    claim = registry.try_open("d2" * 20, "tuner:kodi", 4)
+    stream = playback.relay_ranked_streams(Mock(), ["d2" * 20], "tuner:kodi", claim, registry=registry,
+                                           attempt_seconds=0.4, startup_budget_seconds=0.7,
+                                           last_resort_provider=every_source)
+    t0 = time.monotonic()
+    with pytest.raises(EngineStreamError):
+        await anext(stream)
+    assert time.monotonic() - t0 < 0.9
+    assert [cid[:2] for _, cid in sources] == ["d2", "d3"]
+
+
 def _dead_relay(calls):
     t0 = time.monotonic()
 
@@ -138,6 +171,29 @@ def _dead_relay(calls):
         await asyncio.sleep(60)
         yield b""
     return relay
+
+
+@pytest.mark.asyncio
+async def test_a_last_resort_source_waits_less(sources, monkeypatch):
+    """Last-resort sources are most likely dead: a shorter wait each."""
+    monkeypatch.setattr(playback, "relay_engine_stream", _dead_relay(sources))
+    monkeypatch.setattr(playback, "LAST_RESORT_SECONDS", 0.1)
+    from app.services.stream_relay import EngineStreamError
+
+    async def every_source():
+        return ["d2" * 20, "d3" * 20]
+    registry = RelayRegistry()
+    claim = registry.try_open("d2" * 20, "tuner:kodi", 4)
+    stream = playback.relay_ranked_streams(Mock(), ["d2" * 20], "tuner:kodi", claim, registry=registry,
+                                           attempt_seconds=0.4, startup_budget_seconds=3,
+                                           last_resort_provider=every_source)
+    t0 = time.monotonic()
+    with pytest.raises(EngineStreamError):
+        await anext(stream)
+    ended_at = time.monotonic() - t0
+    (first_at, _), (last_at, _) = sources
+    assert last_at - first_at >= 0.35, sources          # the first one waited its 0.4 s
+    assert ended_at - last_at < 0.3, (sources, ended_at)  # d3 only its 0.1 s
 
 
 @pytest.mark.asyncio
@@ -191,3 +247,52 @@ async def test_a_broken_recorder_never_breaks_playback(sources):
         await stream.aclose()
     finally:
         playback.set_outcome_recorder(None)
+
+
+@pytest.mark.asyncio
+async def test_a_newer_get_goes_on_inside_the_last_resort(sources):
+    """The older GET was trying a last-resort source when the second GET came:
+    the newer one goes on with it instead of starting it again."""
+    late = "d5" * 20                                    # a last-resort source, out of the list, dead
+    previous = playback.ChannelOpening(current=late, current_deadline=time.monotonic() + 0.3,
+                                       failed=[DEAD], last_resort=True)
+    order, resume_deadline, skip = playback.resume_order([], previous)
+    assert order == [late] and skip == {DEAD}
+
+    async def every_source():
+        return [DEAD, late, LIVE]
+
+    async def still_refreshing():
+        return [], True
+    claim_registry = RelayRegistry()
+    claim = claim_registry.try_open(late, "tuner:kodi", 4)
+    t0 = time.monotonic()
+    stream = playback.relay_ranked_streams(Mock(), order, "tuner:kodi", claim, registry=claim_registry,
+                                           attempt_seconds=0.4, startup_budget_seconds=3,
+                                           resume_deadline=resume_deadline, skip=skip,
+                                           candidate_provider=still_refreshing,
+                                           last_resort_provider=every_source, last_resort_now=True)
+    sources_before = len(sources)
+    assert await anext(stream) == b"video"
+    assert [cid for _, cid in sources[sources_before:]] == [late, LIVE]
+    assert time.monotonic() - t0 < 0.6
+    await stream.aclose()
+
+
+@pytest.mark.asyncio
+async def test_the_last_resort_tries_at_most_three(sources, monkeypatch):
+    """Óscar, 02-11: «tope de 3» -- a football channel kept up to 38 untried."""
+    monkeypatch.setattr(playback, "relay_engine_stream", _dead_relay(sources))
+    monkeypatch.setattr(playback, "LAST_RESORT_SECONDS", 0.05)
+    from app.services.stream_relay import EngineStreamError
+
+    async def every_source():
+        return ["d%d" % i * 20 for i in range(2, 8)]
+    registry = RelayRegistry()
+    claim = registry.try_open("d1" * 20, "tuner:kodi", 4)
+    stream = playback.relay_ranked_streams(Mock(), [], "tuner:kodi", claim, registry=registry,
+                                           attempt_seconds=0.4, startup_budget_seconds=3,
+                                           last_resort_provider=every_source)
+    with pytest.raises(EngineStreamError):
+        await anext(stream)
+    assert len(sources) == 3

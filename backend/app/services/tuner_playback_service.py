@@ -82,8 +82,9 @@ def prefer_recovered_sources(content_ids: list[str]) -> list[str]:
 # no_data (no byte in time), empty_session (the engine ended it at once),
 # engine_refused, engine_unavailable, upstream_error, early_death (video, then
 # dead within EARLY_DEATH_SECONDS), stall (silent for STALL_SECONDS after
-# that), ended (the source ended after that) and ok (it played until the
-# viewer left); `seconds` is how long it played.
+# that), ended (the source ended after that), ok (it played until the
+# viewer left) and handover (it played until a newer GET of the channel took
+# over); `seconds` is how long it played.
 _outcome_recorder: Callable[..., None] | None = None
 
 
@@ -122,6 +123,25 @@ class ChannelOpening:
 
 _openings: dict = {}
 _openings_lock = threading.Lock()
+
+
+def _record_ok(opening: ChannelOpening | None, content_id: str, tv_channel_id: int | None,
+               seconds: float) -> None:
+    """A source that played until its GET ended. Kodi closes its first GET as
+    soon as it gets bytes and its second takes the opening over: that is a
+    hand-over, not a viewing, and counting it as one put an `ok` of 0 s next
+    to every real one (the bench, 02-11). Whether a newer GET takes over is
+    known STOP_LINGER_SECONDS later."""
+    if opening is None:
+        record_outcome(content_id, tv_channel_id, 'ok', seconds=seconds)
+        return
+
+    def settle() -> None:
+        record_outcome(content_id, tv_channel_id, 'handover' if opening.superseded else 'ok', seconds=seconds)
+    try:
+        asyncio.get_running_loop().call_later(STOP_LINGER_SECONDS, settle)
+    except RuntimeError:
+        settle()
 
 
 def take_over_opening(key) -> tuple[ChannelOpening, ChannelOpening | None]:
@@ -364,7 +384,7 @@ async def relay_ranked_streams(
                 finally:
                     if outcome is None and first_at is not None:
                         # The viewer left, or a newer GET took over.
-                        record_outcome(content_id, tv_channel_id, 'ok', seconds=last_at - first_at)
+                        _record_ok(opening, content_id, tv_channel_id, last_at - first_at)
                     with anyio.CancelScope(shield=True):
                         await iterator.aclose()
                 if healthy:

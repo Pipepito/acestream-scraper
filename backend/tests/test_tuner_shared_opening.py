@@ -296,3 +296,25 @@ async def test_the_last_resort_tries_at_most_three(sources, monkeypatch):
     with pytest.raises(EngineStreamError):
         await anext(stream)
     assert len(sources) == 3
+
+
+@pytest.mark.asyncio
+async def test_a_handed_over_get_is_not_counted_as_a_viewing(sources, monkeypatch):
+    """The bench, 02-11: each opening left two `ok`, one of 0 s from the GET
+    Kodi closes as soon as it gets bytes."""
+    monkeypatch.setattr(playback, "STOP_LINGER_SECONDS", 0.1)
+    outcomes = []
+    playback.set_outcome_recorder(lambda cid, tv, outcome, **kw: outcomes.append(outcome))
+    try:
+        key = ("kodi", 9)
+        first_opening, _ = playback.take_over_opening(key)
+        first = _relay(RelayRegistry(), [LIVE], opening=first_opening)
+        await anext(first)
+        await first.aclose()                       # Kodi closes the first GET...
+        playback.end_opening(key, first_opening)
+        _, previous = playback.take_over_opening(key)   # ...and its second takes over
+        assert previous is first_opening
+        await asyncio.sleep(0.2)
+        assert outcomes == ["handover"]
+    finally:
+        playback.set_outcome_recorder(None)

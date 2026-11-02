@@ -847,3 +847,16 @@ Startup/recovery reapplies saved exclusions and rechecks the auto-connect barrie
 Use bounded argv-only commands off the event loop. Startup controls on the WARP
 page use the existing runtime-config API and require a container restart. See
 `wiki/Docker.md#managing-warp-from-the-app`.
+
+## Per-source playback history
+
+The tuner relay reports each attempt's outcome through
+`tuner_playback_service.record_outcome()`; `stream_history` writes one
+`stream_attempts` row per attempt on a background thread (never on the playback
+path; a failing write loses only that row). `relay_stream_ids()` ranks within
+each freshness group by decayed playback history with the list's online share
+as prior, and demotes, never drops, sources unseen by any list for 14 days,
+with clearly bad recent history, or from mostly offline lists without own
+history. Saved preferences stay first; engine outages do not count against a
+source. Migration `20261102_1200` follows `20261103_1200`. See
+`docs/ops/stream-history.md`.

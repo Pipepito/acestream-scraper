@@ -545,3 +545,4 @@ class SavedSearchChannel(Base):
 
 # Register operational models for both Alembic and metadata-created test databases.
 from app.models import recordings as _recording_models  # noqa: E402,F401
+from app.models import stream_attempts as _stream_attempt_models  # noqa: E402,F401

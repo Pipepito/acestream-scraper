@@ -29,7 +29,8 @@ def test_source_names_upgrade_preserves_old_rows(tmp_path):
 def test_provider_definitions_and_optional_name_lifecycle(client, db_session):
     from app.models.models import AcestreamChannel
     providers = client.get('/api/v1/scrapers/providers').json()
-    assert {p['id'] for p in providers} == {'atresplayer', 'mediaset', '7riojaplay', 'telemadrid', 'apunt'}
+    assert {p['id'] for p in providers} == {'atresplayer', 'mediaset', '7riojaplay', 'telemadrid',
+                                           'apunt', 'pluto', 'plex', 'samsung'}
     source = providers[0]
     response = client.post('/api/v1/scrapers/urls', json={'url': source['url'], 'name': '  Living room  '})
     assert response.status_code == 201

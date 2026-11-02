@@ -24,7 +24,8 @@ TIMEOUT = 20
 
 
 class Http:
-    def _send(self, method: str, url: str, headers: Optional[Dict[str, str]], body: Any):
+    def _send(self, method: str, url: str, headers: Optional[Dict[str, str]], body: Any,
+              max_bytes: Optional[int] = None):
         limits = resolution_limits.get()
         deadline, cancelled = limits if limits else (time.monotonic() + TIMEOUT, None)
         headers = dict(headers or {})
@@ -32,8 +33,9 @@ class Http:
             remaining = deadline - time.monotonic()
             if remaining <= 0 or (cancelled is not None and cancelled.is_set()):
                 raise TimeoutError('Provider resolution deadline exceeded')
+            limit = {} if max_bytes is None else {'max_bytes': max_bytes}
             response = asyncio.run(source_request(url, method=method, headers=headers,
-                payload=body, timeout=remaining, cancelled=cancelled))
+                payload=body, timeout=remaining, cancelled=cancelled, **limit))
             if response.status_code in (301, 302, 303, 307, 308) and response.headers.get('Location'):
                 destination = urljoin(url, response.headers['Location'])
                 if urlsplit(destination)[:2] != urlsplit(url)[:2]:
@@ -53,8 +55,11 @@ class Http:
     def post_json(self, url: str, body: Any, headers: Optional[Dict[str, str]] = None) -> Any:
         return json.loads(self._send('POST', url, headers, body).content)
 
-    def get_text(self, url: str, headers: Optional[Dict[str, str]] = None) -> str:
-        return self._send('GET', url, headers, None).content.decode('utf-8', 'replace')
+    def get_text(self, url: str, headers: Optional[Dict[str, str]] = None,
+                 max_bytes: Optional[int] = None) -> str:
+        """``max_bytes`` raises the provider response bound for one known
+        large document; the default bound stays for everything else."""
+        return self._send('GET', url, headers, None, max_bytes).content.decode('utf-8', 'replace')
 
 
 # Tests replace this with a fake; nothing in the package imports requests

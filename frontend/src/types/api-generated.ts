@@ -6107,7 +6107,7 @@ export interface components {
             hours?: number | null;
             /**
              * Value
-             * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60)
+             * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60); acestream_check_timeout whole seconds (5–120, default 10)
              */
             value?: string | null;
         };

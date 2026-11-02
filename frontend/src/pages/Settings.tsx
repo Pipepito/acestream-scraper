@@ -30,6 +30,8 @@ import {
 import { Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
 import {
   useChannelStatusInterval,
+  useAcestreamCheckTimeout,
+  useUpdateAcestreamCheckTimeout,
   useUpdateChannelStatusInterval,
   useAceEngineUrl,
   useUpdateAceEngineUrl,
@@ -102,6 +104,9 @@ const Settings: React.FC = () => {
   const [channelStatusInterval, setChannelStatusInterval] = useState<number | ''>(60);
   const channelStatusIntervalQuery = useChannelStatusInterval();
   const updateChannelStatusIntervalMutation = useUpdateChannelStatusInterval();
+  const [checkTimeout, setCheckTimeout] = useState<number | ''>(10);
+  const checkTimeoutQuery = useAcestreamCheckTimeout();
+  const updateCheckTimeoutMutation = useUpdateAcestreamCheckTimeout();
   const [aceEngineUrl, setAceEngineUrl] = useState('');
   const [rescrapeInterval, setRescrapeInterval] = useState<number | ''>(24);
   const [epgRefreshInterval, setEpgRefreshInterval] = useState<number | ''>(1);
@@ -154,6 +159,18 @@ const Settings: React.FC = () => {
   useEffect(() => {
     if (channelStatusIntervalQuery.data !== undefined) setChannelStatusInterval(channelStatusIntervalQuery.data);
   }, [channelStatusIntervalQuery.data]);
+
+  useEffect(() => {
+    if (checkTimeoutQuery.data !== undefined) setCheckTimeout(checkTimeoutQuery.data);
+  }, [checkTimeoutQuery.data]);
+
+  const handleCheckTimeoutSave = () => {
+    if (checkTimeout === '') return;
+    updateCheckTimeoutMutation.mutate(checkTimeout, {
+      onSuccess: () => notify(`Each stream check now waits up to ${checkTimeout} s`, 'success'),
+      onError: (error) => notify(`Failed to save the stream check timeout: ${getErrorMessage(error)}`, 'error'),
+    });
+  };
 
   const handleChannelStatusSave = () => {
     if (channelStatusInterval === '') return;
@@ -354,6 +371,18 @@ const Settings: React.FC = () => {
             onSave={handleChannelStatusSave}
           />
           <StreamCheckScopeField />
+          {checkTimeoutQuery.isError ? <Alert severity="error">Could not load the stream check timeout. Reload to try again.</Alert> : null}
+          <IntervalField
+            id="acestream-check-timeout"
+            label="Stream check timeout (seconds)"
+            helper="5 to 120 s. A slow engine may need 20-30 s to start a stream; checked sooner, it is marked offline."
+            max={120}
+            value={checkTimeout}
+            saved={checkTimeoutQuery.data}
+            pending={updateCheckTimeoutMutation.isPending || checkTimeoutQuery.isLoading || checkTimeoutQuery.isError}
+            onChange={setCheckTimeout}
+            onSave={handleCheckTimeoutSave}
+          />
           <ScheduleAnchorFields />
 
         </Stack>

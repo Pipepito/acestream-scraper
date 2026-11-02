@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from dataclasses import dataclass, field
 import threading
 import asyncio
 import logging
 import time
-from typing import AsyncIterator, Awaitable, Callable
+from typing import AsyncIterator, Awaitable, Callable, Collection
 
 import anyio
 import httpx
@@ -45,11 +46,17 @@ logger = logging.getLogger(__name__)
 _failures: OrderedDict[str, float] = OrderedDict()
 _failure_lock = threading.Lock()
 FAILURE_COOLDOWN_SECONDS = 60.0
+# Video that dies within its first minute is most likely an old broadcast the
+# engine still holds pieces of: the source failed to start, and stays behind
+# the others for longer.
+EARLY_DEATH_SECONDS = 60.0
+EARLY_DEATH_COOLDOWN_SECONDS = 1800.0
 
 
-def record_source_failure(content_id: str) -> None:
+def record_source_failure(content_id: str, cooldown: float = FAILURE_COOLDOWN_SECONDS) -> None:
     with _failure_lock:
-        _failures[content_id] = time.monotonic()
+        # Stored as if it had failed later, so the usual cooldown lasts `cooldown`.
+        _failures[content_id] = time.monotonic() + cooldown - FAILURE_COOLDOWN_SECONDS
         _failures.move_to_end(content_id)
         while len(_failures) > 4096:
             _failures.popitem(last=False)
@@ -64,6 +71,91 @@ def prefer_recovered_sources(content_ids: list[str]) -> list[str]:
         return sorted(content_ids, key=lambda cid: (cid in _failures, _failures.get(cid, 0)))
 
 
+# How each attempt at a source ended, for per-source statistics. Outcomes:
+# no_data (no byte in time), empty_session (the engine ended it at once),
+# engine_refused, engine_unavailable, upstream_error, early_death (video, then
+# dead within EARLY_DEATH_SECONDS), stall (silent for STALL_SECONDS after
+# that), ended (the source ended after that) and ok (it played until the
+# viewer left); `seconds` is how long it played.
+_outcome_recorder: Callable[..., None] | None = None
+
+
+def set_outcome_recorder(recorder: Callable[..., None] | None) -> None:
+    global _outcome_recorder
+    _outcome_recorder = recorder
+
+
+def record_outcome(content_id: str, tv_channel_id: int | None, outcome: str, *, seconds: float,
+                   peers: int | None = None, speed_down: int | None = None) -> None:
+    if _outcome_recorder is None:
+        return
+    try:
+        _outcome_recorder(content_id, tv_channel_id, outcome, seconds=seconds, peers=peers, speed_down=speed_down)
+    except Exception:  # noqa: BLE001 - statistics must never break playback
+        logger.exception('TV relay outcome recorder failed')
+
+
+# Kodi opens a channel with two GETs and sends the second as soon as the first
+# gets bytes. Each GET ran its own rotation from the first source, so a dead
+# first source was tried again by the second GET once the first had found a
+# working one. The GETs of one client and channel share an opening: a newer GET
+# resumes where the older one is, and the older one starts no further source.
+@dataclass
+class ChannelOpening:
+    current: str | None = None
+    # When the source being tried runs out of time; None once it plays.
+    current_deadline: float | None = None
+    failed: list[str] = field(default_factory=list)
+    superseded: bool = False
+    done: bool = False
+    ended_at: float | None = None
+
+
+_openings: dict = {}
+_openings_lock = threading.Lock()
+
+
+def take_over_opening(key) -> tuple[ChannelOpening, ChannelOpening | None]:
+    """A new opening for ``key`` (client and channel) and the one in progress,
+    which gives way to it, or the one that ended less than
+    STOP_LINGER_SECONDS ago: Kodi closes its first GET as soon as it gets
+    bytes, and the second came 30 ms later on the bench (02-11) and found
+    nothing to go on from."""
+    with _openings_lock:
+        previous = _openings.get(key)
+        if previous is not None and previous.done and time.monotonic() - previous.ended_at >= STOP_LINGER_SECONDS:
+            previous = None
+        if previous is not None:
+            previous.superseded = True
+        opening = ChannelOpening()
+        _openings[key] = opening
+        return opening, previous
+
+
+def end_opening(key, opening: ChannelOpening) -> None:
+    """Kept for STOP_LINGER_SECONDS, for a GET that comes right after."""
+    with _openings_lock:
+        opening.done, opening.ended_at = True, time.monotonic()
+        now = time.monotonic()
+        for other in [k for k, o in _openings.items() if o.done and now - o.ended_at >= STOP_LINGER_SECONDS]:
+            del _openings[other]
+
+
+def resume_order(content_ids: list[str], previous: ChannelOpening) -> tuple[list[str], float | None, set[str]]:
+    """Where a newer GET goes on from: the sources in the order it tries them,
+    the deadline of the first one, and those it skips. First the source the
+    older GET is on (with the time it has left, or none if it plays), then
+    those it has not tried; the ones it saw fail are skipped."""
+    current = previous.current
+    deadline = previous.current_deadline
+    failed = set(previous.failed)
+    if current is not None and deadline is not None and deadline <= time.monotonic():
+        failed.add(current)
+    first = [current] if current is not None and current not in failed else []
+    rest = [cid for cid in content_ids if cid not in failed and cid not in first]
+    return first + rest, deadline if first else None, failed
+
+
 
 async def relay_ranked_streams(
     engine: EngineClient | None, content_ids: list[str], client_label: str, claim: RelayInfo,
@@ -75,19 +167,29 @@ async def relay_ranked_streams(
     on_source_failure: Callable[[str], Awaitable[None]] | None = None,
     attempt_seconds: float | None = None,
     startup_budget_seconds: float | None = None,
+    opening: ChannelOpening | None = None,
+    resume_deadline: float | None = None,
+    skip: Collection[str] = (),
+    tv_channel_id: int | None = None,
 ) -> AsyncIterator[bytes]:
     """Retry startup failures; midstream transcoding recovery is explicit opt-in.
 
     One 45-second recovery window tries each candidate once. Only a source that
     delivers for 30 seconds resets the failure history, so flapping sources do
     not hold a slot forever. Cancellation never starts another source.
+
+    With ``opening``, the relay notes the source it is on and those that fail,
+    starts no further source once a newer GET of the channel takes the opening
+    over, and ends one that plays. ``resume_deadline`` caps the first source's
+    attempt (the time the older GET had left on it); ``skip`` are sources not
+    to start.
     """
     # The tuner settings when the route passes them; the module defaults otherwise.
     attempt_seconds = ATTEMPT_SECONDS if attempt_seconds is None else attempt_seconds
     startup_budget_seconds = STARTUP_BUDGET_SECONDS if startup_budget_seconds is None else startup_budget_seconds
     started = time.monotonic()
     deadline = started + startup_budget_seconds
-    attempted: set[str] = set()
+    attempted: set[str] = set(skip)
     retried_empty: set[str] = set()
     candidates = prefer_recovered_sources(content_ids)
     version = 0
@@ -98,8 +200,12 @@ async def relay_ranked_streams(
 
     def stop_linger() -> float:
         return 0 if timer[0] is not None and timer[0].cancel_called else STOP_LINGER_SECONDS
+
     try:
         while time.monotonic() < deadline:
+            if opening is not None and opening.superseded:
+                # A newer GET of this channel goes on from here.
+                return
             candidates = prefer_recovered_sources(candidates)
             pending = [cid for cid in candidates if cid not in attempted]
             if not pending:
@@ -119,7 +225,13 @@ async def relay_ranked_streams(
             content_id = pending[0]
             attempted.add(content_id)
             registry.select_stream(claim.id, content_id)
+            logger.info('TV relay trying content_id=%s', content_id)
             attempt_deadline = min(deadline, time.monotonic() + attempt_seconds)
+            if resume_deadline is not None:
+                attempt_deadline = min(attempt_deadline, resume_deadline)
+                resume_deadline = None
+            if opening is not None:
+                opening.current, opening.current_deadline = content_id, attempt_deadline
             is_http = stream_kind(content_id) == 'http'
 
             async def source():
@@ -150,18 +262,24 @@ async def relay_ranked_streams(
                 iterator = raw
             version += 1
             first_at = last_at = None
+            outcome = None
             healthy = False
             attempt_started = time.monotonic()
             try:
                 with anyio.fail_after(max(0, attempt_deadline - time.monotonic())) as timer[0]:
                     first = await anext(iterator)
                 first_at = last_at = time.monotonic()
+                if opening is not None:
+                    opening.current_deadline = None
                 yield first
                 while True:
                     with anyio.fail_after(STALL_SECONDS) as timer[0]:
                         chunk = await anext(iterator)
                     last_at = time.monotonic()
                     yield chunk
+                    if opening is not None and opening.superseded:
+                        # The newer GET plays this source too: Kodi left this one.
+                        return
             except (EngineRefusedError, EngineUnavailableError, EngineStreamError, StopAsyncIteration, TimeoutError) as exc:
                 empty_start = (isinstance(exc, StopAsyncIteration) and first_at is None
                                and content_id not in retried_empty
@@ -174,7 +292,22 @@ async def relay_ranked_streams(
                     attempted.discard(content_id)
                     logger.info('TV relay source %s ended empty at start; retrying it once', content_id)
                     continue
-                record_source_failure(content_id)
+                played = (last_at - first_at) if first_at is not None else 0.0
+                early_death = first_at is not None and played < EARLY_DEATH_SECONDS
+                record_source_failure(content_id, EARLY_DEATH_COOLDOWN_SECONDS if early_death else FAILURE_COOLDOWN_SECONDS)
+                outcome = (
+                    'early_death' if early_death else
+                    'stall' if first_at is not None and isinstance(exc, TimeoutError) else
+                    'ended' if first_at is not None else
+                    'no_data' if isinstance(exc, TimeoutError) else
+                    'empty_session' if isinstance(exc, StopAsyncIteration) else
+                    'engine_refused' if isinstance(exc, EngineRefusedError) else
+                    'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
+                    'upstream_error'
+                )
+                record_outcome(content_id, tv_channel_id, outcome, seconds=played)
+                if opening is not None:
+                    opening.failed.append(content_id)
                 # Count delivery only through the last chunk, regardless of
                 # how the source ends. Silence before EOF/transport failure
                 # must not renew the budget any more than a stall wait does.
@@ -195,6 +328,9 @@ async def relay_ranked_streams(
                     'http' if is_http else 'acexy' if engine is not None and engine.use_acexy else 'direct', experimental_transcoding,
                 )
             finally:
+                if outcome is None and first_at is not None:
+                    # The viewer left, or a newer GET took over.
+                    record_outcome(content_id, tv_channel_id, 'ok', seconds=last_at - first_at)
                 with anyio.CancelScope(shield=True):
                     await iterator.aclose()
             if healthy:

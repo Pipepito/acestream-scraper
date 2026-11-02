@@ -21,6 +21,7 @@ SQLite write never delays or breaks playback.
 | `early_death` | Video, then silent within the first minute | 0 |
 | `no_data`, `empty_session`, `engine_refused`, `upstream_error` | Never played | 0 |
 | `engine_unavailable` | The engine was down: says nothing about the source | ignored |
+| `handover` | Kodi's first GET, which handed the opening to its second GET: the viewing is recorded once, by the second | ignored |
 
 Each row keeps the seconds played, the source's list (`source_url`) and how
 many active sources its channel had at that moment, for later analysis. Peers
@@ -34,7 +35,8 @@ recently online, online from an old check, then unknown or old offline;
 recent offline results stay excluded. Within each group, sources rank by
 `stream_history.score_sources()` before bitrate:
 
-- each attempt's weight halves every 7 days;
+- each attempt's weight halves every 7 days, and an attempt that played counts as more
+  evidence the longer it played (one more attempt's worth per 30 minutes, up to three);
 - the prior is the share of the source's list that the last check found
   online (0.5 when unknown), with the strength of two attempts;
 - a source is **demoted** (tried after every group, never dropped) when no list

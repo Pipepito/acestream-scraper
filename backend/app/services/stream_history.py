@@ -12,6 +12,8 @@ Ranking is rule based and deliberately small:
 * an attempt that played scores 1 (``ok``), less if the source ended or
   stalled after playing, 0 if it never played; engine outages say nothing
   about the source and are ignored;
+* an attempt that played counts as more evidence the longer it played (one
+  more attempt's worth per 30 minutes, up to three);
 * the list a source came from is the prior: the share of that list's active
   sources the last check found online;
 * a source is *demoted* (tried after every other candidate, never dropped)
@@ -43,6 +45,10 @@ DEAD_LIST_SHARE = 0.2
 BAD_EVIDENCE = 2.0
 BAD_SCORE = 0.25
 PRUNE_EVERY = 500
+# An attempt that played counts as more evidence the longer it played: one more
+# attempt's worth per PLAYED_SECONDS_PER_ATTEMPT, up to MAX_PLAYED_WEIGHT.
+PLAYED_SECONDS_PER_ATTEMPT = 1800.0
+MAX_PLAYED_WEIGHT = 3.0
 
 OUTCOME_VALUE = {
     'ok': 1.0,
@@ -55,6 +61,9 @@ OUTCOME_VALUE = {
     'upstream_error': 0.0,
     # Not about the source.
     'engine_unavailable': None,
+    # A GET that handed its opening to a newer one (Kodi's second GET): the
+    # viewing is recorded once, by the GET that took over.
+    'handover': None,
 }
 
 
@@ -74,12 +83,14 @@ def score_sources(streams: Iterable, attempts, list_health: Dict[str, tuple[int,
     """Pure ranking: ``streams`` are rows with ``id``, ``source_url`` and
     ``last_seen``; ``attempts`` are (content_id, outcome, seconds, created_at)."""
     weighted: Dict[str, list[float]] = {}
-    for content_id, outcome, _seconds, created_at in attempts:
+    for content_id, outcome, seconds, created_at in attempts:
         value = OUTCOME_VALUE.get(outcome)
         if value is None:
             continue
         age_days = max(0.0, (now - _aware(created_at)).total_seconds() / 86400)
         weight = 0.5 ** (age_days / HALF_LIFE_DAYS)
+        if value > 0:
+            weight *= min(MAX_PLAYED_WEIGHT, 1.0 + max(0.0, seconds or 0.0) / PLAYED_SECONDS_PER_ATTEMPT)
         total = weighted.setdefault(content_id.lower(), [0.0, 0.0])
         total[0] += weight * value
         total[1] += weight

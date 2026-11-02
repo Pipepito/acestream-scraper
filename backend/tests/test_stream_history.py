@@ -45,8 +45,16 @@ def test_old_attempts_count_less_than_recent_ones():
     assert old['a' * 40].score > recent['a' * 40].score
 
 
-def test_engine_outages_say_nothing_about_the_source():
-    scores = score_sources([Row('a')], [attempt('a', 'engine_unavailable')] * 5, {}, NOW)
+def test_a_source_watched_longer_ranks_above_one_watched_briefly():
+    scores = score_sources([Row('a'), Row('b')],
+                           [attempt('a', 'ok', seconds=3600), attempt('a', 'stall', seconds=60),
+                            attempt('b', 'ok', seconds=60), attempt('b', 'stall', seconds=60)], {}, NOW)
+    assert scores['a' * 40].score > scores['b' * 40].score
+
+
+@pytest.mark.parametrize('outcome', ['engine_unavailable', 'handover'])
+def test_outcomes_that_say_nothing_about_the_source_are_ignored(outcome):
+    scores = score_sources([Row('a')], [attempt('a', outcome)] * 5, {}, NOW)
     assert scores['a' * 40].evidence == 0.0 and scores['a' * 40].score == 0.5
 
 

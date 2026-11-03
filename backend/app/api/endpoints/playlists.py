@@ -22,6 +22,19 @@ M3U_DOWNLOAD_HEADERS = {"Content-Disposition": "attachment; filename=playlist.m3
 EPG_XML_PATH = "/api/v1/epg/xml"
 
 
+def split_groups(values: Optional[List[str]], known: set) -> Optional[List[str]]:
+    """Repeated ``include_groups=`` parameters are canonical. A value is split on
+    commas only when it is not itself a known group name, so hand-typed comma
+    lists keep working without breaking group names that contain commas."""
+    if not values:
+        return None
+    groups: List[str] = []
+    for value in values:
+        parts = [value] if value in known else [part.strip() for part in value.split(",")]
+        groups.extend(part for part in parts if part)
+    return groups or None
+
+
 def epg_url_for(request: Request, db: Session) -> str:
     """Where a player should fetch the guide, for the playlist's url-tvg.
 
@@ -74,8 +87,8 @@ async def get_m3u_playlist(
     include_unassigned: Optional[bool] = Query(None, description="Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats."),
     per_source: bool = Query(False, description="TV relay formats: list each source under its channel, to switch by hand."),
     favorites_only: bool = False,
-    include_groups: Optional[str] = Query(None),
-    exclude_groups: Optional[str] = Query(None),
+    include_groups: Optional[List[str]] = Query(None),
+    exclude_groups: Optional[List[str]] = Query(None),
     base_url: Optional[str] = Query(None),
     base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
@@ -88,8 +101,8 @@ async def get_m3u_playlist(
     - **search**: Optional search term for channel names
     - **group**: Optional specific group to filter by
     - **only_online**: Whether to include only online channels (default: True)
-    - **include_groups**: Comma-separated list of groups to include
-    - **exclude_groups**: Comma-separated list of groups to exclude
+    - **include_groups**: Groups to include; repeat the parameter per group (a comma list also works)
+    - **exclude_groups**: Groups to exclude; repeat the parameter per group (a comma list also works)
     - **refresh**: Trigger a background rescrape of all enabled URLs
     """
     if refresh:
@@ -98,9 +111,9 @@ async def get_m3u_playlist(
     playlist_service = playlist_service_for(request, db)
 
     try:
-        # Parse comma-separated strings into lists
-        include_groups_list = include_groups.split(",") if include_groups else None
-        exclude_groups_list = exclude_groups.split(",") if exclude_groups else None
+        known = set(await playlist_service.get_channel_groups()) if include_groups or exclude_groups else set()
+        include_groups_list = split_groups(include_groups, known)
+        exclude_groups_list = split_groups(exclude_groups, known)
 
         m3u_content = await playlist_service.generate_playlist(
             search=search,
@@ -138,8 +151,8 @@ async def get_m3u_playlist_compat(
     include_unassigned: Optional[bool] = Query(None, description="Append unassigned streams at the end; defaults off for TV relay formats, on for stream formats."),
     per_source: bool = Query(False, description="TV relay formats: list each source under its channel, to switch by hand."),
     favorites_only: bool = False,
-    include_groups: Optional[str] = Query(None),
-    exclude_groups: Optional[str] = Query(None),
+    include_groups: Optional[List[str]] = Query(None),
+    exclude_groups: Optional[List[str]] = Query(None),
     base_url: Optional[str] = Query(None),
     base_url_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),

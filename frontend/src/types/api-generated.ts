@@ -902,8 +902,8 @@ export interface paths {
      * - **search**: Optional search term for channel names
      * - **group**: Optional specific group to filter by
      * - **only_online**: Whether to include only online channels (default: True)
-     * - **include_groups**: Comma-separated list of groups to include
-     * - **exclude_groups**: Comma-separated list of groups to exclude
+     * - **include_groups**: Groups to include; repeat the parameter per group (a comma list also works)
+     * - **exclude_groups**: Groups to exclude; repeat the parameter per group (a comma list also works)
      * - **refresh**: Trigger a background rescrape of all enabled URLs
      */
     get: operations["get_m3u_playlist_api_v1_playlists_m3u_get"];
@@ -10554,8 +10554,8 @@ export interface operations {
    * - **search**: Optional search term for channel names
    * - **group**: Optional specific group to filter by
    * - **only_online**: Whether to include only online channels (default: True)
-   * - **include_groups**: Comma-separated list of groups to include
-   * - **exclude_groups**: Comma-separated list of groups to exclude
+   * - **include_groups**: Groups to include; repeat the parameter per group (a comma list also works)
+   * - **exclude_groups**: Groups to exclude; repeat the parameter per group (a comma list also works)
    * - **refresh**: Trigger a background rescrape of all enabled URLs
    */
   get_m3u_playlist_api_v1_playlists_m3u_get: {
@@ -10569,8 +10569,8 @@ export interface operations {
         /** @description TV relay formats: list each source under its channel, to switch by hand. */
         per_source?: boolean;
         favorites_only?: boolean;
-        include_groups?: string | null;
-        exclude_groups?: string | null;
+        include_groups?: string[] | null;
+        exclude_groups?: string[] | null;
         base_url?: string | null;
         base_url_id?: number | null;
         format?: string | null;
@@ -10610,8 +10610,8 @@ export interface operations {
         /** @description TV relay formats: list each source under its channel, to switch by hand. */
         per_source?: boolean;
         favorites_only?: boolean;
-        include_groups?: string | null;
-        exclude_groups?: string | null;
+        include_groups?: string[] | null;
+        exclude_groups?: string[] | null;
         base_url?: string | null;
         base_url_id?: number | null;
         format?: string | null;

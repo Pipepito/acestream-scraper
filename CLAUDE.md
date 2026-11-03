@@ -356,9 +356,15 @@ TV Channels combines catalogue-wide filters before sorting and pagination. Numbe
 and Favorite have dedicated controls in the table and phone cards; number changes
 save on Enter/blur and blank clears the number. Keep remaining row actions intact.
 Playlist shows the selected stream format and expands the shared
-`StreamLinkFormatsSection` inline, preserving playlist options. Settings retains
-its Stream links entry because formats also affect copied links and supported
-remote-player actions. Do not fork the format editor or duplicate its API logic.
+`StreamLinkFormatsSection` inline, preserving playlist options. The TV dashboard's
+Playlist button opens `components/playlist/PlaylistDialog`, which composes the same
+`usePlaylistLink` hook, `PlaylistOptionsForm`, `PlaylistLinkPanel` and formats
+editor as the page (link first, then options); never fork the option logic.
+Playlist group filters are repeated query parameters (`include_groups=` per group);
+`split_groups` splits a value on commas only when it is not itself a known group.
+Settings retains its Stream links entry because formats also affect copied links
+and supported remote-player actions. Do not fork the format editor or duplicate
+its API logic.
 
 TV Channels keeps Search, Category, Status and Favorite filters visible; other
 filters live under Advanced filters with an active count. Reorder channels shows

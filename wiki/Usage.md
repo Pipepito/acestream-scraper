@@ -181,7 +181,11 @@ players to fetch XMLTV; handle downloaded playlists like the protected URL.
 
 ## Step 7: Build the playlist URL
 
-Open **Playlist**.
+Select **Playlist** on the TV dashboard. The dialog shows the link first, with
+Copy, Download and QR code, then the options below and the link-formats editor
+behind **Manage link formats**, so nothing requires leaving the dashboard. The
+same options are available on the **Playlist** page under Manage, which also
+shows programme-guide coverage.
 
 1. Optionally filter by channel name.
 2. Choose whether to include only online channels or only favorite TV channels.
@@ -191,7 +195,7 @@ Open **Playlist**.
 6. Expand **Group filters** to include or exclude categories.
 7. Copy the generated URL or select **Download M3U**.
 
-The canonical player-facing endpoint is `/playlists/m3u`. The web page may generate the equivalent versioned API URL so it can include every selected option.
+The canonical player-facing endpoint is `/playlists/m3u`. The web page may generate the equivalent versioned API URL so it can include every selected option. Group filters repeat the parameter per group (`include_groups=News&include_groups=Sports`); a single comma-separated value still works unless a group name itself contains a comma.
 
 ![Playlist page with filters and the generated M3U URL hidden](usage-06-playlist.png)
 

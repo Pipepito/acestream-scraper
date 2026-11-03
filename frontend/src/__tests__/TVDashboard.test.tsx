@@ -11,9 +11,25 @@ const mockStats = jest.fn();
 const mockTvStats = jest.fn();
 const mockTasks = jest.fn();
 const mockPlayback = jest.fn();
-jest.mock('../hooks/useConfig', () => ({ useStats: () => mockStats(), useTvChannelStats: () => mockTvStats() }));
+const idleMutation = () => ({ isPending: false, mutateAsync: jest.fn(), mutate: jest.fn() });
+jest.mock('../hooks/useConfig', () => ({ useStats: () => mockStats(), useTvChannelStats: () => mockTvStats(),
+  useBaseUrl: () => ({ data: 'acestream://', isLoading: false }), useUpdateBaseUrl: () => idleMutation() }));
 jest.mock('../hooks/useDashboard', () => ({ useBackgroundTaskStatus: () => mockTasks() }));
 jest.mock('../hooks/usePlayer', () => ({ useActiveStreams: () => mockPlayback() }));
+jest.mock('../hooks/usePlaylists', () => ({
+  ...jest.requireActual('../hooks/usePlaylists'),
+  useChannelGroups: () => ({ data: ['News', 'Sports'], isLoading: false }),
+  usePlaylistChannelSummary: () => ({ data: { total_channels: 48, online: 12, offline: 30, unknown: 6 } }),
+}));
+jest.mock('../hooks/useBaseUrls', () => ({
+  ...jest.requireActual('../hooks/useBaseUrls'),
+  useBaseUrls: () => ({ data: [{ id: 1, name: 'Ace player', pattern: 'acestream://', is_default: true }], isLoading: false, isError: false }),
+  useCreateBaseUrl: () => idleMutation(), usePatchBaseUrl: () => idleMutation(), useDeleteBaseUrl: () => idleMutation(),
+}));
+jest.mock('../hooks/useSystemServices', () => ({
+  ...jest.requireActual('../hooks/useSystemServices'),
+  usePublicUrl: () => ({ data: { url: 'http://scraper.lan:8000', source: 'setting', warnings: [] }, isLoading: false }),
+}));
 const query = (data: unknown) => ({ data, error: null, refetch: jest.fn() });
 const renderPage = (mode: 'light' | 'dark' = 'light') => render(<QueryClientProvider client={new QueryClient()}><ThemeProvider theme={createAppTheme(mode)}><TestMemoryRouter><TVDashboard /></TestMemoryRouter></ThemeProvider></QueryClientProvider>);
 
@@ -40,6 +56,18 @@ it.each(['light', 'dark'] as const)('leads with TV and content, with links to wa
   expect(screen.queryByRole('table')).not.toBeInTheDocument();
   expect(jobs).not.toHaveTextContent('Remove stale channels');
   expect(screen.queryByRole('heading', { name: 'Services' })).not.toBeInTheDocument();
+});
+
+it('opens the playlist dialog with the link, options and formats without leaving the dashboard', async () => {
+  renderPage();
+  fireEvent.click(screen.getByRole('button', { name: 'Playlist' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Your playlist' });
+  expect((within(dialog).getByRole('textbox', { name: 'Playlist URL' }) as HTMLInputElement).value).toMatch(/^http:\/\/scraper\.lan:8000\/api\/v1\/playlists\/m3u\?/);
+  expect(within(dialog).getByRole('checkbox', { name: 'Only online channels' })).toBeInTheDocument();
+  expect(within(dialog).getByRole('link', { name: 'Download M3U' })).toHaveAttribute('href', expect.stringContaining('/api/v1/playlists/m3u?'));
+  fireEvent.click(within(dialog).getByRole('button', { name: /link formats/ }));
+  expect(await within(dialog).findByRole('heading', { name: 'Stream link formats' })).toBeVisible();
+  expect(within(dialog).queryByRole('link', { name: /playlist/i })).not.toBeInTheDocument();
 });
 
 it('shows browser and relay facts, but only counts playing sessions', () => {

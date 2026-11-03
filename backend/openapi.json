@@ -20769,7 +20769,7 @@
     },
     "/api/v1/playlists/m3u": {
       "get": {
-        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Comma-separated list of groups to include\n- **exclude_groups**: Comma-separated list of groups to exclude\n- **refresh**: Trigger a background rescrape of all enabled URLs",
+        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Groups to include; repeat the parameter per group (a comma list also works)\n- **exclude_groups**: Groups to exclude; repeat the parameter per group (a comma list also works)\n- **refresh**: Trigger a background rescrape of all enabled URLs",
         "operationId": "get_m3u_playlist_api_v1_playlists_m3u_get",
         "parameters": [
           {
@@ -20861,7 +20861,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
@@ -20877,7 +20880,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
@@ -21067,7 +21073,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
@@ -21083,7 +21092,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"

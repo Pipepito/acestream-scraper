@@ -338,6 +338,23 @@ def test_open_mode_env_enforces_home_gate(access_client, monkeypatch):
         get_settings.cache_clear()
 
 
+def test_accounts_remote_casting_keeps_request_origin_as_media_url(access_client):
+    import main
+    _, repo = access_client
+    client = TestClient(main.app, base_url='https://app.test', client=('8.8.4.4', 1234))
+    try:
+        client.headers['X-CSRF-Token'] = client.get('/api/v1/auth/status').json()['csrf']
+        enable(client)
+        repo.update_policy({'remote_casting': True})
+        capabilities = client.get('/api/v1/cast/capabilities').json()
+        # Accounts mode is unchanged by the open-mode hardening: an authenticated remote
+        # caster still gets the receiver address from the request origin.
+        assert capabilities['server_devices'] is True and capabilities['home_check'] == 'accounts'
+        assert capabilities['media_url_configured'] is True and capabilities['media_url'] == 'https://app.test'
+    finally:
+        client.close()
+
+
 def test_public_https_home_connection_can_be_trusted_without_remote_control(access_client):
     import main
     _, repo = access_client

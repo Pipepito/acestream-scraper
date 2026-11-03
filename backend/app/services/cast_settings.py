@@ -43,9 +43,11 @@ def media_base(request):
     policy = request.state.access_policy
     if policy.cast_media_url:
         return policy.cast_media_url
-    # Only a recognized home connection may hand the receiver its own request
-    # origin; any other visitor's Host header never reaches a TV.
-    if not home_client(request):
+    # In an open installation only a recognized home connection may hand the
+    # receiver its own request origin; an anonymous outsider's Host header never
+    # reaches a TV. Accounts mode is unchanged: its remote-casting users are
+    # authenticated and explicitly opted in.
+    if request.state.access_mode == 'open' and not home_client(request):
         return ''
     value = request_origin(request) + request.scope.get('root_path', '').rstrip('/')
     return '' if host_warnings(value) else value

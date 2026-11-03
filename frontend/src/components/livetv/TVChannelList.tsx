@@ -53,8 +53,9 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
       </Stack>
     </Stack>
     {fallback ? null : <NowNextLines row={row} hasGuide={hasGuide} />}
-    {/* Same slot in every state, so an opened guide (and its dialogs) survives the batch loading or failing. */}
-    {hasGuide || fallback ? <ChannelGuide channel={channel} now={now} compact nowNext={fallback ? undefined : row} expanderOnly={!fallback} /> : null}
+    {/* Same slot in every state, so an opened guide (and its dialogs) survives the batch loading or failing.
+        While the batch loads, `null` keeps the guide's own per-channel queries off: the batch is the only read. */}
+    {hasGuide || fallback ? <ChannelGuide channel={channel} now={now} compact nowNext={fallback ? undefined : (row ?? null)} expanderOnly={!fallback} /> : null}
   </Box>;
 };
 

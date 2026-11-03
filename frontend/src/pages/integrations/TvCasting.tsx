@@ -100,7 +100,7 @@ export default function TvCasting() {
           {devices.data?.length ? <List disablePadding>{devices.data.map(tv => <ListItem key={tv.id} disableGutters><ListItemText primary={tv.name} secondary={tv.model} /></ListItem>)}</List> : <Typography variant="body2">{searched ? 'No Google Cast TVs found. Turn on the TV and enable Google Cast. Docker may need host networking for multicast discovery.' : 'Listening for TVs on your home network. Find TVs also checks the local network when multicast is unavailable.'}</Typography>}
           <Typography variant="body2">Use Send to player beside a channel in Live TV to cast directly to a TV. Casting options includes playback controls and compatibility settings.</Typography>
           <Box><Button component={RouterLink} to="/live-tv">Open Live TV</Button></Box>
-          {capabilities.data?.media_url_configured ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Video address: {capabilities.data.media_url}</Typography> : <Alert severity="info">Open the app using its home-network or HTTPS address so the TV can fetch video.</Alert>}
+          {capabilities.data?.media_url_configured ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Video address: {capabilities.data.media_url}</Typography> : <Alert severity="info">{capabilities.data?.home_connection ? 'Open the app using its home-network or HTTPS address so the TV can fetch video.' : 'From this connection the TV needs a fixed address: set Application address for TVs under Advanced connection settings, or open the app from your home network.'}</Alert>}
         </> : null}
         {error ? <Alert severity="error">{error}</Alert> : null}
       </Stack>

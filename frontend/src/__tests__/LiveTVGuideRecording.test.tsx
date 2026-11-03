@@ -16,6 +16,8 @@ const mockCatalog = jest.fn();
 const mockPlayer = jest.fn();
 jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => mockCatalog(), useTVChannel: () => ({}) }));
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannels: () => ({ data: { items: [], total: 0 } }) }));
+// The batched Now/Next read failed here, so rows fall back to their own guide queries (mocked below).
+jest.mock('../hooks/useNowNext', () => ({ useNowNext: () => ({ data: undefined, isError: true }) }));
 jest.mock('../hooks/useEPG', () => ({ useResolveEPGChannel: () => ({ data: { id: 10 } }), useEPGPrograms: () => ({ data: [programme] }) }));
 jest.mock('../components/player/PlayOnMenu', () => ({ __esModule: true, default: () => null }));
 jest.mock('../components/player/ChannelPlayerDialog', () => ({ __esModule: true, default: (props: { open: boolean }) => { mockPlayer(props.open); return null; } }));

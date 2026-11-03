@@ -177,7 +177,7 @@ def test_tuner_settings_response_contract(client):
     assert response.status_code == 200
     body = response.json()
     assert set(body) == {
-        "friendly_name", "tuner_count", "max_channels", "only_online",
+        "friendly_name", "tuner_count", "max_channels", "only_online", "hide_unusable",
         "experimental_transcoding", "plex_compatible_audio",
         "source_start_seconds", "startup_budget_seconds",
     }

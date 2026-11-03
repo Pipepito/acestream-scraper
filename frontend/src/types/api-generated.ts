@@ -276,6 +276,27 @@ export interface paths {
     /** Preview Event */
     post: operations["preview_event_api_v1_catalogues__catalogue_id__events_preview_post"];
   };
+  "/api/v1/catalogues/{catalogue_id}/folder-matches/apply": {
+    /**
+     * Apply Folder Matches
+     * @description Apply the chosen folder assignments in one transaction; a vanished folder or TV channel rejects the whole request.
+     */
+    post: operations["apply_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_apply_post"];
+  };
+  "/api/v1/catalogues/{catalogue_id}/folder-matches/preview": {
+    /**
+     * Preview Folder Matches
+     * @description Read-only: which folders match a TV channel by name, which are already assigned, which need a choice.
+     */
+    post: operations["preview_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_preview_post"];
+  };
+  "/api/v1/catalogues/{catalogue_id}/folders/{entry_id}/tv-channel": {
+    /**
+     * Assign Folder
+     * @description Assign every imported stream under the folder (descendants included) to one TV channel.
+     */
+    post: operations["assign_folder_api_v1_catalogues__catalogue_id__folders__entry_id__tv_channel_post"];
+  };
   "/api/v1/channels/": {
     /**
      * Get Acestream Channels
@@ -3860,6 +3881,136 @@ export interface components {
        */
       version?: string;
     };
+    /** FolderApplyRow */
+    FolderApplyRow: {
+      /**
+       * Already
+       * @default 0
+       */
+      already?: number;
+      /**
+       * Assigned
+       * @default 0
+       */
+      assigned?: number;
+      /** Folder Id */
+      folder_id: string;
+      /**
+       * Moved
+       * @default 0
+       */
+      moved?: number;
+      /**
+       * Note
+       * @default
+       */
+      note?: string;
+      /**
+       * Skipped Not Imported
+       * @default 0
+       */
+      skipped_not_imported?: number;
+      /**
+       * Skipped Other Channel
+       * @default 0
+       */
+      skipped_other_channel?: number;
+      tv_channel?: components["schemas"]["TVChannelRef"] | null;
+    };
+    /**
+     * FolderAssignRequest
+     * @description Assign every imported stream under a folder to one TV channel: an existing one or a new one named here.
+     */
+    FolderAssignRequest: {
+      /** Create Name */
+      create_name?: string | null;
+      /**
+       * Reassign
+       * @default false
+       */
+      reassign?: boolean;
+      /** Tv Channel Id */
+      tv_channel_id?: number | null;
+    };
+    /** FolderAssignResult */
+    FolderAssignResult: {
+      /**
+       * Already
+       * @default 0
+       */
+      already?: number;
+      /**
+       * Assigned
+       * @default 0
+       */
+      assigned?: number;
+      /**
+       * Moved
+       * @default 0
+       */
+      moved?: number;
+      /**
+       * Skipped Not Imported
+       * @default 0
+       */
+      skipped_not_imported?: number;
+      /**
+       * Skipped Other Channel
+       * @default 0
+       */
+      skipped_other_channel?: number;
+      tv_channel: components["schemas"]["TVChannelRef"];
+    };
+    /** FolderMatchApplyRequest */
+    FolderMatchApplyRequest: {
+      /** Assignments */
+      assignments: components["schemas"]["FolderMatchAssignment"][];
+      /**
+       * Reassign
+       * @default false
+       */
+      reassign?: boolean;
+    };
+    /** FolderMatchApplyResult */
+    FolderMatchApplyResult: {
+      /** Results */
+      results: components["schemas"]["FolderApplyRow"][];
+    };
+    /** FolderMatchAssignment */
+    FolderMatchAssignment: {
+      /**
+       * Create
+       * @default false
+       */
+      create?: boolean;
+      /** Folder Id */
+      folder_id: string;
+      /** Tv Channel Id */
+      tv_channel_id?: number | null;
+    };
+    /** FolderMatchPreview */
+    FolderMatchPreview: {
+      /** Rows */
+      rows: components["schemas"]["FolderMatchRow"][];
+    };
+    /** FolderMatchRow */
+    FolderMatchRow: {
+      candidate?: components["schemas"]["TVChannelRef"] | null;
+      current?: components["schemas"]["TVChannelRef"] | null;
+      /** Folder Id */
+      folder_id: string;
+      /** Name */
+      name: string;
+      /** Path */
+      path: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "match" | "ambiguous" | "none" | "assigned";
+      /** Stream Count */
+      stream_count: number;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -5964,6 +6115,13 @@ export interface components {
       items: components["schemas"]["TVChannelResponse"][];
       /** Total */
       total: number;
+    };
+    /** TVChannelRef */
+    TVChannelRef: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
     };
     /**
      * TVChannelReorderRequest
@@ -8073,6 +8231,92 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["EventPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Apply Folder Matches
+   * @description Apply the chosen folder assignments in one transaction; a vanished folder or TV channel rejects the whole request.
+   */
+  apply_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_apply_post: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FolderMatchApplyRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["FolderMatchApplyResult"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Preview Folder Matches
+   * @description Read-only: which folders match a TV channel by name, which are already assigned, which need a choice.
+   */
+  preview_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_preview_post: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["FolderMatchPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Assign Folder
+   * @description Assign every imported stream under the folder (descendants included) to one TV channel.
+   */
+  assign_folder_api_v1_catalogues__catalogue_id__folders__entry_id__tv_channel_post: {
+    parameters: {
+      path: {
+        catalogue_id: number;
+        entry_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FolderAssignRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["FolderAssignResult"];
         };
       };
       /** @description Validation Error */

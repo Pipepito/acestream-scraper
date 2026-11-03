@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,6 +10,8 @@ import Catalogues from '../pages/Catalogues';
 import { catalogueService, type CatalogueView } from '../services/catalogueService';
 
 jest.mock('../services/catalogueService');
+const mockTvCatalog = jest.fn();
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => mockTvCatalog() }));
 jest.mock('../components/player/ChannelPlayerDialog', () => function MockPlayer({ open, contentId, onClose }: { open: boolean; contentId: string; onClose: () => void }) { return open
   ? <div role="dialog" aria-label="Player">{contentId}<button onClick={onClose}>Stop watching</button></div> : null; });
 const mocked = jest.mocked(catalogueService);
@@ -42,6 +44,44 @@ beforeEach(() => {
   jest.clearAllMocks(); localStorage.clear();
   mocked.list.mockResolvedValue([]); mocked.preview.mockResolvedValue(fixture);
   mocked.save.mockResolvedValue(saved); mocked.get.mockResolvedValue(saved);
+  mockTvCatalog.mockReturnValue({ data: [{ id: 9, name: 'Other TV', is_active: true, acestream_channels: [] }], isLoading: false, isError: false, refetch: jest.fn() });
+});
+
+it('assigns a folder to a new TV channel named after it and offers to move conflicts', async () => {
+  mocked.assignFolder.mockResolvedValueOnce({ tv_channel: { id: 9, name: 'Live channels' }, assigned: 3, already: 0, moved: 0, skipped_other_channel: 1, skipped_not_imported: 0 })
+    .mockResolvedValueOnce({ tv_channel: { id: 9, name: 'Live channels' }, assigned: 0, already: 3, moved: 1, skipped_other_channel: 0, skipped_not_imported: 0 });
+  renderPage('/catalogues?catalogue=1');
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: 'More actions for Live channels' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Assign streams to TV channel…' }));
+  await user.click(screen.getByRole('combobox', { name: 'TV Channel' }));
+  await user.click(await screen.findByRole('option', { name: /Create TV channel 'Live channels'/ }));
+  await user.click(screen.getByRole('button', { name: 'Assign' }));
+  await waitFor(() => expect(mocked.assignFolder).toHaveBeenCalledWith(1, 'live', { create_name: 'Live channels', reassign: false }));
+  expect(await screen.findByText('3 streams assigned to Live channels. 1 stream is on another TV channel.')).toBeVisible();
+  await user.click(await screen.findByRole('button', { name: 'Move them too' }));
+  await waitFor(() => expect(mocked.assignFolder).toHaveBeenLastCalledWith(1, 'live', { tv_channel_id: 9, reassign: true }));
+  expect(await screen.findByText('1 stream moved to Live channels.')).toBeVisible();
+});
+
+it('previews folder matches and applies the checked rows', async () => {
+  mocked.folderMatches.mockResolvedValue({ rows: [
+    { folder_id: 'live', name: 'Live channels', path: 'Live channels', stream_count: 3, candidate: { id: 4, name: 'Live channels' }, current: null, status: 'match' },
+    { folder_id: 'news', name: 'News', path: 'News', stream_count: 1, candidate: null, current: null, status: 'none' },
+    { folder_id: 'dup', name: 'Dup', path: 'Dup', stream_count: 1, candidate: null, current: null, status: 'ambiguous' },
+    { folder_id: 'done', name: 'Done', path: 'Done', stream_count: 2, candidate: null, current: { id: 9, name: 'Other TV' }, status: 'assigned' }] });
+  mocked.applyFolderMatches.mockResolvedValue({ results: [{ folder_id: 'live', tv_channel: { id: 4, name: 'Live channels' }, assigned: 3, already: 0, moved: 0, skipped_other_channel: 0, skipped_not_imported: 0, note: '' },
+    { folder_id: 'news', tv_channel: { id: 12, name: 'News' }, assigned: 1, already: 0, moved: 0, skipped_other_channel: 0, skipped_not_imported: 0, note: '' }] });
+  renderPage('/catalogues?catalogue=1');
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: 'Match folders to TV channels' }));
+  expect(await screen.findByRole('checkbox', { name: 'Assign Live channels to Live channels' })).toBeChecked();
+  await user.click(screen.getByRole('checkbox', { name: 'Create TV channel News' }));
+  expect(screen.getByText(/more than one TV channel matches/i)).toBeInTheDocument();
+  expect(screen.getByText('Already on Other TV')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Apply matches' }));
+  await waitFor(() => expect(mocked.applyFolderMatches).toHaveBeenCalledWith(1, { assignments: [{ folder_id: 'live', tv_channel_id: 4 }, { folder_id: 'news', create: true }], reassign: false }));
+  expect(await screen.findByText('4 streams assigned across 2 folders.')).toBeVisible();
 });
 
 it.each(['light', 'dark'] as const)('reviews branches and imports through the API in %s mode', async (mode) => {

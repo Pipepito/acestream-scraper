@@ -16,7 +16,17 @@ process-local, bounded, expiring token. Public DTOs whitelist fields; raw source
 URLs and header values remain private. Invalid request validation also excludes
 input values. A save requires the original catalogue revision. Imports use
 `ChannelRepository.create_or_update_channel`; existing channels are not mutated
-and no TV rows are fabricated. W3U-owned HTTP entries remain browser-only and
+and import fabricates no TV rows. Explicit folder assignment lives beside it:
+`POST /catalogues/{id}/folders/{entry_id}/tv-channel` assigns the imported,
+compatible, live **descendant** streams of a folder (`folder_streams`, deduped on
+`channel_id`) to an existing TV channel or a new one created directly in the same
+transaction (no name-based auto-association); rows on another TV channel are
+skipped unless `reassign`. `POST /catalogues/{id}/folder-matches/preview` lists
+folders that hold imported streams or whose name matches an active TV channel
+(`normalize_name` + `name_score(allow_unknown_country=True)`), with statuses
+`match | none | ambiguous | assigned`; `.../apply` runs the chosen rows deepest
+folder first in one transaction, skips streams already handled in the pass, and
+rejects the whole request with 409 when a folder or TV channel disappeared. W3U-owned HTTP entries remain browser-only and
 are omitted from playlist exports to protect private input URLs and headers. Migration `20261022_1200` adds only the
 `w3u_catalogues` table. Its JSON snapshot is version-owned by the catalogue row;
 refresh never deletes channels. See the [operator contract](../../wiki/W3U-Catalogues.md)

@@ -209,6 +209,19 @@ class ChannelRepository:
         else:
             self.db.commit()
         return updated
+    def move_acestreams_to_tv_channel(self, acestream_ids: list, tv_channel_id: int) -> int:
+        """Move streams that belong to another TV channel; their order resets for the new lineup. Flush only."""
+        if not acestream_ids:
+            return 0
+        moved = (
+            self.db.query(AcestreamChannel)
+            .filter(AcestreamChannel.id.in_(acestream_ids), AcestreamChannel.tv_channel_id.isnot(None),
+                    AcestreamChannel.tv_channel_id != tv_channel_id)
+            .update({"tv_channel_id": tv_channel_id, "stream_order": None}, synchronize_session=False)
+        )
+        self.db.flush()
+        return moved
+
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
         """Get a TV channel by EPG ID"""
         return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).first()

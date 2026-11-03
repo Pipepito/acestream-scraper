@@ -15,7 +15,8 @@ const mockUsePatchURL = jest.fn();
 const mockUseDeleteURL = jest.fn();
 const mockUseScrapeAllURLs = jest.fn();
 
-jest.mock('../services/catalogueService', () => ({ catalogueService: { list: jest.fn().mockResolvedValue([]), get: jest.fn(), preview: jest.fn(), save: jest.fn(), previewEvent: jest.fn(), remove: jest.fn() } }));
+jest.mock('../services/catalogueService', () => ({ catalogueService: { list: jest.fn().mockResolvedValue([]), get: jest.fn(), preview: jest.fn(), save: jest.fn(), previewEvent: jest.fn(), remove: jest.fn(), assignFolder: jest.fn(), folderMatches: jest.fn(), applyFolderMatches: jest.fn() } }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => ({ data: [], isLoading: false, isError: false, refetch: jest.fn() }) }));
 jest.mock('../hooks/useScrapers', () => ({
   useURLs: (...args: unknown[]) => mockUseURLs(...args),
   useCreateURL: (...args: unknown[]) => mockUseCreateURL(...args),

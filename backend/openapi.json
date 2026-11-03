@@ -5568,6 +5568,279 @@
         "title": "ExtractionRecipe",
         "type": "object"
       },
+      "FolderApplyRow": {
+        "properties": {
+          "already": {
+            "default": 0,
+            "title": "Already",
+            "type": "integer"
+          },
+          "assigned": {
+            "default": 0,
+            "title": "Assigned",
+            "type": "integer"
+          },
+          "folder_id": {
+            "title": "Folder Id",
+            "type": "string"
+          },
+          "moved": {
+            "default": 0,
+            "title": "Moved",
+            "type": "integer"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "skipped_not_imported": {
+            "default": 0,
+            "title": "Skipped Not Imported",
+            "type": "integer"
+          },
+          "skipped_other_channel": {
+            "default": 0,
+            "title": "Skipped Other Channel",
+            "type": "integer"
+          },
+          "tv_channel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TVChannelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "folder_id"
+        ],
+        "title": "FolderApplyRow",
+        "type": "object"
+      },
+      "FolderAssignRequest": {
+        "description": "Assign every imported stream under a folder to one TV channel: an existing one or a new one named here.",
+        "properties": {
+          "create_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Create Name"
+          },
+          "reassign": {
+            "default": false,
+            "title": "Reassign",
+            "type": "boolean"
+          },
+          "tv_channel_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tv Channel Id"
+          }
+        },
+        "title": "FolderAssignRequest",
+        "type": "object"
+      },
+      "FolderAssignResult": {
+        "properties": {
+          "already": {
+            "default": 0,
+            "title": "Already",
+            "type": "integer"
+          },
+          "assigned": {
+            "default": 0,
+            "title": "Assigned",
+            "type": "integer"
+          },
+          "moved": {
+            "default": 0,
+            "title": "Moved",
+            "type": "integer"
+          },
+          "skipped_not_imported": {
+            "default": 0,
+            "title": "Skipped Not Imported",
+            "type": "integer"
+          },
+          "skipped_other_channel": {
+            "default": 0,
+            "title": "Skipped Other Channel",
+            "type": "integer"
+          },
+          "tv_channel": {
+            "$ref": "#/components/schemas/TVChannelRef"
+          }
+        },
+        "required": [
+          "tv_channel"
+        ],
+        "title": "FolderAssignResult",
+        "type": "object"
+      },
+      "FolderMatchApplyRequest": {
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/FolderMatchAssignment"
+            },
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Assignments",
+            "type": "array"
+          },
+          "reassign": {
+            "default": false,
+            "title": "Reassign",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "assignments"
+        ],
+        "title": "FolderMatchApplyRequest",
+        "type": "object"
+      },
+      "FolderMatchApplyResult": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/FolderApplyRow"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "FolderMatchApplyResult",
+        "type": "object"
+      },
+      "FolderMatchAssignment": {
+        "properties": {
+          "create": {
+            "default": false,
+            "title": "Create",
+            "type": "boolean"
+          },
+          "folder_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Folder Id",
+            "type": "string"
+          },
+          "tv_channel_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tv Channel Id"
+          }
+        },
+        "required": [
+          "folder_id"
+        ],
+        "title": "FolderMatchAssignment",
+        "type": "object"
+      },
+      "FolderMatchPreview": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FolderMatchRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "FolderMatchPreview",
+        "type": "object"
+      },
+      "FolderMatchRow": {
+        "properties": {
+          "candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TVChannelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TVChannelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "folder_id": {
+            "title": "Folder Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "match",
+              "ambiguous",
+              "none",
+              "assigned"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "stream_count": {
+            "title": "Stream Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id",
+          "name",
+          "path",
+          "stream_count",
+          "status"
+        ],
+        "title": "FolderMatchRow",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -10817,6 +11090,24 @@
         "title": "TVChannelListResponse",
         "type": "object"
       },
+      "TVChannelRef": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TVChannelRef",
+        "type": "object"
+      },
       "TVChannelReorderRequest": {
         "description": "Complete inventory in the desired order; saved as numbers 1 through N.",
         "properties": {
@@ -15915,6 +16206,164 @@
           }
         },
         "summary": "Preview Event",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}/folder-matches/apply": {
+      "post": {
+        "description": "Apply the chosen folder assignments in one transaction; a vanished folder or TV channel rejects the whole request.",
+        "operationId": "apply_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderMatchApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderMatchApplyResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Folder Matches",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}/folder-matches/preview": {
+      "post": {
+        "description": "Read-only: which folders match a TV channel by name, which are already assigned, which need a choice.",
+        "operationId": "preview_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderMatchPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Folder Matches",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}/folders/{entry_id}/tv-channel": {
+      "post": {
+        "description": "Assign every imported stream under the folder (descendants included) to one TV channel.",
+        "operationId": "assign_folder_api_v1_catalogues__catalogue_id__folders__entry_id__tv_channel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderAssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderAssignResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assign Folder",
         "tags": [
           "catalogues"
         ]

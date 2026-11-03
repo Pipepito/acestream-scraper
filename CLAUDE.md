@@ -646,7 +646,7 @@ See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
 
 ## W3U catalogues
 
-Scraper → W3U catalogues (`/scraper?tab=w3u`; `/catalogues` redirects) keeps W3U hierarchy separate from TV assignments. Preview is read-only;
+Scraper → W3U catalogues (`/scraper?tab=w3u`; `/catalogues` redirects) keeps W3U hierarchy separate from TV assignments: import never assigns, but the explicit folder actions do (`POST /catalogues/{id}/folders/{entry_id}/tv-channel` for one folder's descendant streams with create/reassign options, `folder-matches/preview|apply` for a reviewed catalogue-wide pass, deepest folder first, atomic, 409 on vanished rows). Preview is read-only;
 opaque expiring tokens and catalogue revisions protect save. Traverse only bounded
 structured child documents through `outbound_http.source_session`; never execute
 publisher scripts or treat arbitrary page/image URLs as media. Imports reuse the

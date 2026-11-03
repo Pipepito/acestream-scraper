@@ -15,7 +15,7 @@ import { getErrorMessage } from '../utils/errorUtils';
 import BulkOperations from '../components/BulkOperations';
 import BatchAssignDialog from '../components/BatchAssignDialog';
 import QuickEditDialog, { type QuickEditChannel, type QuickEditValues } from '../components/QuickEditDialog';
-import AssignTVChannelDialog from '../components/AssignTVChannelDialog';
+import AssignTVChannelDialog, { type AssignChoice } from '../components/AssignTVChannelDialog';
 import { useTVChannelCatalog } from '../hooks/useTVChannels';
 import { tvChannelService } from '../services/tvChannelService';
 import PageHeader from '../components/layout/PageHeader';
@@ -213,7 +213,9 @@ const AcestreamChannels: React.FC = () => {
     setAssignError(null);
   };
 
-  const handleAssignTVChannel = async (tvChannelId: number) => {
+  const handleAssignTVChannel = async (choice: AssignChoice) => {
+    if (!('tvChannelId' in choice)) return;
+    const tvChannelId = choice.tvChannelId;
     setAssigning(true);
     setAssignError(null);
     try {

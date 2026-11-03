@@ -52,12 +52,9 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
         <PlayOnMenu contentId={channel.acestream_channels[0].id} title={channel.name} label="Send to player" />
       </Stack>
     </Stack>
-    {fallback
-      ? <ChannelGuide channel={channel} now={now} compact />
-      : <>
-        <NowNextLines row={row} hasGuide={hasGuide} />
-        {hasGuide ? <ChannelGuide channel={channel} now={now} compact nowNext={row} expanderOnly /> : null}
-      </>}
+    {fallback ? null : <NowNextLines row={row} hasGuide={hasGuide} />}
+    {/* Same slot in every state, so an opened guide (and its dialogs) survives the batch loading or failing. */}
+    {hasGuide || fallback ? <ChannelGuide channel={channel} now={now} compact nowNext={fallback ? undefined : row} expanderOnly={!fallback} /> : null}
   </Box>;
 };
 

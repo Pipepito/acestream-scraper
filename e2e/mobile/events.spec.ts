@@ -25,6 +25,7 @@ for (const mode of ['light', 'dark']) {
       let json: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
       if (path === '/api/v1/events/sources') json = [];
       if (path === '/api/v1/events/broadcast-targets') json = [];
+      if (path === '/api/v1/events/broadcaster-links') json = [];
       if (path === '/api/v1/events/retention') {
         json = { ended_days: 0, archived_days: 0 };
         if (route.request().method() === 'PATCH') { retained = true; json = route.request().postDataJSON(); }

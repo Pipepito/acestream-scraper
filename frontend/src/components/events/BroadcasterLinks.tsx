@@ -17,14 +17,16 @@ export default function BroadcasterLinks() {
   const links = useQuery({ queryKey: ['events', 'broadcaster-links'], queryFn: eventService.broadcasterLinks });
   const remove = useMutation({ mutationFn: (link: BroadcasterLinkView) => eventService.deleteBroadcasterLink(link.id),
     onSuccess: () => { void cache.invalidateQueries({ queryKey: ['events'] }); } });
+  // A non-array body (proxy error page, stale mock) must not take the whole panel down.
+  const rows: BroadcasterLinkView[] = Array.isArray(links.data) ? links.data : [];
   return <Stack spacing={1.5}>
     {dialog}
     <Typography variant="subtitle1">Broadcaster links</Typography>
     <Typography variant="body2">Linking a broadcaster from an event with Apply to all events checked saves it here and applies it to every event from that source, now and after refreshes.</Typography>
     {remove.isError ? <Alert severity="error">{getErrorMessage(remove.error)}</Alert> : null}
     {links.isPending ? <CircularProgress aria-label="Loading broadcaster links" /> : links.isError ? <Alert severity="error" action={<Button onClick={() => void links.refetch()}>Retry links</Button>}>Could not load broadcaster links.</Alert>
-      : links.data.length === 0 ? <Typography variant="body2">No broadcaster links yet. Link a broadcaster from an event with Apply to all events checked.</Typography>
-      : links.data.map((link) => <Stack key={link.id} direction="row" spacing={2} alignItems="center" sx={{ overflowWrap: 'anywhere' }}>
+      : rows.length === 0 ? <Typography variant="body2">No broadcaster links yet. Link a broadcaster from an event with Apply to all events checked.</Typography>
+      : rows.map((link) => <Stack key={link.id} direction="row" spacing={2} alignItems="center" sx={{ overflowWrap: 'anywhere' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}><Typography>{describe(link)}</Typography></Box>
         <Button color="error" aria-label={`Remove link for ${link.label}`} disabled={remove.isPending} onClick={async () => {
           if (await confirm({ title: `Remove link for ${link.label}?`, body: 'Events from this source go back to automatic matching for this broadcaster.', confirmLabel: 'Remove link', danger: true })) remove.mutate(link);

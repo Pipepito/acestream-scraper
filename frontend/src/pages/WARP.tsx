@@ -144,8 +144,10 @@ const WarpPage: React.FC = () => {
 
       {!running ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          WARP is not running in this container. Start it with <code>ENABLE_WARP=true</code> and give the container the <code>NET_ADMIN</code> and{' '}
-          <code>SYS_ADMIN</code> capabilities (see the README). Restart it from the Services panel on System status once enabled.
+          WARP is not running in this container. Enable it with <code>ENABLE_WARP=true</code>.
+          DNS-only startup uses <code>WARP_DNS_ONLY=true</code> and needs <code>NET_ADMIN</code>.
+          Full tunneling also needs <code>/dev/net/tun</code>. Neither mode needs <code>SYS_ADMIN</code> with the current client.
+          Recreate the container if permissions or devices are missing; saving app settings cannot add them.
         </Alert>
       ) : null}
 

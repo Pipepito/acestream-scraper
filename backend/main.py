@@ -222,6 +222,13 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             startup_service.fail(exc, database=False)
             return
+        # Entrypoint keeps the HTTP process alive after WARP setup failures.
+        # Preserve access-store initialization above, but do not migrate the
+        # catalogue, start jobs, or permit media/source APIs on the direct route.
+        if os.environ.get('SCRAPER_WARP_STARTUP_ERROR'):
+            from warp_prerequisites import WarpStartupError
+            startup_service.fail(WarpStartupError(), database=False)
+            return
         try:
             if data_lock is None:
                 path = database_path()

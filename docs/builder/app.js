@@ -40,6 +40,7 @@
     engine: true,
     acexy: true,
     warp: false,
+    warpDnsOnly: false,
     xdpDns: false,
     zeronet: false,
     zeronetEmbedded: true,
@@ -68,6 +69,8 @@
     const checkEngineOn = engineOn && state.runtimeSettings.dedicatedCheckEngine === true;
     const acexyOn = imageHasAcexy && state.acexy;
     const warpOn = platform.warpAvailable && state.warp;
+    // Older releases do not understand this option and would start a tunnel.
+    const warpDnsOnly = warpOn && state.channel === 'develop' && state.warpDnsOnly;
     const needsExternalEngine = acexyOn && !engineOn;
     const ipfsEmbeddedOn = state.ipfs && state.ipfsEmbedded && platform.ipfsAvailable;
     const ipfsExternalOn = state.ipfs && !ipfsEmbeddedOn;
@@ -93,7 +96,7 @@
       return false;
     });
 
-    return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, checkEngineOn, acexyOn, warpOn, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
+    return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, checkEngineOn, acexyOn, warpOn, warpDnsOnly, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
   }
 
   function valueAtPath(path) {
@@ -171,6 +174,7 @@
     if (d.warpOn) {
       env.push(['ENABLE_WARP', 'true']);
       env.push(['WARP_ENABLE_NAT', 'true']);
+      if (d.warpDnsOnly) env.push(['WARP_DNS_ONLY', 'true']);
     }
     if (d.zeronetEmbeddedOn) env.push(['ENABLE_ZERONET', 'true']);
     if (d.zeronetExternalOn) env.push(['ZERONET_URL', state.zeronetUrl.trim() || data.zeronet.defaultUrl]);
@@ -260,8 +264,10 @@
     if (state.xdpDns) lines.push(`  --dns=${shellQuote(data.xdpDns.address)} \\`);
     if (d.warpOn) {
       lines.push('  --cap-add NET_ADMIN \\');
-      lines.push('  --cap-add SYS_ADMIN \\');
-      lines.push('  --device /dev/net/tun:/dev/net/tun \\');
+      if (!d.warpDnsOnly) {
+        if (state.channel !== 'develop') lines.push('  --cap-add SYS_ADMIN \\');
+        lines.push('  --device /dev/net/tun:/dev/net/tun \\');
+      }
     }
     if (usesHostGateway(d)) lines.push('  --add-host host.docker.internal:host-gateway \\');
     for (const [k, v] of envEntries(d)) lines.push(`  -e ${k}=${shellQuote(v)} \\`);
@@ -318,9 +324,11 @@
     if (d.warpOn) {
       lines.push('    cap_add:');
       lines.push('      - NET_ADMIN');
-      lines.push('      - SYS_ADMIN');
-      lines.push('    devices:');
-      lines.push('      - /dev/net/tun:/dev/net/tun');
+      if (!d.warpDnsOnly) {
+        if (state.channel !== 'develop') lines.push('      - SYS_ADMIN');
+        lines.push('    devices:');
+        lines.push('      - /dev/net/tun:/dev/net/tun');
+      }
     }
     if (usesHostGateway(d)) {
       lines.push('    extra_hosts:');
@@ -397,7 +405,7 @@
     }
     if (d.engineOn && d.platform.id === 'armv7') out.push(['warn', notes.armv7Experimental]);
     if (d.engineOn && d.platform.id !== 'amd64') out.push(['info', notes.armPageSize]);
-    if (d.warpOn) out.push(['info', notes.warpCaps + ' They are included below.']);
+    if (d.warpOn) out.push(['info', (d.warpDnsOnly ? notes.warpDnsCaps : state.channel === 'develop' ? notes.warpTunnelCaps : notes.warpCaps) + ' Required flags are included below.']);
     const engineApi = data.ports.find((p) => p.id === 'engineApi');
     if (d.engineOn && engineApi && state.ports.engineApi && state.ports.engineApi.enabled) {
       out.push(['warn', engineApi.securityNote]);
@@ -543,9 +551,15 @@
         state.acexy, (v) => { state.acexy = v; }));
     }
     if (d.platform.warpAvailable) {
-      list.append(toggleRow('warp', 'Route through Cloudflare WARP',
-        'Connects the container through WARP. Adds the required capabilities and TUN device.',
+      list.append(toggleRow('warp', 'Enable Cloudflare WARP',
+        'Use encrypted DNS or route container traffic through Cloudflare. The command includes the permissions for your selected mode.',
         state.warp, (v) => { state.warp = v; }));
+      if (d.warpOn) {
+        list.append(toggleRow('warp-dns-only', 'DNS only (no traffic tunnel)',
+          state.channel === 'develop' ? data.notes.warpDnsCaps : 'Available in Pre-release (develop). This release selection uses full tunneling.',
+          d.warpDnsOnly, (v) => { state.warpDnsOnly = v; }, state.channel !== 'develop'));
+        list.append(el('p', { class: 'field-help', text: d.warpDnsOnly ? data.notes.warpDnsCaps : state.channel === 'develop' ? data.notes.warpTunnelCaps : data.notes.warpCaps }));
+      }
     }
     list.append(toggleRow('xdp-dns', data.xdpDns.label, data.xdpDns.description,
       state.xdpDns, (v) => { state.xdpDns = v; }));

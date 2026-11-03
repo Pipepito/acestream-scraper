@@ -136,7 +136,7 @@ host aliases. No public DNS server or fixed hostname list is imposed. See the
 [native DNS investigation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/arm64-mod-detected.md#native-libc-dns-follow-up-issue-253)
 for verification and ARMv7 limitations.
 
-WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (it needs `--cap-add NET_ADMIN --cap-add SYS_ADMIN` and `--device /dev/net/tun`). The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
+WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (full tunneling on `develop` needs `--cap-add NET_ADMIN` and `--device /dev/net/tun`; see DNS-only mode below). The command builder retains `SYS_ADMIN` for older release selections. The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
 
 ZeroNet works in two modes. The `linux/amd64` and `linux/arm64` images bundle a [zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) node, pinned by commit to a state that carries DHT peer discovery — opt-in, nothing runs until `ENABLE_ZERONET=true` (add `ENABLE_TOR=true` for TOR, like the v1 image). The node runs on its own Python 3.11 under `/opt/zeronet` because its dependency set predates the app's Python; 32-bit ARM images ship without it because gevent publishes no armv7l wheels — there, and whenever you prefer it, ZeroNet runs as an external sidecar/service and the app reaches it through `ZERONET_URL`.
 
@@ -162,7 +162,31 @@ IPFS is also bundled: every flavor ships the [Kubo](https://github.com/ipfs/kubo
 
 AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. Adding a new supported AceStream architecture means updating that manifest. The manifest pins the engine source and support level (`stable` or `experimental`) per platform: conventional archives are checksum-pinned and vendored, while both ARM entries pin the jopsis multi-platform OCI digest.
 
-If you run with `ENABLE_WARP=true`, the container must be started with the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
+Full WARP tunneling on `develop` requires `NET_ADMIN` and `/dev/net/tun`.
+`NET_ADMIN` permits network configuration; `/dev/net/tun` supplies the virtual
+network device. The current bundled client works without `SYS_ADMIN`, which
+grants broad system privileges. The command builder omits it for `develop` and
+retains it for compatibility with older release selections.
+
+On `develop`, select **DNS only (no traffic tunnel)** in the command builder,
+or set `ENABLE_WARP=true`, `WARP_DNS_ONLY=true` and `WARP_ENABLE_NAT=true`.
+DNS-only mode encrypts DNS lookups with Cloudflare, while video and other traffic
+use the normal connection. The bundled Linux client still needs
+`--cap-add NET_ADMIN`; it does not need `SYS_ADMIN` or `/dev/net/tun` in this mode.
+The legacy `WARP_ENABLE_NAT` name controls automatic connection for both modes;
+DNS-only mode never installs NAT rules. With it disabled, the selected DNS-only
+mode is configured but you must connect from the WARP page.
+
+Missing WARP prerequisites or failed startup leave the web startup screen and
+authenticated diagnostics available. Network sidecars and application jobs stay
+blocked; the app does not silently fall back to a direct connection. Health stays
+unhealthy until fixed. Recreate the container with the required permissions and
+the same data mounts, or explicitly disable WARP in the saved runtime configuration.
+An in-app setting cannot add Docker capabilities or devices. Retry in the startup
+screen cannot repair container permissions; restart after correcting deployment.
+If the host has no `/dev/net/tun` but the command includes `--device`, Docker
+itself refuses to create the container, before the app can show diagnostics.
+Choose DNS-only mode and omit that device mapping, or provide host TUN support.
 
 ### Pre-release channel (`develop`)
 
@@ -251,7 +275,7 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
-- `ENABLE_ACESTREAM_ENGINE=true` starts the engine; no extra capabilities are required (only WARP needs `NET_ADMIN`/`SYS_ADMIN`).
+- `ENABLE_ACESTREAM_ENGINE=true` starts the engine; no extra capabilities are required (WARP needs `NET_ADMIN`; older release examples also retain `SYS_ADMIN`).
 - On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. A host-folder mount is optional but highly recommended so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
 - Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878` when the bundled engine is enabled; otherwise empty); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the engine is started with `--bind-all` on every platform (`ACESTREAM_BIND_ALL=true` by default; set it to `false` to keep the engine's loopback/RFC1918-only filter) so published-port clients are accepted, and the engine HTTP API has no authentication.
 - Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`. Every image flavour also captures bounded console history: use **Overview → Services → Download diagnostics** to save a ZIP from your phone, or `GET /api/v1/system/diagnostics` with the normal API token. Collection begins after upgrading to an image with this feature. Common credentials and URLs are masked on export; review before sharing. See [runtime diagnostics](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/runtime-diagnostics.md) for limits and retention.

@@ -201,11 +201,15 @@ Cloudflare WARP provides enhanced privacy and secure connection options:
 
 | Variable | Description | Default | Notes |
 |----------|-------------|---------|-------|
-| `ENABLE_WARP` | Start Cloudflare WARP | `false` | Available on amd64/arm64; requires `NET_ADMIN`, `SYS_ADMIN`, and `/dev/net/tun` |
-| `WARP_ENABLE_NAT` | Connect WARP and enable NAT at startup | `false` | Leave false to connect/disconnect from the WARP page instead |
+| `ENABLE_WARP` | Start Cloudflare WARP | `false` | Available on amd64/arm64; full tunneling on `develop` requires `NET_ADMIN` and `/dev/net/tun`. The builder retains `SYS_ADMIN` for older releases |
+| `WARP_ENABLE_NAT` | Connect the selected WARP mode at startup | `false` | Waits for connection before starting network services; adds NAT only for full tunneling. Leave false to connect from the WARP page |
+| `WARP_DNS_ONLY` | Use encrypted DNS without tunneling traffic (`develop`) | `false` | Requires `NET_ADMIN`, but no `SYS_ADMIN` or `/dev/net/tun`. Video and other traffic keep the normal connection |
 | `WARP_LICENSE_KEY` | WARP license key | - | Optional: For WARP+ or Team accounts |
 
 ### Docker Example with WARP Enabled
+
+The release examples retain `SYS_ADMIN` for compatibility. With `develop`, omit
+it: the current client needs `NET_ADMIN` and, for full tunneling, `/dev/net/tun`.
 
 ```bash
 docker run -d \

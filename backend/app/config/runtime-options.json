@@ -140,12 +140,20 @@
     "help": "The engine API has no authentication. Publish its port only on trusted networks."
   },
   {
+    "name": "WARP_DNS_ONLY",
+    "group": "services",
+    "default": false,
+    "label": "Use WARP for DNS only",
+    "kind": "boolean",
+    "help": "Encrypts DNS lookups with Cloudflare. Video and other traffic keep your normal connection. Requires NET_ADMIN, but no SYS_ADMIN or TUN device. Restart to apply."
+  },
+  {
     "name": "WARP_ENABLE_NAT",
     "group": "services",
     "default": false,
     "label": "Connect WARP before starting engines",
     "kind": "boolean",
-    "help": "Requires NET_ADMIN, SYS_ADMIN and /dev/net/tun in Docker. No routing changes until explicitly enabled."
+    "help": "Waits for the selected WARP mode to connect before starting network services. Full tunneling requires NET_ADMIN and /dev/net/tun in Docker; SYS_ADMIN is not needed."
   },
   {
     "name": "WARP_FORCE_IPV4",

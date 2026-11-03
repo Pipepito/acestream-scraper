@@ -313,6 +313,15 @@ done
 # Official Python runner images install python3 under /usr/local/bin.
 # Keep host/user PATH entries excluded while retaining that trusted runtime.
 BASE_PATH="$FAKE_BIN:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# This suite mocks WARP/DBus/NAT. Capability/device checks have separate coverage.
+export RUNTIME_TEST_PYTHON
+RUNTIME_TEST_PYTHON=$(command -v python3)
+cat > "$FAKE_BIN/python3" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in */warp_prerequisites.py) exit 0 ;; esac
+exec "$RUNTIME_TEST_PYTHON" "$@"
+EOF
+chmod +x "$FAKE_BIN/python3"
 VALIDATION_LOG_DIR="$TMP_DIR/logs"
 mkdir -p "$VALIDATION_LOG_DIR"
 
@@ -378,10 +387,9 @@ expect_failure_contains \
     "Acexy cannot target localhost:6878 when in-container AceStream is disabled" \
     env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=false IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=true ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=true ACEXY_HOST=localhost ACEXY_PORT=6878 bash "$ENTRYPOINT_SCRIPT" true
 
-expect_failure_contains \
-    "WARP setup propagates startup failure" \
-    "WARP setup failed" \
-    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=true WARP_REQUIRED_COMMANDS=definitely-missing IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=false ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=false bash "$ENTRYPOINT_SCRIPT" true
+expect_success \
+    "WARP setup failure keeps the app available with a blocking startup reason" \
+    env PATH="$BASE_PATH" LOG_DIR="$VALIDATION_LOG_DIR" ENABLE_WARP=true WARP_REQUIRED_COMMANDS=definitely-missing IMAGE_HAS_ACESTREAM=false IMAGE_HAS_ACEXY=false ENABLE_ACESTREAM_ENGINE=false ENABLE_ACEXY=false bash "$ENTRYPOINT_SCRIPT" bash -c 'test "$SCRAPER_WARP_STARTUP_ERROR" = setup'
 
 expect_success \
     "WARP disabled skip path" \

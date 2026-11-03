@@ -1443,6 +1443,13 @@ export interface paths {
     /** Create Tv Channels From Epg */
     post: operations["create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post"];
   };
+  "/api/v1/tv-channels/now-next": {
+    /**
+     * Tv Channel Now Next
+     * @description Current and next programme for every active TV channel with a guide mapping, in one query window.
+     */
+    get: operations["tv_channel_now_next_api_v1_tv_channels_now_next_get"];
+  };
   "/api/v1/tv-channels/reorder": {
     /**
      * Reorder Tv Channels
@@ -4011,6 +4018,21 @@ export interface components {
       /** Stream Count */
       stream_count: number;
     };
+    /** GuideSlot */
+    GuideSlot: {
+      /**
+       * End
+       * Format: date-time
+       */
+      end: string;
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+      /** Title */
+      title: string;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -6115,6 +6137,18 @@ export interface components {
       items: components["schemas"]["TVChannelResponse"][];
       /** Total */
       total: number;
+    };
+    /**
+     * TVChannelNowNext
+     * @description Current and next programme of one TV channel, from a single batched guide read.
+     */
+    TVChannelNowNext: {
+      /** Epg Channel Id */
+      epg_channel_id: number;
+      next?: components["schemas"]["GuideSlot"] | null;
+      now?: components["schemas"]["GuideSlot"] | null;
+      /** Tv Channel Id */
+      tv_channel_id: number;
     };
     /** TVChannelRef */
     TVChannelRef: {
@@ -13106,6 +13140,20 @@ export interface operations {
       422: {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Tv Channel Now Next
+   * @description Current and next programme for every active TV channel with a guide mapping, in one query window.
+   */
+  tv_channel_now_next_api_v1_tv_channels_now_next_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TVChannelNowNext"][];
         };
       };
     };

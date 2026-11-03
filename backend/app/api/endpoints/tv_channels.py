@@ -32,6 +32,7 @@ from app.schemas.channel import (
     TVChannelUpdate,
     TVChannelReorderRequest,
     TVChannelStreamReorderRequest,
+    TVChannelNowNext,
 )
 
 router = APIRouter()
@@ -54,6 +55,12 @@ def apply_tv_matches(request: TVMatchApplyRequest, db: Session = Depends(get_db)
         return TVMatchingService(db).apply(request)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/now-next", response_model=List[TVChannelNowNext])
+def tv_channel_now_next(db: Session = Depends(get_db)) -> List[TVChannelNowNext]:
+    """Current and next programme for every active TV channel with a guide mapping, in one query window."""
+    return TVChannelService(db).now_next()
 
 
 @router.get("/", response_model=TVChannelListResponse)

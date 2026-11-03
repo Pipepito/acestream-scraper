@@ -5841,6 +5841,31 @@
         "title": "FolderMatchRow",
         "type": "object"
       },
+      "GuideSlot": {
+        "properties": {
+          "end": {
+            "format": "date-time",
+            "title": "End",
+            "type": "string"
+          },
+          "start": {
+            "format": "date-time",
+            "title": "Start",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "start",
+          "end"
+        ],
+        "title": "GuideSlot",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -11088,6 +11113,45 @@
           "total"
         ],
         "title": "TVChannelListResponse",
+        "type": "object"
+      },
+      "TVChannelNowNext": {
+        "description": "Current and next programme of one TV channel, from a single batched guide read.",
+        "properties": {
+          "epg_channel_id": {
+            "title": "Epg Channel Id",
+            "type": "integer"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuideSlot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "now": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuideSlot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tv_channel_id": {
+            "title": "Tv Channel Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tv_channel_id",
+          "epg_channel_id"
+        ],
+        "title": "TVChannelNowNext",
         "type": "object"
       },
       "TVChannelRef": {
@@ -25961,6 +26025,32 @@
           }
         },
         "summary": "Create Tv Channels From Epg",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
+    "/api/v1/tv-channels/now-next": {
+      "get": {
+        "description": "Current and next programme for every active TV channel with a guide mapping, in one query window.",
+        "operationId": "tv_channel_now_next_api_v1_tv_channels_now_next_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TVChannelNowNext"
+                  },
+                  "title": "Response Tv Channel Now Next Api V1 Tv Channels Now Next Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tv Channel Now Next",
         "tags": [
           "tv-channels"
         ]

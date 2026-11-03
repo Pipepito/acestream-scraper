@@ -41,6 +41,8 @@ export interface StreamPlayerDialogProps {
   extraActions?: React.ReactNode;
   details?: React.ReactNode;
   schedule?: React.ReactNode;
+  /** The playing channel's streams, shown right under the status line so switching source is one click. */
+  sources?: React.ReactNode;
   largePlayer?: boolean;
   onTogglePlayerSize?: () => void;
   /** Embedded viewing surface used by Live TV. */
@@ -66,7 +68,7 @@ const startPlayback = (video: HTMLVideoElement): void => {
 };
 
 /** Plays one channel through the backend's HLS pipeline. */
-const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details, schedule, largePlayer, onTogglePlayerSize, inline = false }) => {
+const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId, title, onClose, extraActions, details, schedule, sources, largePlayer, onTogglePlayerSize, inline = false }) => {
   const access = useAccess();
   const canManage = !access || access.status.mode === 'open' || Boolean(access.status.user?.administrator);
   const theme = useTheme();
@@ -319,6 +321,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
               {statusText}
             </Typography>
           )}
+          {sources}
           {inline ? <Accordion disableGutters><AccordionSummary expandIcon={<ExpandMoreRounded />}><Typography>Playback options</Typography></AccordionSummary><AccordionDetails><Stack spacing={1.5}>{playbackOptions}</Stack></AccordionDetails></Accordion> : playbackOptions}
         </Stack>
       </DialogContent>

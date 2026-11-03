@@ -76,6 +76,43 @@ class TVChannelService:
         self.auto_associate_acestreams(tv_channel)
         return tv_channel
 
+    def now_next(self, window_back_hours: int = 1, window_forward_hours: int = 6):
+        """Now/Next for every active TV channel with a guide mapping, read in one programme window
+        so a full channel list never issues per-row guide requests."""
+        from datetime import datetime, timedelta, timezone
+        from app.models.models import EPGProgram
+        from app.schemas.channel import GuideSlot, TVChannelNowNext
+        from app.services.epg_service import EPGService
+        now = datetime.now(timezone.utc)
+        channels = self.repository.db.query(TVChannel).filter(TVChannel.is_active.is_(True), TVChannel.epg_id.isnot(None),
+                                                   TVChannel.epg_source_id.isnot(None)).all()
+        lookup = EPGService(self.repository.db).epg_channel_lookup(channels)
+        mapped = [(tv, lookup.get((tv.epg_source_id, tv.epg_id))) for tv in channels]
+        mapped = [(tv, epg) for tv, epg in mapped if epg is not None]
+        if not mapped:
+            return []
+        epg_ids = sorted({epg.id for _, epg in mapped})
+        by_channel: Dict[int, List[EPGProgram]] = {}
+        for offset in range(0, len(epg_ids), 500):
+            programs = (self.repository.db.query(EPGProgram)
+                        .filter(EPGProgram.epg_channel_id.in_(epg_ids[offset:offset + 500]),
+                                EPGProgram.start_time < now + timedelta(hours=window_forward_hours),
+                                EPGProgram.end_time > now - timedelta(hours=window_back_hours))
+                        .order_by(EPGProgram.epg_channel_id, EPGProgram.start_time).all())
+            for program in programs:
+                by_channel.setdefault(program.epg_channel_id, []).append(program)
+
+        def slot(program):
+            return GuideSlot(title=program.title, start=program.start_time, end=program.end_time) if program else None
+
+        rows = []
+        for tv, epg in mapped:
+            listing = by_channel.get(epg.id, [])
+            current = next((p for p in listing if p.start_time <= now < p.end_time), None)
+            upcoming = next((p for p in listing if p.start_time > now), None)
+            rows.append(TVChannelNowNext(tv_channel_id=tv.id, epg_channel_id=epg.id, now=slot(current), next=slot(upcoming)))
+        return rows
+
     def update_tv_channel(self, tv_channel_id: int, updates: Dict[str, Any]) -> Optional[TVChannel]:
         return self.repository.update_tv_channel(tv_channel_id=tv_channel_id, updates=updates)
 

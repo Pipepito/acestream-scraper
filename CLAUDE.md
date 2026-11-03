@@ -71,7 +71,7 @@ Branching and release flow (adopted 2026-08-28):
 
 ## Frontend viewing and mobile checks
 
-- `/live-tv` is the viewing catalog with current/next programmes, favorites, and direct channel links (`?channel=<id>`). TV Channels remains the management inventory.
+- `/live-tv` is the viewing catalog: one `Browse` list with a `TV channels | Streams | Events` toggle (`?list=tv|streams|events`, search in `?q=`), direct channel links (`?channel=<id>`), no pagination. TV channels mode renders the whole catalogue with Now/Next from the single batched `GET /api/v1/tv-channels/now-next` (`useNowNext`; rows fall back to per-channel guide queries only when that read fails), Streams mode pages 50 at a time through `useStreamPages` with a Show more button and an end-of-list sentinel, Events mode reuses the dashboard's event preferences. The playing channel's streams are visible chips (`SourceChips`, `StreamPlayerDialog.sources`); the old Stream dropdown is gone. Components live in `components/livetv/`. TV Channels remains the management inventory.
 - `ChannelPlayerDialog` wraps `StreamPlayerDialog` with TV context, stream selection, and the schedule. Copy/remote actions follow the selected stream.
 - `cd e2e && npm run test:mobile` runs the standalone mocked-API browser suite across phone, tablet and desktop sizes. See `e2e/README.md`; actual media playback still needs the live stack.
 
@@ -342,9 +342,10 @@ changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
 
 ## Live TV and settings navigation
 
-Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
-does not release playback; changing the channel or Stop watching releases the
-current viewer. Other pages retain the player dialog. Navigation groups Watch,
+Live TV embeds the existing HLS player alongside one scrollable browse list (TV
+channels, Streams or Events). Filtering or switching the list mode does not
+release playback; changing the channel or Stop watching releases the current
+viewer. Other pages retain the player dialog. Navigation groups Watch,
 Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.

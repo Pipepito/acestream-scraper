@@ -219,7 +219,7 @@ In VLC, choose **Media → Open Network Stream**, paste the playlist URL, and pl
 
 ## Watch in the browser
 
-Open **Live TV** for active TV channels with assigned streams, current/next programmes and favorite filtering. **Online streams without a channel** has its own search and pagination.
+Open **Live TV**. The browse list has three views: **TV channels** lists every active channel with assigned streams and its current/next programme in one scrolling list, with search and **Favorites only**; **Streams** lists every stream 50 at a time with an **Online only** switch, so you can play a specific source directly; **Events** shows today's and tomorrow's events using the TV dashboard's interests and time zone, with **Watch** for broadcasters linked to a TV channel. The view and search stay in the address (`?list=streams&q=…`). While watching, the channel's sources appear as a row of chips under the player; pick one to switch.
 
 Choose **Watch**. The player and scrollable catalogue stay on the same page. Searching and filtering do not stop playback. **Playback options → Larger player** expands the desktop video area; **Standard player** restores the split. **Schedule** shows the current and upcoming programmes in your device timezone. Select another **Stream** or **Audio track** when available. **Stop watching** releases your viewer.
 

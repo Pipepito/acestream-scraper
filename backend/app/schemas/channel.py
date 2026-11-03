@@ -332,6 +332,20 @@ class TVChannelStreamReorderRequest(BaseModel):
         return values
 
 
+class GuideSlot(BaseModel):
+    title: str
+    start: datetime
+    end: datetime
+
+
+class TVChannelNowNext(BaseModel):
+    """Current and next programme of one TV channel, from a single batched guide read."""
+    tv_channel_id: int
+    epg_channel_id: int
+    now: Optional[GuideSlot] = None
+    next: Optional[GuideSlot] = None
+
+
 class PlaylistGuideCoverage(BaseModel):
     streams: int
     linked_streams: int

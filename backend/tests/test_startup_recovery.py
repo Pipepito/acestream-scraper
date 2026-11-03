@@ -162,6 +162,39 @@ def test_diagnostics_are_bounded():
     assert startup_service.snapshot().events[0].message == 'Event 100'
 
 
+@pytest.mark.parametrize('failure,dns_only', [('prerequisites', False), ('prerequisites', True), ('setup', False)])
+def test_warp_failure_preserves_authenticated_diagnostics_and_blocks_work(isolated, monkeypatch, failure, dns_only):
+    monkeypatch.setenv('SCRAPER_WARP_STARTUP_ERROR', failure)
+    monkeypatch.setenv('WARP_DNS_ONLY', str(dns_only).lower())
+    monkeypatch.setenv('API_TOKEN', 'test-token')
+    def must_not_start(*args, **kwargs):
+        pytest.fail('WARP failure must block database changes and background services')
+    monkeypatch.setattr(main, 'initialize_database', must_not_start)
+    monkeypatch.setattr(main.task_service, 'start', must_not_start)
+    headers = {'X-Api-Token': 'test-token'}
+    with TestClient(main.app) as client:
+        wait_finished()
+        assert client.get('/api/v1/startup').status_code == 401
+        status = client.get('/api/v1/startup', headers=headers).json()
+        assert status['status'] == 'failed'
+        assert not status['recovery_available']
+        assert 'WARP' in status['guidance']
+        if failure == 'prerequisites':
+            assert 'NET_ADMIN' in status['guidance']
+            if dns_only:
+                assert 'DNS-only mode does not need SYS_ADMIN' in status['guidance']
+        assert client.get('/api/v1/startup/diagnostics', headers=headers).status_code == 200
+        assert client.get('/api/v1/health').status_code == 503
+        assert client.get('/api/v1/settings', headers=headers).status_code == 503
+        assert client.get('/tuner/stream/test').status_code == 503
+        payload = {'action': 'fresh', 'recovery_token': status['recovery_token'], 'confirm': True}
+        assert client.post('/api/v1/startup/recover', json=payload, headers=headers).status_code == 409
+        payload['action'] = 'retry'
+        assert client.post('/api/v1/startup/recover', json=payload, headers=headers).status_code == 202
+        wait_finished()
+        assert client.get('/api/v1/startup', headers=headers).json()['status'] == 'failed'
+
+
 def test_empty_salvage_does_not_install_an_empty_database(isolated):
     path = isolated / 'current.db'
     path.write_bytes(b'no readable tables')

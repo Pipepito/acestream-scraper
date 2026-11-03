@@ -559,25 +559,38 @@ configure_ipfs_repo() {
 
 child_pids=()
 child_names=()
+unset SCRAPER_WARP_STARTUP_ERROR
 
 if feature_enabled "$ENABLE_WARP"; then
     # warp-svc runs under the supervisor (restartable from the app, relaunched
     # on crash); warp-setup.sh prepares the host (TUN, DBus) before it starts
     # and registers/connects once it answers.
-    if ! bash "$(dirname "$0")/warp-setup.sh" prepare; then
-        fail "WARP setup failed"
-    fi
-    # warp-svc inherits this from its supervisor (warp-setup.sh only exports it for its own run).
-    export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
-    WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
-    supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos}" "bash \"$WARP_SETUP_SCRIPT\" configure" &
-    child_pids+=("$!")
-    child_names+=("WARP")
-    if ! bash "$WARP_SETUP_SCRIPT" configure; then
-        fail "WARP setup failed"
+    if bash "$(dirname "$0")/warp-setup.sh" prepare; then
+        # warp-svc inherits this from its supervisor.
+        export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
+        WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
+        supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos}" "bash \"$WARP_SETUP_SCRIPT\" configure" &
+        child_pids+=("$!")
+        child_names+=("WARP")
+        if ! bash "$WARP_SETUP_SCRIPT" configure; then
+            export SCRAPER_WARP_STARTUP_ERROR=setup
+            shutdown_children "${child_pids[@]}"
+            child_pids=()
+            child_names=()
+        fi
+    else
+        warp_prepare_status=$?
+        export SCRAPER_WARP_STARTUP_ERROR=setup
+        if [ "$warp_prepare_status" -eq 78 ]; then
+            export SCRAPER_WARP_STARTUP_ERROR=prerequisites
+        fi
     fi
 fi
 
+if [ -n "${SCRAPER_WARP_STARTUP_ERROR:-}" ]; then
+    log "WARP setup failed; keeping the web UI and diagnostics available. Network services are blocked until the container configuration is fixed and restarted."
+else
+# Do not start any network sidecar after a requested WARP setup failed.
 if feature_enabled "$ENABLE_ZERONET"; then
     mkdir -p "$ZERONET_DATA_DIR"
     if feature_enabled "$ENABLE_TOR"; then
@@ -654,6 +667,7 @@ if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then
     supervise_service "Acexy" "$ACEXY_START_COMMAND" &
     child_pids+=("$!")
     child_names+=("Acexy")
+fi
 fi
 
 APP_COMMAND=("$@")

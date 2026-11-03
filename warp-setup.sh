@@ -58,6 +58,8 @@ run_privileged() {
 ENABLE_WARP=$(normalize_bool "${ENABLE_WARP:-false}")
 DEBUG_ENABLE_QLOG=$(normalize_bool "${DEBUG_ENABLE_QLOG:-false}")
 WARP_ENABLE_NAT=$(normalize_bool "${WARP_ENABLE_NAT:-false}")
+WARP_DNS_ONLY=$(normalize_bool "${WARP_DNS_ONLY:-false}")
+export WARP_DNS_ONLY
 LOG_DIR=${LOG_DIR:-/app/logs}
 mkdir -p "$LOG_DIR"
 WARP_LOG="$LOG_DIR/warp.log"
@@ -91,12 +93,11 @@ esac
 if [ "$PHASE" != "configure" ]; then
     log "Starting WARP setup"
 
-    if [ ! -e /dev/net/tun ]; then
-        log "Creating TUN device"
-        run_privileged mkdir -p /dev/net
-        run_privileged mknod /dev/net/tun c 10 200
-        run_privileged chmod 600 /dev/net/tun
-    fi
+    prerequisites_script="$(dirname "$0")/backend/warp_prerequisites.py"
+    if [ ! -f "$prerequisites_script" ]; then prerequisites_script=/app/warp_prerequisites.py; fi
+    # Creating a node cannot grant Docker device access or capabilities. Check
+    # before starting DBus/warp-svc and return a distinct configuration failure.
+    python3 "$prerequisites_script" || exit $?
 
     log "Starting DBus"
     run_privileged mkdir -p /run/dbus
@@ -137,13 +138,23 @@ else
 fi
 
 if [ "$WARP_ENABLE_NAT" = "true" ]; then
-    log "Configuring WARP NAT"
-    warp-cli --accept-tos mode warp+doh >> "$WARP_LOG" 2>&1
+    if [ "$WARP_DNS_ONLY" = "true" ]; then
+        log "Configuring DNS only (no traffic tunnel)"
+        warp-cli --accept-tos mode doh >> "$WARP_LOG" 2>&1
+    else
+        log "Configuring WARP NAT"
+        warp-cli --accept-tos mode warp+doh >> "$WARP_LOG" 2>&1
+    fi
     warp-cli --accept-tos connect >> "$WARP_LOG" 2>&1
     wait_for_warp_ready "WARP NAT connect" "${WARP_READY_ATTEMPTS:-30}" "${WARP_READY_INTERVAL:-1}" connected
-    run_privileged nft add table ip nat >> "$WARP_LOG" 2>&1 || true
-    run_privileged nft add chain ip nat WARP_NAT '{ type nat hook postrouting priority 100 ; }' >> "$WARP_LOG" 2>&1 || true
-    run_privileged nft add rule ip nat WARP_NAT oifname CloudflareWARP masquerade >> "$WARP_LOG" 2>&1 || true
+    if [ "$WARP_DNS_ONLY" != "true" ]; then
+        run_privileged nft add table ip nat >> "$WARP_LOG" 2>&1 || true
+        run_privileged nft add chain ip nat WARP_NAT '{ type nat hook postrouting priority 100 ; }' >> "$WARP_LOG" 2>&1 || true
+        run_privileged nft add rule ip nat WARP_NAT oifname CloudflareWARP masquerade >> "$WARP_LOG" 2>&1 || true
+    fi
+elif [ "$WARP_DNS_ONLY" = "true" ]; then
+    # Apply the explicitly selected mode even when connection is manual.
+    warp-cli --accept-tos mode doh >> "$WARP_LOG" 2>&1
 fi
 
 # The app and startup use one durable desired list. It takes precedence over

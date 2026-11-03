@@ -10,7 +10,7 @@ import pytest
 SCRIPT = Path(__file__).resolve().parents[2] / "warp-setup.sh"
 
 
-def run_setup(tmp_path, states, auto_connect=True, force_ipv4="true"):
+def run_setup(tmp_path, states, auto_connect=True, force_ipv4="true", dns_only=False):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     (tmp_path / "states.json").write_text(json.dumps(states))
@@ -45,6 +45,7 @@ def run_setup(tmp_path, states, auto_connect=True, force_ipv4="true"):
         "WARP_REQUIRED_COMMANDS": "warp-cli", "WARP_READY_ATTEMPTS": "4",
         "WARP_READY_INTERVAL": "0.01", "WARP_LICENSE_KEY": "",
         "WARP_FORCE_IPV4": force_ipv4,
+        "WARP_DNS_ONLY": str(dns_only).lower(),
     }
     result = subprocess.run(
         ["bash", str(SCRIPT), "configure"], env=env,
@@ -80,3 +81,21 @@ def test_setup_preserves_disabled_ipv4_preference(tmp_path):
     result, _ = run_setup(tmp_path, ["Disconnected"], auto_connect=False, force_ipv4="false")
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "force_ipv4").read_text() == "false"
+
+
+def test_dns_only_connects_without_enabling_tunnel_or_nat(tmp_path):
+    result, calls = run_setup(tmp_path, ["Connecting", "Connected"], dns_only=True)
+    assert result.returncode == 0, result.stderr
+    assert "--accept-tos mode doh" in calls
+    assert "--accept-tos connect" in calls
+    assert calls.count("--accept-tos --json status") == 3
+    assert "--accept-tos mode warp+doh" not in calls
+    assert "nft" not in calls
+
+
+def test_dns_only_manual_mode_is_set_without_connecting(tmp_path):
+    result, calls = run_setup(tmp_path, ["Disconnected"], auto_connect=False, dns_only=True)
+    assert result.returncode == 0, result.stderr
+    assert "--accept-tos mode doh" in calls
+    assert "--accept-tos connect" not in calls
+    assert "nft" not in calls

@@ -58,6 +58,9 @@ OUTCOME_VALUE = {
     'ok': 1.0,
     'ended': 0.5,
     'stall': 0.3,
+    # Played, but its clock kept going back: the viewer saw the same play
+    # again and again. Low, and weighted by how long it was watched.
+    'jumpy': 0.1,
     'early_death': 0.0,
     'no_data': 0.0,
     'empty_session': 0.0,

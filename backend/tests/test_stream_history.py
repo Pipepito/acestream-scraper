@@ -244,3 +244,25 @@ def test_a_box_left_off_for_weeks_hides_only_what_the_last_reading_had_already_l
     db_session.commit()
     body = _playlist(db_session, hide_unusable=True)
     assert 'Live Channel' in body and 'Stale Channel' not in body
+
+
+def test_a_source_that_kept_jumping_back_ranks_below_one_that_played_cleanly():
+    scores = score_sources([Row('a'), Row('b')],
+                           [attempt('a', 'jumpy', seconds=600), attempt('b', 'ok', seconds=600)], {}, NOW)
+    assert scores['b' * 40].score > 0.5 > scores['a' * 40].score
+
+
+def test_a_long_jumpy_viewing_counts_more_against_the_source_than_a_short_one():
+    long = score_sources([Row('a')], [attempt('a', 'jumpy', seconds=3600)], {}, NOW)
+    short = score_sources([Row('a')], [attempt('a', 'jumpy', seconds=10)], {}, NOW)
+    assert long['a' * 40].score < short['a' * 40].score
+
+
+def test_the_relay_turns_a_viewing_with_jumps_back_into_jumpy():
+    from app.services.tuner_playback_service import _with_clock
+    from app.services.ts_clock import ClockWatch
+    watch = ClockWatch('a' * 40)
+    assert _with_clock('ok', watch) == 'ok'
+    watch.back_jumps = 2
+    assert [_with_clock(o, watch) for o in ('ok', 'ended', 'stall', 'no_data', 'early_death')] == \
+        ['jumpy', 'jumpy', 'jumpy', 'no_data', 'early_death']

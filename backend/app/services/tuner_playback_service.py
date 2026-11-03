@@ -17,7 +17,7 @@ from app.services.stream_relay import EngineStreamError, RelayInfo, RelayRegistr
 from app.services.tuner_remux import remux_source, compatible_audio_source
 from app.services.tuner_http_source import relay_http_stream
 from app.utils.stream_kind import stream_kind
-from app.services.ts_clock import watch_clock
+from app.services.ts_clock import ClockWatch, watch_clock
 
 STARTUP_BUDGET_SECONDS = 45.0
 ATTEMPT_SECONDS = 15.0
@@ -126,19 +126,26 @@ _openings: dict = {}
 _openings_lock = threading.Lock()
 
 
+def _with_clock(outcome: str, watch: ClockWatch) -> str:
+    """A source that played but kept jumping back in time repeated what the
+    viewer had already seen (the same corner kick over and over): that is recorded against it, not as a good viewing. A source that
+    never played keeps its own outcome."""
+    return 'jumpy' if watch.jumpy and outcome in ('ok', 'ended', 'stall') else outcome
+
+
 def _record_ok(opening: ChannelOpening | None, content_id: str, tv_channel_id: int | None,
-               seconds: float) -> None:
+               seconds: float, outcome: str = 'ok') -> None:
     """A source that played until its GET ended. Kodi closes its first GET as
     soon as it gets bytes and its second takes the opening over: that is a
     hand-over, not a viewing, and counting it as one put an `ok` of 0 s next
     to every real one (the bench, 02-11). Whether a newer GET takes over is
     known STOP_LINGER_SECONDS later."""
     if opening is None:
-        record_outcome(content_id, tv_channel_id, 'ok', seconds=seconds)
+        record_outcome(content_id, tv_channel_id, outcome, seconds=seconds)
         return
 
     def settle() -> None:
-        record_outcome(content_id, tv_channel_id, 'handover' if opening.superseded else 'ok', seconds=seconds)
+        record_outcome(content_id, tv_channel_id, 'handover' if opening.superseded else outcome, seconds=seconds)
     try:
         asyncio.get_running_loop().call_later(STOP_LINGER_SECONDS, settle)
     except RuntimeError:
@@ -310,7 +317,8 @@ async def relay_ranked_streams(
                 raw = source()
                 # Log the source's own clock jumps (a viewer saw sources jump back
                 # mid-match with no relay switch, and nothing showed it): read-only.
-                raw = watch_clock(raw, content_id)
+                clock_watch = ClockWatch(content_id)
+                raw = watch_clock(raw, content_id, clock_watch)
                 if experimental_transcoding:
                     iterator = remux_source(raw, version=version, offset=time.monotonic() - started,
                         plex_compatible_audio=plex_compatible_audio)
@@ -365,7 +373,7 @@ async def relay_ranked_streams(
                         'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
                         'upstream_error'
                     )
-                    record_outcome(content_id, tv_channel_id, outcome, seconds=played)
+                    record_outcome(content_id, tv_channel_id, _with_clock(outcome, clock_watch), seconds=played)
                     if opening is not None:
                         opening.failed.append(content_id)
                     # Count delivery only through the last chunk, regardless of
@@ -390,7 +398,8 @@ async def relay_ranked_streams(
                 finally:
                     if outcome is None and first_at is not None:
                         # The viewer left, or a newer GET took over.
-                        _record_ok(opening, content_id, tv_channel_id, last_at - first_at)
+                        _record_ok(opening, content_id, tv_channel_id, last_at - first_at,
+                                   outcome=_with_clock('ok', clock_watch))
                     with anyio.CancelScope(shield=True):
                         await iterator.aclose()
                 if healthy:

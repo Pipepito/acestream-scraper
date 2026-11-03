@@ -82,3 +82,34 @@ def test_the_wrapper_passes_every_byte_through_and_summarises(caplog):
     with caplog.at_level(logging.INFO, logger=ts_clock.__name__):
         assert asyncio.run(read_all()) == chunks
     assert any("summary content_id=abc back_jumps=1" in r.getMessage() for r in caplog.records)
+
+
+def test_a_step_ahead_between_two_samples_is_logged_even_without_a_wall_jump(caplog):
+    clock = _Clock()
+    watch = ClockWatch("abc", clock=clock)
+    with caplog.at_level(logging.INFO, logger=ts_clock.__name__):
+        for t in (10.0, 10.5, 18.0, 18.5):
+            watch.feed(_chunk(t))
+            clock.now += 0.5
+    assert [r.getMessage() for r in caplog.records] == ["TV relay source clock stepped ahead 7.5 s content_id=abc"]
+    assert watch.forward_steps == 1 and not watch.jumpy
+
+
+def test_a_burst_of_steady_chunks_is_not_a_step(caplog):
+    clock = _Clock()
+    watch = ClockWatch("abc", clock=clock)
+    with caplog.at_level(logging.INFO, logger=ts_clock.__name__):
+        clock.now += 16.0  # sixteen seconds of nothing, then the buffer at once
+        for i in range(40):
+            watch.feed(_chunk(100.0 + i * 0.4))
+            clock.now += 0.01
+    assert caplog.records == [] and watch.forward_steps == 0
+
+
+def test_two_jumps_back_make_a_source_jumpy():
+    clock = _Clock()
+    watch = ClockWatch("abc", clock=clock)
+    for t in (100.0, 100.5, 90.0, 90.5, 80.0):
+        watch.feed(_chunk(t))
+        clock.now += 0.5
+    assert watch.back_jumps == 2 and watch.jumpy and watch.watched_seconds == 2.0

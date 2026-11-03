@@ -18,6 +18,7 @@ SQLite write never delays or breaks playback.
 | `ok` | Played until the client left | 1 |
 | `ended` | Played, then the source ended | 0.5 |
 | `stall` | Played, then went silent mid-stream | 0.3 |
+| `jumpy` | Played, but its clock went back twice or more (the viewer saw the same play again); also recorded by `/tuner/stream/` | 0.1 |
 | `early_death` | Video, then silent within the first minute | 0 |
 | `no_data`, `empty_session`, `engine_refused`, `upstream_error` | Never played | 0 |
 | `engine_unavailable` | The engine was down: says nothing about the source | ignored |

@@ -224,7 +224,7 @@ overlays are described below; original guide rows and recording schedules stay i
 
 ## From a Wiseplay catalogue
 
-In **Catalogues**, save a list, open a compatible source and choose **Add as event**.
+In **Scraper → W3U catalogues**, save a list, open a compatible source and choose **Add as event**.
 Review its schedule and timezone, preview, then select the event to save. The
 shared event model retains private broadcast inputs without creating permanent
 channels. Catalogue refresh does not automatically change event schedules; review

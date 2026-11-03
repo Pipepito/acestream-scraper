@@ -22,16 +22,13 @@ export const navItems: NavItem[] = [
   { text: 'TV dashboard', path: '/', icon: <DashboardRoundedIcon />, section: 'Watch' },
   { text: 'Live TV', path: '/live-tv', icon: <LiveTvRoundedIcon />, section: 'Watch' },
   { text: 'Recordings', path: '/recordings', icon: <HistoryRoundedIcon />, section: 'Watch' },
-  { text: 'Catalogues', path: '/catalogues', icon: <PlaylistPlayRoundedIcon />, section: 'Watch' },
-
-
-  { text: 'Events', path: '/events', icon: <EventNoteRoundedIcon />, section: 'Watch' },
   { text: 'System status', path: '/system', icon: <DashboardRoundedIcon />, section: 'System' },
   { text: 'Scraper', path: '/scraper', icon: <TravelExploreRoundedIcon />, section: 'Manage' },
   { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Manage' },
   { text: 'Acestream Channels', path: '/acestream-channels', icon: <LiveTvRoundedIcon />, section: 'Manage' },
   { text: 'TV Channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Manage', matchPrefixes: ['/tv-channels'] },
   { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Manage', matchPrefixes: ['/epg/channels'] },
+  { text: 'Events', path: '/events', icon: <EventNoteRoundedIcon />, section: 'Manage' },
   { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Manage' },
   { text: 'Public address', path: '/integrations/public-address', icon: <HubRoundedIcon />, section: 'Integrations' },
   { text: 'Web player', path: '/integrations/web-player', icon: <HubRoundedIcon />, section: 'Integrations' },

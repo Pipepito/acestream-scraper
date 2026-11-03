@@ -2,7 +2,7 @@
 
 Development feature for v2.2.0; these notes do not establish stable release availability.
 
-Open **Watch → Catalogues**, or **Scraper → W3U catalogues**. Add an HTTP(S)
+Open **Manage → Scraper → W3U catalogues** (old `/catalogues` links land there). Add an HTTP(S)
 catalogue URL or choose a local `.w3u`/JSON file (maximum 4 MiB). **Preview URL**
 reads the hierarchy without creating channels. A local file can contain absolute
 linked catalogue URLs; relative links require a remote document as their base.

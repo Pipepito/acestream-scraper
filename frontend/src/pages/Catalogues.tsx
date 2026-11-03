@@ -36,7 +36,9 @@ const kindLabels: Record<CatalogueEntry['kind'], string> = {
   vod: 'VOD · unavailable', unsupported: 'Unsupported', invalid: 'Invalid',
 };
 
-const Catalogues: React.FC = () => {
+interface CataloguesProps { embedded?: boolean }
+
+const Catalogues: React.FC<CataloguesProps> = ({ embedded = false }) => {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const catalogueId = Number(params.get('catalogue')) || null;
@@ -136,9 +138,11 @@ const Catalogues: React.FC = () => {
   const variants = detail ? (entries ?? []).filter((entry) => entry.id !== detail.id && entry.kind !== 'folder'
     && entry.parent_id === detail.parent_id && entry.name === detail.name) : [];
 
+  const addButton = <Button variant="contained" disabled={pending} onClick={() => { setAdding(true); setPreview(null); prepare.reset(); save.reset(); }}>Add catalogue</Button>;
   return <Box sx={{ '& > section, & > div > section': { height: 'auto' } }}>
-    <PageHeader title="Catalogues" subtitle="Browse Wiseplay/W3U folders and review compatible streams before importing."
-      primaryActions={<Button variant="contained" disabled={pending} onClick={() => { setAdding(true); setPreview(null); prepare.reset(); save.reset(); }}>Add catalogue</Button>} />
+    {embedded
+      ? <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>{addButton}</Box>
+      : <PageHeader title="Catalogues" subtitle="Browse Wiseplay/W3U folders and review compatible streams before importing." primaryActions={addButton} />}
     <StatusLine items={[{ label: 'Saved', value: list.data?.length ?? '—' },
       ...(view ? [{ label: 'Compatible', value: view.counts.accepted ?? 0 }, { label: 'Excluded', value: view.counts.excluded ?? 0 }, { label: 'Duplicates', value: view.counts.duplicates ?? 0 },
         { label: 'Invalid', value: view.counts.invalid ?? 0 }, { label: 'Unsupported', value: view.counts.unsupported ?? 0 },

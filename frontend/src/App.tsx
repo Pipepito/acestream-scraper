@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
 import ApiTokenNotice from './components/ApiTokenNotice';
 import TVDashboard from './pages/TVDashboard';
@@ -28,8 +28,6 @@ const RemotePlayers = React.lazy(() => import('./pages/integrations/RemotePlayer
 const MediaServers = React.lazy(() => import('./pages/integrations/MediaServers'));
 const Telegram = React.lazy(() => import('./pages/integrations/Telegram'));
 const SystemDashboard = React.lazy(() => import('./pages/SystemDashboard'));
-const Catalogues = React.lazy(() => import('./pages/Catalogues'));
-
 
 const Recordings = React.lazy(() => import('./pages/Recordings'));
 const Events = React.lazy(() => import('./pages/Events'));
@@ -46,12 +44,23 @@ export const LEGACY_REDIRECTS: Array<{ from: string; to: string }> = [
   { from: '/channels/:id', to: '/tv-channels' },
   { from: '/search-new', to: '/search' },
   { from: '/epg/mappings', to: '/epg?tab=rules' },
+  { from: '/catalogues', to: '/scraper?tab=w3u' },
 ];
+
+/** The redirect target plus the old URL's query string; the target's own keys win. */
+export function redirectTarget(to: string, search: string): string {
+  const [path, targetQuery = ''] = to.split('?');
+  const params = new URLSearchParams(targetQuery);
+  new URLSearchParams(search).forEach((value, key) => { if (!params.has(key)) params.append(key, value); });
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
 
 const RedirectTo: React.FC<{ to: string }> = ({ to }) => {
   // Consume params so patterns like /channels/:id can redirect without them.
   useParams();
-  return <Navigate to={to} replace />;
+  const { search } = useLocation();
+  return <Navigate to={redirectTarget(to, search)} replace />;
 };
 
 const App: React.FC = () => {
@@ -66,7 +75,6 @@ const App: React.FC = () => {
         <Route path="/" element={<TVDashboard />} />
         <Route path="/system" element={<React.Suspense fallback={<p role="status">Loading system status…</p>}><SystemDashboard /></React.Suspense>} />
         <Route path="/acestream-channels" element={<AcestreamChannels />} />
-        <Route path="/catalogues" element={<React.Suspense fallback={<p role="status">Loading catalogues…</p>}><Catalogues /></React.Suspense>} />
         <Route path="/live-tv" element={<LiveTV />} />
         <Route path="/recordings" element={<React.Suspense fallback={<p role="status">Loading recordings…</p>}><Recordings /></React.Suspense>} />
         <Route path="/events" element={<React.Suspense fallback={<p role="status">Loading events…</p>}><Events /></React.Suspense>} />

@@ -346,7 +346,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
             </Button>
           </Stack>
         }
-        overflowActions={[{ label: 'W3U catalogues', onClick: () => navigate('/catalogues') }, { label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
+        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
       {navigation}
@@ -548,15 +548,18 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
   );
 };
 
+const Catalogues = React.lazy(() => import('./Catalogues'));
+
 const Scraper: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const selected = params.get('tab');
-  const tab = selected === 'searches' || selected === 'exclusions' ? selected : 'sources';
+  const tab = selected === 'w3u' || selected === 'searches' || selected === 'exclusions' ? selected : 'sources';
   const navigation = <Tabs value={tab} onChange={(_, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} aria-label="Scraper sections" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2 }}>
-    <Tab value="sources" label="Sources" /><Tab value="searches" label="Saved searches" /><Tab value="exclusions" label="Import exclusions" />
+    <Tab value="sources" label="Sources" /><Tab value="w3u" label="W3U catalogues" /><Tab value="searches" label="Saved searches" /><Tab value="exclusions" label="Import exclusions" />
   </Tabs>;
   return <Box>
-    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title="Scraper" subtitle="Manage discoveries and future imports." />{navigation}{tab === 'searches' ? <SavedSearches /> : <ImportExclusions />}</>}
+    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title="Scraper" subtitle="Manage discoveries and future imports." />{navigation}
+      {tab === 'w3u' ? <React.Suspense fallback={<p role="status">Loading catalogues…</p>}><Catalogues embedded /></React.Suspense> : tab === 'searches' ? <SavedSearches /> : <ImportExclusions />}</>}
   </Box>;
 };
 export default Scraper;

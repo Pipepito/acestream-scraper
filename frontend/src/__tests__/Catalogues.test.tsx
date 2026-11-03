@@ -26,12 +26,18 @@ const fixture: CatalogueView = {
 };
 const saved: CatalogueView = { ...fixture, id: 1, preview_token: undefined, entries: fixture.entries.map((e) => ({ ...e, imported: Boolean(e.channel_id) })) };
 
-function renderPage(path = '/catalogues', mode: 'light' | 'dark' = 'light') {
+function renderPage(path = '/catalogues', mode: 'light' | 'dark' = 'light', embedded = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(<ThemeProvider theme={createAppTheme(mode)}><QueryClientProvider client={client}>
-    <TestMemoryRouter initialEntries={[path]}><Catalogues /></TestMemoryRouter>
+    <TestMemoryRouter initialEntries={[path]}><Catalogues embedded={embedded} /></TestMemoryRouter>
   </QueryClientProvider></ThemeProvider>);
 }
+
+it('renders without its own page header when embedded in Scraper', async () => {
+  renderPage('/scraper?tab=w3u', 'light', true);
+  expect(await screen.findByRole('button', { name: 'Add catalogue' })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { level: 1, name: 'Catalogues' })).not.toBeInTheDocument();
+});
 beforeEach(() => {
   jest.clearAllMocks(); localStorage.clear();
   mocked.list.mockResolvedValue([]); mocked.preview.mockResolvedValue(fixture);

@@ -15,6 +15,7 @@ const mockUsePatchURL = jest.fn();
 const mockUseDeleteURL = jest.fn();
 const mockUseScrapeAllURLs = jest.fn();
 
+jest.mock('../services/catalogueService', () => ({ catalogueService: { list: jest.fn().mockResolvedValue([]), get: jest.fn(), preview: jest.fn(), save: jest.fn(), previewEvent: jest.fn(), remove: jest.fn() } }));
 jest.mock('../hooks/useScrapers', () => ({
   useURLs: (...args: unknown[]) => mockUseURLs(...args),
   useCreateURL: (...args: unknown[]) => mockUseCreateURL(...args),
@@ -25,7 +26,7 @@ jest.mock('../hooks/useScrapers', () => ({
 }));
 
 describe('Scraper', () => {
-  const renderPage = () => {
+  const renderPage = (path = '/scraper') => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -36,7 +37,7 @@ describe('Scraper', () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={createAppTheme('light')}>
-          <TestMemoryRouter>
+          <TestMemoryRouter initialEntries={[path]}>
             <Scraper />
           </TestMemoryRouter>
         </ThemeProvider>
@@ -183,6 +184,15 @@ describe('Scraper', () => {
     renderPage();
     expect(screen.getByText('No source URLs yet. Add one to start scraping.')).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Source status' })).toHaveTextContent('0 of 0 enabled');
+  });
+
+  it('hosts W3U catalogues as a tab under the Scraper heading', async () => {
+    renderPage('/scraper?tab=w3u');
+    expect(screen.getByRole('tab', { name: 'W3U catalogues', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Scraper' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Add catalogue' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Catalogues' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'W3U catalogues' })).not.toBeInTheDocument();
   });
 });
 

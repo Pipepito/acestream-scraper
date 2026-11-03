@@ -10,7 +10,7 @@ If you have not created the container yet, use the [Docker command builder](http
 
 ## Find your way around
 
-Navigation groups **Watch** (TV dashboard, Live TV, Catalogues, Events), **Manage** (sources, Search, stream and TV inventories, EPG, Playlist), **Integrations** (Public address, Web player, Remote players, Media servers, Telegram), and **System** (System status, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
+Navigation groups **Watch** (TV dashboard, Live TV, Recordings), **Manage** (Scraper with its sources, W3U catalogues, saved searches and exclusions; Search; stream and TV inventories; EPG; Events; Playlist), **Integrations** (Public address, Web player, Remote players, Media servers, Telegram), and **System** (System status, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
 
 A **stream** is one AceStream content ID. A **TV channel** groups stream IDs for one station, with its channel number, favorite flag and programme guide. Scraping discovers streams; assigning them to TV channels creates the viewing catalogue.
 

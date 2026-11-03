@@ -220,6 +220,19 @@ describe('Scraper', () => {
     expect(screen.getByRole('status', { name: 'Source status' })).toHaveTextContent('0 of 0 enabled');
   });
 
+  it('previews a catalogue inside the W3U tab', async () => {
+    const { catalogueService } = jest.requireMock('../services/catalogueService') as { catalogueService: { preview: jest.Mock } };
+    catalogueService.preview.mockResolvedValue({ name: 'Example catalogue', origin: 'example.test', revision: 0, can_refresh: true, preview_token: 'test-preview',
+      counts: { accepted: 1, duplicates: 0, invalid: 0, unsupported: 0, failed_fetches: 0 }, selected_branches: ['root'], mode: 'compatible',
+      entries: [{ id: 'root', parent_id: null, name: 'Example catalogue', kind: 'folder' }, { id: 'live', parent_id: 'root', name: 'Live channels', kind: 'folder' }] });
+    renderPage('/scraper?tab=w3u');
+    fireEvent.click(await screen.findByRole('button', { name: 'Add catalogue' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Catalogue URL' }), { target: { value: 'https://example.test/list.w3u' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview URL' }));
+    expect(await screen.findByRole('heading', { name: 'Review import' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Include Live channels' })).toBeInTheDocument();
+  });
+
   it('hosts W3U catalogues as a tab under the Scraper heading', async () => {
     renderPage('/scraper?tab=w3u');
     expect(screen.getByRole('tab', { name: 'W3U catalogues', selected: true })).toBeInTheDocument();

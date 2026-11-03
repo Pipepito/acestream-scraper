@@ -45,6 +45,13 @@ interface CataloguesProps { embedded?: boolean }
 const Catalogues: React.FC<CataloguesProps> = ({ embedded = false }) => {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
+  /** Rewrite only the catalogue browsing keys: the host page's own params (such as Scraper's `tab`) survive. */
+  const setBrowseParams = (next: Record<string, string>) => setParams((current) => {
+    const merged = new URLSearchParams(current);
+    merged.delete('catalogue'); merged.delete('folder');
+    Object.entries(next).forEach(([key, value]) => merged.set(key, value));
+    return merged;
+  });
   const catalogueId = Number(params.get('catalogue')) || null;
   const folder = params.get('folder') ?? 'root';
   const list = useQuery({ queryKey: ['catalogues'], queryFn: catalogueService.list });
@@ -85,7 +92,7 @@ const Catalogues: React.FC<CataloguesProps> = ({ embedded = false }) => {
   const busy = saved.isFetching;
 
   const navigateFolder = (id: string) => {
-    setParams({ ...(catalogueId ? { catalogue: String(catalogueId) } : {}), folder: id });
+    setBrowseParams({ ...(catalogueId ? { catalogue: String(catalogueId) } : {}), folder: id });
     setPage(1); setDetails(null);
   };
   const resetBrowse = () => { setEventEntry(null); setSearch(''); setKind('all'); setHistoryFilter('all'); setPage(1); setDetails(null); };
@@ -93,19 +100,19 @@ const Catalogues: React.FC<CataloguesProps> = ({ embedded = false }) => {
     setPreview(result); setName(result.name); setBranches(result.selected_branches ?? ['root']);
     setMode(result.mode ?? 'compatible'); setRefreshEnabled(result.refresh_enabled ?? false);
     setAdding(false); setUrl(''); setConfirmLive(false); setEventEntry(null); resetBrowse();
-    setParams(result.id ? { catalogue: String(result.id) } : {});
+    setBrowseParams(result.id ? { catalogue: String(result.id) } : {});
   } });
   const save = useMutation({ mutationFn: catalogueService.save, onSuccess: (result) => {
     queryClient.setQueryData(['catalogue', result.id], result);
     void queryClient.invalidateQueries({ queryKey: ['catalogues'] });
     void queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
     void queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
-    setPreview(null); setParams({ catalogue: String(result.id) }); resetBrowse();
+    setPreview(null); setBrowseParams({ catalogue: String(result.id) }); resetBrowse();
   } });
   const remove = useMutation({ mutationFn: catalogueService.remove, onSuccess: () => {
     void queryClient.invalidateQueries({ queryKey: ['catalogues'] });
     void queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
-    setParams({}); setConfirmRemove(false); setPreview(null); setDetails(null);
+    setBrowseParams({}); setConfirmRemove(false); setPreview(null); setDetails(null);
   } });
   const pending = prepare.isPending || save.isPending || remove.isPending;
   const tvCatalog = useTVChannelCatalog();
@@ -201,7 +208,7 @@ const Catalogues: React.FC<CataloguesProps> = ({ embedded = false }) => {
       {list.isPending ? <Typography role="status">Loading catalogues…</Typography> : !list.data?.length ? <Typography>No catalogues yet. Add a W3U URL or file to inspect its folders and playback compatibility.</Typography> :
         <List disablePadding>{list.data.map((catalogue) => <ListItem key={catalogue.id} disablePadding>
           <ListItemButton selected={catalogue.id === catalogueId} disabled={pending} onClick={() => {
-            setPreview(null); setAdding(false); resetBrowse(); setParams({ catalogue: String(catalogue.id) }); prepare.reset(); save.reset();
+            setPreview(null); setAdding(false); resetBrowse(); setBrowseParams({ catalogue: String(catalogue.id) }); prepare.reset(); save.reset();
           }}><ListItemText primary={catalogue.name} secondary={`${catalogue.origin} · ${catalogue.partial ? 'Partial refresh' : 'Saved'} · ${catalogue.refresh_enabled ? 'Scheduled refresh on' : 'Manual refresh'}`} sx={{ overflowWrap: 'anywhere' }} /></ListItemButton>
         </ListItem>)}</List>}
     </ContentSection>

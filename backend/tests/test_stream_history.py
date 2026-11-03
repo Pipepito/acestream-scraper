@@ -76,6 +76,12 @@ def test_a_source_no_list_has_published_for_two_weeks_is_demoted():
     assert scores['a' * 40].demoted and not scores['b' * 40].demoted
 
 
+def test_attempts_written_with_a_clock_ahead_are_ignored():
+    future = [(('a' * 40), 'ok', 3600.0, NOW + timedelta(days=41))]
+    scores = score_sources([Row('a')], future, {}, NOW)
+    assert scores['a' * 40].evidence == 0.0 and scores['a' * 40].score == 0.5
+
+
 def test_repeated_recent_failures_demote_a_source():
     scores = score_sources([Row('a')], [attempt('a', 'no_data', days_ago=d) for d in (0, 1, 2)], {}, NOW)
     assert scores['a' * 40].demoted

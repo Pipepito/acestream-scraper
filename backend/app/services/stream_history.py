@@ -45,6 +45,10 @@ DEAD_LIST_SHARE = 0.2
 BAD_EVIDENCE = 2.0
 BAD_SCORE = 0.25
 PRUNE_EVERY = 500
+# A row written with a clock that ran ahead (a box switched on before its clock
+# synchronised) says nothing reliable about when it happened: it is ignored
+# instead of counting as the most recent attempt.
+FUTURE_TOLERANCE = timedelta(minutes=5)
 # An attempt that played counts as more evidence the longer it played: one more
 # attempt's worth per PLAYED_SECONDS_PER_ATTEMPT, up to MAX_PLAYED_WEIGHT.
 PLAYED_SECONDS_PER_ATTEMPT = 1800.0
@@ -85,7 +89,7 @@ def score_sources(streams: Iterable, attempts, list_health: Dict[str, tuple[int,
     weighted: Dict[str, list[float]] = {}
     for content_id, outcome, seconds, created_at in attempts:
         value = OUTCOME_VALUE.get(outcome)
-        if value is None:
+        if value is None or _aware(created_at) > now + FUTURE_TOLERANCE:
             continue
         age_days = max(0.0, (now - _aware(created_at)).total_seconds() / 86400)
         weight = 0.5 ** (age_days / HALF_LIFE_DAYS)
@@ -102,7 +106,10 @@ def score_sources(streams: Iterable, attempts, list_health: Dict[str, tuple[int,
         good, evidence = weighted.get(cid, (0.0, 0.0))
         score = (PRIOR_STRENGTH * prior + good) / (PRIOR_STRENGTH + evidence)
         last_seen = getattr(stream, 'last_seen', None)
-        stale = last_seen is not None and now - _aware(last_seen) > timedelta(days=STALE_DAYS)
+        # A last_seen in the future is unknown, not fresh: it neither demotes nor
+        # protects the source.
+        stale = (last_seen is not None and _aware(last_seen) <= now + FUTURE_TOLERANCE
+                 and now - _aware(last_seen) > timedelta(days=STALE_DAYS))
         bad_history = evidence >= BAD_EVIDENCE and score < BAD_SCORE
         dead_list = (evidence == 0.0 and size >= DEAD_LIST_MIN_SOURCES and online / size < DEAD_LIST_SHARE)
         scores[cid] = SourceScore(score=score, evidence=evidence, demoted=stale or bad_history or dead_list)

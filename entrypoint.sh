@@ -439,7 +439,9 @@ export IPFS_GATEWAY_URL="${IPFS_GATEWAY_URL:-http://127.0.0.1:$IPFS_GATEWAY_PORT
 # below); FFMPEG_BINARY_PATH was already resolved with the image flags above,
 # and is empty here exactly when nothing executable sits at that path, which is
 # Settings' own default and means "resolve ffmpeg from PATH";
-# MEDIA_SERVER_MIN_REFRESH_MINUTES debounces Jellyfin/Plex guide refreshes.
+# MEDIA_SERVER_MIN_REFRESH_MINUTES debounces Jellyfin/Plex guide refreshes;
+# CAST_REQUIRE_HOME_NETWORK keeps the TV-casting home gate in open installations
+# (accounts mode always gates; the UI never exposes this).
 export PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 export TUNER_ALLOWED_NETWORKS="${TUNER_ALLOWED_NETWORKS:-127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10}"
 export RECORDINGS_DIR="${RECORDINGS_DIR:-}"
@@ -447,6 +449,7 @@ export PLAYER_HLS_DIR="${PLAYER_HLS_DIR:-/tmp/acestream-player}"
 export PLAYER_MAX_SESSIONS="${PLAYER_MAX_SESSIONS:-3}"
 export PLAYER_START_TIMEOUT_SECONDS="${PLAYER_START_TIMEOUT_SECONDS:-45}"
 export FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-auto}"
+export CAST_REQUIRE_HOME_NETWORK="${CAST_REQUIRE_HOME_NETWORK:-False}"
 export FFMPEG_BINARY_PATH="${FFMPEG_BINARY_PATH:-}"
 export MEDIA_SERVER_MIN_REFRESH_MINUTES="${MEDIA_SERVER_MIN_REFRESH_MINUTES:-30}"
 

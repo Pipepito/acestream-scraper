@@ -109,7 +109,7 @@ test.describe('scraper', () => {
     await expect(scraper.row(badUrl)).toContainText(/Error/);
     await expect(scraper.status()).toContainText(/Failing\s*[1-9]/);
     await scraper.delete(badUrl);
-    await scraper.expectAlert('URL deleted successfully');
+    await scraper.expectAlert(/Source deleted/);
     expect(await api.findUrl(badUrl)).toBeUndefined();
   });
 });

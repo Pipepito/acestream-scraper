@@ -1645,6 +1645,16 @@
             "title": "Compatibility Conversion",
             "type": "boolean"
           },
+          "home_check": {
+            "default": "off",
+            "enum": [
+              "off",
+              "deployment",
+              "accounts"
+            ],
+            "title": "Home Check",
+            "type": "string"
+          },
           "home_connection": {
             "default": false,
             "title": "Home Connection",

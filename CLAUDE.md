@@ -853,8 +853,7 @@ First-run account setup and Settings → Access manage optional accounts without
 new Docker bootstrap credentials. Preserve the independently migrated access store
 and fail-closed marker across catalogue restore/recovery. Management is default-deny
 across aliases and ASGI prefixes; viewer-control, media, IPTV and administrative
-credentials have separate scopes. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page and works without accounts for verified
-home clients. When accounts are enabled, require casting permission. Remote control
+credentials have separate scopes. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page. Without accounts it follows app access unless `CAST_REQUIRE_HOME_NETWORK=true`, an environment-only flag kept out of `runtime-options.json` and never exposed in the UI; `cast/capabilities` reports the effective rule as `home_check`. When accounts are enabled, require casting permission and the home check. Remote control
 always requires an account and explicit opt-in; preserve local-browser ownership,
 bounded discovery and scoped proxy trust. The `auto` proxy default recognizes
 Docker bridge peers while excluding gateways; preserve explicit saved overrides.

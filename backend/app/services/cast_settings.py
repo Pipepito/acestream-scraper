@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from app.repositories.access_repository import AccessRepository, digest
 from app.schemas.access import CastSettings
 from app.services.access_service import (
-    CSRF_COOKIE, DEFAULT_HOME_NETWORKS, home_client, require_admin, require_csrf,
+    CSRF_COOKIE, DEFAULT_HOME_NETWORKS, cast_home_required, home_client, require_admin, require_csrf,
     trusted_client, valid_csrf,
 )
 from app.services.public_url_service import host_warnings, request_origin
@@ -13,7 +13,7 @@ from app.services.public_url_service import host_warnings, request_origin
 
 def require_cast_settings(request):
     if request.state.access_mode == 'open':
-        if not home_client(request):
+        if cast_home_required(request) and not home_client(request):
             raise HTTPException(403, 'Open TV casting from your home network to change its settings.')
         # Even an open installation must reject cross-site configuration writes.
         if request.method not in ('GET', 'HEAD'):
@@ -43,6 +43,10 @@ def media_base(request):
     policy = request.state.access_policy
     if policy.cast_media_url:
         return policy.cast_media_url
+    # Only a recognized home connection may hand the receiver its own request
+    # origin; any other visitor's Host header never reaches a TV.
+    if not home_client(request):
+        return ''
     value = request_origin(request) + request.scope.get('root_path', '').rstrip('/')
     return '' if host_warnings(value) else value
 

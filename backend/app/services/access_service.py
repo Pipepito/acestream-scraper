@@ -234,6 +234,12 @@ def home_client(request):
     return private_lan_address(request) is not None or trusted_client(request, request.state.access_policy.home_networks or DEFAULT_HOME_NETWORKS)
 
 
+def cast_home_required(request):
+    """Accounts mode always gates TV control; open installations only when deployed with the flag."""
+    from app.config.settings import get_settings
+    return getattr(request.state, 'access_mode', 'open') != 'open' or bool(get_settings().CAST_REQUIRE_HOME_NETWORK)
+
+
 def require_server_cast(request):
     user = getattr(request.state, 'access_user', None)
     if getattr(request.state, 'access_mode', 'open') != 'open':
@@ -242,7 +248,7 @@ def require_server_cast(request):
             raise HTTPException(403, 'Sign in with permission to control server devices')
     policy = request.state.access_policy
     # Remote control always requires an account, including after accounts are disabled.
-    if not (policy.remote_casting and user) and not home_client(request):
+    if cast_home_required(request) and not (policy.remote_casting and user) and not home_client(request):
         from app.config.settings import get_settings
         from app.middleware.forwarded import parse_trusted
         peer = getattr(request.state, 'peer', (None, 0))[0]

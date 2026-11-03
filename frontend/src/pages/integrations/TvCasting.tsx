@@ -54,7 +54,8 @@ export default function TvCasting() {
   const access = useAccess();
   const capabilities = useQuery({ queryKey: ['cast-capabilities'], queryFn: castService.capabilities, retry: false });
   const allowed = Boolean(capabilities.data?.server_devices);
-  const canConfigure = Boolean(access?.status.user?.administrator || (access?.status.mode === 'open' && capabilities.data?.home_connection));
+  const openAccess = capabilities.data?.home_check === 'off';
+  const canConfigure = Boolean(access?.status.user?.administrator || (access?.status.mode === 'open' && (openAccess || capabilities.data?.home_connection)));
   const settings = useQuery({ queryKey: ['cast-settings'], queryFn: castService.settings, enabled: canConfigure, retry: false });
   const devices = useQuery({ queryKey: ['cast-devices'], queryFn: castService.devices, enabled: allowed, refetchInterval: allowed ? 3000 : false, retry: false });
   const [busy, setBusy] = useState(false);
@@ -76,14 +77,16 @@ export default function TvCasting() {
     setTrustConfirmed(false);
   };
   return <IntegrationPage title="TV casting" summary={[
-    { label: 'Connection', value: capabilities.data ? capabilities.data.home_connection ? 'Home' : 'Outside or unverified' : 'Checking…' },
+    { label: 'Connection', value: capabilities.data ? openAccess ? 'Open access' : capabilities.data.home_connection ? 'Home' : 'Outside or unverified' : 'Checking…' },
     { label: 'TVs', value: allowed ? devices.data?.length ?? 'Looking…' : 'Unavailable' },
   ]}>{() => <>
     <ContentSection title="Home TVs" description="Discover Chromecast and Google Cast-enabled Android TVs. Casting from the scraper works with any browser and does not require user management.">
       <Stack spacing={2}>
         {capabilities.isError ? <Alert severity="error">Could not check casting access.</Alert> : null}
+        {openAccess ? <Typography variant="body2">Anyone who can open this app can list and control TVs. Set CAST_REQUIRE_HOME_NETWORK=true on the container or enable accounts to limit this.</Typography> : null}
         {capabilities.data && !allowed ? <Alert severity="info">{capabilities.data.message}</Alert> : null}
-        {capabilities.data && !capabilities.data.home_connection && access?.status.user?.administrator ? <>
+        {capabilities.data?.home_check === 'deployment' ? <Typography variant="body2">Home-network check enforced by the deployment.</Typography> : null}
+        {capabilities.data && !openAccess && !capabilities.data.home_connection && access?.status.user?.administrator ? <>
           <Typography variant="body2">Using your public HTTPS address at home? Trust this connection to allow casting from your home internet address. Other visitors remain blocked. Repeat this if your provider changes your address. Shared internet connections also share this trust.</Typography>
           <FormControlLabel label="I am connected to my home network now" control={<Checkbox checked={trustConfirmed} onChange={(_, value) => setTrustConfirmed(value)} />} />
           <Box><Button disabled={busy || !trustConfirmed} onClick={() => void run(trustHome)}>Trust this home connection</Button></Box>

@@ -82,3 +82,22 @@ test('casting displays refreshed preferences without replacing unsaved edits', a
   expect(screen.getByLabelText('Allowed home networks')).toHaveValue('192.168.2.0/24');
   view.unmount(); view.cache.clear();
 });
+
+test('open access without the home check explains who can control TVs', async () => {
+  (castService.capabilities as jest.Mock).mockResolvedValue({ server_devices: true, home_connection: false, home_check: 'off', media_url_configured: true, media_url: 'https://app.test', compatibility_conversion: false });
+  const view = renderPage();
+  expect(await screen.findByText('Open access')).toBeVisible();
+  expect(screen.getByText(/Anyone who can open this app can list and control TVs/)).toBeVisible();
+  expect(screen.queryByText('Outside or unverified')).not.toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Save casting settings' })).toBeEnabled();
+  view.unmount(); view.cache.clear();
+});
+
+test('deployment-enforced home check keeps the home copy', async () => {
+  (castService.capabilities as jest.Mock).mockResolvedValue({ server_devices: false, home_connection: false, home_check: 'deployment', message: 'This connection is not recognized as home.', media_url_configured: false, media_url: '', compatibility_conversion: false });
+  const view = renderPage();
+  expect(await screen.findByText('Outside or unverified')).toBeVisible();
+  expect(screen.getByText('Home-network check enforced by the deployment.')).toBeVisible();
+  expect(screen.queryByText(/Anyone who can open this app/)).not.toBeInTheDocument();
+  view.unmount(); view.cache.clear();
+});

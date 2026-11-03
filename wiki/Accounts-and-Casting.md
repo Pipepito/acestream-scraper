@@ -94,8 +94,11 @@ are never silently switched from token protection to open access.
 
 ## Cast to TVs on the server's network
 
-1. Open **Integrations → TV casting**. On a direct home-network connection,
-   casting works without accounts or manually entering TV addresses.
+1. Open **Integrations → TV casting**. Without accounts, casting follows app
+   access: any browser that can open the app can list and control TVs, from the
+   LAN address or your public HTTPS address alike. Set
+   `CAST_REQUIRE_HOME_NETWORK=true` on the container to limit it to recognized
+   home networks, or enable accounts. The page shows which rule applies.
 2. Turn on the TV. Devices appear automatically through mDNS; **Find TVs** also
    performs a bounded scan of the detected local IPv4 network when multicast is
    unavailable. A response from an ordinary web server is not a Cast receiver.
@@ -103,12 +106,15 @@ are never silently switched from token protection to open access.
    player first is not required.
 
 The TV uses the application address you opened in the browser, including its port
-and any proxy path prefix. It must be able to fetch that address directly. Use
-**Advanced connection settings → Application address for TVs** only when the TV
-needs a different route. No device address is needed.
+and any proxy path prefix, when you are on a recognized home network. It must be
+able to fetch that address directly. From any other connection, such as your
+public HTTPS address without home trust, set **Advanced connection settings →
+Application address for TVs** so the TV has a fixed address to fetch from.
+No device address is needed.
 
 Accounts are optional for a home-only installation. When enabled, sign in using
-HTTPS or the private LAN address with Cast to server devices permission. If you use your public HTTPS address
+HTTPS or the private LAN address with Cast to server devices permission; the
+home-network check then always applies. If you use your public HTTPS address
 at home, an administrator can select **I am connected to my home network now** and
 **Trust this home connection**. This saves the current verified client address,
 without enabling remote casting. Repeat this if your provider changes your address.

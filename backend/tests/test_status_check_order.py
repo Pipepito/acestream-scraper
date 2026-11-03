@@ -181,3 +181,29 @@ def test_scoped_pass_uses_current_active_tv_assignments(client, db_session):
     assert ordered_ids(db_session) == []
     assert client.put(path, json={"scope": "all"}).status_code == 200
     assert len(ordered_ids(db_session)) == 4
+
+
+def test_a_check_dated_in_the_future_counts_as_never_made(db_session):
+    """A box that boots weeks ahead and corrects its clock minutes later
+    stamped its first checks in the future; those sources then went last and
+    were never rechecked until the real date caught up."""
+    _stream(db_session, "a" * 40, last_checked=T0 - timedelta(hours=30))
+    _stream(db_session, "b" * 40, last_checked=T0 + timedelta(days=41))
+    _stream(db_session, "c" * 40, last_checked=T0 + timedelta(minutes=2))
+    db_session.commit()
+    assert channels_in_check_order(db_session) == ["b" * 40, "a" * 40, "c" * 40]
+
+
+
+def test_a_check_dated_in_the_future_is_not_recent(db_session):
+    """The pass skips a source checked since it began; one dated in the future
+    was always "checked since" and so was never checked again."""
+    from app.services.channel_status_service import ChannelStatusService
+    now = datetime.now(timezone.utc)
+    _stream(db_session, "f" * 40, last_checked=now + timedelta(days=41))
+    _stream(db_session, "r" * 40, last_checked=now)
+    db_session.commit()
+    service = ChannelStatusService(db_session)
+    since = now - timedelta(minutes=1)
+    assert service._recent_result("f" * 40, since) is None
+    assert service._recent_result("r" * 40, since)["status"] == "skipped"

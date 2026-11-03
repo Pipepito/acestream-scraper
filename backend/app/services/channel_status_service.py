@@ -23,6 +23,21 @@ logger = logging.getLogger(__name__)
 
 
 
+# A check dated more than this into the future was written while the clock was
+# wrong: a box that boots with a date weeks ahead and corrects it minutes later
+# (seen 2026-09-27 and 2026-11-02) stamps its first checks in the future, and
+# those sources then counted as just checked until the real date caught up.
+FUTURE_CHECK_TOLERANCE = timedelta(minutes=5)
+
+
+def _from_the_future(checked: Optional[datetime], now: datetime) -> bool:
+    if checked is None:
+        return False
+    if checked.tzinfo is None:
+        checked = checked.replace(tzinfo=timezone.utc)
+    return checked > now + FUTURE_CHECK_TOLERANCE
+
+
 def channels_in_check_order(db: Session, *, http_only: bool = False, now: Optional[datetime] = None) -> List[str]:
     """Age work by the saved check interval so repeated short passes progress.
 
@@ -30,6 +45,7 @@ def channels_in_check_order(db: Session, *, http_only: bool = False, now: Option
     complete check intervals old their observation is, oldest group first.
     Favorites and assigned channels win within a group; last check and ID give
     stable tie breaks. A just-checked favorite moves out of the overdue groups.
+    A check dated in the future counts as never made.
     """
     from app.services.config_service import ConfigService
     from app.repositories.settings_repository import SettingsRepository
@@ -42,6 +58,8 @@ def channels_in_check_order(db: Session, *, http_only: bool = False, now: Option
 
     def priority(row):
         checked = row.last_checked
+        if _from_the_future(checked, now):
+            checked = None
         if checked is not None and checked.tzinfo is None:
             checked = checked.replace(tzinfo=timezone.utc)
         age_group = max(0, int((now - checked).total_seconds() // interval)) if checked else 0
@@ -217,6 +235,8 @@ class ChannelStatusService:
         with Session(bind=self.db.get_bind()) as db:
             snapshot = ChannelRepository(db).get_status_snapshot(channel_id)
         if not snapshot or not snapshot['last_checked'] or snapshot['last_checked'] < since:
+            return None
+        if _from_the_future(snapshot['last_checked'], datetime.now(timezone.utc)):
             return None
         return {
             'channel_id': channel_id, 'is_online': snapshot['is_online'] is True,

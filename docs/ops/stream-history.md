@@ -48,6 +48,16 @@ recent offline results stay excluded. Within each group, sources rank by
 Saved preferences still come first, so an operator can always override the
 ranking for a channel.
 
+## Hiding sources with no use
+
+The tuner setting `hide_unusable` (off by default; `PUT /api/v1/tuner/settings`)
+leaves out of the lineup and the M3U playlists every source that no list has
+published for 14 days, or whose own recent history is clearly bad (the same
+evidence and score bounds as demotion). A channel left with none drops out.
+A mostly offline list alone hides nothing: that only demotes. The source is
+still in the database, so it comes back as soon as a list publishes it again.
+A playlist URL can override the setting with `hide_unusable=true|false`.
+
 ## Limits
 
 - The ranking is deliberately rule based. The rows are kept so that a learned

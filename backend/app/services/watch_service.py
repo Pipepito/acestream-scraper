@@ -54,7 +54,7 @@ def safe_playlist(request):
             result = service.generate_all_streams_playlist(**options, include_unassigned=boolean('include_unassigned', True))
         else:
             result = service.generate_playlist(**options, group=query.get('group'), only_online=boolean('only_online', True),
-                include_unassigned=boolean('include_unassigned'), per_source=boolean('per_source'), favorites_only=boolean('favorites_only'),
+                include_unassigned=boolean('include_unassigned'), per_source=boolean('per_source'), hide_unusable=boolean('hide_unusable', None), favorites_only=boolean('favorites_only'),
                 include_groups=query['include_groups'].split(',') if query.get('include_groups') else None,
                 exclude_groups=query['exclude_groups'].split(',') if query.get('exclude_groups') else None)
         return asyncio.run(result)

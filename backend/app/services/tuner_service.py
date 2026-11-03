@@ -78,6 +78,9 @@ class TunerSettings:
     max_channels: int
     only_online: bool
     plex_compatible_audio: bool = False
+    # Leave out sources stream_history finds no use in, and channels left
+    # with none (lineup and M3U playlists).
+    hide_unusable: bool = False
     experimental_transcoding: bool = False
     # Seconds a source gets to deliver its first byte, and for the whole start
     # across sources: a cold P2P start can take longer than the defaults.
@@ -143,12 +146,13 @@ class TunerService:
             tuner_count=int(repo.get_setting(SettingsRepository.TUNER_COUNT) or SettingsRepository.DEFAULT_TUNER_COUNT),
             max_channels=int(repo.get_setting(SettingsRepository.TUNER_MAX_CHANNELS) or SettingsRepository.DEFAULT_TUNER_MAX_CHANNELS),
             only_online=str(repo.get_setting(SettingsRepository.TUNER_ONLY_ONLINE) or "false").lower() in ("true", "1"),
+            hide_unusable=str(repo.get_setting(SettingsRepository.TUNER_HIDE_UNUSABLE) or "false").lower() in ("true", "1"),
             source_start_seconds=int(repo.get_setting(SettingsRepository.TUNER_SOURCE_START_SECONDS) or SettingsRepository.DEFAULT_TUNER_SOURCE_START_SECONDS),
             startup_budget_seconds=int(repo.get_setting(SettingsRepository.TUNER_STARTUP_BUDGET_SECONDS) or SettingsRepository.DEFAULT_TUNER_STARTUP_BUDGET_SECONDS),
         )
 
     def update_settings(self, *, friendly_name: Optional[str] = None, tuner_count: Optional[int] = None,
-                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, plex_compatible_audio: Optional[bool] = None, experimental_transcoding: Optional[bool] = None,
+                        max_channels: Optional[int] = None, only_online: Optional[bool] = None, hide_unusable: Optional[bool] = None, plex_compatible_audio: Optional[bool] = None, experimental_transcoding: Optional[bool] = None,
                         source_start_seconds: Optional[int] = None, startup_budget_seconds: Optional[int] = None) -> TunerSettings:
         repo = self.settings_repo
         if friendly_name is not None:
@@ -163,6 +167,8 @@ class TunerService:
             repo.set_setting(SettingsRepository.TUNER_EXPERIMENTAL_TRANSCODING, "true" if experimental_transcoding else "false", "Experimental CPU-intensive TV relay recovery")
         if only_online is not None:
             repo.set_setting(SettingsRepository.TUNER_ONLY_ONLINE, "true" if only_online else "false", "Hide channels whose streams are all offline")
+        if hide_unusable is not None:
+            repo.set_setting(SettingsRepository.TUNER_HIDE_UNUSABLE, "true" if hide_unusable else "false", "Hide sources and channels with no useful prospect")
         if source_start_seconds is not None:
             repo.set_setting(SettingsRepository.TUNER_SOURCE_START_SECONDS, str(max(MIN_START_SECONDS, min(MAX_START_SECONDS, int(source_start_seconds)))), "Seconds a source gets to deliver its first byte")
         if startup_budget_seconds is not None:
@@ -242,8 +248,13 @@ class TunerService:
         settings = self.settings()
         channels: List[TVChannel] = ChannelRepository(self.db).get_playlist_tv_channels()
         candidates = []
+        gone: Set[str] = set()
+        if settings.hide_unusable:
+            from app.services.stream_history import unusable_ids
+            gone = unusable_ids(self.db, [s for tv in channels for s in tv.acestream_channels])
         for tv in channels:
-            streams = [s for s in tv.acestream_channels if s.is_active and supported_tuner_stream(s)]
+            streams = [s for s in tv.acestream_channels if s.is_active and supported_tuner_stream(s)
+                       and s.id.lower() not in gone]
             if not streams:
                 continue
             if settings.only_online and not any(s.is_online for s in streams):

@@ -1054,6 +1054,20 @@ export interface paths {
     /** Run Search */
     post: operations["run_search_api_v1_saved_searches__search_id__run_post"];
   };
+  "/api/v1/scrapers/orphaned-sources": {
+    /**
+     * Get Orphaned Sources
+     * @description Streams whose source URL is no longer configured; catalogue, Telegram, saved-search and manual rows are excluded.
+     */
+    get: operations["get_orphaned_sources_api_v1_scrapers_orphaned_sources_get"];
+  };
+  "/api/v1/scrapers/orphaned-sources/cleanup": {
+    /**
+     * Cleanup Orphaned Sources
+     * @description Delete the streams of the chosen removed sources.
+     */
+    post: operations["cleanup_orphaned_sources_api_v1_scrapers_orphaned_sources_cleanup_post"];
+  };
   "/api/v1/scrapers/providers": {
     /** Builtin Providers */
     get: operations["builtin_providers_api_v1_scrapers_providers_get"];
@@ -1111,7 +1125,7 @@ export interface paths {
     get: operations["get_scraped_url_api_v1_scrapers_urls__url_id__get"];
     /**
      * Delete Scraped Url
-     * @description Delete a scraped URL.
+     * @description Delete a scraped URL, optionally with the streams it owns.
      */
     delete: operations["delete_scraped_url_api_v1_scrapers_urls__url_id__delete"];
     /**
@@ -4150,6 +4164,30 @@ export interface components {
        */
       value?: string;
     };
+    /** OrphanCleanupRequest */
+    OrphanCleanupRequest: {
+      /** Source Urls */
+      source_urls: string[];
+    };
+    /** OrphanCleanupResult */
+    OrphanCleanupResult: {
+      /** Deleted */
+      deleted: {
+        [key: string]: number;
+      };
+    };
+    /**
+     * OrphanedSource
+     * @description Streams whose source URL is no longer configured as a scraper source.
+     */
+    OrphanedSource: {
+      /** Assigned Count */
+      assigned_count: number;
+      /** Count */
+      count: number;
+      /** Source Url */
+      source_url: string;
+    };
     /** PasswordChange */
     PasswordChange: {
       /**
@@ -6551,6 +6589,14 @@ export interface components {
        */
       url_type?: string;
     };
+    /** URLDeleteResult */
+    URLDeleteResult: {
+      /**
+       * Deleted Streams
+       * @default 0
+       */
+      deleted_streams?: number;
+    };
     /**
      * URLResponse
      * @description Schema for scraped URL information
@@ -6561,6 +6607,11 @@ export interface components {
        * Format: date-time
        */
       added_at: string;
+      /**
+       * Assigned Count
+       * @default 0
+       */
+      assigned_count?: number;
       /**
        * Channels Found
        * @default 0
@@ -11466,6 +11517,45 @@ export interface operations {
       };
     };
   };
+  /**
+   * Get Orphaned Sources
+   * @description Streams whose source URL is no longer configured; catalogue, Telegram, saved-search and manual rows are excluded.
+   */
+  get_orphaned_sources_api_v1_scrapers_orphaned_sources_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["OrphanedSource"][];
+        };
+      };
+    };
+  };
+  /**
+   * Cleanup Orphaned Sources
+   * @description Delete the streams of the chosen removed sources.
+   */
+  cleanup_orphaned_sources_api_v1_scrapers_orphaned_sources_cleanup_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OrphanCleanupRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["OrphanCleanupResult"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** Builtin Providers */
   builtin_providers_api_v1_scrapers_providers_get: {
     responses: {
@@ -11660,18 +11750,24 @@ export interface operations {
   };
   /**
    * Delete Scraped Url
-   * @description Delete a scraped URL.
+   * @description Delete a scraped URL, optionally with the streams it owns.
    */
   delete_scraped_url_api_v1_scrapers_urls__url_id__delete: {
     parameters: {
+      query?: {
+        /** @description Also delete every stream this source owns, including streams linked to TV channels. */
+        delete_streams?: boolean;
+      };
       path: {
         url_id: number;
       };
     };
     responses: {
       /** @description Successful Response */
-      204: {
-        content: never;
+      200: {
+        content: {
+          "application/json": components["schemas"]["URLDeleteResult"];
+        };
       };
       /** @description Validation Error */
       422: {

@@ -62,6 +62,7 @@ class URLResponse(SourceName):
 
 
     channels_found: int = 0  # Number of acestream channels found for this URL
+    assigned_count: int = 0  # How many of those streams are linked to a TV channel
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -72,6 +73,25 @@ class URLResponse(SourceName):
         # carry NULL here; treat that as the opt-in being off rather than
         # failing the whole listing.
         return False if value is None else value
+
+
+class URLDeleteResult(BaseModel):
+    deleted_streams: int = 0
+
+
+class OrphanedSource(BaseModel):
+    """Streams whose source URL is no longer configured as a scraper source."""
+    source_url: str
+    count: int
+    assigned_count: int
+
+
+class OrphanCleanupRequest(BaseModel):
+    source_urls: List[str] = Field(min_length=1, max_length=200)
+
+
+class OrphanCleanupResult(BaseModel):
+    deleted: Dict[str, int]
 
 
 class URLCreate(SourceName):

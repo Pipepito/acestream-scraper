@@ -6304,6 +6304,64 @@
         "title": "NotificationWebhookUpdate",
         "type": "object"
       },
+      "OrphanCleanupRequest": {
+        "properties": {
+          "source_urls": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Source Urls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "source_urls"
+        ],
+        "title": "OrphanCleanupRequest",
+        "type": "object"
+      },
+      "OrphanCleanupResult": {
+        "properties": {
+          "deleted": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Deleted",
+            "type": "object"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "OrphanCleanupResult",
+        "type": "object"
+      },
+      "OrphanedSource": {
+        "description": "Streams whose source URL is no longer configured as a scraper source.",
+        "properties": {
+          "assigned_count": {
+            "title": "Assigned Count",
+            "type": "integer"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_url",
+          "count",
+          "assigned_count"
+        ],
+        "title": "OrphanedSource",
+        "type": "object"
+      },
       "PasswordChange": {
         "additionalProperties": false,
         "properties": {
@@ -12359,6 +12417,17 @@
         "title": "URLCreate",
         "type": "object"
       },
+      "URLDeleteResult": {
+        "properties": {
+          "deleted_streams": {
+            "default": 0,
+            "title": "Deleted Streams",
+            "type": "integer"
+          }
+        },
+        "title": "URLDeleteResult",
+        "type": "object"
+      },
       "URLResponse": {
         "description": "Schema for scraped URL information",
         "properties": {
@@ -12366,6 +12435,11 @@
             "format": "date-time",
             "title": "Added At",
             "type": "string"
+          },
+          "assigned_count": {
+            "default": 0,
+            "title": "Assigned Count",
+            "type": "integer"
           },
           "channels_found": {
             "default": 0,
@@ -22939,6 +23013,74 @@
         ]
       }
     },
+    "/api/v1/scrapers/orphaned-sources": {
+      "get": {
+        "description": "Streams whose source URL is no longer configured; catalogue, Telegram, saved-search and manual rows are excluded.",
+        "operationId": "get_orphaned_sources_api_v1_scrapers_orphaned_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrphanedSource"
+                  },
+                  "title": "Response Get Orphaned Sources Api V1 Scrapers Orphaned Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Orphaned Sources",
+        "tags": [
+          "scrapers"
+        ]
+      }
+    },
+    "/api/v1/scrapers/orphaned-sources/cleanup": {
+      "post": {
+        "description": "Delete the streams of the chosen removed sources.",
+        "operationId": "cleanup_orphaned_sources_api_v1_scrapers_orphaned_sources_cleanup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrphanCleanupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrphanCleanupResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cleanup Orphaned Sources",
+        "tags": [
+          "scrapers"
+        ]
+      }
+    },
     "/api/v1/scrapers/providers": {
       "get": {
         "operationId": "builtin_providers_api_v1_scrapers_providers_get",
@@ -23244,7 +23386,7 @@
     },
     "/api/v1/scrapers/urls/{url_id}": {
       "delete": {
-        "description": "Delete a scraped URL.",
+        "description": "Delete a scraped URL, optionally with the streams it owns.",
         "operationId": "delete_scraped_url_api_v1_scrapers_urls__url_id__delete",
         "parameters": [
           {
@@ -23255,10 +23397,29 @@
               "title": "Url Id",
               "type": "integer"
             }
+          },
+          {
+            "description": "Also delete every stream this source owns, including streams linked to TV channels.",
+            "in": "query",
+            "name": "delete_streams",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Also delete every stream this source owns, including streams linked to TV channels.",
+              "title": "Delete Streams",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
-          "204": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/URLDeleteResult"
+                }
+              }
+            },
             "description": "Successful Response"
           },
           "422": {

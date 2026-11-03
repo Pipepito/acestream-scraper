@@ -99,6 +99,14 @@ Select **Add**, then use the row's **Scrape** action. **Scrape all** processes e
 
 The table records the last result, last run, and number of channels found. If a source fails, its error remains visible there.
 
+A successful scrape removes streams that disappeared from that source; failed or
+empty scrapes never do. **Delete** in a source's row menu asks whether to remove
+its streams too, which is ticked by default and includes streams linked to TV
+channels; the TV channels themselves stay. Streams left behind by sources removed
+earlier are listed under **Clean up removed sources…** in the page actions, where
+you tick which to remove. Catalogue, Telegram, saved-search and manual additions
+are never part of that list.
+
 ![Add URL dialog on the Scraper page](usage-02-add-source.png)
 
 ## Step 4: Review discovered streams

@@ -814,6 +814,18 @@ runs. Keep bounds, preview tokens, truthful partial outcomes and starvation-safe
 oldest-attempt ordering. See `docs/dev/import-exclusions-and-saved-searches.md`.
 
 
+## Source removal
+
+`DELETE /api/v1/scrapers/urls/{id}?delete_streams=true` removes a scraper source
+together with every stream whose `source_url` is the stored or normalized spelling,
+including streams linked to TV channels (TV channels themselves are never deleted),
+in one transaction; the Scraper delete dialog defaults that checkbox to on. The URL
+list carries `assigned_count` beside `channels_found`. `GET /scrapers/orphaned-sources`
+lists streams whose source URL is no longer configured, excluding `catalogue:`,
+`telegram-source:`, `saved-search:` and manual rows; `POST
+/scrapers/orphaned-sources/cleanup` deletes the ticked ones and rejects configured
+URLs. Scrape-time pruning of configured sources is unchanged.
+
 ## Built-in recordings
 
 Recordings are opt-in with an explicit persistent `RECORDINGS_DIR`. Keep DVR

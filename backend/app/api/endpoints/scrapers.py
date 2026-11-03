@@ -8,7 +8,8 @@ from typing import List, Optional
 
 from app.api.dependencies import get_scraper_service
 from app.api.error_handlers import APIError
-from app.schemas.scraper import ScraperRequest, ScraperResult, URLResponse, URLCreate, URLUpdate, BuiltinProvider
+from app.schemas.scraper import (ScraperRequest, ScraperResult, URLResponse, URLCreate, URLUpdate, BuiltinProvider,
+    URLDeleteResult, OrphanedSource, OrphanCleanupRequest, OrphanCleanupResult)
 from app.services.scraper_service import ScraperService
 from app.services.manual_job_service import run_manual_job, scrape_batch
 
@@ -146,18 +147,34 @@ async def update_scraped_url(
     return url
 
 
-@router.delete("/urls/{url_id}", status_code=204)
+@router.delete("/urls/{url_id}", response_model=URLDeleteResult)
 async def delete_scraped_url(
     url_id: int,
+    delete_streams: bool = Query(False, description="Also delete every stream this source owns, including streams linked to TV channels."),
     scraper_service: ScraperService = Depends(get_scraper_service),
 ):
     """
-    Delete a scraped URL.
+    Delete a scraped URL, optionally with the streams it owns.
     """
-    success = scraper_service.delete_scraped_url(url_id)
-    if not success:
+    deleted = scraper_service.delete_scraped_url(url_id, delete_streams=delete_streams)
+    if deleted is None:
         raise HTTPException(status_code=404, detail="URL not found")
-    return
+    return URLDeleteResult(deleted_streams=deleted)
+
+
+@router.get("/orphaned-sources", response_model=List[OrphanedSource])
+async def get_orphaned_sources(scraper_service: ScraperService = Depends(get_scraper_service)):
+    """Streams whose source URL is no longer configured; catalogue, Telegram, saved-search and manual rows are excluded."""
+    return scraper_service.orphaned_sources()
+
+
+@router.post("/orphaned-sources/cleanup", response_model=OrphanCleanupResult)
+async def cleanup_orphaned_sources(request: OrphanCleanupRequest, scraper_service: ScraperService = Depends(get_scraper_service)):
+    """Delete the streams of the chosen removed sources."""
+    try:
+        return OrphanCleanupResult(deleted=scraper_service.cleanup_orphaned_sources(request.source_urls))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/urls/{url_id}/scrape", response_model=ScraperResultExtended)

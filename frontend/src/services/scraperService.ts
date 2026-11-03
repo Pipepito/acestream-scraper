@@ -22,9 +22,15 @@ export interface ScrapedURL {
   last_error?: string | null;
   added_at: string;
   channels_found?: number;
+  /** How many of this source's streams are linked to a TV channel. */
+  assigned_count?: number;
   scrape_bare_ids?: boolean;
   extraction_recipe?: ExtractionRecipe | null;
 }
+
+export type URLDeleteResult = components['schemas']['URLDeleteResult'];
+export type OrphanedSource = components['schemas']['OrphanedSource'];
+export type OrphanCleanupResult = components['schemas']['OrphanCleanupResult'];
 
 /**
  * URL creation DTO
@@ -115,10 +121,23 @@ export const scraperService = {
   },
 
   /**
-   * Delete a URL
+   * Delete a URL, optionally with every stream it owns.
    */
-  deleteURL: async (id: number): Promise<void> => {
-    await apiClient.delete(`/v1/scrapers/urls/${id}`);
+  deleteURL: async (id: number, deleteStreams = false): Promise<URLDeleteResult> => {
+    const { data } = await apiClient.delete(`/v1/scrapers/urls/${id}`, { params: { delete_streams: deleteStreams } });
+    return data;
+  },
+
+  /** Streams whose source URL is no longer configured. */
+  orphanedSources: async (): Promise<OrphanedSource[]> => {
+    const { data } = await apiClient.get('/v1/scrapers/orphaned-sources');
+    return data;
+  },
+
+  /** Delete the streams of the chosen removed sources. */
+  cleanupOrphanedSources: async (sourceUrls: string[]): Promise<OrphanCleanupResult> => {
+    const { data } = await apiClient.post('/v1/scrapers/orphaned-sources/cleanup', { source_urls: sourceUrls });
+    return data;
   },
 
   /**

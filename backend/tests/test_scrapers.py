@@ -177,7 +177,8 @@ class TestScrapedURLEndpoints:
         """Test deleting a scraped URL."""
         url_id = seed_scraped_urls[0].id
         response = client.delete(f"/api/v1/scrapers/urls/{url_id}")
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'deleted_streams': 0}
 
         # Verify URL is deleted
         response = client.get(f"/api/v1/scrapers/urls/{url_id}")
@@ -188,6 +189,54 @@ class TestScrapedURLEndpoints:
         fake_id = 99999
         response = client.delete(f"/api/v1/scrapers/urls/{fake_id}")
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_delete_source_removes_streams_under_both_url_spellings(self, client, db_session):
+        from app.models.models import AcestreamChannel, ScrapedURL, TVChannel
+        from app.models.url_types import create_url_object
+        raw = 'https://inbrowser.link/ipns/testname/'
+        url = ScrapedURL(url=raw, url_type='ipfs', status='OK', enabled=True)
+        db_session.add(url)
+        db_session.flush()
+        normalized = create_url_object(raw, 'ipfs').get_normalized_url()
+        assert normalized == 'ipns://testname/'
+        tv = TVChannel(name='Keep me', is_active=True)
+        db_session.add(tv)
+        db_session.flush()
+        db_session.add_all([
+            AcestreamChannel(id='1' * 40, name='raw', source_url=raw, is_active=True),
+            AcestreamChannel(id='2' * 40, name='normalized', source_url=normalized, is_active=True, tv_channel_id=tv.id),
+            AcestreamChannel(id='3' * 40, name='other', source_url='https://other.example/', is_active=True)])
+        db_session.commit()
+        listing = {row['id']: row for row in client.get('/api/v1/scrapers/urls').json()}
+        assert listing[url.id]['channels_found'] == 2 and listing[url.id]['assigned_count'] == 1
+        response = client.delete(f'/api/v1/scrapers/urls/{url.id}', params={'delete_streams': 'true'})
+        assert response.status_code == status.HTTP_200_OK, response.text
+        assert response.json()['deleted_streams'] == 2
+        assert {c.id for c in db_session.query(AcestreamChannel).all()} == {'3' * 40}
+        assert db_session.get(TVChannel, tv.id) is not None
+
+    def test_delete_source_keeps_streams_by_default(self, client, seed_scraped_urls, db_session):
+        from app.models.models import AcestreamChannel
+        url = seed_scraped_urls[0]
+        db_session.add(AcestreamChannel(id='1' * 40, name='raw', source_url=url.url, is_active=True))
+        db_session.commit()
+        assert client.delete(f'/api/v1/scrapers/urls/{url.id}').json()['deleted_streams'] == 0
+        assert db_session.query(AcestreamChannel).count() == 1
+
+    def test_orphaned_sources_listing_and_cleanup(self, client, seed_scraped_urls, db_session):
+        from app.models.models import AcestreamChannel
+        configured = seed_scraped_urls[0].url
+        rows = [('a' * 40, configured), ('b' * 40, 'https://gone.example/'), ('c' * 40, 'https://gone.example/'),
+                ('d' * 40, 'catalogue:1'), ('e' * 40, 'telegram-source:1'), ('f' * 40, 'saved-search:1'),
+                ('g' * 40, 'Acestream Search'), ('h' * 40, None), ('i' * 40, 'https://also-gone.example/')]
+        db_session.add_all([AcestreamChannel(id=cid, name=cid[:4], source_url=source, is_active=True) for cid, source in rows])
+        db_session.commit()
+        listing = client.get('/api/v1/scrapers/orphaned-sources').json()
+        assert [(row['source_url'], row['count']) for row in listing] == [('https://also-gone.example/', 1), ('https://gone.example/', 2)]
+        assert client.post('/api/v1/scrapers/orphaned-sources/cleanup', json={'source_urls': [configured]}).status_code == 422
+        result = client.post('/api/v1/scrapers/orphaned-sources/cleanup', json={'source_urls': ['https://gone.example/']}).json()
+        assert result['deleted'] == {'https://gone.example/': 2}
+        assert db_session.query(AcestreamChannel).count() == 7
 
 
 class TestScrapedURLRefreshEndpoints:

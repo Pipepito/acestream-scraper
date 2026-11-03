@@ -2,7 +2,7 @@
 Repository for channel data operations
 """
 from app.config.database_retry import retry_database_write
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime, timezone
@@ -453,6 +453,37 @@ class ChannelRepository:
     def remove_search_memberships(self, channel_ids):
         from app.models.models import SavedSearchChannel
         self.db.query(SavedSearchChannel).filter(SavedSearchChannel.channel_id.in_(channel_ids)).delete(synchronize_session=False)
+
+    def delete_by_source_urls(self, source_urls, *, commit: bool = True) -> int:
+        """Delete every stream owned by one of ``source_urls`` (memberships first)."""
+        urls = [url for url in set(source_urls) if url]
+        if not urls:
+            return 0
+        ids = [row.id for row in self.db.query(AcestreamChannel.id).filter(AcestreamChannel.source_url.in_(urls)).all()]
+        if not ids:
+            return 0
+        self.remove_search_memberships(ids)
+        deleted = (
+            self.db.query(AcestreamChannel)
+            .filter(AcestreamChannel.id.in_(ids))
+            .delete(synchronize_session=False)
+        )
+        if commit:
+            self.db.commit()
+        else:
+            self.db.flush()
+        return deleted
+
+    def source_url_counts(self) -> List[tuple]:
+        """``(source_url, total, assigned)`` for every distinct non-empty source URL."""
+        rows = (
+            self.db.query(AcestreamChannel.source_url, func.count(AcestreamChannel.id),
+                          func.count(AcestreamChannel.tv_channel_id))
+            .filter(AcestreamChannel.source_url.isnot(None), AcestreamChannel.source_url != '')
+            .group_by(AcestreamChannel.source_url)
+            .all()
+        )
+        return [(url, int(total), int(assigned)) for url, total, assigned in rows]
 
     def bulk_delete_channels(self, channel_ids: List[str]) -> bool:
         """

@@ -44,6 +44,8 @@ import SavedSearches from '../components/imports/SavedSearches';
 import StatusLine from '../components/StatusLine';
 import RowActionsMenu from '../components/RowActionsMenu';
 import { useConfirm } from '../components/ConfirmDialog';
+import DeleteSourceDialog from '../components/scraper/DeleteSourceDialog';
+import OrphanedSourcesDialog from '../components/scraper/OrphanedSourcesDialog';
 import { formatRelativeTime } from '../utils/format';
 import { formatDateTime } from '../utils/formatters';
 
@@ -218,22 +220,25 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (await confirm({ title: 'Delete this source?', body: 'Channels already found from it stay in the inventory.', confirmLabel: 'Delete', danger: true })) {
-      try {
-        await deleteURL.mutateAsync(id);
-        setSnackbar({
-          open: true,
-          message: 'URL deleted successfully',
-          severity: 'success'
-        });
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: `Error: ${(error as Error).message}`,
-          severity: 'error'
-        });
-      }
+  const [deletingSource, setDeletingSource] = useState<ScrapedURL | null>(null);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const handleDelete = (source: ScrapedURL) => setDeletingSource(source);
+  const confirmDelete = async (deleteStreams: boolean) => {
+    if (!deletingSource) return;
+    try {
+      const result = await deleteURL.mutateAsync({ id: deletingSource.id, deleteStreams });
+      setDeletingSource(null);
+      setSnackbar({
+        open: true,
+        message: deleteStreams ? `Source deleted with ${result.deleted_streams} stream${result.deleted_streams === 1 ? '' : 's'}.` : 'Source deleted. Its streams stay in the inventory.',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error: ${(error as Error).message}`,
+        severity: 'error'
+      });
     }
   };
 
@@ -346,7 +351,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
             </Button>
           </Stack>
         }
-        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
+        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Clean up removed sources…', onClick: () => setCleanupOpen(true) }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
       {navigation}
@@ -415,7 +420,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                             { label: 'Edit', onClick: () => handleOpenDialog(true, url) },
                             { label: 'Configure extraction', disabled: url.url_type === 'broadcaster', onClick: () => navigate(`/scraper/builder?source=${url.id}`) },
                             { label: 'Harvest bare IDs', checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: url.url_type === 'broadcaster' || bareIdsUpdatingId === url.id || Boolean(url.extraction_recipe) },
-                            { label: 'Delete', danger: true, onClick: () => handleDelete(url.id) },
+                            { label: 'Delete', danger: true, onClick: () => handleDelete(url) },
                           ]}
                         />
                       </Stack>
@@ -544,6 +549,8 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
         </Alert>
       </Snackbar>
       {confirmDialog}
+      <DeleteSourceDialog open={Boolean(deletingSource)} source={deletingSource} busy={deleteURL.isPending} onClose={() => setDeletingSource(null)} onConfirm={(deleteStreams) => void confirmDelete(deleteStreams)} />
+      <OrphanedSourcesDialog open={cleanupOpen} onClose={() => setCleanupOpen(false)} onDone={(message) => setSnackbar({ open: true, message, severity: 'success' })} />
     </Box>
   );
 };

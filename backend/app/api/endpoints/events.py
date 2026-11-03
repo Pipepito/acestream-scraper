@@ -14,7 +14,7 @@ from app.services.event_overlay_service import EventOverlayService
 from app.schemas.events import EventOverlayRequest, EventOverlayApply, EventOverlayView, EventOverlayPreview
 from app.services.event_source_service import EventSourceService
 from app.schemas.events import EventSourcePreviewRequest, EventSourceView, EventSourceUpdate, EventRetention, EventBroadcastMapping, EventRefreshQueued
-from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog, EventSelection
+from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog, EventSelection, BroadcasterLinkView
 
 
 class PrivateEventRoute(APIRoute):
@@ -102,6 +102,17 @@ def event_interests(svc: EventService = Depends(service)):
 @router.get('/broadcast-targets', response_model=list[EventChannelTarget])
 def event_broadcast_targets(search: str = Query('', max_length=200), svc: EventService = Depends(service)):
     return invoke(svc.broadcasts.search, search)
+
+
+@router.get('/broadcaster-links', response_model=list[BroadcasterLinkView])
+def event_broadcaster_links(svc: EventService = Depends(service)):
+    return invoke(svc.broadcaster_links)
+
+
+@router.delete('/broadcaster-links/{alias_id}', status_code=204)
+def delete_event_broadcaster_link(alias_id: str, svc: EventService = Depends(service)):
+    invoke(svc.delete_broadcaster_link, alias_id)
+    return Response(status_code=204)
 
 
 @router.post('/sources/preview', response_model=EventPreview)

@@ -696,6 +696,14 @@ export interface paths {
     /** Event Broadcast Targets */
     get: operations["event_broadcast_targets_api_v1_events_broadcast_targets_get"];
   };
+  "/api/v1/events/broadcaster-links": {
+    /** Event Broadcaster Links */
+    get: operations["event_broadcaster_links_api_v1_events_broadcaster_links_get"];
+  };
+  "/api/v1/events/broadcaster-links/{alias_id}": {
+    /** Delete Event Broadcaster Link */
+    delete: operations["delete_event_broadcaster_link_api_v1_events_broadcaster_links__alias_id__delete"];
+  };
   "/api/v1/events/interests": {
     /** Event Interests */
     get: operations["event_interests_api_v1_events_interests_get"];
@@ -2147,6 +2155,32 @@ export interface components {
       quality: string;
       /** Reason */
       reason: string;
+      /**
+       * Source Kept
+       * @default false
+       */
+      source_kept?: boolean;
+      /** Source Name */
+      source_name: string;
+      target?: components["schemas"]["EventChannelTarget"] | null;
+      /**
+       * Via Alias
+       * @default false
+       */
+      via_alias?: boolean;
+    };
+    /** BroadcasterLinkView */
+    BroadcasterLinkView: {
+      /** Content Id */
+      content_id?: string | null;
+      /** Event Count */
+      event_count: number;
+      /** Id */
+      id: string;
+      /** Label */
+      label: string;
+      /** Source Id */
+      source_id: string;
       /** Source Name */
       source_name: string;
       target?: components["schemas"]["EventChannelTarget"] | null;
@@ -3174,6 +3208,11 @@ export interface components {
     };
     /** EventBroadcastMapping */
     EventBroadcastMapping: {
+      /**
+       * Apply To Source
+       * @default true
+       */
+      apply_to_source?: boolean;
       /** Broadcast Id */
       broadcast_id: string;
       /** Channel Id */
@@ -9504,6 +9543,37 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["EventChannelTarget"][];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Event Broadcaster Links */
+  event_broadcaster_links_api_v1_events_broadcaster_links_get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["BroadcasterLinkView"][];
+        };
+      };
+    };
+  };
+  /** Delete Event Broadcaster Link */
+  delete_event_broadcaster_link_api_v1_events_broadcaster_links__alias_id__delete: {
+    parameters: {
+      path: {
+        alias_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
       };
       /** @description Validation Error */
       422: {

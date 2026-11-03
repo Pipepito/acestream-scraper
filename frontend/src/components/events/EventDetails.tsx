@@ -56,7 +56,8 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
       {event.broadcasts.map((broadcast) => <Stack key={broadcast.id} direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ py: 1.5, borderTop: 1, borderColor: 'divider' }}>
         <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
           <Typography fontWeight={600}><EventChannelName broadcast={broadcast} /></Typography>
-          {broadcast.target && broadcast.target.name !== broadcast.label ? <Typography variant="body2" color="text.secondary">Your channel: {broadcast.target.name}</Typography> : null}
+          {broadcast.target && (broadcast.via_alias || broadcast.target.name !== broadcast.label) ? <Typography variant="body2" color="text.secondary">Your channel: {broadcast.target.name}{broadcast.via_alias ? ` · applies to all ${broadcast.label} events from ${broadcast.source_name}` : ''}</Typography> : null}
+          {broadcast.source_kept ? <Typography variant="body2" color="text.secondary">Source broadcast kept for this event.</Typography> : null}
           {managing ? <>
           <Typography variant="body2">{[broadcast.language, broadcast.quality, broadcast.country].filter(Boolean).join(' · ') || 'Language and quality not supplied'}</Typography>
           <Typography variant="body2">{broadcast.is_online === true ? 'Signal verified' : broadcast.is_online === false ? 'No signal verified' : 'Signal not checked'}{broadcast.checked_at ? ` · ${formatRelativeTime(broadcast.checked_at)}` : ''}</Typography>

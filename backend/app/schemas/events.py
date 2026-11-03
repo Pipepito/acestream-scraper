@@ -147,6 +147,10 @@ class EventImport(StrictModel):
 class BroadcastView(StrictModel):
     target: 'EventChannelTarget | None' = None
     manually_mapped: bool = False
+    # The link came from the source-wide broadcaster alias rather than this event's own entry.
+    via_alias: bool = False
+    # This event explicitly keeps the source broadcast, ignoring aliases and automatic matching.
+    source_kept: bool = False
     id: str
     label: str
     language: str
@@ -328,12 +332,24 @@ class EventRetention(StrictModel):
     archived_days: int = Field(default=0, ge=0, le=3650)
 
 
+class BroadcasterLinkView(StrictModel):
+    id: str
+    source_id: str
+    source_name: str
+    label: str
+    target: 'EventChannelTarget | None' = None
+    content_id: str | None = None
+    event_count: int
+
+
 class EventBroadcastMapping(StrictModel):
     revision: int = Field(ge=1)
     broadcast_id: str = Field(min_length=1, max_length=193)
     channel_id: str | None = Field(default=None, pattern=r'^(?:url:)?[0-9a-fA-F]{40}$')
     target_kind: Literal['tv', 'epg'] | None = None
     target_id: int | None = Field(default=None, ge=1)
+    # Default: the choice becomes this source's alias for the broadcaster, applied to every event.
+    apply_to_source: bool = True
 
     @model_validator(mode='after')
     def one_target(self):

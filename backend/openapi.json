@@ -1543,6 +1543,76 @@
             "title": "Reason",
             "type": "string"
           },
+          "source_kept": {
+            "default": false,
+            "title": "Source Kept",
+            "type": "boolean"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventChannelTarget"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "via_alias": {
+            "default": false,
+            "title": "Via Alias",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "language",
+          "quality",
+          "country",
+          "source_name",
+          "origin",
+          "content_id",
+          "compatibility",
+          "reason"
+        ],
+        "title": "BroadcastView",
+        "type": "object"
+      },
+      "BroadcasterLinkView": {
+        "additionalProperties": false,
+        "properties": {
+          "content_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Id"
+          },
+          "event_count": {
+            "title": "Event Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
           "source_name": {
             "title": "Source Name",
             "type": "string"
@@ -1560,17 +1630,12 @@
         },
         "required": [
           "id",
-          "label",
-          "language",
-          "quality",
-          "country",
+          "source_id",
           "source_name",
-          "origin",
-          "content_id",
-          "compatibility",
-          "reason"
+          "label",
+          "event_count"
         ],
-        "title": "BroadcastView",
+        "title": "BroadcasterLinkView",
         "type": "object"
       },
       "BuiltinProvider": {
@@ -3845,6 +3910,11 @@
       "EventBroadcastMapping": {
         "additionalProperties": false,
         "properties": {
+          "apply_to_source": {
+            "default": true,
+            "title": "Apply To Source",
+            "type": "boolean"
+          },
           "broadcast_id": {
             "maxLength": 193,
             "minLength": 1,
@@ -18717,6 +18787,66 @@
           }
         },
         "summary": "Event Broadcast Targets",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/broadcaster-links": {
+      "get": {
+        "operationId": "event_broadcaster_links_api_v1_events_broadcaster_links_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BroadcasterLinkView"
+                  },
+                  "title": "Response Event Broadcaster Links Api V1 Events Broadcaster Links Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Broadcaster Links",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/broadcaster-links/{alias_id}": {
+      "delete": {
+        "operationId": "delete_event_broadcaster_link_api_v1_events_broadcaster_links__alias_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alias_id",
+            "required": true,
+            "schema": {
+              "title": "Alias Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Event Broadcaster Link",
         "tags": [
           "events"
         ]

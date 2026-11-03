@@ -6,6 +6,7 @@ import ContentSection from '../layout/ContentSection';
 import { eventService, type EventSource, type EventRetention } from '../../services/eventService';
 import { eventErrorMessage as getErrorMessage } from './eventErrors';
 import { formatRelativeTime } from '../../utils/format';
+import BroadcasterLinks from './BroadcasterLinks';
 
 function RetentionForm({ policy }: { policy: EventRetention }) {
   const cache = useQueryClient();
@@ -59,6 +60,7 @@ export default function EventSourcesPanel({ onReview }: { onReview: (source: Eve
           }}>Delete source</Button>
         </Stack>
       </Stack>)}
+      <BroadcasterLinks />
       {retention.isPending ? <CircularProgress aria-label="Loading event retention" /> : retention.isError ? <Alert severity="error" action={<Button onClick={() => void retention.refetch()}>Retry retention</Button>}>Could not load retention.</Alert> : <RetentionForm policy={retention.data} />}
     </Stack>
   </ContentSection>;

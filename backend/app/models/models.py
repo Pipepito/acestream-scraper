@@ -448,6 +448,19 @@ class EventScheduleSource(Base):
     last_result = Column(JSON, nullable=True)
 
 
+class EventBroadcasterAlias(Base):
+    """One reviewed broadcaster link per source; events use it when they carry no entry of their own."""
+    __tablename__ = 'event_broadcaster_aliases'
+    __table_args__ = (UniqueConstraint('source_id', 'normalized_label', name='uq_event_broadcaster_alias'),)
+    id = Column(String(32), primary_key=True)
+    source_id = Column(String(160), nullable=False, index=True)
+    label = Column(String(200), nullable=False)
+    normalized_label = Column(String(200), nullable=False)
+    target = Column(JSON, nullable=False)
+    created_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+    updated_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
+
+
 class TelegramSourceRow(Base):
     __tablename__ = 'telegram_sources'
     id = Column(Integer, primary_key=True)

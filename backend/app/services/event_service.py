@@ -17,6 +17,8 @@ from app.schemas.events import (EventFields, EventImport, EventObservation, Even
 _PREVIEWS = OrderedDict()
 _LOCK = threading.RLock()
 _MAX_EVENTS = 2000
+# Per-event marker: keep the source broadcast, ignoring the alias and automatic matching.
+SOURCE_KEPT = {'kind': 'none'}
 
 
 def observation_key(source_id, external_id):
@@ -71,8 +73,9 @@ class EventService:
         from app.services.event_epg_service import EventEPGService
         self.epg = EventEPGService(self.repo)
 
-    def _channels(self, observations, events=()):
+    def _channels(self, observations, events=(), aliases=None):
         ids = {cid for event in events for cid in (event.broadcast_mappings or {}).values() if isinstance(cid, str)}
+        ids |= {alias.target for alias in (aliases or {}).values() if isinstance(alias.target, str)}
         for row in observations:
             for broadcast in row.payload['broadcasts']:
                 if broadcast.get('channel_id'):
@@ -81,8 +84,11 @@ class EventService:
                     ids.add(broadcast['url'][11:].lower())
         return self.repo.channels(ids)
 
-    def _view(self, event, observations, channels=None, *, include_epg_matches=True):
-        channels = self._channels(observations, [event]) if channels is None else channels
+    def _view(self, event, observations, channels=None, *, include_epg_matches=True, aliases=None):
+        from app.services.tv_matching_service import normalize_name
+        if aliases is None:
+            aliases = self.repo.aliases_for({row.source_id for row in observations})
+        channels = self._channels(observations, [event], aliases) if channels is None else channels
         broadcasts = []
         provenance = []
         for row in observations:
@@ -90,15 +96,24 @@ class EventService:
             provenance.append(ProvenanceView(source_id=obs.source_id, source_name=obs.source_name,
                 source_kind=obs.source_kind, external_id=obs.external_id, updated_at=row.updated_at))
             for b in obs.broadcasts:
+                # Precedence: this event's own entry, then the source alias, then automatic matching.
                 mapping = (event.broadcast_mappings or {}).get(f'{row.id}:{b.id}')
-                target = self.broadcasts.reviewed_target(mapping) if isinstance(mapping, dict) else self.broadcasts.match(b) if not mapping else None
+                via_alias = False
+                if mapping is None:
+                    alias = aliases.get((row.source_id, normalize_name(b.label).text))
+                    if alias is not None:
+                        mapping, via_alias = alias.target, True
+                source_kept = mapping == SOURCE_KEPT
+                if source_kept:
+                    mapping = None
+                target = self.broadcasts.reviewed_target(mapping) if isinstance(mapping, dict) else self.broadcasts.match(b) if not mapping and not source_kept else None
                 if isinstance(mapping, dict):
                     b = b.model_copy(update={'channel_id': None, 'url': None})
                 if isinstance(mapping, str):
                     b = b.model_copy(update={'channel_id': mapping, 'url': None})
                 cid = None
                 compatibility = 'unresolved'
-                reason = 'Choose a channel to link this broadcaster.'
+                reason = 'Source broadcast kept for this event.' if source_kept else 'Choose a channel to link this broadcaster.'
                 if target:
                     compatibility = 'linked'
                     reason = 'Linked TV channel' if target.kind == 'tv' else 'Linked EPG channel'
@@ -121,7 +136,8 @@ class EventService:
                         cid, compatibility, reason = media_id(row.id, b), 'playable', 'Guarded HTTP playback'
                     else:
                         compatibility, reason = 'unsupported', 'Website or unsupported media; a compatible resolver is required'
-                broadcasts.append(BroadcastView(target=target, manually_mapped=bool(mapping), id=f'{row.id}:{b.id}', label=b.label, language=b.language,
+                broadcasts.append(BroadcastView(target=target, manually_mapped=bool(mapping) or source_kept, via_alias=via_alias, source_kept=source_kept,
+                    id=f'{row.id}:{b.id}', label=b.label, language=b.language,
                     quality=b.quality, country=b.country, source_name=obs.source_name,
                     origin=urlsplit(b.url).hostname or '' if b.url else '', content_id=cid,
                     compatibility=compatibility, reason=reason,
@@ -176,8 +192,10 @@ class EventService:
             selected.append((rank if selection == 'dashboard' else (start is None, start or datetime.max.replace(tzinfo=timezone.utc)), row))
         selected.sort(key=lambda item: (*item[0], item[1].id))
         page = selected[offset:offset + limit]
-        channels = self._channels([obs for _, row in page for obs in grouped.get(row.id, [])], [row for _, row in page])
-        return EventList(total=len(selected), events=[self._view(row, grouped.get(row.id, []), channels)
+        page_obs = [obs for _, row in page for obs in grouped.get(row.id, [])]
+        aliases = self.repo.aliases_for({obs.source_id for obs in page_obs})
+        channels = self._channels(page_obs, [row for _, row in page], aliases)
+        return EventList(total=len(selected), events=[self._view(row, grouped.get(row.id, []), channels, aliases=aliases)
             for _, row in page])
 
     def preview(self, request: EventImport, *, context=None, background=False):
@@ -216,8 +234,9 @@ class EventService:
                 source_id=obs.source_id, external_id=obs.external_id,
                 payload=obs.model_dump(mode='json'), updated_at=now)
         validate_inventory(len(set(rows) | set(proposed)), observations)
-        channels = self._channels(observations.values(), proposed.values())
-        views = [self._view(e, [o for o in observations.values() if o.event_id == e.id], channels) for e in proposed.values()]
+        aliases = self.repo.aliases_for({o.source_id for o in observations.values()})
+        channels = self._channels(observations.values(), proposed.values(), aliases)
+        views = [self._view(e, [o for o in observations.values() if o.event_id == e.id], channels, aliases=aliases) for e in proposed.values()]
         token = secrets.token_urlsafe(32)
         with _LOCK:
             while not background and len(_PREVIEWS) >= 4:
@@ -306,32 +325,83 @@ class EventService:
 
 
     def map_broadcast(self, event_id, request):
+        from app.services.tv_matching_service import normalize_name
         event = self.repo.get(event_id)
         if event is None:
             raise LookupError('Event not found')
-        broadcasts = {f'{row.id}:{b["id"]}' for row in self.repo.observations(event_id) for b in row.payload['broadcasts']}
+        broadcasts = {f'{row.id}:{b["id"]}': (row.source_id, b.get('label') or '')
+                      for row in self.repo.observations(event_id) for b in row.payload['broadcasts']}
         if request.broadcast_id not in broadcasts:
             raise ValueError('Broadcast changed; reload the event')
-        mappings = dict(event.broadcast_mappings or {})
+        source_id, label = broadcasts[request.broadcast_id]
+        normalized = normalize_name(label).text
+        value = None
         if request.target_kind:
             target = self.repo.target(request.target_kind, request.target_id)
             if not target:
                 raise ValueError('Choose an existing active TV channel or enabled EPG channel')
-            mappings[request.broadcast_id] = {**target, 'kind': request.target_kind}
+            value = {**target, 'kind': request.target_kind}
         elif request.channel_id:
             channel = self.repo.channel(request.channel_id.lower())
             if not channel or not channel.is_active:
                 raise ValueError('Choose an existing active stream')
-            mappings[request.broadcast_id] = channel.id
-        else:
-            mappings.pop(request.broadcast_id, None)
+            value = channel.id
         try:
-            self.repo.reserve_revision(event_id, request.revision, broadcast_mappings=mappings)
+            values = {}
+            if request.apply_to_source:
+                # The alias governs every event of this source: per-event entries for the
+                # same broadcaster are swept so the list of links always tells the truth.
+                if value is not None:
+                    self.repo.upsert_alias(source_id, label, normalized, value)
+                else:
+                    alias = self.repo.alias(source_id, normalized)
+                    if alias is not None:
+                        self.repo.delete_alias(alias.id)
+                self.repo.clear_event_entries(source_id, normalized, lambda text: normalize_name(text).text)
+            else:
+                mappings = dict(event.broadcast_mappings or {})
+                current = mappings.get(request.broadcast_id)
+                if value is not None:
+                    mappings[request.broadcast_id] = value
+                elif current == SOURCE_KEPT:
+                    mappings.pop(request.broadcast_id)
+                else:
+                    mappings[request.broadcast_id] = dict(SOURCE_KEPT)
+                values['broadcast_mappings'] = mappings or None
+            self.repo.reserve_revision(event_id, request.revision, **values)
             self.repo.commit()
         except Exception:
             self.repo.rollback()
             raise
         return self.get(event_id)
+
+    def broadcaster_links(self):
+        from app.schemas.events import BroadcasterLinkView
+        from app.services.tv_matching_service import normalize_name
+        aliases = self.repo.list_aliases()
+        if not aliases:
+            return []
+        archived = {row.id for row in self.repo.inventory() if row.archived}
+        names, events = {}, {}
+        for obs in self.repo.observations():
+            names.setdefault(obs.source_id, obs.payload.get('source_name') or obs.source_id)
+            if obs.event_id in archived:
+                continue
+            for b in obs.payload['broadcasts']:
+                events.setdefault((obs.source_id, normalize_name(b.get('label') or '').text), set()).add(obs.event_id)
+        return [BroadcasterLinkView(id=alias.id, source_id=alias.source_id, source_name=names.get(alias.source_id, alias.source_id),
+            label=alias.label, target=self.broadcasts.reviewed_target(alias.target) if isinstance(alias.target, dict) else None,
+            content_id=alias.target if isinstance(alias.target, str) else None,
+            event_count=len(events.get((alias.source_id, alias.normalized_label), ()))) for alias in aliases]
+
+    def delete_broadcaster_link(self, alias_id):
+        try:
+            if not self.repo.delete_alias(alias_id):
+                raise LookupError('Broadcaster link not found')
+            self.repo.commit()
+        except Exception:
+            self.repo.rollback()
+            raise
 
 
     def artwork(self, event_id):

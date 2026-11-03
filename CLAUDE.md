@@ -680,8 +680,14 @@ Built-in event providers use guarded fixed WOSTI Spain/OpenFootball adapters and
 saved OR interests with a default 14-day source window. WOSTI has occurrence
 snapshots, not stable fixture IDs: changed dates/times need review, never silent
 reschedule merging. OpenFootball date-only fixtures keep kickoff unknown.
-Broadcaster links prefer unambiguous TV matches over EPG with conservative country
-checks; manual regional choices override them and survive refresh. Links are not
+Broadcaster links prefer unambiguous TV matches over EPG; an unknown country on
+either side is compatible when exactly one same-name candidate remains, while two
+known and different countries never match. A manual link saved with "apply to all"
+(the default) becomes a per-source broadcaster alias in `event_broadcaster_aliases`
+(migration `20261103_1200`) that governs every event of that source and sweeps
+older per-event entries; an event-only link wins over the alias, and the
+`{"kind": "none"}` marker keeps the source broadcast for one event. Aliases are
+managed under Events → Sources & retention → Broadcaster links. Links are not
 media/signal evidence. Keep new events review-only and preserve data outside filters.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 

@@ -298,3 +298,37 @@ def test_saved_timeout_used_by_preview_and_background_refresh(client, db_session
 
 def test_wosti_accepts_multiple_table_classes():
     assert len(parse_wosti(HTML.replace('class="tablaPrincipal"', 'class="tablaPrincipal eventos"'))) == 4
+
+
+def test_unknown_country_matches_when_unambiguous(client, db_session):
+    from app.models.models import TVChannel, EPGChannel, EPGSource
+    db_session.add(TVChannel(name='DAZN F1', country=None, is_active=True))
+    db_session.add(TVChannel(name='Eurosport 1', country='', is_active=True))
+    db_session.add(TVChannel(name='Sky Sport', country='de', is_active=True))
+    source = EPGSource(name='Guide', url='https://example.org/guide.xml', enabled=True)
+    db_session.add(source)
+    db_session.flush()
+    # TV channel names are unique, so same-name ambiguity only arises between EPG rows.
+    db_session.add_all([EPGChannel(name='Sports Two', channel_xml_id='two.a', epg_source_id=source.id),
+                        EPGChannel(name='Sports Two', channel_xml_id='two.b', epg_source_id=source.id)])
+    db_session.commit()
+    data = plain_schedule()
+    data['observations'][0]['broadcasts'] = [{'id': 'f1', 'label': 'DAZN F1', 'country': 'es'},
+        {'id': 'eu', 'label': 'Eurosport 1', 'country': ''}, {'id': 'dz', 'label': 'DAZN', 'country': 'es'},
+        {'id': 'sky', 'label': 'Sky Sport', 'country': 'es'}, {'id': 'two', 'label': 'Sports Two', 'country': 'es'}]
+    event = preview(client, data)['events'][0]
+    # Unknown TV country links; both unknown links; generic, known-different and ambiguous names do not.
+    assert [b['target']['name'] if b['target'] else None for b in event['broadcasts']] == ['DAZN F1', 'Eurosport 1', None, None, None]
+    # A candidate with the broadcast's own country wins over unknown-country namesakes.
+    db_session.add(EPGChannel(name='Sports Two [ES]', channel_xml_id='two.es', epg_source_id=source.id))
+    db_session.commit()
+    two = preview(client, data)['events'][0]['broadcasts'][4]['target']
+    assert two['kind'] == 'epg' and two['name'] == 'Sports Two [ES]'
+
+
+def test_tv_automatch_preview_keeps_strict_country_rule(client, db_session):
+    from app.models.models import TVChannel, AcestreamChannel
+    db_session.add(TVChannel(name='Eurosport 1', country=None, is_active=True))
+    db_session.add(AcestreamChannel(id='c' * 40, name='ES: Eurosport 1', is_active=True))
+    db_session.commit()
+    assert client.post('/api/v1/tv-channels/automatch/preview').json()['candidates'] == []

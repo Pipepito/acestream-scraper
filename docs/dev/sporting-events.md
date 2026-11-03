@@ -154,15 +154,26 @@ event media/observations and approvals transactionally, never AcestreamChannel o
 TVChannel rows. A retained active player already owns its source copy. Deleted
 events require fresh explicit approval before reimport.
 
-`PATCH /events/{id}/broadcast` stores a source-qualified broadcast mapping to an
-explicit active stream or TV/EPG target. Name matching reuses the conservative
-TV matching normalization/country guards, indexes bounded inventories (20,000 per
-kind; exceeding the bound disables automatic matching rather than claiming uniqueness),
+`PATCH /events/{id}/broadcast` links a broadcast to an explicit active stream or
+TV/EPG target. With `apply_to_source` (the default) the choice is stored as a
+**broadcaster alias** in `event_broadcaster_aliases`, keyed by
+`(source_id, normalized_label)`, and every per-event entry for that broadcaster
+across the source is swept in the same transaction, so the alias governs all
+existing and future events of that source. With `apply_to_source=false` the
+choice is this event's own entry, which wins over the alias; clearing this event
+only writes the `{"kind": "none"}` marker (`source_kept`) so the event shows the
+source broadcast, and clearing again removes the marker. Read precedence is
+per-event entry, then alias, then automatic matching. `GET/DELETE
+/events/broadcaster-links` manage aliases. Name matching reuses the TV matching
+normalization; for events an unknown country on either side is compatible when
+the normalized names match and exactly one candidate remains (a known matching
+country narrows namesakes), indexes bounded inventories (20,000 per kind;
+exceeding the bound disables automatic matching rather than claiming uniqueness),
 and prefers TV before EPG. `linked` means a navigable channel, not playable media.
 Manual links override automatic choices and suppress any different source stream.
 EPG manual targets retain source/XML identity and name to reject reused IDs. A
-removed/renamed manual target stays unavailable without automatic fallback. Mapping
-survives feed updates and can be cleared. No global broadcaster alias is implied.
+removed/renamed manual or alias target stays unavailable without automatic
+fallback. Links survive feed updates.
 
 Optional artwork stays private in observations. `GET /events/{id}/artwork` uses the
 same guarded fetch boundary with 2 admitted requests, 10s, 512 KiB and bounded raster

@@ -34,9 +34,16 @@ class EventBroadcastService:
             index = self.indexes[kind]
             if index is None:
                 return None
-            matches = [row for candidate, row in index.get(name.text, []) if name_score(name, candidate)]
+            matches = [(candidate, row) for candidate, row in index.get(name.text, [])
+                       if name_score(name, candidate, allow_unknown_country=True)]
+            # Several same-name rows: a known matching country picks the edition;
+            # otherwise the name alone cannot choose and nothing is linked.
+            if len(matches) > 1 and name.country:
+                exact = [match for match in matches if match[0].country == name.country]
+                if exact:
+                    matches = exact
             if len(matches) == 1:
-                return self.view(kind, matches[0])
+                return self.view(kind, matches[0][1])
             if len(matches) > 1:
                 return None
         return None

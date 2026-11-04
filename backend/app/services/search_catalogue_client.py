@@ -118,6 +118,8 @@ class SearchCatalogueClient:
                                                 transport=self.transport) as client:
                         async with client.stream('GET', self.url + path, params=params,
                                                  timeout=min(REQUEST_SECONDS, self.remaining())) as response:
+                            if path == '/search' and response.status_code == 404:
+                                raise CatalogueReadError('SEARCH_CATALOGUE_UNSUPPORTED')
                             response.raise_for_status()
                             body = bytearray()
                             async for chunk in response.aiter_bytes():

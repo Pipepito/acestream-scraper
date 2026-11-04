@@ -409,6 +409,20 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/u
 FROM runtime-base AS scraper
 
 
+# Select the target-platform binary from the verified three-platform release index.
+FROM ghcr.io/jamezrin/outpace:0.9.0@sha256:842f5caeb0a43891e5d90842e7563b59269e8a9eb31b6d9d5683b917f1df8b04 AS outpace-release
+FROM scraper AS scraper-outpace
+COPY --link --from=outpace-release /usr/local/bin/outpace /usr/local/bin/outpace
+COPY --link --from=outpace-release /usr/share/doc/outpace/LICENSE /usr/share/doc/outpace/LICENSE
+COPY --link --chmod=755 docker/scripts/start-outpace /opt/acestream/start-playback-engine
+COPY --link --chmod=755 docker/scripts/start-outpace /opt/acestream/start-check-engine
+ENV IMAGE_HAS_ACESTREAM=true \
+    ACESTREAM_BINARY_PATH=/usr/local/bin/outpace \
+    ACESTREAM_BIND_ALL=false \
+    ACESTREAM_START_COMMAND="exec /opt/acestream/start-playback-engine" \
+    ENABLE_ACESTREAM_ENGINE=true
+
+
 FROM scraper AS scraper-acestream
 
 # Graft the engine's interpreter from the official slim image. Two Pythons

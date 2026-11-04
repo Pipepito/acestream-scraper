@@ -50,6 +50,19 @@
         "acestream",
         "acexy"
       ]
+    },
+    "scraper-outpace": {
+      "platform_source": "baseline",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm/v7",
+        "linux/arm64"
+      ],
+      "includes": [
+        "app",
+        "warp",
+        "outpace"
+      ]
     }
   }
 }

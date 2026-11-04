@@ -162,7 +162,7 @@ for env_name, condition in expected_conditions.items():
     matches = [setting for setting in settings if setting.get("env") == env_name]
     if not matches or matches[0].get("appliesWhen") != condition:
         errors.append(f"runtime setting {env_name} must use appliesWhen={condition}")
-if "engineOn && platform.id !== 'amd64'" not in builder:
+if "engineOn && !outpace && platform.id !== 'amd64'" not in builder:
     errors.append("engine state volume is not limited to ARM engine selections")
 
 for required in ("WARP_ENABLE_NAT", "/dev/net/tun:/dev/net/tun", "--cap-add NET_ADMIN", "--cap-add SYS_ADMIN"):

@@ -110,7 +110,7 @@ class ChannelStatusService:
         if not isinstance(value, str):
             return None
         path = urlparse(value).path
-        if not re.fullmatch(rf"/ace/{kind}/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+", path):
+        if not re.fullmatch(rf"/ace/{kind}/(?:cid:[a-fA-F0-9]{{40}}|[a-zA-Z0-9_-]+)/[a-zA-Z0-9_-]+", path):
             return None
         return f"{engine_url}{path}"
 
@@ -142,21 +142,27 @@ class ChannelStatusService:
                     # Replace the entire observation; never combine different polls.
                     observation.clear()
                     observation.update(sample)
-                if state.get('status') in ('error', 'err', 'idle', 'stopped'):
+                # Outpace starts the source only when its tokenized TS lease is read.
+                # An idle lease is not evidence either way until we sample its media.
+                token = stat_url.rsplit('/', 1)[-1]
+                lazy_reader = (state.get('status') == 'idle' and state.get('client_session_id') == -1
+                               and state.get('playback_session_id') == response.get('playback_session_id') == token)
+                if not lazy_reader and state.get('status') in ('error', 'err', 'idle', 'stopped'):
                     return False, 'Stream is not broadcasting', None
                 downloaded = state.get('downloaded')
                 if (isinstance(downloaded, (int, float)) and not isinstance(downloaded, bool)
                         and math.isfinite(downloaded) and downloaded >= 0):
                     # Metadata (is_live), connected peers, a cached byte total,
                     # and catalogue status cannot prove current emission.
-                    if (previous_downloaded is not None and downloaded > previous_downloaded
-                            and state.get('status') in ('dl', 'prebuf', 'buf')):
+                    gaining = (previous_downloaded is not None and downloaded > previous_downloaded
+                               and state.get('status') in ('dl', 'prebuf', 'buf'))
+                    previous_downloaded = downloaded
+                    if gaining or lazy_reader:
                         playback_url = self._session_url(engine_url, response.get('playback_url'), 'r')
                         media = None if self._in_use(channel_id) else await probe_media(engine_url, playback_url, timeout=timeout)
                         if media and media.get('signal_verified') is True:
                             return True, 'Media signal verified', media
                         return False, 'ID found, but no media signal verified before timeout', media
-                    previous_downloaded = downloaded
                 await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
         finally:
             if command_url:

@@ -64,6 +64,8 @@ class SearchService:
         try:
             items, total, invalid, capped = await asyncio.to_thread(read)
         except CatalogueReadError as exc:
+            if exc.code == 'SEARCH_CATALOGUE_UNSUPPORTED':
+                raise APIError(exc.code, 'This engine does not provide catalogue search. Add a known content ID or import a source.', 501) from None
             raise APIError(exc.code, 'Configure a reachable AceStream engine in Settings → Playback.', 503) from None
         return dict(success=True, message='Search partial: invalid or excess entries were omitted' if invalid or capped else 'Search successful',
             results=[dict(item, id=item['infohash']) for item in items],

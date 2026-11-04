@@ -106,12 +106,13 @@ Docker images are published under `pipepito/acestream-scraper`.
 |---|---|---|---|
 | `latest` / `scraper-acestream-acexy` | Yes | Yes | The full package |
 | `scraper-acestream` | Yes | No | A bundled engine without Acexy |
+| `scraper-outpace` | Outpace | No | Experimental live playback and optional checker |
 | `scraper-acexy` | No | Yes | A proxy for an external engine |
 | `scraper` | No | No | Scraping/playlists or external playback services |
 
 Every variant includes the web app, FFmpeg and ffprobe. On amd64 and arm64, every variant also includes Cloudflare WARP, IPFS (Kubo), ZeroNet and Tor. Removing the engine or proxy does not remove these shared tools.
 
-With default settings, only the web app starts. FFmpeg/ffprobe are available when needed; AceStream, Acexy, WARP, IPFS, ZeroNet and Tor remain off until enabled. The [command builder](https://pipepito.github.io/acestream-scraper/) sets the appropriate service options. An engine-containing image can also run an optional separate checking engine.
+The Outpace flavor starts its playback engine on fresh installs. For the other flavors, only the web app starts by default. FFmpeg/ffprobe are available when needed; AceStream, Acexy, WARP, IPFS, ZeroNet and Tor remain off until enabled. The [command builder](https://pipepito.github.io/acestream-scraper/) sets the appropriate service options. An engine-containing image can also run an optional separate checking engine.
 
 Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. The AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, and `latest`) install a different engine per platform:
 
@@ -200,6 +201,35 @@ Channel tags are moving tags: they are re-pushed for the same platforms as the r
 ```bash
 docker pull pipepito/acestream-scraper:develop
 ```
+
+### Experimental Outpace image
+
+Build the branch locally with `docker build --target scraper-outpace -t scraper:outpace .`.
+Start with a fresh configuration to use the bundled playback engine. This example
+also enables a separate checking process:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e ENABLE_ACESTREAM_CHECK_ENGINE=true \
+  -v scraper-config:/app/config -v outpace-playback:/var/lib/outpace \
+  -v outpace-check:/var/lib/outpace-check scraper:outpace
+```
+
+Select the engine by image tag. The planned development tag is
+`develop-scraper-outpace`. The Outpace flavor includes the upstream 0.9.0 binary
+for amd64, arm64 and ARMv7. Scraper talks directly to playback on 6878 and the
+optional checker on loopback port 6880. Both processes have separate identities,
+storage and peer listeners. Keep the engine HTTP API private. To allow incoming
+playback peers, publish TCP port 8621. On an existing installation, review the
+saved engine toggles, playback URL and Acexy routing in Settings, then restart.
+
+Use known public, unencrypted live content IDs. The engine can supply MPEG-TS to
+the web player, tuner and recorder. Source availability still depends on the peers.
+Outpace has no catalogue search endpoint and cannot resolve a search infohash to
+a content ID. Manual additions, source imports and searching your saved channels
+remain available. Premium and encrypted streams are outside the supported scope.
+See the [upstream API compatibility table](https://github.com/jamezrin/outpace/blob/v0.9.0/docs/protocol/compat-matrix.md)
+and [source and license](https://github.com/jamezrin/outpace/tree/v0.9.0).
 
 ## Basic Docker Commands
 

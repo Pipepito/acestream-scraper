@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# The supervisor owns both processes and all listener/state assignments.
+export OUTPACE_ACE_COMPAT=1
+if [[ ${0##*/} == start-check-engine ]]; then
+    # A signal check needs the first media packets within the scraper probe timeout.
+    export OUTPACE_PREBUFFER_MS=0
+    export OUTPACE_DATA_DIR=/var/lib/outpace-check
+    export OUTPACE_BIND=127.0.0.1:6880
+    export OUTPACE_PEER_LISTEN=127.0.0.1:8622
+    export OUTPACE_RTMP_BIND=127.0.0.1:0
+else
+    host=127.0.0.1
+    [[ ${1:-} != --bind-all ]] || host=0.0.0.0
+    export OUTPACE_DATA_DIR=/var/lib/outpace
+    export OUTPACE_BIND="$host:${ACESTREAM_HTTP_PORT:-6878}"
+    export OUTPACE_PEER_LISTEN="0.0.0.0:${ACESTREAM_FORWARDED_PORT:-8621}"
+    export OUTPACE_RTMP_BIND=127.0.0.1:0
+fi
+export OUTPACE_CACHE_DIR="$OUTPACE_DATA_DIR/cache"
+exec /usr/local/bin/outpace serve

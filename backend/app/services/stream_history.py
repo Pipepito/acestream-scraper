@@ -181,12 +181,17 @@ class StreamHistoryRecorder:
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._written = 0
+        # Row written by an attempt's checkpoints, until its final outcome
+        # (only touched by the writer thread).
+        self._rows: dict = {}
 
     def record(self, content_id: str, tv_channel_id: int | None, outcome: str, *, seconds: float,
-               peers: int | None = None, speed_down: int | None = None) -> None:
+               peers: int | None = None, speed_down: int | None = None, attempt: object = None,
+               final: bool = True) -> None:
         self._ensure_started()
         try:
-            self._queue.put_nowait((content_id, tv_channel_id, outcome, seconds, peers, speed_down, self._clock()))
+            self._queue.put_nowait((content_id, tv_channel_id, outcome, seconds, peers, speed_down, self._clock(),
+                                    attempt, final))
         except queue.Full:
             logger.warning('Stream history queue full; dropped outcome %s for %s', outcome, content_id)
 
@@ -207,12 +212,17 @@ class StreamHistoryRecorder:
         while True:
             item = self._queue.get()
             try:
-                content_id, tv_channel_id, outcome, seconds, peers, speed_down, at = item
+                content_id, tv_channel_id, outcome, seconds, peers, speed_down, at, attempt, final = item
                 db = self._session_factory()
                 try:
                     repo = StreamAttemptRepository(db)
-                    repo.add(content_id, tv_channel_id, outcome, seconds=seconds, peers=peers,
-                             speed_down=speed_down, created_at=at)
+                    row_id = self._rows.pop(attempt, None) if final else self._rows.get(attempt)
+                    if row_id is not None and repo.update(row_id, outcome, seconds=seconds) is not None:
+                        continue
+                    row = repo.add(content_id, tv_channel_id, outcome, seconds=seconds, peers=peers,
+                                   speed_down=speed_down, created_at=at)
+                    if attempt is not None and not final:
+                        self._rows[attempt] = row.id
                     self._written += 1
                     if self._written % PRUNE_EVERY == 0:
                         repo.prune(at - timedelta(days=RETENTION_DAYS))

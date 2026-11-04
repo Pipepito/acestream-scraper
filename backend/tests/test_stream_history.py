@@ -266,3 +266,65 @@ def test_the_relay_turns_a_viewing_with_jumps_back_into_jumpy():
     watch.back_jumps = 2
     assert [_with_clock(o, watch) for o in ('ok', 'ended', 'stall', 'no_data', 'early_death')] == \
         ['jumpy', 'jumpy', 'jumpy', 'no_data', 'early_death']
+
+
+def _recorder_on(db_session):
+    from sqlalchemy.orm import Session
+    return StreamHistoryRecorder(lambda: Session(bind=db_session.get_bind()), clock=lambda: NOW)
+
+
+def test_a_viewing_is_written_while_it_plays_and_its_end_rewrites_the_same_row(db_session):
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    db_session.commit()
+    recorder = _recorder_on(db_session)
+    viewing = object()
+    recorder.record('a' * 40, tv.id, 'ok', seconds=30, attempt=viewing, final=False)
+    recorder.flush()
+    db_session.expire_all()
+    assert [(r.outcome, r.seconds) for r in db_session.query(StreamAttempt)] == [('ok', 30)]
+    recorder.record('a' * 40, tv.id, 'ok', seconds=60, attempt=viewing, final=False)
+    recorder.record('a' * 40, tv.id, 'stall', seconds=75, attempt=viewing)
+    recorder.flush()
+    db_session.expire_all()
+    assert [(r.outcome, r.seconds) for r in db_session.query(StreamAttempt)] == [('stall', 75)]
+
+
+def test_a_viewing_cut_short_by_a_power_off_keeps_what_was_watched(db_session):
+    """No final outcome ever comes: the last checkpoint is the viewing."""
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    db_session.commit()
+    recorder = _recorder_on(db_session)
+    viewing = object()
+    for seconds in (30, 60, 90):
+        recorder.record('a' * 40, tv.id, 'ok', seconds=seconds, attempt=viewing, final=False)
+    recorder.flush()
+    db_session.expire_all()
+    assert [(r.outcome, r.seconds) for r in db_session.query(StreamAttempt)] == [('ok', 90)]
+
+
+def test_two_viewings_of_one_source_are_two_rows(db_session):
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    db_session.commit()
+    recorder = _recorder_on(db_session)
+    first, second = object(), object()
+    recorder.record('a' * 40, tv.id, 'ok', seconds=30, attempt=first, final=False)
+    recorder.record('a' * 40, tv.id, 'ok', seconds=40, attempt=first)
+    recorder.record('a' * 40, tv.id, 'ok', seconds=30, attempt=second, final=False)
+    recorder.flush()
+    db_session.expire_all()
+    assert sorted(r.seconds for r in db_session.query(StreamAttempt)) == [30, 40]
+
+
+def test_the_checkpoint_writes_nothing_before_30_s_and_then_every_30_s(monkeypatch):
+    from app.services.tuner_playback_service import ViewingCheckpoint
+    calls = []
+    monkeypatch.setattr(tuner_playback_service, '_outcome_recorder',
+                        lambda cid, tv, outcome, **kw: calls.append((outcome, kw['seconds'], kw['final'])))
+    checkpoint = ViewingCheckpoint('a' * 40, 1)
+    for played in (0.5, 10, 29.9, 30, 31, 59, 60.5, 61):
+        checkpoint.tick(played)
+    checkpoint.finish('ended', 70)
+    assert calls == [('ok', 30, False), ('ok', 60.5, False), ('ended', 70, True)]

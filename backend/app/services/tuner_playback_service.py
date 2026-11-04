@@ -95,13 +95,45 @@ def set_outcome_recorder(recorder: Callable[..., None] | None) -> None:
 
 
 def record_outcome(content_id: str, tv_channel_id: int | None, outcome: str, *, seconds: float,
-                   peers: int | None = None, speed_down: int | None = None) -> None:
+                   peers: int | None = None, speed_down: int | None = None, attempt: object = None,
+                   final: bool = True) -> None:
+    """``attempt`` ties the checkpoints of one viewing (``final=False``) to its
+    final outcome, so they rewrite one row instead of adding one each."""
     if _outcome_recorder is None:
         return
+    extra = {} if attempt is None else {'attempt': attempt, 'final': final}
     try:
-        _outcome_recorder(content_id, tv_channel_id, outcome, seconds=seconds, peers=peers, speed_down=speed_down)
+        _outcome_recorder(content_id, tv_channel_id, outcome, seconds=seconds, peers=peers, speed_down=speed_down,
+                          **extra)
     except Exception:  # noqa: BLE001 - statistics must never break playback
         logger.exception('TV relay outcome recorder failed')
+
+
+# A viewing is written while it plays, not only when it ends: a machine
+# switched off right after Stop never wrote its viewing, however long it was. Once a source has played CHECKPOINT_SECONDS it is written as an
+# ``ok`` of that length and rewritten every CHECKPOINT_SECONDS; its end rewrites
+# the outcome. Shorter than that is Kodi's double GET, and nothing is written early.
+CHECKPOINT_SECONDS = 30.0
+
+
+class ViewingCheckpoint:
+    """Writes one attempt's progress at most every CHECKPOINT_SECONDS."""
+
+    def __init__(self, content_id: str, tv_channel_id: int | None):
+        self.content_id = content_id
+        self.tv_channel_id = tv_channel_id
+        self.attempt = object()
+        self.written_at = 0.0
+        self.outcome: str | None = None
+
+    def tick(self, played: float, outcome: str = 'ok') -> None:
+        if played >= CHECKPOINT_SECONDS and played - self.written_at >= CHECKPOINT_SECONDS:
+            self.written_at, self.outcome = played, outcome
+            record_outcome(self.content_id, self.tv_channel_id, outcome, seconds=played,
+                           attempt=self.attempt, final=False)
+
+    def finish(self, outcome: str, played: float) -> None:
+        record_outcome(self.content_id, self.tv_channel_id, outcome, seconds=played, attempt=self.attempt)
 
 
 # Kodi opens a channel with two GETs and sends the second as soon as the first
@@ -134,18 +166,19 @@ def _with_clock(outcome: str, watch: ClockWatch) -> str:
 
 
 def _record_ok(opening: ChannelOpening | None, content_id: str, tv_channel_id: int | None,
-               seconds: float, outcome: str = 'ok') -> None:
+               seconds: float, outcome: str = 'ok', attempt: object = None) -> None:
     """A source that played until its GET ended. Kodi closes its first GET as
     soon as it gets bytes and its second takes the opening over: that is a
     hand-over, not a viewing, and counting it as one put an `ok` of 0 s next
     to every real one (the bench, 02-11). Whether a newer GET takes over is
     known STOP_LINGER_SECONDS later."""
     if opening is None:
-        record_outcome(content_id, tv_channel_id, outcome, seconds=seconds)
+        record_outcome(content_id, tv_channel_id, outcome, seconds=seconds, attempt=attempt)
         return
 
     def settle() -> None:
-        record_outcome(content_id, tv_channel_id, 'handover' if opening.superseded else outcome, seconds=seconds)
+        final = 'handover' if opening.superseded else outcome
+        record_outcome(content_id, tv_channel_id, final, seconds=seconds, attempt=attempt)
     try:
         asyncio.get_running_loop().call_later(STOP_LINGER_SECONDS, settle)
     except RuntimeError:
@@ -320,6 +353,7 @@ async def relay_ranked_streams(
                 # mid-match with no relay switch, and nothing showed it): read-only.
                 clock_watch = ClockWatch(content_id)
                 raw = watch_clock(raw, content_id, clock_watch)
+                checkpoint = ViewingCheckpoint(content_id, tv_channel_id)
                 if experimental_transcoding:
                     iterator = remux_source(raw, version=version, offset=time.monotonic() - started,
                         plex_compatible_audio=plex_compatible_audio)
@@ -346,6 +380,7 @@ async def relay_ranked_streams(
                             chunk = await anext(iterator)
                         last_at = time.monotonic()
                         yield chunk
+                        checkpoint.tick(last_at - first_at, _with_clock('ok', clock_watch))
                         if opening is not None and opening.superseded:
                             # The newer GET plays this source too: Kodi left this one.
                             return
@@ -374,7 +409,7 @@ async def relay_ranked_streams(
                         'engine_unavailable' if isinstance(exc, EngineUnavailableError) else
                         'upstream_error'
                     )
-                    record_outcome(content_id, tv_channel_id, _with_clock(outcome, clock_watch), seconds=played)
+                    checkpoint.finish(_with_clock(outcome, clock_watch), played)
                     if opening is not None:
                         opening.failed.append(content_id)
                     # Count delivery only through the last chunk, regardless of
@@ -400,7 +435,8 @@ async def relay_ranked_streams(
                     if outcome is None and first_at is not None:
                         # The viewer left, or a newer GET took over.
                         _record_ok(opening, content_id, tv_channel_id, last_at - first_at,
-                                   outcome=_with_clock('ok', clock_watch))
+                                   outcome=_with_clock('ok', clock_watch),
+                                   attempt=checkpoint.attempt)
                     with anyio.CancelScope(shield=True):
                         await iterator.aclose()
                 if healthy:

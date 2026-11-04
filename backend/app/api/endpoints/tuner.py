@@ -17,7 +17,7 @@ from dataclasses import asdict
 from typing import List
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
@@ -35,7 +35,9 @@ from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, E
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService, TunerSettings
 from app.services import tuner_playback_service
-from app.services.tuner_playback_service import relay_ranked_streams, prefer_recovered_sources, record_outcome
+from app.services.tuner_playback_service import (
+    CHECKPOINT_SECONDS, ViewingCheckpoint, prefer_recovered_sources, record_outcome, relay_ranked_streams,
+)
 from app.services.ts_clock import ClockWatch, watch_clock
 from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
@@ -307,18 +309,26 @@ async def tuner_stream(content_id: str, request: Request):
         raise
 
     async def body():
+        # Kodi's double GET makes short responses here too, so only a viewing
+        # past CHECKPOINT_SECONDS is written; then it is kept up to date while
+        # it plays. A source whose clock kept going back is recorded against
+        # it, as the channel relay does.
+        checkpoint = ViewingCheckpoint(content_id, None)
+        started = time.monotonic()
+        played = 0.0
         try:
             yield first
             async for chunk in iterator:
                 yield chunk
+                played = time.monotonic() - started
+                checkpoint.tick(played, 'jumpy' if clock_watch.jumpy else 'ok')
         finally:
             await iterator.aclose()
             engine.close()
-            # This route records no viewings, only a source whose clock kept
-            # going back: the same thing the channel relay
-            # records against it.
             if clock_watch.jumpy:
-                record_outcome(content_id, None, 'jumpy', seconds=clock_watch.watched_seconds)
+                checkpoint.finish('jumpy', clock_watch.watched_seconds)
+            elif played >= CHECKPOINT_SECONDS:
+                checkpoint.finish('ok', played)
 
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 

@@ -13,6 +13,11 @@ installs `stream_history.StreamHistoryRecorder`, which queues the outcome and
 writes one `stream_attempts` row on a background thread, so a slow or failing
 SQLite write never delays or breaks playback.
 
+A viewing is written while it plays: once a source has played 30 s it is
+written as `ok` with those seconds and rewritten every 30 s, and its end
+rewrites the outcome of the same row. A machine switched off mid-viewing keeps
+what was watched. `/tuner/stream/<id>.ts` records viewings the same way.
+
 | Outcome | Meaning | Counts as |
 |---|---|---|
 | `ok` | Played until the client left | 1 |

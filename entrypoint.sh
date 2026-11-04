@@ -112,6 +112,8 @@ supervise_engine() {
         "$state_dir/$slug.command" "$state_dir/$slug.stopped"
 
     engine_clean_cache() {
+        # Outpace owns separate state and cache directories.
+        [ "${ACESTREAM_BINARY_PATH:-}" != /usr/local/bin/outpace ] || return 0
         local script="$(dirname "$CAPTURE_SCRIPT")/engine_cache_cleanup.py"
         if [ -f "$script" ]; then
             "${CAPTURE_PYTHON:-python3}" "$script" "$slug" || log "$label cache cleanup failed; continuing"

@@ -75,6 +75,7 @@ def main() -> int:
         "scraper": "runtime-base",
         "scraper-acestream": "scraper",
         "scraper-acexy": "scraper",
+        "scraper-outpace": "scraper",
         "scraper-acestream-acexy": "scraper-acestream",
     }
     errors = [

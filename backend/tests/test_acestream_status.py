@@ -26,6 +26,17 @@ class TestAcestreamStatusEndpoint:
         ]:
             assert field in data
 
+    def test_outpace_reports_version_from_its_control_api(self, client, monkeypatch):
+        def get(url, timeout):
+            payload = ({'status': 'idle', 'active_sessions': 0} if 'method=get_status' in url
+                       else {'version': '0.9.0', 'platform': 'linux'} if 'method=get_version' in url
+                       else {'connected': True})
+            return Mock(status_code=200, ok=True, json=lambda: {'result': payload, 'error': None})
+        monkeypatch.setattr('requests.get', get)
+        data = client.get('/api/v1/acestream/status').json()
+        assert data['available'] and data['connected']
+        assert (data['version'], data['platform']) == ('0.9.0', 'linux')
+
     def test_status_engine_unreachable(self, client, monkeypatch):
         # Patch requests.get to simulate unreachable engine
         import requests

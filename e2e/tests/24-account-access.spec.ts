@@ -1,6 +1,40 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from '../src/fixtures';
+import { currentTarget } from '../src/scenario/load';
 
-test('accounts isolate viewing from administration and can be disabled in Settings', async ({ page }) => {
+const origin = new URL(process.env.E2E_BASE_URL ?? 'http://127.0.0.1:8000');
+const dockerLoopback = currentTarget() === 'docker' && origin.protocol === 'http:' &&
+  ['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname);
+
+if (dockerLoopback) {
+  test('published Docker loopback explains why accounts cannot be enabled', async ({ page }) => {
+    const status = await page.request.get('/api/v1/auth/status');
+    expect(status.ok()).toBeTruthy();
+    const before = await status.json();
+    expect(before.legacy_token).toBe(false);
+    expect(before.account_transport).toBe('blocked');
+
+    await page.goto('/settings?tab=access');
+    await expect(page.getByRole('alert').filter({ hasText: 'open HTTPS or the server’s private IP address' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create administrator and continue' })).toBeDisabled();
+
+    // Valid credentials and CSRF isolate the transport guard from form validation.
+    const password = 'local E2E account password';
+    const attempt = await page.request.post('/api/v1/auth/bootstrap', {
+      headers: { 'X-CSRF-Token': before.csrf },
+      data: { enabled: true, username: 'e2eowner', password, password_confirmation: password },
+    });
+    expect(attempt.status()).toBe(403);
+    expect(await attempt.text()).toContain('Use HTTPS');
+    const after = await page.request.get('/api/v1/auth/status');
+    expect(after.ok()).toBeTruthy();
+    expect((await after.json()).mode).toBe(before.mode);
+  });
+} else {
+  test('accounts isolate viewing from administration and can be disabled in Settings', accountLifecycle);
+}
+
+async function accountLifecycle({ page }: { page: Page }) {
   const password = 'local E2E account password';
   let csrf = '';
   const status = async () => {
@@ -8,7 +42,7 @@ test('accounts isolate viewing from administration and can be disabled in Settin
     expect(response.ok()).toBeTruthy();
     const data = await response.json(); csrf = data.csrf; return data;
   };
-  await status();
+  expect((await status()).account_transport).toBe(origin.protocol === 'https:' ? 'https' : 'local_http');
   await page.goto('/settings?tab=access');
   await page.getByLabel('Administrator username').fill('e2eowner');
   await page.getByLabel(/^Password/).fill('short');
@@ -82,4 +116,4 @@ test('accounts isolate viewing from administration and can be disabled in Settin
     await page.getByRole('button', { name: 'Disable user management' }).click();
     await expect(page.getByRole('button', { name: 'Create administrator and continue' })).toBeVisible();
   }
-});
+}

@@ -63,7 +63,8 @@
   function derive() {
     const flavor = data.flavors.find((f) => f.id === state.flavor) || data.flavors[0];
     const platform = data.platforms.find((p) => p.id === state.platform) || data.platforms[0];
-    const imageHasEngine = flavor.features.includes('acestream');
+    const outpace = flavor.features.includes('outpace');
+    const imageHasEngine = outpace || flavor.features.includes('acestream');
     const imageHasAcexy = flavor.features.includes('acexy');
     const engineOn = imageHasEngine && state.engine;
     const checkEngineOn = engineOn && state.runtimeSettings.dedicatedCheckEngine === true;
@@ -88,15 +89,17 @@
     const activeVolumes = data.volumes.filter((v) => {
       if (v.id === 'config' || v.id === 'playerHls') return true;
       if (v.id === 'recordings') return Boolean(String(state.runtimeSettings.recordingsDir || '').trim());
-      if (v.id === 'engineCache') return engineOn && platform.id === 'amd64';
-      if (v.id === 'engineState') return engineOn && platform.id !== 'amd64';
-      if (v.id === 'checkEngineState') return checkEngineOn;
+      if (v.id === 'outpaceState') return outpace && engineOn;
+      if (v.id === 'outpaceCheckState') return outpace && checkEngineOn;
+      if (v.id === 'engineCache') return engineOn && !outpace && platform.id === 'amd64';
+      if (v.id === 'engineState') return engineOn && !outpace && platform.id !== 'amd64';
+      if (v.id === 'checkEngineState') return checkEngineOn && !outpace;
       if (v.id === 'ipfsRepo') return ipfsEmbeddedOn;
       if (v.id === 'zeronetData') return zeronetEmbeddedOn;
       return false;
     });
 
-    return { flavor, platform, imageHasEngine, imageHasAcexy, engineOn, checkEngineOn, acexyOn, warpOn, warpDnsOnly, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
+    return { flavor, platform, outpace, imageHasEngine, imageHasAcexy, engineOn, checkEngineOn, acexyOn, warpOn, warpDnsOnly, needsExternalEngine, ipfsEmbeddedOn, ipfsExternalOn, zeronetEmbeddedOn, zeronetExternalOn, activePorts, activeVolumes };
   }
 
   function valueAtPath(path) {
@@ -165,7 +168,7 @@
   // ---------------------------------------------------------------------------
   function envEntries(d) {
     const env = [];
-    if (d.engineOn) env.push(['ENABLE_ACESTREAM_ENGINE', 'true']);
+    if (d.engineOn || d.outpace) env.push(['ENABLE_ACESTREAM_ENGINE', String(d.engineOn)]);
     if (d.acexyOn) env.push(['ENABLE_ACEXY', 'true']);
     if (d.needsExternalEngine) {
       env.push(['ACEXY_HOST', state.extEngineHost.trim() || '<engine-host>']);
@@ -183,7 +186,7 @@
     for (const setting of activeRuntimeSettings(d)) {
       const value = state.runtimeSettings[setting.id];
       if (setting.type === 'boolean') {
-        if (value !== setting.default) env.push([setting.env, String(value)]);
+        if (value !== setting.default || (d.outpace && setting.id === 'engineBindAll')) env.push([setting.env, String(value)]);
       } else if (setting.type === 'number') {
         const number = validRuntimeNumber(setting, value);
         if (number != null) env.push([setting.env, String(number)]);
@@ -403,8 +406,8 @@
         out.push(['error', 'Enter the address of your external AceStream engine. ' + notes.acexyExternalEngine]);
       }
     }
-    if (d.engineOn && d.platform.id === 'armv7') out.push(['warn', notes.armv7Experimental]);
-    if (d.engineOn && d.platform.id !== 'amd64') out.push(['info', notes.armPageSize]);
+    if (d.engineOn && !d.outpace && d.platform.id === 'armv7') out.push(['warn', notes.armv7Experimental]);
+    if (d.engineOn && !d.outpace && d.platform.id !== 'amd64') out.push(['info', notes.armPageSize]);
     if (d.warpOn) out.push(['info', (d.warpDnsOnly ? notes.warpDnsCaps : state.channel === 'develop' ? notes.warpTunnelCaps : notes.warpCaps) + ' Required flags are included below.']);
     const engineApi = data.ports.find((p) => p.id === 'engineApi');
     if (d.engineOn && engineApi && state.ports.engineApi && state.ports.engineApi.enabled) {
@@ -416,7 +419,7 @@
     if (state.volumes.config && !state.volumes.config.enabled) {
       out.push(['warn', 'Without the configuration folder your channels and settings are lost whenever the container is replaced.']);
     }
-    if (d.engineOn && d.platform.id !== 'amd64' && state.volumes.engineState && !state.volumes.engineState.enabled) {
+    if (d.engineOn && !d.outpace && d.platform.id !== 'amd64' && state.volumes.engineState && !state.volumes.engineState.enabled) {
       out.push(['info', 'Without the engine state folder the ARM engine rebuilds its cache and device id on every container replacement.']);
     }
     for (const v of d.activeVolumes.filter((v) => v.id === 'engineCache' || v.id === 'playerHls')) {
@@ -460,7 +463,13 @@
     box.replaceChildren();
     for (const f of data.flavors) {
       const input = el('input', { type: 'radio', name: 'flavor', value: f.id, checked: f.id === state.flavor });
-      input.addEventListener('change', () => { state.flavor = f.id; update(); });
+      input.addEventListener('change', () => {
+        if (state.flavor !== f.id && (state.flavor === 'scraper-outpace' || f.id === 'scraper-outpace')) {
+          state.runtimeSettings.engineBindAll = !f.features.includes('outpace');
+        }
+        state.flavor = f.id;
+        update();
+      });
       const meta = el('div', { class: 'card-meta' }, [
         f.recommended ? el('span', { class: 'chip chip-accent', text: 'Recommended' }) : null,
         f.features.includes('acestream') ? el('span', { class: 'chip', text: 'AceStream engine' }) : null,
@@ -485,6 +494,7 @@
       const input = el('input', { type: 'radio', name: 'platform', value: p.id, checked: p.id === state.platform });
       input.addEventListener('change', () => { state.platform = p.id; update(); });
       const chips = [];
+      if (selectedFlavor.features.includes('outpace')) chips.push(el('span', { class: 'chip', text: 'Outpace 0.9.0' }));
       if (imageHasEngine) chips.push(el('span', { class: 'chip', text: p.engine }));
       if (imageHasEngine && p.engineSupport === 'experimental') chips.push(el('span', { class: 'chip chip-warm', text: 'Engine: experimental' }));
       if (p.warpAvailable) chips.push(el('span', { class: 'chip', text: 'WARP' }));
@@ -525,7 +535,7 @@
     const box = $('#feature-toggles');
     box.replaceChildren();
     const included = ['web app'];
-    if (d.imageHasEngine) included.push('AceStream engine');
+    if (d.imageHasEngine) included.push(d.outpace ? 'Outpace engine' : 'AceStream engine');
     if (d.imageHasAcexy) included.push('Acexy proxy');
     const available = [];
     if (d.platform.warpAvailable) available.push('WARP');
@@ -541,8 +551,8 @@
 
     const list = el('div', { class: 'toggle-list' });
     if (d.imageHasEngine) {
-      list.append(toggleRow('engine', 'Run the AceStream engine in this container',
-        `Starts the bundled engine (${d.platform.engine}). Turn off if you already run an engine elsewhere.`,
+      list.append(toggleRow('engine', d.outpace ? 'Run Outpace in this container' : 'Run the AceStream engine in this container',
+        `Starts the bundled engine (${d.outpace ? 'Outpace 0.9.0' : d.platform.engine}). Turn off if you already run an engine elsewhere.`,
         state.engine, (v) => { state.engine = v; }));
     }
     if (d.imageHasAcexy) {

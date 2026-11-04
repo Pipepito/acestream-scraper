@@ -42,6 +42,17 @@
       "versionTagPattern": "vX.Y.Z-scraper-acestream"
     },
     {
+      "id": "scraper-outpace",
+      "label": "Scraper + Outpace",
+      "summary": "Experimental open-source engine for public, unencrypted live streams. Supports a separate checker. Catalogue search is unavailable.",
+      "features": [
+        "outpace"
+      ],
+      "releaseTag": "scraper-outpace",
+      "developTag": "develop-scraper-outpace",
+      "versionTagPattern": "vX.Y.Z-scraper-outpace"
+    },
+    {
       "id": "scraper-acexy",
       "label": "Scraper + Acexy",
       "summary": "Scraper with the Acexy proxy; the AceStream engine runs somewhere else.",
@@ -238,6 +249,20 @@
       "target": "/recordings",
       "label": "Recordings",
       "description": "Persistent DVR originals and prepared files. Follows Recording folder in Advanced settings. Create the host folder with write permission for the application, then enable recordings in Settings \u2192 Automation."
+    },
+    {
+      "id": "outpaceState",
+      "defaultSource": "./outpace",
+      "target": "/var/lib/outpace",
+      "label": "Outpace playback state",
+      "description": "Stores the separate engine identity and cache across container replacements."
+    },
+    {
+      "id": "outpaceCheckState",
+      "defaultSource": "./outpace-check",
+      "target": "/var/lib/outpace-check",
+      "label": "Outpace checker state",
+      "description": "Stores the separate engine identity and cache across container replacements."
     }
   ],
   "settingGroups": [

@@ -19,13 +19,19 @@ class ChannelRepository:
         catalogues = self.db.query(W3UCatalogue.id, W3UCatalogue.name).all()
         return values, sources, catalogues
 
-    def get_status_check_inventory(self):
-        """Read only the active stream fields needed to plan a status pass."""
-        return (self.db.query(AcestreamChannel.id, AcestreamChannel.last_checked,
-                              AcestreamChannel.tv_channel_id, TVChannel.is_favorite)
-                .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
-                .filter(AcestreamChannel.is_active.is_(True))
-                .all())
+    def status_check_inventory(self, scope: str, *, http_only: bool = False):
+        """Select active streams eligible for the next background pass."""
+        query = (self.db.query(AcestreamChannel.id, AcestreamChannel.last_checked,
+                               AcestreamChannel.tv_channel_id, TVChannel.is_favorite)
+                 .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
+                 .filter(AcestreamChannel.is_active.is_(True)))
+        if scope in ("assigned", "favorites"):
+            query = query.filter(TVChannel.is_active.is_(True))
+        if scope == "favorites":
+            query = query.filter(TVChannel.is_favorite.is_(True))
+        if http_only:
+            query = query.filter(AcestreamChannel.stream_url.isnot(None))
+        return query
 
     def get_tuner_streams(self, tv_channel_id: int, *, online_only: bool = False) -> List[AcestreamChannel]:
         query = (self.db.query(AcestreamChannel)

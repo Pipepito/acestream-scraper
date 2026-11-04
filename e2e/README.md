@@ -57,6 +57,18 @@ Useful variants:
 - `E2E_STRICT=1 npm test` — fail a test on any unexpected console error, failed API call or backend error line (patterns in `scenario.errors` are ignored).
 - `npm run test:headed` / `npm run test:ui` — watch it in Firefox.
 
+### Firefox account setup
+
+The account journey uses the connection seen by the app. On the local backend's
+direct loopback connection, it exercises password validation, administrator setup,
+viewer permissions and disabling accounts. An HTTPS or private LAN Docker URL
+also runs that lifecycle.
+
+The Compose Docker targets publish their ports on host loopback. Docker forwards
+these requests to the app from a bridge address. On that HTTP URL the journey
+checks the connection notice, the disabled setup button and the API's rejection
+of account creation. Run both the local and Docker targets to cover both paths.
+
 ## Scenarios
 
 For reproducible application journeys, start the owned upstream fixtures in a

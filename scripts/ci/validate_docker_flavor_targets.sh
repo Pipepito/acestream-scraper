@@ -12,6 +12,7 @@ fi
 targets=(
     scraper:false:false
     scraper-acestream:true:false
+    scraper-outpace:true:false
     scraper-acexy:false:true
     scraper-acestream-acexy:true:true
 )
@@ -80,7 +81,7 @@ checks = {
     "IMAGE_HAS_ACESTREAM": expected_acestream,
     "IMAGE_HAS_ACEXY": expected_acexy,
     "ENABLE_WARP": "false",
-    "ENABLE_ACESTREAM_ENGINE": "false",
+    "ENABLE_ACESTREAM_ENGINE": "true" if image_tag.endswith(":scraper-outpace") else "false",
     "ENABLE_ACEXY": "false",
 }
 

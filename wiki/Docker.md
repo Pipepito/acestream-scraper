@@ -209,7 +209,7 @@ Start with a fresh configuration to use the bundled playback engine. This exampl
 also enables a separate checking process:
 
 ```bash
-docker run --rm -p 8000:8000 \
+docker run --rm -p 0.0.0.0:8000:8000 \
   -e ENABLE_ACESTREAM_CHECK_ENGINE=true \
   -v scraper-config:/app/config -v outpace-playback:/var/lib/outpace \
   -v outpace-check:/var/lib/outpace-check scraper:outpace

@@ -5,8 +5,9 @@ from pydantic import ValidationError
 from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from app.config.database import get_db
-from app.schemas.catalogue import CataloguePreviewRequest, CatalogueSaveRequest, CatalogueSummary, CatalogueView
-from app.services.catalogue_service import CatalogueService
+from app.schemas.catalogue import (CataloguePreviewRequest, CatalogueSaveRequest, CatalogueSummary, CatalogueView,
+    FolderAssignRequest, FolderAssignResult, FolderMatchPreview, FolderMatchApplyRequest, FolderMatchApplyResult)
+from app.services.catalogue_service import CatalogueService, ConflictError
 
 class PrivateInputRoute(APIRoute):
     def get_route_handler(self):
@@ -33,6 +34,8 @@ def invoke(call, *args):
         return call(*args)
     except LookupError as exc:
         raise HTTPException(404, str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(409, str(exc)) from exc
     except ValidationError:
         raise HTTPException(422, 'Catalogue data cannot form a valid event; check the source metadata.') from None
     except ValueError as exc:
@@ -65,6 +68,24 @@ def get_catalogue(catalogue_id: int, svc: CatalogueService = Depends(service)):
 def delete_catalogue(catalogue_id: int, svc: CatalogueService = Depends(service)):
     if not svc.repository.delete(catalogue_id):
         raise HTTPException(404, 'Catalogue not found')
+
+
+@router.post('/{catalogue_id}/folders/{entry_id}/tv-channel', response_model=FolderAssignResult)
+def assign_folder(catalogue_id: int, entry_id: str, request: FolderAssignRequest, svc: CatalogueService = Depends(service)):
+    """Assign every imported stream under the folder (descendants included) to one TV channel."""
+    return invoke(svc.assign_folder, catalogue_id, entry_id, request)
+
+
+@router.post('/{catalogue_id}/folder-matches/preview', response_model=FolderMatchPreview)
+def preview_folder_matches(catalogue_id: int, svc: CatalogueService = Depends(service)):
+    """Read-only: which folders match a TV channel by name, which are already assigned, which need a choice."""
+    return invoke(svc.folder_matches, catalogue_id)
+
+
+@router.post('/{catalogue_id}/folder-matches/apply', response_model=FolderMatchApplyResult)
+def apply_folder_matches(catalogue_id: int, request: FolderMatchApplyRequest, svc: CatalogueService = Depends(service)):
+    """Apply the chosen folder assignments in one transaction; a vanished folder or TV channel rejects the whole request."""
+    return invoke(svc.apply_folder_matches, catalogue_id, request)
 
 
 from app.schemas.catalogue import CatalogueEventPreviewRequest

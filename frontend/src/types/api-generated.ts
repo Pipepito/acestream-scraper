@@ -874,6 +874,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalogues/{catalogue_id}/folder-matches/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Folder Matches
+         * @description Apply the chosen folder assignments in one transaction; a vanished folder or TV channel rejects the whole request.
+         */
+        post: operations["apply_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogues/{catalogue_id}/folder-matches/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Folder Matches
+         * @description Read-only: which folders match a TV channel by name, which are already assigned, which need a choice.
+         */
+        post: operations["preview_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogues/{catalogue_id}/folders/{entry_id}/tv-channel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign Folder
+         * @description Assign every imported stream under the folder (descendants included) to one TV channel.
+         */
+        post: operations["assign_folder_api_v1_catalogues__catalogue_id__folders__entry_id__tv_channel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/channels/": {
         parameters: {
             query?: never;
@@ -1881,6 +1941,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/broadcaster-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Broadcaster Links */
+        get: operations["event_broadcaster_links_api_v1_events_broadcaster_links_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/broadcaster-links/{alias_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Event Broadcaster Link */
+        delete: operations["delete_event_broadcaster_link_api_v1_events_broadcaster_links__alias_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/interests": {
         parameters: {
             query?: never;
@@ -2542,8 +2636,8 @@ export interface paths {
          *     - **search**: Optional search term for channel names
          *     - **group**: Optional specific group to filter by
          *     - **only_online**: Whether to include only online channels (default: True)
-         *     - **include_groups**: Comma-separated list of groups to include
-         *     - **exclude_groups**: Comma-separated list of groups to exclude
+         *     - **include_groups**: Groups to include; repeat the parameter per group (a comma list also works)
+         *     - **exclude_groups**: Groups to exclude; repeat the parameter per group (a comma list also works)
          *     - **refresh**: Trigger a background rescrape of all enabled URLs
          */
         get: operations["get_m3u_playlist_api_v1_playlists_m3u_get"];
@@ -3055,6 +3149,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/scrapers/orphaned-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Orphaned Sources
+         * @description Streams whose source URL is no longer configured; catalogue, Telegram, saved-search and manual rows are excluded.
+         */
+        get: operations["get_orphaned_sources_api_v1_scrapers_orphaned_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scrapers/orphaned-sources/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cleanup Orphaned Sources
+         * @description Delete the streams of the chosen removed sources.
+         */
+        post: operations["cleanup_orphaned_sources_api_v1_scrapers_orphaned_sources_cleanup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/scrapers/providers": {
         parameters: {
             query?: never;
@@ -3197,7 +3331,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Scraped Url
-         * @description Delete a scraped URL.
+         * @description Delete a scraped URL, optionally with the streams it owns.
          */
         delete: operations["delete_scraped_url_api_v1_scrapers_urls__url_id__delete"];
         options?: never;
@@ -4162,6 +4296,26 @@ export interface paths {
         put?: never;
         /** Create Tv Channels From Epg */
         post: operations["create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/now-next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tv Channel Now Next
+         * @description Current and next programme for every active TV channel with a guide mapping, in one query window.
+         */
+        get: operations["tv_channel_now_next_api_v1_tv_channels_now_next_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5310,6 +5464,32 @@ export interface components {
             quality: string;
             /** Reason */
             reason: string;
+            /**
+             * Source Kept
+             * @default false
+             */
+            source_kept?: boolean;
+            /** Source Name */
+            source_name: string;
+            target?: components["schemas"]["EventChannelTarget"] | null;
+            /**
+             * Via Alias
+             * @default false
+             */
+            via_alias?: boolean;
+        };
+        /** BroadcasterLinkView */
+        BroadcasterLinkView: {
+            /** Content Id */
+            content_id?: string | null;
+            /** Event Count */
+            event_count: number;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Source Id */
+            source_id: string;
             /** Source Name */
             source_name: string;
             target?: components["schemas"]["EventChannelTarget"] | null;
@@ -5349,6 +5529,12 @@ export interface components {
         CastCapabilities: {
             /** Compatibility Conversion */
             compatibility_conversion: boolean;
+            /**
+             * Home Check
+             * @default off
+             * @enum {string}
+             */
+            home_check?: "off" | "deployment" | "accounts";
             /**
              * Home Connection
              * @default false
@@ -6331,6 +6517,11 @@ export interface components {
         };
         /** EventBroadcastMapping */
         EventBroadcastMapping: {
+            /**
+             * Apply To Source
+             * @default true
+             */
+            apply_to_source?: boolean;
             /** Broadcast Id */
             broadcast_id: string;
             /** Channel Id */
@@ -6964,6 +7155,151 @@ export interface components {
              */
             version?: string;
         };
+        /** FolderApplyRow */
+        FolderApplyRow: {
+            /**
+             * Already
+             * @default 0
+             */
+            already?: number;
+            /**
+             * Assigned
+             * @default 0
+             */
+            assigned?: number;
+            /** Folder Id */
+            folder_id: string;
+            /**
+             * Moved
+             * @default 0
+             */
+            moved?: number;
+            /**
+             * Note
+             * @default
+             */
+            note?: string;
+            /**
+             * Skipped Not Imported
+             * @default 0
+             */
+            skipped_not_imported?: number;
+            /**
+             * Skipped Other Channel
+             * @default 0
+             */
+            skipped_other_channel?: number;
+            tv_channel?: components["schemas"]["TVChannelRef"] | null;
+        };
+        /**
+         * FolderAssignRequest
+         * @description Assign every imported stream under a folder to one TV channel: an existing one or a new one named here.
+         */
+        FolderAssignRequest: {
+            /** Create Name */
+            create_name?: string | null;
+            /**
+             * Reassign
+             * @default false
+             */
+            reassign?: boolean;
+            /** Tv Channel Id */
+            tv_channel_id?: number | null;
+        };
+        /** FolderAssignResult */
+        FolderAssignResult: {
+            /**
+             * Already
+             * @default 0
+             */
+            already?: number;
+            /**
+             * Assigned
+             * @default 0
+             */
+            assigned?: number;
+            /**
+             * Moved
+             * @default 0
+             */
+            moved?: number;
+            /**
+             * Skipped Not Imported
+             * @default 0
+             */
+            skipped_not_imported?: number;
+            /**
+             * Skipped Other Channel
+             * @default 0
+             */
+            skipped_other_channel?: number;
+            tv_channel: components["schemas"]["TVChannelRef"];
+        };
+        /** FolderMatchApplyRequest */
+        FolderMatchApplyRequest: {
+            /** Assignments */
+            assignments: components["schemas"]["FolderMatchAssignment"][];
+            /**
+             * Reassign
+             * @default false
+             */
+            reassign?: boolean;
+        };
+        /** FolderMatchApplyResult */
+        FolderMatchApplyResult: {
+            /** Results */
+            results: components["schemas"]["FolderApplyRow"][];
+        };
+        /** FolderMatchAssignment */
+        FolderMatchAssignment: {
+            /**
+             * Create
+             * @default false
+             */
+            create?: boolean;
+            /** Folder Id */
+            folder_id: string;
+            /** Tv Channel Id */
+            tv_channel_id?: number | null;
+        };
+        /** FolderMatchPreview */
+        FolderMatchPreview: {
+            /** Rows */
+            rows: components["schemas"]["FolderMatchRow"][];
+        };
+        /** FolderMatchRow */
+        FolderMatchRow: {
+            candidate?: components["schemas"]["TVChannelRef"] | null;
+            current?: components["schemas"]["TVChannelRef"] | null;
+            /** Folder Id */
+            folder_id: string;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "match" | "ambiguous" | "none" | "assigned";
+            /** Stream Count */
+            stream_count: number;
+        };
+        /** GuideSlot */
+        GuideSlot: {
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+            /** Title */
+            title: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -7267,6 +7603,30 @@ export interface components {
              * @default
              */
             value?: string;
+        };
+        /** OrphanCleanupRequest */
+        OrphanCleanupRequest: {
+            /** Source Urls */
+            source_urls: string[];
+        };
+        /** OrphanCleanupResult */
+        OrphanCleanupResult: {
+            /** Deleted */
+            deleted: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * OrphanedSource
+         * @description Streams whose source URL is no longer configured as a scraper source.
+         */
+        OrphanedSource: {
+            /** Assigned Count */
+            assigned_count: number;
+            /** Count */
+            count: number;
+            /** Source Url */
+            source_url: string;
         };
         /** PasswordChange */
         PasswordChange: {
@@ -9046,6 +9406,25 @@ export interface components {
             total: number;
         };
         /**
+         * TVChannelNowNext
+         * @description Current and next programme of one TV channel, from a single batched guide read.
+         */
+        TVChannelNowNext: {
+            /** Epg Channel Id */
+            epg_channel_id: number;
+            next?: components["schemas"]["GuideSlot"] | null;
+            now?: components["schemas"]["GuideSlot"] | null;
+            /** Tv Channel Id */
+            tv_channel_id: number;
+        };
+        /** TVChannelRef */
+        TVChannelRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /**
          * TVChannelReorderRequest
          * @description Complete inventory in the desired order; saved as numbers 1 through N.
          */
@@ -9669,6 +10048,14 @@ export interface components {
              */
             url_type?: string;
         };
+        /** URLDeleteResult */
+        URLDeleteResult: {
+            /**
+             * Deleted Streams
+             * @default 0
+             */
+            deleted_streams?: number;
+        };
         /**
          * URLResponse
          * @description Schema for scraped URL information
@@ -9679,6 +10066,11 @@ export interface components {
              * Format: date-time
              */
             added_at: string;
+            /**
+             * Assigned Count
+             * @default 0
+             */
+            assigned_count?: number;
             /**
              * Channels Found
              * @default 0
@@ -11632,6 +12024,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                catalogue_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderMatchApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderMatchApplyResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                catalogue_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderMatchPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_folder_api_v1_catalogues__catalogue_id__folders__entry_id__tv_channel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                catalogue_id: number;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderAssignResult"];
                 };
             };
             /** @description Validation Error */
@@ -13660,6 +14154,55 @@ export interface operations {
             };
         };
     };
+    event_broadcaster_links_api_v1_events_broadcaster_links_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcasterLinkView"][];
+                };
+            };
+        };
+    };
+    delete_event_broadcaster_link_api_v1_events_broadcaster_links__alias_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     event_interests_api_v1_events_interests_get: {
         parameters: {
             query?: never;
@@ -15040,8 +15583,8 @@ export interface operations {
                 /** @description TV relay formats: list each source under its channel, to switch by hand. */
                 per_source?: boolean;
                 favorites_only?: boolean;
-                include_groups?: string | null;
-                exclude_groups?: string | null;
+                include_groups?: string[] | null;
+                exclude_groups?: string[] | null;
                 base_url?: string | null;
                 base_url_id?: number | null;
                 format?: string | null;
@@ -15084,8 +15627,8 @@ export interface operations {
                 /** @description TV relay formats: list each source under its channel, to switch by hand. */
                 per_source?: boolean;
                 favorites_only?: boolean;
-                include_groups?: string | null;
-                exclude_groups?: string | null;
+                include_groups?: string[] | null;
+                exclude_groups?: string[] | null;
                 base_url?: string | null;
                 base_url_id?: number | null;
                 format?: string | null;
@@ -16280,6 +16823,59 @@ export interface operations {
             };
         };
     };
+    get_orphaned_sources_api_v1_scrapers_orphaned_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrphanedSource"][];
+                };
+            };
+        };
+    };
+    cleanup_orphaned_sources_api_v1_scrapers_orphaned_sources_cleanup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrphanCleanupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrphanCleanupResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     builtin_providers_api_v1_scrapers_providers_get: {
         parameters: {
             query?: never;
@@ -16528,7 +17124,10 @@ export interface operations {
     };
     delete_scraped_url_api_v1_scrapers_urls__url_id__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Also delete every stream this source owns, including streams linked to TV channels. */
+                delete_streams?: boolean;
+            };
             header?: never;
             path: {
                 url_id: number;
@@ -16538,11 +17137,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["URLDeleteResult"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -18127,6 +18728,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tv_channel_now_next_api_v1_tv_channels_now_next_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelNowNext"][];
                 };
             };
         };

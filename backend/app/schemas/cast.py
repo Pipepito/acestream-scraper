@@ -16,6 +16,8 @@ class CastCapabilities(BaseModel):
     message: str = ''
     home_connection: bool = False
     media_url: str = ''
+    # off: open installation without the home gate; deployment: CAST_REQUIRE_HOME_NETWORK; accounts: accounts mode.
+    home_check: Literal['off', 'deployment', 'accounts'] = 'off'
 
 
 class CastStart(PlayerSessionCreate):

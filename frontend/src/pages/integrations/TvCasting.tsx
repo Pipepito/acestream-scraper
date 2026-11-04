@@ -54,7 +54,8 @@ export default function TvCasting() {
   const access = useAccess();
   const capabilities = useQuery({ queryKey: ['cast-capabilities'], queryFn: castService.capabilities, retry: false });
   const allowed = Boolean(capabilities.data?.server_devices);
-  const canConfigure = Boolean(access?.status.user?.administrator || (access?.status.mode === 'open' && capabilities.data?.home_connection));
+  const openAccess = capabilities.data?.home_check === 'off';
+  const canConfigure = Boolean(access?.status.user?.administrator || (access?.status.mode === 'open' && (openAccess || capabilities.data?.home_connection)));
   const settings = useQuery({ queryKey: ['cast-settings'], queryFn: castService.settings, enabled: canConfigure, retry: false });
   const devices = useQuery({ queryKey: ['cast-devices'], queryFn: castService.devices, enabled: allowed, refetchInterval: allowed ? 3000 : false, retry: false });
   const [busy, setBusy] = useState(false);
@@ -76,14 +77,16 @@ export default function TvCasting() {
     setTrustConfirmed(false);
   };
   return <IntegrationPage title="TV casting" summary={[
-    { label: 'Connection', value: capabilities.data ? capabilities.data.home_connection ? 'Home' : 'Outside or unverified' : 'Checking…' },
+    { label: 'Connection', value: capabilities.data ? openAccess ? 'Open access' : capabilities.data.home_connection ? 'Home' : 'Outside or unverified' : 'Checking…' },
     { label: 'TVs', value: allowed ? devices.data?.length ?? 'Looking…' : 'Unavailable' },
   ]}>{() => <>
     <ContentSection title="Home TVs" description="Discover Chromecast and Google Cast-enabled Android TVs. Casting from the scraper works with any browser and does not require user management.">
       <Stack spacing={2}>
         {capabilities.isError ? <Alert severity="error">Could not check casting access.</Alert> : null}
+        {openAccess ? <Typography variant="body2">Anyone who can open this app can list and control TVs. Set CAST_REQUIRE_HOME_NETWORK=true on the container or enable accounts to limit this.</Typography> : null}
         {capabilities.data && !allowed ? <Alert severity="info">{capabilities.data.message}</Alert> : null}
-        {capabilities.data && !capabilities.data.home_connection && access?.status.user?.administrator ? <>
+        {capabilities.data?.home_check === 'deployment' ? <Typography variant="body2">Home-network check enforced by the deployment.</Typography> : null}
+        {capabilities.data && !openAccess && !capabilities.data.home_connection && access?.status.user?.administrator ? <>
           <Typography variant="body2">Using your public HTTPS address at home? Trust this connection to allow casting from your home internet address. Other visitors remain blocked. Repeat this if your provider changes your address. Shared internet connections also share this trust.</Typography>
           <FormControlLabel label="I am connected to my home network now" control={<Checkbox checked={trustConfirmed} onChange={(_, value) => setTrustConfirmed(value)} />} />
           <Box><Button disabled={busy || !trustConfirmed} onClick={() => void run(trustHome)}>Trust this home connection</Button></Box>
@@ -97,7 +100,7 @@ export default function TvCasting() {
           {devices.data?.length ? <List disablePadding>{devices.data.map(tv => <ListItem key={tv.id} disableGutters><ListItemText primary={tv.name} secondary={tv.model} /></ListItem>)}</List> : <Typography variant="body2">{searched ? 'No Google Cast TVs found. Turn on the TV and enable Google Cast. Docker may need host networking for multicast discovery.' : 'Listening for TVs on your home network. Find TVs also checks the local network when multicast is unavailable.'}</Typography>}
           <Typography variant="body2">Use Send to player beside a channel in Live TV to cast directly to a TV. Casting options includes playback controls and compatibility settings.</Typography>
           <Box><Button component={RouterLink} to="/live-tv">Open Live TV</Button></Box>
-          {capabilities.data?.media_url_configured ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Video address: {capabilities.data.media_url}</Typography> : <Alert severity="info">Open the app using its home-network or HTTPS address so the TV can fetch video.</Alert>}
+          {capabilities.data?.media_url_configured ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Video address: {capabilities.data.media_url}</Typography> : <Alert severity="info">{capabilities.data?.home_connection ? 'Open the app using its home-network or HTTPS address so the TV can fetch video.' : 'From this connection the TV needs a fixed address: set Application address for TVs under Advanced connection settings, or open the app from your home network.'}</Alert>}
         </> : null}
         {error ? <Alert severity="error">{error}</Alert> : null}
       </Stack>

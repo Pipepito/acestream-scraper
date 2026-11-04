@@ -3,9 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
   Alert, Avatar, Box, Breadcrumbs, Button, Checkbox, Chip, FormControlLabel,
-  List, ListItem, ListItemButton, ListItemText, MenuItem, Pagination, Stack,
+  List, ListItem, ListItemButton, ListItemText, MenuItem, Pagination, Snackbar, Stack,
   Switch, TextField, Typography,
 } from '@mui/material';
+import RowActionsMenu from '../components/RowActionsMenu';
+import AssignTVChannelDialog, { type AssignChoice } from '../components/AssignTVChannelDialog';
+import FolderMatchDialog from '../components/catalogues/FolderMatchDialog';
+import { useTVChannelCatalog } from '../hooks/useTVChannels';
 import FolderOutlined from '@mui/icons-material/FolderOutlined';
 import StarOutlineRounded from '@mui/icons-material/StarOutlineRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
@@ -15,7 +19,7 @@ import StatusLine from '../components/StatusLine';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import EventImportPanel from '../components/events/EventImportPanel';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { catalogueService, type CatalogueEntry, type CataloguePreviewRequest, type CatalogueView } from '../services/catalogueService';
+import { catalogueService, type CatalogueEntry, type CataloguePreviewRequest, type CatalogueView, type FolderAssignRequest } from '../services/catalogueService';
 import { getErrorMessage } from '../utils/errorUtils';
 
 const STORAGE_KEY = 'acestream.catalogue-history.v1';
@@ -36,9 +40,18 @@ const kindLabels: Record<CatalogueEntry['kind'], string> = {
   vod: 'VOD · unavailable', unsupported: 'Unsupported', invalid: 'Invalid',
 };
 
-const Catalogues: React.FC = () => {
+interface CataloguesProps { embedded?: boolean }
+
+const Catalogues: React.FC<CataloguesProps> = ({ embedded = false }) => {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
+  /** Rewrite only the catalogue browsing keys: the host page's own params (such as Scraper's `tab`) survive. */
+  const setBrowseParams = (next: Record<string, string>) => setParams((current) => {
+    const merged = new URLSearchParams(current);
+    merged.delete('catalogue'); merged.delete('folder');
+    Object.entries(next).forEach(([key, value]) => merged.set(key, value));
+    return merged;
+  });
   const catalogueId = Number(params.get('catalogue')) || null;
   const folder = params.get('folder') ?? 'root';
   const list = useQuery({ queryKey: ['catalogues'], queryFn: catalogueService.list });
@@ -79,7 +92,7 @@ const Catalogues: React.FC = () => {
   const busy = saved.isFetching;
 
   const navigateFolder = (id: string) => {
-    setParams({ ...(catalogueId ? { catalogue: String(catalogueId) } : {}), folder: id });
+    setBrowseParams({ ...(catalogueId ? { catalogue: String(catalogueId) } : {}), folder: id });
     setPage(1); setDetails(null);
   };
   const resetBrowse = () => { setEventEntry(null); setSearch(''); setKind('all'); setHistoryFilter('all'); setPage(1); setDetails(null); };
@@ -87,21 +100,48 @@ const Catalogues: React.FC = () => {
     setPreview(result); setName(result.name); setBranches(result.selected_branches ?? ['root']);
     setMode(result.mode ?? 'compatible'); setRefreshEnabled(result.refresh_enabled ?? false);
     setAdding(false); setUrl(''); setConfirmLive(false); setEventEntry(null); resetBrowse();
-    setParams(result.id ? { catalogue: String(result.id) } : {});
+    setBrowseParams(result.id ? { catalogue: String(result.id) } : {});
   } });
   const save = useMutation({ mutationFn: catalogueService.save, onSuccess: (result) => {
     queryClient.setQueryData(['catalogue', result.id], result);
     void queryClient.invalidateQueries({ queryKey: ['catalogues'] });
     void queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
     void queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
-    setPreview(null); setParams({ catalogue: String(result.id) }); resetBrowse();
+    setPreview(null); setBrowseParams({ catalogue: String(result.id) }); resetBrowse();
   } });
   const remove = useMutation({ mutationFn: catalogueService.remove, onSuccess: () => {
     void queryClient.invalidateQueries({ queryKey: ['catalogues'] });
     void queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
-    setParams({}); setConfirmRemove(false); setPreview(null); setDetails(null);
+    setBrowseParams({}); setConfirmRemove(false); setPreview(null); setDetails(null);
   } });
   const pending = prepare.isPending || save.isPending || remove.isPending;
+  const tvCatalog = useTVChannelCatalog();
+  const [assignFolderEntry, setAssignFolderEntry] = useState<CatalogueEntry | null>(null);
+  const [matchOpen, setMatchOpen] = useState(false);
+  const [notice, setNotice] = useState<{ message: string; moveTo?: { catalogueId: number; folder: CatalogueEntry; tvChannelId: number } } | null>(null);
+  const invalidateAssignments = (id: number) => {
+    void queryClient.invalidateQueries({ queryKey: ['catalogue', id] });
+    void queryClient.invalidateQueries({ queryKey: ['tvChannels'] });
+    void queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
+  };
+  const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+  const assignFolder = useMutation({
+    mutationFn: ({ catalogueId, folder, request }: { catalogueId: number; folder: CatalogueEntry; request: FolderAssignRequest }) =>
+      catalogueService.assignFolder(catalogueId, folder.id, request),
+    onSuccess: (result, { catalogueId, folder, request }) => {
+      setAssignFolderEntry(null);
+      invalidateAssignments(catalogueId);
+      if (request.reassign) {
+        setNotice({ message: `${plural(result.moved ?? 0, 'stream')} moved to ${result.tv_channel.name}.` });
+        return;
+      }
+      const skipped = result.skipped_other_channel ?? 0;
+      setNotice({
+        message: `${plural(result.assigned ?? 0, 'stream')} assigned to ${result.tv_channel.name}.${skipped ? ` ${plural(skipped, 'stream')} ${skipped === 1 ? 'is' : 'are'} on another TV channel.` : ''}`,
+        moveTo: skipped ? { catalogueId, folder, tvChannelId: result.tv_channel.id } : undefined,
+      });
+    },
+  });
   const error = fileError || [list.error, saved.error, prepare.error, save.error, remove.error].filter(Boolean).map((err) => getErrorMessage(err)).join(' ');
   const startPreview = (request: CataloguePreviewRequest) => { setFileError(''); prepare.mutate(request); };
   const updateHistory = (next: BrowserHistory) => {
@@ -136,9 +176,11 @@ const Catalogues: React.FC = () => {
   const variants = detail ? (entries ?? []).filter((entry) => entry.id !== detail.id && entry.kind !== 'folder'
     && entry.parent_id === detail.parent_id && entry.name === detail.name) : [];
 
+  const addButton = <Button variant="contained" disabled={pending} onClick={() => { setAdding(true); setPreview(null); prepare.reset(); save.reset(); }}>Add catalogue</Button>;
   return <Box sx={{ '& > section, & > div > section': { height: 'auto' } }}>
-    <PageHeader title="Catalogues" subtitle="Browse Wiseplay/W3U folders and review compatible streams before importing."
-      primaryActions={<Button variant="contained" disabled={pending} onClick={() => { setAdding(true); setPreview(null); prepare.reset(); save.reset(); }}>Add catalogue</Button>} />
+    {embedded
+      ? <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>{addButton}</Box>
+      : <PageHeader title="Catalogues" subtitle="Browse Wiseplay/W3U folders and review compatible streams before importing." primaryActions={addButton} />}
     <StatusLine items={[{ label: 'Saved', value: list.data?.length ?? '—' },
       ...(view ? [{ label: 'Compatible', value: view.counts.accepted ?? 0 }, { label: 'Excluded', value: view.counts.excluded ?? 0 }, { label: 'Duplicates', value: view.counts.duplicates ?? 0 },
         { label: 'Invalid', value: view.counts.invalid ?? 0 }, { label: 'Unsupported', value: view.counts.unsupported ?? 0 },
@@ -166,13 +208,14 @@ const Catalogues: React.FC = () => {
       {list.isPending ? <Typography role="status">Loading catalogues…</Typography> : !list.data?.length ? <Typography>No catalogues yet. Add a W3U URL or file to inspect its folders and playback compatibility.</Typography> :
         <List disablePadding>{list.data.map((catalogue) => <ListItem key={catalogue.id} disablePadding>
           <ListItemButton selected={catalogue.id === catalogueId} disabled={pending} onClick={() => {
-            setPreview(null); setAdding(false); resetBrowse(); setParams({ catalogue: String(catalogue.id) }); prepare.reset(); save.reset();
+            setPreview(null); setAdding(false); resetBrowse(); setBrowseParams({ catalogue: String(catalogue.id) }); prepare.reset(); save.reset();
           }}><ListItemText primary={catalogue.name} secondary={`${catalogue.origin} · ${catalogue.partial ? 'Partial refresh' : 'Saved'} · ${catalogue.refresh_enabled ? 'Scheduled refresh on' : 'Manual refresh'}`} sx={{ overflowWrap: 'anywhere' }} /></ListItemButton>
         </ListItem>)}</List>}
     </ContentSection>
     {busy && !view ? <Typography role="status">Loading catalogue…</Typography> : null}
     {view ? <>
       <ContentSection title={preview ? 'Review import' : view.name} actions={!preview ? <>
+        <Button disabled={pending} onClick={() => setMatchOpen(true)}>Match folders to TV channels</Button>
         <Button variant="outlined" disabled={pending} onClick={() => startPreview({ catalogue_id: view.id })}>{view.can_refresh ? 'Preview refresh' : 'Review selection'}</Button>
         <Button color="error" disabled={pending} onClick={() => setConfirmRemove(true)}>Remove catalogue</Button>
       </> : undefined}>
@@ -208,11 +251,13 @@ const Catalogues: React.FC = () => {
           {breadcrumbs.map((entry) => <Button key={entry.id} onClick={() => navigateFolder(entry.id)} aria-current={entry.id === folder ? 'location' : undefined}>{entry.id === 'root' ? view.name : entry.name}</Button>)}
         </Breadcrumbs>
         {folder !== 'root' ? <Button onClick={() => navigateFolder(byId.get(folder)?.parent_id ?? 'root')}>Back to parent folder</Button> : null}
+        {!preview && view.id && folder !== 'root' && byId.get(folder) ? <Button onClick={() => setAssignFolderEntry(byId.get(folder) ?? null)}>Assign this folder&apos;s streams to a TV channel…</Button> : null}
         {preview && folder !== 'root' ? <FormControlLabel control={<Checkbox checked={branches.includes(folder) || branches.includes('root')} disabled={branches.includes('root')}
           onChange={(_, checked) => setBranches(checked ? [...branches, folder] : branches.filter((id) => id !== folder))} />} label={`Include ${byId.get(folder)?.name ?? 'this folder'}`} /> : null}
         {search || kind !== 'all' || historyFilter !== 'all' ? <Typography variant="body2">Showing matches across all folders.</Typography> : null}
         <List disablePadding aria-label="Catalogue entries">
-          {filtered.slice((page - 1) * 50, page * 50).map((entry) => <ListItem key={entry.id} disableGutters divider sx={{ alignItems: 'flex-start' }}>
+          {filtered.slice((page - 1) * 50, page * 50).map((entry) => <ListItem key={entry.id} disableGutters divider sx={{ alignItems: 'flex-start' }}
+            secondaryAction={!preview && view.id && entry.kind === 'folder' ? <RowActionsMenu label={`More actions for ${entry.name}`} actions={[{ label: 'Assign streams to TV channel…', onClick: () => setAssignFolderEntry(entry) }]} /> : undefined}>
             {preview && entry.kind === 'folder' ? <Checkbox inputProps={{ 'aria-label': `Include ${entry.name}` }} disabled={branches.includes('root')}
               checked={branches.includes(entry.id) || branches.includes('root')} onChange={(_, checked) => setBranches(checked ? [...branches, entry.id] : branches.filter((id) => id !== entry.id))} /> : null}
             <ListItemButton selected={details === entry.id} onClick={() => entry.kind === 'folder' ? navigateFolder(entry.id) : inspect(entry)} sx={{ gap: 1.5, minWidth: 0 }}>
@@ -255,6 +300,21 @@ const Catalogues: React.FC = () => {
       catalogue={{ id: view.id, revision: view.revision ?? 1, entryIds: [eventEntry.id], title: eventEntry.name }} onClose={() => setEventEntry(null)} /></Box> : null}
     <Button component={RouterLink} to="/events">Open Events</Button>
     <ChannelPlayerDialog open={Boolean(playing)} contentId={playing?.channel_id ?? null} title={playing?.name ?? ''} onClose={() => setPlaying(null)} />
+    <AssignTVChannelDialog open={Boolean(assignFolderEntry)} tvChannels={tvCatalog.data ?? []} createName={assignFolderEntry?.name}
+      loading={assignFolder.isPending} error={assignFolder.isError ? getErrorMessage(assignFolder.error) : null}
+      catalogLoading={tvCatalog.isLoading} catalogError={tvCatalog.isError ? 'Could not load TV channels.' : null} onRetry={() => void tvCatalog.refetch()}
+      onClose={() => { setAssignFolderEntry(null); assignFolder.reset(); }}
+      onAssign={(choice: AssignChoice) => { if (view?.id && assignFolderEntry) assignFolder.mutate({ catalogueId: view.id, folder: assignFolderEntry,
+        request: 'tvChannelId' in choice ? { tv_channel_id: choice.tvChannelId, reassign: false } : { create_name: choice.createName, reassign: false } }); }} />
+    {view?.id ? <FolderMatchDialog open={matchOpen} catalogueId={view.id} entries={entries ?? []} onClose={() => setMatchOpen(false)}
+      onApplied={(message) => { if (view.id) invalidateAssignments(view.id); setNotice({ message }); }} /> : null}
+    <Snackbar open={notice !== null} autoHideDuration={notice?.moveTo ? null : 6000} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+      <Alert severity="success" onClose={() => setNotice(null)} action={notice?.moveTo ? <Button color="inherit" size="small" onClick={() => {
+        const target = notice.moveTo!;
+        setNotice(null);
+        assignFolder.mutate({ catalogueId: target.catalogueId, folder: target.folder, request: { tv_channel_id: target.tvChannelId, reassign: true } });
+      }}>Move them too</Button> : undefined}>{notice?.message}</Alert>
+    </Snackbar>
     <ConfirmDialog open={confirmRemove} title="Remove catalogue?" confirmLabel="Remove catalogue" danger busy={remove.isPending} body="Remove this catalogue and its refresh settings. Imported channels and manual assignments are kept; manage them in Acestream Channels." onConfirm={() => { if (view?.id) remove.mutate(view.id); }} onClose={() => setConfirmRemove(false)} />
   </Box>;
 };

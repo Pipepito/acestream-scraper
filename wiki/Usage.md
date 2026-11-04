@@ -10,7 +10,7 @@ If you have not created the container yet, use the [Docker command builder](http
 
 ## Find your way around
 
-Navigation groups **Watch** (TV dashboard, Live TV, Catalogues, Events), **Manage** (sources, Search, stream and TV inventories, EPG, Playlist), **Integrations** (Public address, Web player, Remote players, Media servers, Telegram), and **System** (System status, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
+Navigation groups **Watch** (TV dashboard, Live TV, Recordings), **Manage** (Scraper with its sources, W3U catalogues, saved searches and exclusions; Search; stream and TV inventories; EPG; Events; Playlist), **Integrations** (Public address, Web player, Remote players, Media servers, Telegram), and **System** (System status, WARP, Settings). The top-left button collapses the sidebar on desktop and opens the menu on a phone. The theme button switches between light and dark.
 
 A **stream** is one AceStream content ID. A **TV channel** groups stream IDs for one station, with its channel number, favorite flag and programme guide. Scraping discovers streams; assigning them to TV channels creates the viewing catalogue.
 
@@ -99,6 +99,14 @@ Select **Add**, then use the row's **Scrape** action. **Scrape all** processes e
 
 The table records the last result, last run, and number of channels found. If a source fails, its error remains visible there.
 
+A successful scrape removes streams that disappeared from that source; failed or
+empty scrapes never do. **Delete** in a source's row menu asks whether to remove
+its streams too, which is ticked by default and includes streams linked to TV
+channels; the TV channels themselves stay. Streams left behind by sources removed
+earlier are listed under **Clean up removed sources…** in the page actions, where
+you tick which to remove. Catalogue, Telegram, saved-search and manual additions
+are never part of that list.
+
 ![Add URL dialog on the Scraper page](usage-02-add-source.png)
 
 ## Step 4: Review discovered streams
@@ -181,7 +189,11 @@ players to fetch XMLTV; handle downloaded playlists like the protected URL.
 
 ## Step 7: Build the playlist URL
 
-Open **Playlist**.
+Select **Playlist** on the TV dashboard. The dialog shows the link first, with
+Copy, Download and QR code, then the options below and the link-formats editor
+behind **Manage link formats**, so nothing requires leaving the dashboard. The
+same options are available on the **Playlist** page under Manage, which also
+shows programme-guide coverage.
 
 1. Optionally filter by channel name.
 2. Choose whether to include only online channels or only favorite TV channels.
@@ -191,7 +203,7 @@ Open **Playlist**.
 6. Expand **Group filters** to include or exclude categories.
 7. Copy the generated URL or select **Download M3U**.
 
-The canonical player-facing endpoint is `/playlists/m3u`. The web page may generate the equivalent versioned API URL so it can include every selected option.
+The canonical player-facing endpoint is `/playlists/m3u`. The web page may generate the equivalent versioned API URL so it can include every selected option. Group filters repeat the parameter per group (`include_groups=News&include_groups=Sports`); a single comma-separated value still works unless a group name itself contains a comma.
 
 ![Playlist page with filters and the generated M3U URL hidden](usage-06-playlist.png)
 
@@ -207,7 +219,7 @@ In VLC, choose **Media → Open Network Stream**, paste the playlist URL, and pl
 
 ## Watch in the browser
 
-Open **Live TV** for active TV channels with assigned streams, current/next programmes and favorite filtering. **Online streams without a channel** has its own search and pagination.
+Open **Live TV**. The browse list has three views: **TV channels** lists every active channel with assigned streams and its current/next programme in one scrolling list, with search and **Favorites only**; **Streams** lists every stream 50 at a time with an **Online only** switch, so you can play a specific source directly; **Events** shows today's and tomorrow's events using the TV dashboard's interests and time zone, with **Watch** for broadcasters linked to a TV channel. The view and search stay in the address (`?list=streams&q=…`). While watching, the channel's sources appear as a row of chips under the player; pick one to switch.
 
 Choose **Watch**. The player and scrollable catalogue stay on the same page. Searching and filtering do not stop playback. **Playback options → Larger player** expands the desktop video area; **Standard player** restores the split. **Schedule** shows the current and upcoming programmes in your device timezone. Select another **Stream** or **Audio track** when available. **Stop watching** releases your viewer.
 

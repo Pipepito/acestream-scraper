@@ -168,7 +168,7 @@ class CastService:
         import pychromecast
         owner = controller or user
         if not policy.cast_media_url:
-            raise HTTPException(409, 'Open the app using its home-network or HTTPS address, or set an application address in TV casting.')
+            raise HTTPException(409, 'The TV has no address to fetch video from: set Application address for TVs in TV casting, or open the app from your home network.')
         async with self.lock:
             info = self.discovery.get(payload.device_id)
             previous = next((cast for cast in self.active.values() if cast.device_id == payload.device_id), None)

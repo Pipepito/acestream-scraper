@@ -2,7 +2,6 @@
 import asyncio
 import contextlib
 import os
-import shutil
 import subprocess
 from types import SimpleNamespace
 from urllib.parse import urlsplit
@@ -14,6 +13,8 @@ import pytest
 from app.services import player_http_source as http_source
 from app.services.player_http_source import HTTPStreamSource, PlayerHTTPSource
 from app.services.player_service import PlayerService
+from app.services.stream_relay import EngineStreamError
+from app.services.tuner_remux import ffmpeg_binary
 
 HTTP_ID = 'url:' + 'a' * 40
 
@@ -250,10 +251,13 @@ def test_interrupted_media_closes_connection_without_injecting_http_error():
 
 @pytest.mark.parametrize("media_format", ["hls", "encrypted", "fmp4", "mpegts", "subtitles"])
 def test_real_ffmpeg_reads_guarded_hls_without_engine(tmp_path, monkeypatch, media_format):
-    ffmpeg = shutil.which('ffmpeg')
-    fixture_tool = os.environ.get('FFMPEG_TEST_TOOL_PATH') or ffmpeg
-    if not ffmpeg or not fixture_tool:
+    # The player must run the configured production binary (HLS subtitle renditions
+    # need FFmpeg 8.1+); a fixture tool earlier on PATH must not stand in for it.
+    try:
+        ffmpeg = ffmpeg_binary()
+    except EngineStreamError:
         pytest.skip('FFmpeg required for media integration')
+    fixture_tool = os.environ.get('FFMPEG_TEST_TOOL_PATH') or ffmpeg
     media_dir = tmp_path / 'origin'
     media_dir.mkdir()
     target = media_dir / ('stream.ts' if media_format == 'mpegts' else 'index.m3u8')

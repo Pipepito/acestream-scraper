@@ -1,5 +1,5 @@
 import React, { useDeferredValue, useState } from 'react';
-import { Alert, Autocomplete, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Autocomplete, Button, Checkbox, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import channelService, { type AcestreamChannel } from '../../services/channelService';
 import { eventService, type SportingEvent, type EventChannelTarget } from '../../services/eventService';
@@ -13,18 +13,24 @@ export default function EventBroadcastMapper({ event, broadcast }: Props) {
   const [mode, setMode] = useState('channels');
   const [target, setTarget] = useState<EventChannelTarget | null>(null);
   const [selected, setSelected] = useState<AcestreamChannel | null>(null);
+  const [applyToSource, setApplyToSource] = useState(true);
   const deferred = useDeferredValue(search);
   const channels = useQuery({ queryKey: ['event-mapping-channels', deferred],
     queryFn: () => channelService.getAcestreamChannels({ search: deferred, is_active: true, page_size: 30 }), enabled: open && mode === 'stream' });
   const targets = useQuery({ queryKey: ['event-broadcast-targets', deferred], queryFn: () => eventService.broadcastTargets(deferred), enabled: open && mode === 'channels' });
-  const saveTarget = useMutation({ mutationFn: () => eventService.mapBroadcastTarget(event.id, event.revision, broadcast.id, target!),
+  const saveTarget = useMutation({ mutationFn: () => eventService.mapBroadcastTarget(event.id, event.revision, broadcast.id, target!, applyToSource),
     onSuccess: () => { setOpen(false); void cache.invalidateQueries({ queryKey: ['events'] }); } });
-  const save = useMutation({ mutationFn: (channelId: string | null) => eventService.mapBroadcast(event.id, event.revision, broadcast.id, channelId),
+  const save = useMutation({ mutationFn: (channelId: string | null) => eventService.mapBroadcast(event.id, event.revision, broadcast.id, channelId, applyToSource),
     onSuccess: () => { setOpen(false); void cache.invalidateQueries({ queryKey: ['events'] }); } });
+  const clearLabel = applyToSource ? `Unlink ${broadcast.label} for all events from this source`
+    : broadcast.source_kept ? 'Use the shared link again' : 'Use source broadcast for this event';
   return <Stack spacing={1}>
     <Button size="small" sx={{ alignSelf: 'flex-start', textAlign: 'left' }} onClick={() => setOpen(!open)} aria-expanded={open}>{open ? `Cancel mapping ${broadcast.label}` : `Link ${broadcast.label}`}</Button>
     {open ? <>
-      <Typography variant="body2">Choose your local channel. This link will be kept when the schedule refreshes.</Typography>
+      <Typography variant="body2">{applyToSource
+        ? 'Choose your local channel. It will be used for every event from this source that lists this broadcaster, now and after refreshes.'
+        : 'Choose your local channel for this event only. It is kept when the schedule refreshes.'}</Typography>
+      <FormControlLabel control={<Checkbox checked={applyToSource} onChange={(_, value) => setApplyToSource(value)} />} label="Apply to all events from this source with this broadcaster" />
       <TextField select label="Link to" value={mode} onChange={(e) => setMode(e.target.value)}><MenuItem value="channels">TV or EPG channel</MenuItem><MenuItem value="stream">Individual stream</MenuItem></TextField>
       {mode === 'channels' ? <Autocomplete options={targets.data ?? []} value={target} inputValue={search}
         onInputChange={(_, value) => setSearch(value)} onChange={(_, value) => setTarget(value)}
@@ -46,7 +52,7 @@ export default function EventBroadcastMapper({ event, broadcast }: Props) {
       {save.isError ? <Alert severity="error">{getErrorMessage(save.error)}</Alert> : null}
       <Stack direction="row" gap={1} flexWrap="wrap">
         <Button disabled={(mode === 'channels' ? !target : !selected) || save.isPending || saveTarget.isPending} onClick={() => mode === 'channels' ? saveTarget.mutate() : save.mutate(selected!.id)}>Save broadcast mapping</Button>
-        {broadcast.manually_mapped ? <Button disabled={save.isPending} onClick={() => save.mutate(null)}>Use source broadcast</Button> : null}
+        {broadcast.manually_mapped ? <Button disabled={save.isPending} onClick={() => save.mutate(null)}>{clearLabel}</Button> : null}
       </Stack>
     </> : null}
   </Stack>;

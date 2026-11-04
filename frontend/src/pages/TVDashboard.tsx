@@ -1,7 +1,8 @@
 import RecordingOverview from '../components/recordings/RecordingOverview';
-import React from 'react';
+import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import UpcomingEvents from '../components/overview/UpcomingEvents';
+import PlaylistDialog from '../components/playlist/PlaylistDialog';
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, Stack, Typography } from '@mui/material';
 import PageHeader from '../components/layout/PageHeader';
@@ -23,6 +24,7 @@ export default function TVDashboard() {
   const tvStats = useTvChannelStats({ refetchInterval: REFRESH_MS });
   const tasks = useBackgroundTaskStatus(REFRESH_MS);
   const playback = useActiveStreams();
+  const [playlistOpen, setPlaylistOpen] = useState(false);
   const playing = playback.data?.streams.filter(stream => stream.state === 'ready' || stream.state === 'streaming').length;
   const refresh = () => {
     void cache.invalidateQueries({ queryKey: ['events', 'dashboard'] });
@@ -35,8 +37,10 @@ export default function TVDashboard() {
   return <Box>
     <PageHeader title="TV dashboard" subtitle="Playback, upcoming events and channels." actions={<Stack direction="row" gap={1} flexWrap="wrap">
       <Button component={RouterLink} to="/events">Events</Button>
+      <Button variant="outlined" onClick={() => setPlaylistOpen(true)}>Playlist</Button>
       <Button component={RouterLink} to="/live-tv" variant="contained">Watch TV</Button>
     </Stack>} />
+    <PlaylistDialog open={playlistOpen} onClose={() => setPlaylistOpen(false)} />
     <StatusLine aria-label="TV dashboard summary" items={[
       { label: 'Playing', value: playback.error ? 'Unavailable' : playing ?? 'Loading…' },
       { label: 'TV channels', value: tvStats.error ? 'Unavailable' : tvStats.data?.total ?? 'Loading…' },

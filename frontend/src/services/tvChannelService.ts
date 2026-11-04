@@ -4,6 +4,9 @@ import apiClient from './apiClient';
 
 const BASE_URL = '/v1/tv-channels';
 
+export type TVChannelNowNext = components['schemas']['TVChannelNowNext'];
+export type GuideSlot = components['schemas']['GuideSlot'];
+
 export interface CreateTVChannelsFromEPGResult {
   created_count: number;
   skipped_count: number;
@@ -63,6 +66,12 @@ export const tvChannelService = {
         ...(filters?.search ? { search: filters.search } : {}),
       }
     });
+    return response.data;
+  },
+
+  /** Now/Next for every active TV channel with a guide mapping, in one request. */
+  nowNext: async (): Promise<TVChannelNowNext[]> => {
+    const response = await apiClient.get(`${BASE_URL}/now-next`);
     return response.data;
   },
 

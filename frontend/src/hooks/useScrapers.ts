@@ -84,10 +84,11 @@ export const useDeleteURL = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => scraperService.deleteURL(id),
+    mutationFn: ({ id, deleteStreams }: { id: number; deleteStreams: boolean }) => scraperService.deleteURL(id, deleteStreams),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['urls'] });
       queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
+      queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
     },
   });
 };

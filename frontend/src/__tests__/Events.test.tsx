@@ -10,7 +10,7 @@ import EventAgenda from '../components/events/EventAgenda';
 import channelService from '../services/channelService';
 import { eventService, type SportingEvent } from '../services/eventService';
 
-jest.mock('../services/eventService', () => ({ eventService: { overlays: jest.fn(), previewOverlay: jest.fn(), applyOverlay: jest.fn(), removeOverlay: jest.fn(), list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn(), sources: jest.fn(), previewSource: jest.fn(), updateSource: jest.fn(), deleteSource: jest.fn(), retention: jest.fn(), saveRetention: jest.fn(), mapBroadcast: jest.fn(), artwork: jest.fn(), refreshSources: jest.fn(), providers: jest.fn(), interests: jest.fn(), broadcastTargets: jest.fn(), mapBroadcastTarget: jest.fn() } }));
+jest.mock('../services/eventService', () => ({ eventService: { overlays: jest.fn(), previewOverlay: jest.fn(), applyOverlay: jest.fn(), removeOverlay: jest.fn(), list: jest.fn(), get: jest.fn(), preview: jest.fn(), apply: jest.fn(), update: jest.fn(), sources: jest.fn(), previewSource: jest.fn(), updateSource: jest.fn(), deleteSource: jest.fn(), retention: jest.fn(), saveRetention: jest.fn(), mapBroadcast: jest.fn(), artwork: jest.fn(), refreshSources: jest.fn(), providers: jest.fn(), interests: jest.fn(), broadcastTargets: jest.fn(), mapBroadcastTarget: jest.fn(), broadcasterLinks: jest.fn(), deleteBroadcasterLink: jest.fn() } }));
 jest.mock('../services/channelService', () => ({ __esModule: true, default: { getAcestreamChannels: jest.fn() } }));
 jest.mock('../components/player/StreamPlayerDialog', () => ({ __esModule: true, default: ({ open, contentId, onClose }: { open: boolean; contentId: string; onClose: () => void }) => {
   const { Dialog } = jest.requireActual<typeof import('@mui/material')>('@mui/material');
@@ -38,6 +38,8 @@ beforeEach(() => {
   service.providers.mockResolvedValue({ feeds: [{ id: 'all', name: 'All sports' }, { id: 'automovilismo', name: 'Motorsport' }], leagues: [{ id: 'es.1', name: 'La Liga', timezone: 'Europe/Madrid' }] });
   service.interests.mockResolvedValue({ sports: ['Football', 'Motorsport'], competitions: ['Fórmula 1', 'Premier League'], teams: ['North United'] });
   service.broadcastTargets.mockResolvedValue([]);
+  service.broadcasterLinks.mockResolvedValue([]);
+  service.deleteBroadcasterLink.mockResolvedValue(undefined);
   service.mapBroadcastTarget.mockResolvedValue(event);
   service.retention.mockResolvedValue({ ended_days: 0, archived_days: 0 });
   service.saveRetention.mockResolvedValue({ ended_days: 7, archived_days: 30 });
@@ -184,7 +186,7 @@ it('requires selecting an exact stream to map an unresolved broadcaster', async 
   await user.click(screen.getByRole('combobox', { name: 'Find stream for DAZN' }));
   await user.click(await screen.findByRole('option', { name: 'DAZN Spain · Spain · bbbbbbbb' }));
   await user.click(screen.getByRole('button', { name: 'Save broadcast mapping' }));
-  await waitFor(() => expect(service.mapBroadcast).toHaveBeenCalledWith(event.id, 1, 'unknown', 'b'.repeat(40)));
+  await waitFor(() => expect(service.mapBroadcast).toHaveBeenCalledWith(event.id, 1, 'unknown', 'b'.repeat(40), true));
 });
 
 
@@ -257,7 +259,35 @@ it('links a differently named regional TV channel and displays TV or EPG destina
   await user.click(screen.getByLabelText('Find channel for DAZN'));
   await user.click(await screen.findByRole('option', { name: /Spanish Sports/ }));
   await user.click(screen.getByRole('button', { name: 'Save broadcast mapping' }));
-  await waitFor(() => expect(service.mapBroadcastTarget).toHaveBeenCalledWith(event.id, 1, 'unknown', target));
+  await waitFor(() => expect(service.mapBroadcastTarget).toHaveBeenCalledWith(event.id, 1, 'unknown', target, true));
+});
+
+it('can link a broadcaster for this event only and shows alias links', async () => {
+  const target = { id: 7, kind: 'tv' as const, name: 'DAZN 1', country: 'es', source_name: '' };
+  service.broadcastTargets.mockResolvedValue([target]);
+  service.get.mockResolvedValue({ ...event, broadcasts: [{ ...event.broadcasts[1], target, manually_mapped: true, via_alias: true, source_name: 'Fútbol en la TV' }] });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole('button', { name: 'View broadcasts for North United vs South City' }));
+  expect(screen.getByText('Your channel: DAZN 1 · applies to all DAZN events from Fútbol en la TV')).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Manage event' }));
+  await user.click(screen.getByRole('button', { name: 'Link DAZN' }));
+  await user.click(screen.getByRole('checkbox', { name: 'Apply to all events from this source with this broadcaster' }));
+  await user.click(screen.getByLabelText('Find channel for DAZN'));
+  await user.click(await screen.findByRole('option', { name: /DAZN 1/ }));
+  await user.click(screen.getByRole('button', { name: 'Save broadcast mapping' }));
+  await waitFor(() => expect(service.mapBroadcastTarget).toHaveBeenCalledWith(event.id, 1, 'unknown', target, false));
+});
+
+it('lists and removes broadcaster links from Sources & retention', async () => {
+  service.broadcasterLinks.mockResolvedValue([{ id: 'x'.repeat(32), source_id: 's', source_name: 'Fútbol en la TV', label: 'DAZN', target: { id: 7, kind: 'tv', name: 'DAZN 1', country: 'es', source_name: '' }, content_id: null, event_count: 3 }]);
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole('button', { name: 'Sources & retention' }));
+  expect(await screen.findByText('DAZN → DAZN 1 · Fútbol en la TV · 3 events')).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Remove link for DAZN' }));
+  await user.click(screen.getByRole('button', { name: 'Remove link' }));
+  await waitFor(() => expect(service.deleteBroadcasterLink).toHaveBeenCalledWith('x'.repeat(32)));
 });
 
 it('combines displayed competition and sport interests without requiring both', async () => {

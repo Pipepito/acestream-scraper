@@ -2,7 +2,7 @@
 
 Development feature for v2.2.0; these notes do not establish stable release availability.
 
-Open **Watch → Catalogues**, or **Scraper → W3U catalogues**. Add an HTTP(S)
+Open **Manage → Scraper → W3U catalogues** (old `/catalogues` links land there). Add an HTTP(S)
 catalogue URL or choose a local `.w3u`/JSON file (maximum 4 MiB). **Preview URL**
 reads the hierarchy without creating channels. A local file can contain absolute
 linked catalogue URLs; relative links require a remote document as their base.
@@ -30,9 +30,18 @@ have the existing remote-player actions in the player. HTTP catalogue streams su
 playlist exports and do not offer remote-player actions, to keep source URLs and
 header values private. AceStream catalogue streams remain exportable. A working import is not proof of signal, origin availability or
 browser codec compatibility. Different IDs with identical names stay separate;
-item details let you select other same-title entries in the same folder. No TV
-channel or EPG assignment is inferred. Use the normal channel management and guide
-matching workflows when you want an imported stream assigned to Live TV.
+item details let you select other same-title entries in the same folder. Import
+never infers a TV channel or EPG assignment on its own. To put a folder's streams
+on a TV channel, open the folder's **More actions** menu (or the button under the
+breadcrumbs for the folder you are in) and choose **Assign streams to TV
+channel…**: pick an existing TV channel or **Create TV channel '<folder name>'**.
+Every imported stream under the folder, including subfolders such as HD/SD
+variants, is assigned; streams already on another TV channel are skipped and the
+result offers **Move them too**. **Match folders to TV channels** previews the
+whole catalogue at once: folders whose name equals a TV channel are ticked,
+folders without a match can create one, folders already on a single TV channel
+are shown as such, and a parent is skipped while one of its subfolders is ticked.
+Guide matching and the normal channel management workflows remain available.
 
 Favorites (up to 500) and recent accessed items (last 100) are stored in this browser,
 scoped to the saved catalogue and entry. They are not shared with other browsers

@@ -161,18 +161,24 @@ stay private and are not added to TV Channels, permanent stream inventory or
 playlist exports. No TV number, guide assignment or TV favorite is inferred.
 
 Broadcaster names link to an existing **TV channel first**, otherwise an unambiguous
-**EPG channel**. Matching requires the same normalized name and compatible explicit
-country/edition; generic names such as DAZN and ambiguous matches remain plain text.
-A link opens the existing channel detail page and does not assert playable signal.
+**EPG channel**. Matching requires the same normalized name; a TV channel without
+a country still matches, while two known and different countries never do.
+Generic names such as DAZN and ambiguous matches remain plain text. A link opens
+the existing channel detail page and does not assert playable signal.
 
 For an unmatched broadcaster, use **Link [broadcaster]**; for an existing link,
 open **Manage event** first. Choose a TV or EPG channel manually, including a
 differently named channel in your country. **Individual stream** retains the direct
-stream mapping option. The choice applies to this event's broadcast, survives
-refresh and overrides automatic matching. **Use source broadcast** clears it.
-Missing/disabled or replaced manual targets remain unavailable until reviewed;
-no permanent channel, EPG assignment or name changes are made. Manual links are
-per broadcast, not global broadcaster aliases.
+stream mapping option. With **Apply to all events from this source with this
+broadcaster** checked (the default), the choice becomes a broadcaster link for
+that source: every event from the source that lists the broadcaster uses it, now
+and after refreshes, and the event shows "applies to all … events". Untick it to
+link this event only; that choice wins over the shared link. **Use source
+broadcast for this event** keeps the source's own broadcast for one event, and
+**Unlink … for all events from this source** removes the shared link. Saved links
+are listed under **Sources & retention → Broadcaster links**, where each can be
+removed. Missing/disabled or replaced targets remain unavailable until reviewed;
+no permanent channel, EPG assignment or name changes are made.
 
 If a source supplies `artwork_url` (or structured `image`), **Load event artwork**
 fetches it on request through the server. Only small PNG/JPEG/static WebP images
@@ -218,7 +224,7 @@ overlays are described below; original guide rows and recording schedules stay i
 
 ## From a Wiseplay catalogue
 
-In **Catalogues**, save a list, open a compatible source and choose **Add as event**.
+In **Scraper → W3U catalogues**, save a list, open a compatible source and choose **Add as event**.
 Review its schedule and timezone, preview, then select the event to save. The
 shared event model retains private broadcast inputs without creating permanent
 channels. Catalogue refresh does not automatically change event schedules; review

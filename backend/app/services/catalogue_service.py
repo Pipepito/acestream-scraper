@@ -17,6 +17,54 @@ _PREVIEWS = OrderedDict()
 _PREVIEW_LOCK = threading.Lock()
 _SAVE_LOCK = threading.Lock()
 _ADMISSION = threading.BoundedSemaphore(2)
+
+
+class ConflictError(Exception):
+    """A folder or TV channel in a match-apply request no longer exists; nothing was written."""
+
+
+def folder_path(by_id, folder):
+    parts = [folder['name']]
+    parent, guard = folder.get('parent_id'), 0
+    while parent and parent != 'root' and parent in by_id and guard < 50:
+        parts.append(by_id[parent]['name'])
+        parent = by_id[parent].get('parent_id')
+        guard += 1
+    return ' / '.join(reversed(parts))
+
+
+def folder_streams(snapshot, folder_id):
+    """Unique channel ids of the imported, compatible, live streams under a folder, plus how many
+    compatible entries were skipped because they were never imported. Descendants count."""
+    entries = snapshot.get('entries', [])
+    by_id = {e['id']: e for e in entries}
+    folder = by_id.get(folder_id)
+    if folder is None or folder.get('kind') != 'folder':
+        raise LookupError('Folder not found in this catalogue')
+    children = {}
+    for e in entries:
+        children.setdefault(e.get('parent_id'), []).append(e)
+    ids, seen, skipped = [], set(), 0
+    stack, visited = [folder_id], set()
+    while stack:
+        current = stack.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+        for e in children.get(current, []):
+            if e.get('kind') == 'folder':
+                stack.append(e['id'])
+                continue
+            if e.get('kind') not in COMPATIBLE or not e.get('channel_id'):
+                continue
+            if not e.get('imported'):
+                skipped += 1
+                continue
+            if e.get('content_type') in ('event', 'vod') or e['channel_id'] in seen:
+                continue
+            seen.add(e['channel_id'])
+            ids.append(e['channel_id'])
+    return ids, skipped
 PREVIEW_TTL = 15 * 60
 
 
@@ -205,6 +253,143 @@ class CatalogueService:
         except Exception:
             self.db.rollback()
             raise
+
+    def assign_folder(self, catalogue_id, entry_id, request, *, commit=True, ids=None):
+        """Assign a folder's imported streams to one TV channel. ``ids`` narrows the folder's streams
+        (the match-apply pass uses it so a parent never re-handles a child's streams)."""
+        from app.models.models import AcestreamChannel, TVChannel
+        from app.repositories.channel_repository import ChannelRepository
+        from app.schemas.catalogue import FolderAssignResult, TVChannelRef
+        row = self.repository.get(catalogue_id)
+        if row is None:
+            raise LookupError('Catalogue not found')
+        stream_ids, skipped_not_imported = folder_streams(row.snapshot, entry_id)
+        if ids is not None:
+            stream_ids = [cid for cid in stream_ids if cid in ids]
+        if not stream_ids:
+            raise ValueError('This folder has no imported streams to assign')
+        try:
+            if request.create_name:
+                name = request.create_name.strip()
+                if self.db.query(TVChannel.id).filter(TVChannel.name == name).first():
+                    raise ValueError(f'A TV channel named "{name}" already exists; choose it instead')
+                # Created directly: the TV channel service's name-based auto-association
+                # must not pull unrelated streams into a folder assignment.
+                tv = TVChannel(name=name, is_active=True)
+                self.db.add(tv)
+                self.db.flush()
+            else:
+                tv = self.db.get(TVChannel, request.tv_channel_id)
+                if tv is None or not tv.is_active:
+                    raise LookupError('TV channel not found')
+            owners = {cid: owner for cid, owner in self.db.query(AcestreamChannel.id, AcestreamChannel.tv_channel_id)
+                      .filter(AcestreamChannel.id.in_(stream_ids)).all()}
+            unassigned = [cid for cid, owner in owners.items() if owner is None]
+            already = [cid for cid, owner in owners.items() if owner == tv.id]
+            elsewhere = [cid for cid, owner in owners.items() if owner not in (None, tv.id)]
+            channels = ChannelRepository(self.db)
+            assigned = channels.assign_acestreams_to_tv_channel(unassigned, tv.id, commit=False) if unassigned else 0
+            moved = channels.move_acestreams_to_tv_channel(elsewhere, tv.id) if request.reassign and elsewhere else 0
+            if commit:
+                self.db.commit()
+            return FolderAssignResult(tv_channel=TVChannelRef(id=tv.id, name=tv.name), assigned=assigned, already=len(already),
+                                      moved=moved, skipped_other_channel=0 if request.reassign else len(elsewhere),
+                                      skipped_not_imported=skipped_not_imported)
+        except Exception:
+            if commit:
+                self.db.rollback()
+            raise
+
+    def folder_matches(self, catalogue_id):
+        """Folders worth assigning: those holding imported streams themselves, plus parents whose
+        name matches a TV channel. Streams always mean descendants, like assign_folder."""
+        from app.models.models import AcestreamChannel, TVChannel
+        from app.schemas.catalogue import FolderMatchPreview, FolderMatchRow, TVChannelRef
+        from app.services.tv_matching_service import normalize_name, name_score
+        row = self.repository.get(catalogue_id)
+        if row is None:
+            raise LookupError('Catalogue not found')
+        entries = row.snapshot.get('entries', [])
+        by_id = {e['id']: e for e in entries}
+        index = {}
+        for tv in self.db.query(TVChannel.id, TVChannel.name, TVChannel.country).filter(TVChannel.is_active.is_(True)).all():
+            candidate = normalize_name(tv.name, tv.country)
+            index.setdefault(candidate.text, []).append((candidate, tv))
+        direct = {e.get('parent_id') for e in entries if e.get('kind') in COMPATIBLE and e.get('imported')
+                  and e.get('channel_id') and e.get('content_type') not in ('event', 'vod')}
+        folders = [e for e in entries if e.get('kind') == 'folder' and e['id'] != 'root']
+        per_folder = {folder['id']: folder_streams(row.snapshot, folder['id'])[0] for folder in folders}
+        all_ids = sorted({cid for ids in per_folder.values() for cid in ids})
+        owners = {}
+        for offset in range(0, len(all_ids), 500):
+            owners.update(self.db.query(AcestreamChannel.id, AcestreamChannel.tv_channel_id)
+                          .filter(AcestreamChannel.id.in_(all_ids[offset:offset + 500])).all())
+        rows = []
+        for folder in folders:
+            ids = per_folder[folder['id']]
+            if not ids:
+                continue
+            name = normalize_name(folder['name'])
+            matches = [tv for candidate, tv in index.get(name.text, []) if name_score(name, candidate, allow_unknown_country=True)]
+            if folder['id'] not in direct and not matches:
+                continue
+            owner_ids = {owners.get(cid) for cid in ids}
+            current, status = None, 'none'
+            if len(owner_ids) == 1 and None not in owner_ids:
+                owner = self.db.get(TVChannel, next(iter(owner_ids)))
+                status, current = 'assigned', TVChannelRef(id=owner.id, name=owner.name) if owner else None
+            elif len(matches) == 1:
+                status = 'match'
+            elif len(matches) > 1:
+                status = 'ambiguous'
+            candidate = TVChannelRef(id=matches[0].id, name=matches[0].name) if len(matches) == 1 else None
+            rows.append(FolderMatchRow(folder_id=folder['id'], name=folder['name'], path=folder_path(by_id, folder),
+                                       stream_count=len(ids), candidate=candidate, current=current, status=status))
+        return FolderMatchPreview(rows=rows)
+
+    def apply_folder_matches(self, catalogue_id, request):
+        """Apply several folder assignments in one transaction, deepest folders first so a
+        parent never re-handles streams a subfolder already took."""
+        from app.models.models import TVChannel
+        from app.schemas.catalogue import FolderAssignRequest, FolderApplyRow, FolderMatchApplyResult
+        row = self.repository.get(catalogue_id)
+        if row is None:
+            raise LookupError('Catalogue not found')
+        by_id = {e['id']: e for e in row.snapshot.get('entries', [])}
+        for item in request.assignments:
+            folder = by_id.get(item.folder_id)
+            if folder is None or folder.get('kind') != 'folder':
+                raise ConflictError('A folder is no longer in this catalogue; preview the matches again')
+            if item.tv_channel_id is not None:
+                tv = self.db.get(TVChannel, item.tv_channel_id)
+                if tv is None or not tv.is_active:
+                    raise ConflictError('A chosen TV channel no longer exists; preview the matches again')
+
+        def depth(folder_id):
+            level, parent, guard = 0, by_id[folder_id].get('parent_id'), 0
+            while parent and parent in by_id and guard < 100:
+                level, parent, guard = level + 1, by_id[parent].get('parent_id'), guard + 1
+            return level
+
+        handled, results = set(), {}
+        try:
+            for item in sorted(request.assignments, key=lambda entry: -depth(entry.folder_id)):
+                remaining = [cid for cid in folder_streams(row.snapshot, item.folder_id)[0] if cid not in handled]
+                if not remaining:
+                    results[item.folder_id] = FolderApplyRow(folder_id=item.folder_id, note='Covered by a subfolder in this pass')
+                    continue
+                folder_request = FolderAssignRequest(tv_channel_id=item.tv_channel_id,
+                    create_name=by_id[item.folder_id]['name'] if item.create else None, reassign=request.reassign)
+                result = self.assign_folder(catalogue_id, item.folder_id, folder_request, commit=False, ids=set(remaining))
+                handled |= set(remaining)
+                results[item.folder_id] = FolderApplyRow(folder_id=item.folder_id, tv_channel=result.tv_channel, assigned=result.assigned,
+                    already=result.already, moved=result.moved, skipped_other_channel=result.skipped_other_channel,
+                    skipped_not_imported=result.skipped_not_imported)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        return FolderMatchApplyResult(results=[results[item.folder_id] for item in request.assignments])
 
     def refresh(self, catalogue_id):
         from app.schemas.catalogue import CataloguePreviewRequest, CatalogueSaveRequest

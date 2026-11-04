@@ -1543,6 +1543,76 @@
             "title": "Reason",
             "type": "string"
           },
+          "source_kept": {
+            "default": false,
+            "title": "Source Kept",
+            "type": "boolean"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventChannelTarget"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "via_alias": {
+            "default": false,
+            "title": "Via Alias",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "language",
+          "quality",
+          "country",
+          "source_name",
+          "origin",
+          "content_id",
+          "compatibility",
+          "reason"
+        ],
+        "title": "BroadcastView",
+        "type": "object"
+      },
+      "BroadcasterLinkView": {
+        "additionalProperties": false,
+        "properties": {
+          "content_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Id"
+          },
+          "event_count": {
+            "title": "Event Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
           "source_name": {
             "title": "Source Name",
             "type": "string"
@@ -1560,17 +1630,12 @@
         },
         "required": [
           "id",
-          "label",
-          "language",
-          "quality",
-          "country",
+          "source_id",
           "source_name",
-          "origin",
-          "content_id",
-          "compatibility",
-          "reason"
+          "label",
+          "event_count"
         ],
-        "title": "BroadcastView",
+        "title": "BroadcasterLinkView",
         "type": "object"
       },
       "BuiltinProvider": {
@@ -1644,6 +1709,16 @@
           "compatibility_conversion": {
             "title": "Compatibility Conversion",
             "type": "boolean"
+          },
+          "home_check": {
+            "default": "off",
+            "enum": [
+              "off",
+              "deployment",
+              "accounts"
+            ],
+            "title": "Home Check",
+            "type": "string"
           },
           "home_connection": {
             "default": false,
@@ -3835,6 +3910,11 @@
       "EventBroadcastMapping": {
         "additionalProperties": false,
         "properties": {
+          "apply_to_source": {
+            "default": true,
+            "title": "Apply To Source",
+            "type": "boolean"
+          },
           "broadcast_id": {
             "maxLength": 193,
             "minLength": 1,
@@ -5488,6 +5568,304 @@
         "title": "ExtractionRecipe",
         "type": "object"
       },
+      "FolderApplyRow": {
+        "properties": {
+          "already": {
+            "default": 0,
+            "title": "Already",
+            "type": "integer"
+          },
+          "assigned": {
+            "default": 0,
+            "title": "Assigned",
+            "type": "integer"
+          },
+          "folder_id": {
+            "title": "Folder Id",
+            "type": "string"
+          },
+          "moved": {
+            "default": 0,
+            "title": "Moved",
+            "type": "integer"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          },
+          "skipped_not_imported": {
+            "default": 0,
+            "title": "Skipped Not Imported",
+            "type": "integer"
+          },
+          "skipped_other_channel": {
+            "default": 0,
+            "title": "Skipped Other Channel",
+            "type": "integer"
+          },
+          "tv_channel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TVChannelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "folder_id"
+        ],
+        "title": "FolderApplyRow",
+        "type": "object"
+      },
+      "FolderAssignRequest": {
+        "description": "Assign every imported stream under a folder to one TV channel: an existing one or a new one named here.",
+        "properties": {
+          "create_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Create Name"
+          },
+          "reassign": {
+            "default": false,
+            "title": "Reassign",
+            "type": "boolean"
+          },
+          "tv_channel_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tv Channel Id"
+          }
+        },
+        "title": "FolderAssignRequest",
+        "type": "object"
+      },
+      "FolderAssignResult": {
+        "properties": {
+          "already": {
+            "default": 0,
+            "title": "Already",
+            "type": "integer"
+          },
+          "assigned": {
+            "default": 0,
+            "title": "Assigned",
+            "type": "integer"
+          },
+          "moved": {
+            "default": 0,
+            "title": "Moved",
+            "type": "integer"
+          },
+          "skipped_not_imported": {
+            "default": 0,
+            "title": "Skipped Not Imported",
+            "type": "integer"
+          },
+          "skipped_other_channel": {
+            "default": 0,
+            "title": "Skipped Other Channel",
+            "type": "integer"
+          },
+          "tv_channel": {
+            "$ref": "#/components/schemas/TVChannelRef"
+          }
+        },
+        "required": [
+          "tv_channel"
+        ],
+        "title": "FolderAssignResult",
+        "type": "object"
+      },
+      "FolderMatchApplyRequest": {
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/FolderMatchAssignment"
+            },
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Assignments",
+            "type": "array"
+          },
+          "reassign": {
+            "default": false,
+            "title": "Reassign",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "assignments"
+        ],
+        "title": "FolderMatchApplyRequest",
+        "type": "object"
+      },
+      "FolderMatchApplyResult": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/FolderApplyRow"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "FolderMatchApplyResult",
+        "type": "object"
+      },
+      "FolderMatchAssignment": {
+        "properties": {
+          "create": {
+            "default": false,
+            "title": "Create",
+            "type": "boolean"
+          },
+          "folder_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Folder Id",
+            "type": "string"
+          },
+          "tv_channel_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tv Channel Id"
+          }
+        },
+        "required": [
+          "folder_id"
+        ],
+        "title": "FolderMatchAssignment",
+        "type": "object"
+      },
+      "FolderMatchPreview": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FolderMatchRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "FolderMatchPreview",
+        "type": "object"
+      },
+      "FolderMatchRow": {
+        "properties": {
+          "candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TVChannelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TVChannelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "folder_id": {
+            "title": "Folder Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "match",
+              "ambiguous",
+              "none",
+              "assigned"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "stream_count": {
+            "title": "Stream Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "folder_id",
+          "name",
+          "path",
+          "stream_count",
+          "status"
+        ],
+        "title": "FolderMatchRow",
+        "type": "object"
+      },
+      "GuideSlot": {
+        "properties": {
+          "end": {
+            "format": "date-time",
+            "title": "End",
+            "type": "string"
+          },
+          "start": {
+            "format": "date-time",
+            "title": "Start",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "start",
+          "end"
+        ],
+        "title": "GuideSlot",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -6222,6 +6600,64 @@
           }
         },
         "title": "NotificationWebhookUpdate",
+        "type": "object"
+      },
+      "OrphanCleanupRequest": {
+        "properties": {
+          "source_urls": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Source Urls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "source_urls"
+        ],
+        "title": "OrphanCleanupRequest",
+        "type": "object"
+      },
+      "OrphanCleanupResult": {
+        "properties": {
+          "deleted": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Deleted",
+            "type": "object"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "OrphanCleanupResult",
+        "type": "object"
+      },
+      "OrphanedSource": {
+        "description": "Streams whose source URL is no longer configured as a scraper source.",
+        "properties": {
+          "assigned_count": {
+            "title": "Assigned Count",
+            "type": "integer"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_url",
+          "count",
+          "assigned_count"
+        ],
+        "title": "OrphanedSource",
         "type": "object"
       },
       "PasswordChange": {
@@ -10679,6 +11115,63 @@
         "title": "TVChannelListResponse",
         "type": "object"
       },
+      "TVChannelNowNext": {
+        "description": "Current and next programme of one TV channel, from a single batched guide read.",
+        "properties": {
+          "epg_channel_id": {
+            "title": "Epg Channel Id",
+            "type": "integer"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuideSlot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "now": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuideSlot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tv_channel_id": {
+            "title": "Tv Channel Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tv_channel_id",
+          "epg_channel_id"
+        ],
+        "title": "TVChannelNowNext",
+        "type": "object"
+      },
+      "TVChannelRef": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TVChannelRef",
+        "type": "object"
+      },
       "TVChannelReorderRequest": {
         "description": "Complete inventory in the desired order; saved as numbers 1 through N.",
         "properties": {
@@ -12279,6 +12772,17 @@
         "title": "URLCreate",
         "type": "object"
       },
+      "URLDeleteResult": {
+        "properties": {
+          "deleted_streams": {
+            "default": 0,
+            "title": "Deleted Streams",
+            "type": "integer"
+          }
+        },
+        "title": "URLDeleteResult",
+        "type": "object"
+      },
       "URLResponse": {
         "description": "Schema for scraped URL information",
         "properties": {
@@ -12286,6 +12790,11 @@
             "format": "date-time",
             "title": "Added At",
             "type": "string"
+          },
+          "assigned_count": {
+            "default": 0,
+            "title": "Assigned Count",
+            "type": "integer"
           },
           "channels_found": {
             "default": 0,
@@ -15766,6 +16275,164 @@
         ]
       }
     },
+    "/api/v1/catalogues/{catalogue_id}/folder-matches/apply": {
+      "post": {
+        "description": "Apply the chosen folder assignments in one transaction; a vanished folder or TV channel rejects the whole request.",
+        "operationId": "apply_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderMatchApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderMatchApplyResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Folder Matches",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}/folder-matches/preview": {
+      "post": {
+        "description": "Read-only: which folders match a TV channel by name, which are already assigned, which need a choice.",
+        "operationId": "preview_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderMatchPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Folder Matches",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
+    "/api/v1/catalogues/{catalogue_id}/folders/{entry_id}/tv-channel": {
+      "post": {
+        "description": "Assign every imported stream under the folder (descendants included) to one TV channel.",
+        "operationId": "assign_folder_api_v1_catalogues__catalogue_id__folders__entry_id__tv_channel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "catalogue_id",
+            "required": true,
+            "schema": {
+              "title": "Catalogue Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderAssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderAssignResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assign Folder",
+        "tags": [
+          "catalogues"
+        ]
+      }
+    },
     "/api/v1/channels/": {
       "get": {
         "description": "Get all channels with optional filtering.\nSupports both skip/limit and page/page_size parameters.\nSet assigned=false to list only streams not linked to a TV channel.\nReturns paginated items and total count.",
@@ -18712,6 +19379,66 @@
         ]
       }
     },
+    "/api/v1/events/broadcaster-links": {
+      "get": {
+        "operationId": "event_broadcaster_links_api_v1_events_broadcaster_links_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BroadcasterLinkView"
+                  },
+                  "title": "Response Event Broadcaster Links Api V1 Events Broadcaster Links Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Event Broadcaster Links",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/broadcaster-links/{alias_id}": {
+      "delete": {
+        "operationId": "delete_event_broadcaster_link_api_v1_events_broadcaster_links__alias_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alias_id",
+            "required": true,
+            "schema": {
+              "title": "Alias Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Event Broadcaster Link",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/v1/events/interests": {
       "get": {
         "operationId": "event_interests_api_v1_events_interests_get",
@@ -20629,7 +21356,7 @@
     },
     "/api/v1/playlists/m3u": {
       "get": {
-        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Comma-separated list of groups to include\n- **exclude_groups**: Comma-separated list of groups to exclude\n- **refresh**: Trigger a background rescrape of all enabled URLs",
+        "description": "Generate M3U playlist with specified filters\n\n- **search**: Optional search term for channel names\n- **group**: Optional specific group to filter by\n- **only_online**: Whether to include only online channels (default: True)\n- **include_groups**: Groups to include; repeat the parameter per group (a comma list also works)\n- **exclude_groups**: Groups to exclude; repeat the parameter per group (a comma list also works)\n- **refresh**: Trigger a background rescrape of all enabled URLs",
         "operationId": "get_m3u_playlist_api_v1_playlists_m3u_get",
         "parameters": [
           {
@@ -20721,7 +21448,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
@@ -20737,7 +21467,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
@@ -20927,7 +21660,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
@@ -20943,7 +21679,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 {
                   "type": "null"
@@ -22787,6 +23526,74 @@
         ]
       }
     },
+    "/api/v1/scrapers/orphaned-sources": {
+      "get": {
+        "description": "Streams whose source URL is no longer configured; catalogue, Telegram, saved-search and manual rows are excluded.",
+        "operationId": "get_orphaned_sources_api_v1_scrapers_orphaned_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrphanedSource"
+                  },
+                  "title": "Response Get Orphaned Sources Api V1 Scrapers Orphaned Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Orphaned Sources",
+        "tags": [
+          "scrapers"
+        ]
+      }
+    },
+    "/api/v1/scrapers/orphaned-sources/cleanup": {
+      "post": {
+        "description": "Delete the streams of the chosen removed sources.",
+        "operationId": "cleanup_orphaned_sources_api_v1_scrapers_orphaned_sources_cleanup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrphanCleanupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrphanCleanupResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cleanup Orphaned Sources",
+        "tags": [
+          "scrapers"
+        ]
+      }
+    },
     "/api/v1/scrapers/providers": {
       "get": {
         "operationId": "builtin_providers_api_v1_scrapers_providers_get",
@@ -23092,7 +23899,7 @@
     },
     "/api/v1/scrapers/urls/{url_id}": {
       "delete": {
-        "description": "Delete a scraped URL.",
+        "description": "Delete a scraped URL, optionally with the streams it owns.",
         "operationId": "delete_scraped_url_api_v1_scrapers_urls__url_id__delete",
         "parameters": [
           {
@@ -23103,10 +23910,29 @@
               "title": "Url Id",
               "type": "integer"
             }
+          },
+          {
+            "description": "Also delete every stream this source owns, including streams linked to TV channels.",
+            "in": "query",
+            "name": "delete_streams",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Also delete every stream this source owns, including streams linked to TV channels.",
+              "title": "Delete Streams",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
-          "204": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/URLDeleteResult"
+                }
+              }
+            },
             "description": "Successful Response"
           },
           "422": {
@@ -25199,6 +26025,32 @@
           }
         },
         "summary": "Create Tv Channels From Epg",
+        "tags": [
+          "tv-channels"
+        ]
+      }
+    },
+    "/api/v1/tv-channels/now-next": {
+      "get": {
+        "description": "Current and next programme for every active TV channel with a guide mapping, in one query window.",
+        "operationId": "tv_channel_now_next_api_v1_tv_channels_now_next_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TVChannelNowNext"
+                  },
+                  "title": "Response Tv Channel Now Next Api V1 Tv Channels Now Next Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tv Channel Now Next",
         "tags": [
           "tv-channels"
         ]

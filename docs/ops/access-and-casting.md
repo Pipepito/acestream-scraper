@@ -92,9 +92,19 @@ activation/deactivation. Access form writes merge only submitted fields in an
 IMMEDIATE transaction; casting writes update only their own fields. Both forms
 update the query cache with the persisted response.
 
-Without accounts, casting settings and receiver operations require a verified
-home client, preserve optional API-token enforcement, and require same-origin CSRF
-on mutations. A signed CSRF cookie identifies the local browser's session ownership;
+Without accounts, casting settings and receiver operations follow app access by
+default (`CAST_REQUIRE_HOME_NETWORK=false`): every other page is already open to
+any visitor of that installation, so a lone home gate on casting only broke when
+the home WAN address changed. Setting `CAST_REQUIRE_HOME_NETWORK=true` restores
+the verified-home-client requirement in open mode; accounts mode always keeps it.
+The flag is environment-only, deliberately absent from `runtime-options.json`,
+so no browser session can toggle it, and `GET /api/v1/cast/capabilities` reports
+the effective rule as `home_check: off | deployment | accounts`. Open mode still
+preserves optional API-token enforcement and requires same-origin CSRF on
+mutations. The receiver media base is derived from the request origin only for
+recognized home clients; any other visitor gets the configured
+`cast_media_url` or nothing, so a Host header from outside the home never
+reaches a TV. A signed CSRF cookie identifies the local browser's session ownership;
 it is not an administrative account and is not passed to ViewerService as a user.
 Enabling accounts revokes anonymous viewer leases. Remote casting never enables
 anonymous remote control, even if accounts are later disabled.

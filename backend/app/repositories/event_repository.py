@@ -1,11 +1,81 @@
 """DB-only access for event ingestion and reviewed edits."""
+from datetime import datetime, timezone
+import hashlib
+import json
+
 from sqlalchemy import select, update, delete
-from app.models.models import SportingEvent, EventObservationRecord, EventMedia, AcestreamChannel, TVChannel, EPGChannel, EPGSource, EPGProgram
+from app.models.models import (SportingEvent, EventObservationRecord, EventMedia, EventBroadcasterAlias,
+    AcestreamChannel, TVChannel, EPGChannel, EPGSource, EPGProgram)
+
+
+def alias_key(source_id, normalized_label):
+    return hashlib.sha256(json.dumps([source_id, normalized_label]).encode()).hexdigest()[:32]
 
 
 class EventRepository:
     def __init__(self, db):
         self.db = db
+
+    def aliases_for(self, source_ids):
+        ids = list(source_ids)
+        if not ids:
+            return {}
+        rows = self.db.scalars(select(EventBroadcasterAlias).where(EventBroadcasterAlias.source_id.in_(ids)))
+        return {(row.source_id, row.normalized_label): row for row in rows}
+
+    def alias(self, source_id, normalized_label):
+        return self.db.get(EventBroadcasterAlias, alias_key(source_id, normalized_label))
+
+    def alias_by_id(self, alias_id):
+        return self.db.get(EventBroadcasterAlias, alias_id)
+
+    def list_aliases(self):
+        return list(self.db.scalars(select(EventBroadcasterAlias).order_by(
+            EventBroadcasterAlias.source_id, EventBroadcasterAlias.normalized_label)))
+
+    def upsert_alias(self, source_id, label, normalized_label, target):
+        now = datetime.now(timezone.utc)
+        row = self.alias(source_id, normalized_label)
+        if row is None:
+            row = EventBroadcasterAlias(id=alias_key(source_id, normalized_label), source_id=source_id, label=label,
+                                        normalized_label=normalized_label, target=target, created_at=now, updated_at=now)
+            self.db.add(row)
+        else:
+            row.label, row.target, row.updated_at = label, target, now
+        self.db.flush()
+        return row
+
+    def delete_alias(self, alias_id):
+        row = self.db.get(EventBroadcasterAlias, alias_id)
+        if row is None:
+            return False
+        self.db.delete(row)
+        self.db.flush()
+        return True
+
+    def clear_event_entries(self, source_id, normalized_label, normalize):
+        """Drop per-event entries for this source's broadcasts whose normalized label matches.
+
+        ``normalize(label) -> str`` is supplied by the service so this layer stays free of
+        name rules. Returns the number of events changed; nothing is committed here.
+        """
+        by_event = {}
+        for obs in self.db.scalars(select(EventObservationRecord).where(EventObservationRecord.source_id == source_id)):
+            by_event.setdefault(obs.event_id, []).append(obs)
+        changed = 0
+        for event_id, rows in by_event.items():
+            event = self.db.get(SportingEvent, event_id)
+            if not event or not event.broadcast_mappings:
+                continue
+            keys = {f'{obs.id}:{b["id"]}' for obs in rows for b in obs.payload['broadcasts']
+                    if normalize(b.get('label') or '') == normalized_label}
+            remaining = {key: value for key, value in event.broadcast_mappings.items() if key not in keys}
+            if len(remaining) != len(event.broadcast_mappings):
+                # JSON mutations must be assigned as a fresh value.
+                event.broadcast_mappings = remaining or None
+                changed += 1
+        self.db.flush()
+        return changed
 
     def inventory(self):
         return list(self.db.scalars(select(SportingEvent).order_by(SportingEvent.id)))

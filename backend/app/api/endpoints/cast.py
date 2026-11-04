@@ -20,9 +20,14 @@ def capabilities(request: Request):
     except HTTPException as error:
         allowed, message = False, error.detail
     policy = request.state.access_policy
+    from app.config.settings import get_settings
+    if request.state.access_mode != 'open':
+        home_check = 'accounts'
+    else:
+        home_check = 'deployment' if get_settings().CAST_REQUIRE_HOME_NETWORK else 'off'
     return CastCapabilities(server_devices=allowed, compatibility_conversion=policy.compatibility_conversion,
         media_url_configured=bool(media_base(request)), message=message,
-        home_connection=home_client(request), media_url=media_base(request) if allowed else '')
+        home_connection=home_client(request), media_url=media_base(request) if allowed else '', home_check=home_check)
 
 
 @router.get('/settings', response_model=CastSettings)

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
-import App, { LEGACY_REDIRECTS } from '../App';
+import App, { LEGACY_REDIRECTS, redirectTarget } from '../App';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
@@ -18,6 +18,7 @@ jest.mock('../pages/TVDashboard', () => ({ __esModule: true, default: () => <h1>
 jest.mock('../pages/SystemDashboard', () => ({ __esModule: true, default: () => <h1>System status</h1> }));
 jest.mock('../pages/TVChannels', () => ({ __esModule: true, default: () => <h1>TV Channels</h1> }));
 jest.mock('../pages/Search', () => ({ __esModule: true, default: () => <h1>Search</h1> }));
+jest.mock('../pages/Scraper', () => ({ __esModule: true, default: () => <h1>Scraper</h1> }));
 jest.mock('../pages/integrations/PublicAddress', () => ({ __esModule: true, default: () => <h1>Public address</h1> }));
 jest.mock('../pages/integrations/WebPlayer', () => ({ __esModule: true, default: () => <h1>Web player</h1> }));
 jest.mock('../pages/integrations/TvCasting', () => ({ __esModule: true, default: () => <h1>TV casting</h1> }));
@@ -41,7 +42,9 @@ describe('routes', () => {
   });
 
   it('exposes destinations whose labels are the page titles', () => {
-    expect(navItems.map((item) => item.text)).toEqual(['TV dashboard', 'Live TV', 'Recordings', 'Catalogues', 'Events', 'System status', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'WARP', 'Settings', 'Changelog']);
+    expect(navItems.map((item) => item.text)).toEqual(['TV dashboard', 'Live TV', 'Recordings', 'System status', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Events', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'WARP', 'Settings', 'Changelog']);
+    expect(navItems.find((item) => item.text === 'Events')?.section).toBe('Manage');
+    expect(navItems.some((item) => item.text === 'Catalogues')).toBe(false);
     expect(getNavTitle('/')).toBe('TV dashboard');
     expect(getNavTitle('/system')).toBe('System status');
     expect(getNavTitle('/events')).toBe('Events');
@@ -60,10 +63,17 @@ describe('routes', () => {
     ['/channels', 'TV Channels'],
     ['/channels/abc', 'TV Channels'],
     ['/search-new', 'Search'],
+    ['/catalogues', 'Scraper'],
   ])('redirects %s to the page that holds that information', async (from, heading) => {
     expect(LEGACY_REDIRECTS.some((r) => r.from === from.replace(/\/abc$/, '/:id'))).toBe(true);
     renderAt(from);
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
+  });
+
+  it('carries the old query string into the redirect target without overriding its own keys', () => {
+    expect(redirectTarget('/scraper?tab=w3u', '?catalogue=1&folder=x')).toBe('/scraper?tab=w3u&catalogue=1&folder=x');
+    expect(redirectTarget('/epg?tab=rules', '?tab=other')).toBe('/epg?tab=rules');
+    expect(redirectTarget('/', '')).toBe('/');
   });
   it.each([
     ['public-address', 'Public address'], ['web-player', 'Web player'],

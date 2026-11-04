@@ -72,18 +72,20 @@ controls under **Integrations › Remote players**.
 
 Open **Live TV** from navigation to browse active TV channels, search by name,
 category or channel number, and filter favorites. Each channel shows its current
-and next programme when its EPG source and ID are mapped. Only channels with attached
-streams appear here; TV Channels remains the full management inventory. The list
-loads guides for at most twelve visible channels at a time.
+and next programme when its EPG source and ID are mapped; the whole list reads
+them in one request. Only channels with attached streams appear here; TV Channels
+remains the full management inventory. The list is not paginated.
 
-**Online streams without a channel** lists streams whose last check was online and
-which have no TV channel assignment. It has its own search and pagination and
-refreshes every 30 seconds. Watch opens the same player, without an invented TV
-schedule. Online is a saved check result, not a guarantee that playback will start.
+The **Streams** view of the same list shows every stream, 50 at a time with
+**Show more**, with an **Online only** switch that is on by default and a note of
+the TV channel a stream belongs to. It refreshes every 30 seconds. Watch opens the
+same player, without an invented TV schedule. Online is a saved check result, not a
+guarantee that playback will start. The **Events** view lists today's and
+tomorrow's events with **Watch** for broadcasters linked to a TV channel.
 
-Press **Watch** to open the embedded player and schedule. Filtering the catalogue leaves playback running; **Stop watching**, changing the channel or leaving the page releases that viewer. The **Stream** selector lists every
-attached stream, its last known online status and a short ID. Switching releases
-the previous viewer and starts the selected stream. For AceStream sources, Copy stream link and Play on
+Press **Watch** to open the embedded player and schedule. Filtering the catalogue or switching the list view leaves playback running; **Stop watching**, changing the channel or leaving the page releases that viewer. The **Sources** row under the player lists every
+attached stream as a chip with its last known status; the playing one is filled.
+Choosing another chip releases the previous viewer and starts that stream. For AceStream sources, Copy stream link and Play on
 both follow the selected stream. A channel can be opened directly at
 `/live-tv?channel=123` (replace 123 with its TV channel ID).
 

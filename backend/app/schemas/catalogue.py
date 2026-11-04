@@ -75,6 +75,79 @@ class CatalogueSaveRequest(BaseModel):
     refresh_enabled: bool = False
 
 
+class TVChannelRef(BaseModel):
+    id: int
+    name: str
+
+
+class FolderAssignRequest(BaseModel):
+    """Assign every imported stream under a folder to one TV channel: an existing one or a new one named here."""
+    tv_channel_id: int | None = Field(default=None, ge=1)
+    create_name: str | None = Field(default=None, min_length=1, max_length=255)
+    reassign: bool = False
+
+    @model_validator(mode='after')
+    def one_target(self):
+        if bool(self.tv_channel_id) == bool(self.create_name and self.create_name.strip()):
+            raise ValueError('Choose an existing TV channel or a name for a new one')
+        return self
+
+
+class FolderAssignResult(BaseModel):
+    tv_channel: TVChannelRef
+    assigned: int = 0
+    already: int = 0
+    moved: int = 0
+    skipped_other_channel: int = 0
+    skipped_not_imported: int = 0
+
+
+class FolderMatchRow(BaseModel):
+    folder_id: str
+    name: str
+    path: str
+    stream_count: int
+    candidate: TVChannelRef | None = None
+    current: TVChannelRef | None = None
+    status: Literal['match', 'ambiguous', 'none', 'assigned']
+
+
+class FolderMatchPreview(BaseModel):
+    rows: list[FolderMatchRow]
+
+
+class FolderMatchAssignment(BaseModel):
+    folder_id: str = Field(min_length=1, max_length=200)
+    tv_channel_id: int | None = Field(default=None, ge=1)
+    create: bool = False
+
+    @model_validator(mode='after')
+    def one_target(self):
+        if bool(self.tv_channel_id) == self.create:
+            raise ValueError('Choose a TV channel or create one from the folder name')
+        return self
+
+
+class FolderMatchApplyRequest(BaseModel):
+    assignments: list[FolderMatchAssignment] = Field(min_length=1, max_length=2000)
+    reassign: bool = False
+
+
+class FolderApplyRow(BaseModel):
+    folder_id: str
+    tv_channel: TVChannelRef | None = None
+    assigned: int = 0
+    already: int = 0
+    moved: int = 0
+    skipped_other_channel: int = 0
+    skipped_not_imported: int = 0
+    note: str = ''
+
+
+class FolderMatchApplyResult(BaseModel):
+    results: list[FolderApplyRow]
+
+
 class CatalogueSummary(BaseModel):
     id: int
     name: str

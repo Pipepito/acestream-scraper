@@ -15,6 +15,8 @@ const mockUsePatchURL = jest.fn();
 const mockUseDeleteURL = jest.fn();
 const mockUseScrapeAllURLs = jest.fn();
 
+jest.mock('../services/catalogueService', () => ({ catalogueService: { list: jest.fn().mockResolvedValue([]), get: jest.fn(), preview: jest.fn(), save: jest.fn(), previewEvent: jest.fn(), remove: jest.fn(), assignFolder: jest.fn(), folderMatches: jest.fn(), applyFolderMatches: jest.fn() } }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => ({ data: [], isLoading: false, isError: false, refetch: jest.fn() }) }));
 jest.mock('../hooks/useScrapers', () => ({
   useURLs: (...args: unknown[]) => mockUseURLs(...args),
   useCreateURL: (...args: unknown[]) => mockUseCreateURL(...args),
@@ -25,7 +27,7 @@ jest.mock('../hooks/useScrapers', () => ({
 }));
 
 describe('Scraper', () => {
-  const renderPage = () => {
+  const renderPage = (path = '/scraper') => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -36,7 +38,7 @@ describe('Scraper', () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={createAppTheme('light')}>
-          <TestMemoryRouter>
+          <TestMemoryRouter initialEntries={[path]}>
             <Scraper />
           </TestMemoryRouter>
         </ThemeProvider>
@@ -57,6 +59,7 @@ describe('Scraper', () => {
           enabled: true,
           last_processed: '2026-03-30T10:00:00Z',
           channels_found: 32,
+          assigned_count: 1,
         },
       ],
       isLoading: false,
@@ -92,7 +95,7 @@ describe('Scraper', () => {
   it('shows the outcome of the last scrape so failing sources are visible', () => {
     mockUseURLs.mockReturnValue({
       data: [
-        { id: 11, url: 'https://source-one.test/feed', url_type: 'auto', enabled: true, status: 'OK', last_processed: '2026-03-30T10:00:00Z', channels_found: 32 },
+        { id: 11, url: 'https://source-one.test/feed', url_type: 'auto', enabled: true, status: 'OK', last_processed: '2026-03-30T10:00:00Z', channels_found: 32, assigned_count: 1 },
         { id: 12, url: 'https://broken.test/feed', url_type: 'regular', enabled: true, status: "Error: 404, message='Not Found'", last_processed: '2026-03-30T10:05:00Z', channels_found: 0 },
         { id: 13, url: 'https://new.test/feed', url_type: 'regular', enabled: true, status: 'active', last_processed: null, channels_found: 0 },
       ],
@@ -161,8 +164,8 @@ describe('Scraper', () => {
     expect(await screen.findByText(/Source disabled/)).toBeInTheDocument();
   });
 
-  it('asks for confirmation in the app dialog before deleting', async () => {
-    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+  it('offers to remove a source\'s streams and defaults to removing them', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({ deleted_streams: 32 });
     mockUseDeleteURL.mockReturnValue({ mutateAsync });
     const confirmSpy = jest.spyOn(window, 'confirm');
 
@@ -171,11 +174,43 @@ describe('Scraper', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More actions for https://source-one.test/feed' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     const dialog = await screen.findByRole('dialog', { name: 'Delete this source?' });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    const checkbox = within(dialog).getByRole('checkbox', { name: 'Also remove its 32 streams (1 linked to TV channels)' });
+    expect(checkbox).toBeChecked();
+    expect(dialog).toHaveTextContent('TV channels are kept.');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete source' }));
 
-    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(11));
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ id: 11, deleteStreams: true }));
+    expect(await screen.findByText('Source deleted with 32 streams.')).toBeInTheDocument();
     expect(confirmSpy).not.toHaveBeenCalled();
     confirmSpy.mockRestore();
+  });
+
+  it('keeps streams when the checkbox is unticked', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({ deleted_streams: 0 });
+    mockUseDeleteURL.mockReturnValue({ mutateAsync });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for https://source-one.test/feed' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete this source?' });
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Also remove its 32 streams/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete source' }));
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ id: 11, deleteStreams: false }));
+    expect(await screen.findByText('Source deleted. Its streams stay in the inventory.')).toBeInTheDocument();
+  });
+
+  it('cleans up streams from removed sources after confirmation', async () => {
+    jest.spyOn(scraperService, 'orphanedSources').mockResolvedValue([{ source_url: 'https://gone.example/', count: 10, assigned_count: 2 }]);
+    const cleanup = jest.spyOn(scraperService, 'cleanupOrphanedSources').mockResolvedValue({ deleted: { 'https://gone.example/': 10 } });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Clean up removed sources…' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Clean up removed sources' });
+    expect(await within(dialog).findByText('https://gone.example/')).toBeInTheDocument();
+    expect(within(dialog).getByRole('checkbox', { name: /https:\/\/gone\.example\// })).toBeChecked();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove selected' }));
+    const confirmDialog = await screen.findByRole('dialog', { name: 'Remove streams from removed sources?' });
+    fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Remove streams' }));
+    await waitFor(() => expect(cleanup).toHaveBeenCalledWith(['https://gone.example/']));
+    expect(await screen.findByText('Removed 10 streams from 1 source.')).toBeInTheDocument();
   });
 
   it('shows an empty state instead of an empty table', () => {
@@ -183,6 +218,28 @@ describe('Scraper', () => {
     renderPage();
     expect(screen.getByText('No source URLs yet. Add one to start scraping.')).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Source status' })).toHaveTextContent('0 of 0 enabled');
+  });
+
+  it('previews a catalogue inside the W3U tab', async () => {
+    const { catalogueService } = jest.requireMock('../services/catalogueService') as { catalogueService: { preview: jest.Mock } };
+    catalogueService.preview.mockResolvedValue({ name: 'Example catalogue', origin: 'example.test', revision: 0, can_refresh: true, preview_token: 'test-preview',
+      counts: { accepted: 1, duplicates: 0, invalid: 0, unsupported: 0, failed_fetches: 0 }, selected_branches: ['root'], mode: 'compatible',
+      entries: [{ id: 'root', parent_id: null, name: 'Example catalogue', kind: 'folder' }, { id: 'live', parent_id: 'root', name: 'Live channels', kind: 'folder' }] });
+    renderPage('/scraper?tab=w3u');
+    fireEvent.click(await screen.findByRole('button', { name: 'Add catalogue' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Catalogue URL' }), { target: { value: 'https://example.test/list.w3u' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview URL' }));
+    expect(await screen.findByRole('heading', { name: 'Review import' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Include Live channels' })).toBeInTheDocument();
+  });
+
+  it('hosts W3U catalogues as a tab under the Scraper heading', async () => {
+    renderPage('/scraper?tab=w3u');
+    expect(screen.getByRole('tab', { name: 'W3U catalogues', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Scraper' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Add catalogue' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Catalogues' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'W3U catalogues' })).not.toBeInTheDocument();
   });
 });
 

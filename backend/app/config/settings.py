@@ -116,6 +116,10 @@ class Settings(BaseSettings):
     # literal tokens such as "testclient"). uvicorn's own proxy-header handling
     # is disabled in favour of app/middleware/forwarded.py.
     FORWARDED_ALLOW_IPS: str = "auto"
+    # Without accounts, TV casting follows app access: anyone who can open the
+    # app can list and control TVs. Set true to keep the home-network gate in
+    # open installations. Accounts mode always gates; the UI never exposes this.
+    CAST_REQUIRE_HOME_NETWORK: bool = False
     # Networks allowed to reach the token-free /tuner/* routes ("*" disables).
     TUNER_ALLOWED_NETWORKS: str = (
         "127.0.0.0/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7,fe80::/10"

@@ -122,24 +122,72 @@ class ScraperService:
                     normalized_url_map[url.url] = url.url
             url_list = list({*normalized_url_map.keys(), *normalized_url_map.values()})
             counts = (
-                self.db.query(AcestreamChannel.source_url, func.count(AcestreamChannel.id))
+                self.db.query(AcestreamChannel.source_url, func.count(AcestreamChannel.id),
+                              func.count(AcestreamChannel.tv_channel_id))
                 .filter(AcestreamChannel.source_url.in_(url_list))
                 .group_by(AcestreamChannel.source_url)
                 .all()
             )
-            raw_counts = {url: count for url, count in counts}
+            raw_counts = {url: (count, assigned) for url, count, assigned in counts}
             url_to_count = {}
             for original_url, normalized_url in normalized_url_map.items():
                 count_keys = {original_url, normalized_url}
-                url_to_count[original_url] = sum(raw_counts.get(key, 0) for key in count_keys)
+                url_to_count[original_url] = (sum(raw_counts.get(key, (0, 0))[0] for key in count_keys),
+                                              sum(raw_counts.get(key, (0, 0))[1] for key in count_keys))
         responses = []
         for url in urls:
-            channels_found = url_to_count.get(url.url, 0)
+            channels_found, assigned_count = url_to_count.get(url.url, (0, 0))
             data = url.__dict__.copy()
             data['channels_found'] = channels_found
+            data['assigned_count'] = assigned_count
             data['url_type'] = self._source_type(url.url, url.url_type)
             responses.append(URLResponse(**data))
         return responses
+
+    @staticmethod
+    def _spellings(url: ScrapedURL) -> set:
+        """The stored URL plus its normalized form; stream rows may carry either."""
+        try:
+            return {url.url, create_url_object(url.url, url.url_type).get_normalized_url()}
+        except Exception:
+            return {url.url}
+
+    def configured_source_urls(self) -> set:
+        urls = set()
+        for url in self.url_repository.get_all(skip=0, limit=100000):
+            urls |= self._spellings(url)
+        return urls
+
+    def orphaned_sources(self):
+        """Streams whose source URL is not configured any more, excluding other import kinds."""
+        from app.repositories.channel_repository import ChannelRepository
+        from app.schemas.scraper import OrphanedSource
+        configured = self.configured_source_urls()
+        rows = []
+        for source_url, total, assigned in ChannelRepository(self.db).source_url_counts():
+            if source_url in configured or source_url == 'Acestream Search':
+                continue
+            if source_url.startswith(('catalogue:', 'telegram-source:', 'saved-search:')):
+                continue
+            rows.append(OrphanedSource(source_url=source_url, count=total, assigned_count=assigned))
+        return sorted(rows, key=lambda row: row.source_url)
+
+    def cleanup_orphaned_sources(self, source_urls) -> Dict[str, int]:
+        from app.repositories.channel_repository import ChannelRepository
+        orphaned = {row.source_url: row.count for row in self.orphaned_sources()}
+        unknown = [url for url in source_urls if url not in orphaned]
+        if unknown:
+            raise ValueError('Only streams from sources that are no longer configured can be cleaned up: ' + ', '.join(unknown[:3]))
+        repository = ChannelRepository(self.db)
+        deleted = {}
+        try:
+            for url in dict.fromkeys(source_urls):
+                deleted[url] = repository.delete_by_source_urls({url}, commit=False)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        return deleted
 
     def get_scraped_url(self, url_id: int) -> Optional[URLResponse]:
         """Get a specific scraped URL by ID"""
@@ -196,14 +244,18 @@ class ScraperService:
         self.db.refresh(url)
         return self._response(url)
 
-    def delete_scraped_url(self, url_id: int) -> bool:
-        """Delete a scraped URL"""
+    def delete_scraped_url(self, url_id: int, delete_streams: bool = False) -> Optional[int]:
+        """Delete a scraped URL, optionally with every stream it owns. Returns the stream count, or None when unknown."""
+        from app.repositories.channel_repository import ChannelRepository
         url = self.url_repository.get_by_id(url_id)
         if not url:
-            return False
-
+            return None
+        deleted = 0
+        if delete_streams:
+            # Streams and the source go in one transaction; the URL delete commits it.
+            deleted = ChannelRepository(self.db).delete_by_source_urls(self._spellings(url), commit=False)
         self.url_repository.delete(url)
-        return True
+        return deleted
 
     def get_enabled_urls(self) -> List[ScrapedURL]:
         """Get all enabled URLs"""

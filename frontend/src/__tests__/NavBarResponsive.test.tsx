@@ -182,8 +182,8 @@ describe('NavBar responsive shell behavior', () => {
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 
     const expectedNames = [
-      'TV dashboard', 'Live TV', 'Recordings', 'Catalogues', 'Events', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
-      'EPG', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings', 'Changelog',
+      'TV dashboard', 'Live TV', 'Recordings', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
+      'EPG', 'Events', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings', 'Changelog',
     ];
     // Resolve the static menu once; repeated whole-page role queries dominate
     // this keyboard journey under coverage instrumentation.

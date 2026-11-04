@@ -35,6 +35,7 @@ export default function AccountSetup() {
     <Stack component="form" aria-label="Account setup" onSubmit={submit} spacing={2} sx={{ maxWidth: 560 }}>
       <FormControlLabel control={<Checkbox checked={enabled} onChange={(_, value) => setEnabled(value)} />} label="Enable user management" />
       <Typography>User management protects settings with a login and lets you give other people viewing and casting permissions. Public viewing and local IPTV access can be allowed separately.</Typography>
+      <Typography variant="body2">TV control follows app access. Set CAST_REQUIRE_HOME_NETWORK=true on the container to limit it to home networks, or enable accounts.</Typography>
       {access?.status.legacy_token ? <TextField label="Existing API token" type="password" required value={legacy} onChange={e => setLegacy(e.target.value)} autoComplete="off" /> : null}
       {enabled ? <>
         <AccountTransportNotice />

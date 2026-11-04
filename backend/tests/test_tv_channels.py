@@ -1053,3 +1053,31 @@ def test_concurrent_stream_reorders_reject_the_losing_snapshot(alembic_db_sessio
     with ThreadPoolExecutor(max_workers=2) as pool:
         outcomes = list(pool.map(save, [ids[::-1], [ids[1], ids[2], ids[0]]]))
     assert sorted(outcomes) == ['saved', 'stale']
+
+
+def test_now_next_returns_one_row_per_mapped_channel(client, seed_tv_channels, seed_epg_channels, db_session):
+    from datetime import datetime, timedelta, timezone
+    from app.models.models import EPGProgram
+    now = datetime.now(timezone.utc)
+    tv, other = seed_tv_channels[0], seed_tv_channels[1]
+    epg = seed_epg_channels[0]
+    tv.epg_source_id, tv.epg_id = epg.epg_source_id, epg.channel_xml_id
+    other.epg_source_id, other.epg_id = None, None
+    db_session.add_all([
+        EPGProgram(epg_channel_id=epg.id, title='Earlier', start_time=now - timedelta(hours=3), end_time=now - timedelta(hours=2)),
+        EPGProgram(epg_channel_id=epg.id, title='Now', start_time=now - timedelta(minutes=10), end_time=now + timedelta(minutes=20)),
+        EPGProgram(epg_channel_id=epg.id, title='Next', start_time=now + timedelta(minutes=20), end_time=now + timedelta(minutes=50)),
+        EPGProgram(epg_channel_id=epg.id, title='Tomorrow', start_time=now + timedelta(hours=20), end_time=now + timedelta(hours=21)),
+    ])
+    db_session.commit()
+    response = client.get('/api/v1/tv-channels/now-next')
+    assert response.status_code == 200, response.text
+    rows = {row['tv_channel_id']: row for row in response.json()}
+    assert rows[tv.id]['epg_channel_id'] == epg.id
+    assert rows[tv.id]['now']['title'] == 'Now' and rows[tv.id]['next']['title'] == 'Next'
+    assert other.id not in rows
+    # A mapped channel without current programmes still appears, with empty slots.
+    db_session.query(EPGProgram).delete()
+    db_session.commit()
+    rows = {row['tv_channel_id']: row for row in client.get('/api/v1/tv-channels/now-next').json()}
+    assert rows[tv.id]['now'] is None and rows[tv.id]['next'] is None

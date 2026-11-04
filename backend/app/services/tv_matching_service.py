@@ -47,11 +47,15 @@ def apply_country_assumption(name: ChannelName, assumed_country: str | None) -> 
     return replace(name, country={'gb': 'uk'}.get(region, region), country_assumed=True)
 
 
-def name_score(target: ChannelName, candidate: ChannelName) -> tuple[float, str] | None:
+def name_score(target: ChannelName, candidate: ChannelName, *, allow_unknown_country: bool = False) -> tuple[float, str] | None:
     if not target.text or not candidate.text or target.text in {'dazn', 'movistar'}:
         return None
-    # A country present on only one side is insufficient evidence of an edition.
-    if target.country_conflict or candidate.country_conflict or target.country != candidate.country:
+    if target.country_conflict or candidate.country_conflict:
+        return None
+    # A country present on only one side is insufficient evidence of an edition
+    # for TV automatch. Event broadcasters opt in: an unknown country on either
+    # side is compatible, and the caller settles ambiguity between candidates.
+    if target.country != candidate.country and not (allow_unknown_country and (not target.country or not candidate.country)):
         return None
     if target.text == candidate.text:
         return 0.99, 'Normalized name'

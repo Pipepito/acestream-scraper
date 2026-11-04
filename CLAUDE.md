@@ -71,7 +71,7 @@ Branching and release flow (adopted 2026-08-28):
 
 ## Frontend viewing and mobile checks
 
-- `/live-tv` is the viewing catalog with current/next programmes, favorites, and direct channel links (`?channel=<id>`). TV Channels remains the management inventory.
+- `/live-tv` is the viewing catalog: one `Browse` list with a `TV channels | Streams | Events` toggle (`?list=tv|streams|events`, search in `?q=`), direct channel links (`?channel=<id>`), no pagination. TV channels mode renders the whole catalogue with Now/Next from the single batched `GET /api/v1/tv-channels/now-next` (`useNowNext`; rows fall back to per-channel guide queries only when that read fails), Streams mode pages 50 at a time through `useStreamPages` with a Show more button and an end-of-list sentinel, Events mode reuses the dashboard's event preferences. The playing channel's streams are visible chips (`SourceChips`, `StreamPlayerDialog.sources`); the old Stream dropdown is gone. Components live in `components/livetv/`. TV Channels remains the management inventory.
 - `ChannelPlayerDialog` wraps `StreamPlayerDialog` with TV context, stream selection, and the schedule. Copy/remote actions follow the selected stream.
 - `cd e2e && npm run test:mobile` runs the standalone mocked-API browser suite across phone, tablet and desktop sizes. See `e2e/README.md`; actual media playback still needs the live stack.
 
@@ -119,7 +119,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 ### Frontend
 
 - Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
-- Navigation groups Watch (TV dashboard, Live TV, Catalogues, Events), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Playlist) Integrations (Public address, Web player, Remote players, Media servers, Telegram) and System (System status, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`). The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations category opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
+- Navigation groups Watch (TV dashboard, Live TV, Recordings), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Events, Playlist) Integrations (Public address, Web player, TV casting, Remote players, Media servers, Telegram) and System (System status, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. W3U catalogues are a Scraper tab (`/scraper?tab=w3u`, tabs `sources|w3u|searches|exclusions`); the `Catalogues` page component renders `embedded` there without its own header. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`; `/catalogues` → `/scraper?tab=w3u`), and `redirectTarget()` carries the old query string (`catalogue`, `folder`) into the target. The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations category opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
 - Vite config (`frontend/vite.config.mts`) uses Rolldown dependency groups for React, MUI, data-grid, data, date utilities, HLS and TV Channels. Build configs use explicit ESM extensions. HLS builds pinned full-feature source modules so its code can split. Preserve dependency ownership to avoid initialization cycles; see `docs/dev/frontend-bundles.md` for upgrade and built-SPA verification.
@@ -342,9 +342,10 @@ changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
 
 ## Live TV and settings navigation
 
-Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
-does not release playback; changing the channel or Stop watching releases the
-current viewer. Other pages retain the player dialog. Navigation groups Watch,
+Live TV embeds the existing HLS player alongside one scrollable browse list (TV
+channels, Streams or Events). Filtering or switching the list mode does not
+release playback; changing the channel or Stop watching releases the current
+viewer. Other pages retain the player dialog. Navigation groups Watch,
 Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
@@ -356,9 +357,15 @@ TV Channels combines catalogue-wide filters before sorting and pagination. Numbe
 and Favorite have dedicated controls in the table and phone cards; number changes
 save on Enter/blur and blank clears the number. Keep remaining row actions intact.
 Playlist shows the selected stream format and expands the shared
-`StreamLinkFormatsSection` inline, preserving playlist options. Settings retains
-its Stream links entry because formats also affect copied links and supported
-remote-player actions. Do not fork the format editor or duplicate its API logic.
+`StreamLinkFormatsSection` inline, preserving playlist options. The TV dashboard's
+Playlist button opens `components/playlist/PlaylistDialog`, which composes the same
+`usePlaylistLink` hook, `PlaylistOptionsForm`, `PlaylistLinkPanel` and formats
+editor as the page (link first, then options); never fork the option logic.
+Playlist group filters are repeated query parameters (`include_groups=` per group);
+`split_groups` splits a value on commas only when it is not itself a known group.
+Settings retains its Stream links entry because formats also affect copied links
+and supported remote-player actions. Do not fork the format editor or duplicate
+its API logic.
 
 TV Channels keeps Search, Category, Status and Favorite filters visible; other
 filters live under Advanced filters with an active count. Reorder channels shows
@@ -640,7 +647,7 @@ See `docs/ops/jenkins-ci.md#ffmpeg-in-the-isolated-validation-runner`.
 
 ## W3U catalogues
 
-`/catalogues` keeps W3U hierarchy separate from TV assignments. Preview is read-only;
+Scraper → W3U catalogues (`/scraper?tab=w3u`; `/catalogues` redirects) keeps W3U hierarchy separate from TV assignments: import never assigns, but the explicit folder actions do (`POST /catalogues/{id}/folders/{entry_id}/tv-channel` for one folder's descendant streams with create/reassign options, `folder-matches/preview|apply` for a reviewed catalogue-wide pass, deepest folder first, atomic, 409 on vanished rows). Preview is read-only;
 opaque expiring tokens and catalogue revisions protect save. Traverse only bounded
 structured child documents through `outbound_http.source_session`; never execute
 publisher scripts or treat arbitrary page/image URLs as media. Imports reuse the
@@ -680,8 +687,14 @@ Built-in event providers use guarded fixed WOSTI Spain/OpenFootball adapters and
 saved OR interests with a default 14-day source window. WOSTI has occurrence
 snapshots, not stable fixture IDs: changed dates/times need review, never silent
 reschedule merging. OpenFootball date-only fixtures keep kickoff unknown.
-Broadcaster links prefer unambiguous TV matches over EPG with conservative country
-checks; manual regional choices override them and survive refresh. Links are not
+Broadcaster links prefer unambiguous TV matches over EPG; an unknown country on
+either side is compatible when exactly one same-name candidate remains, while two
+known and different countries never match. A manual link saved with "apply to all"
+(the default) becomes a per-source broadcaster alias in `event_broadcaster_aliases`
+(migration `20261103_1200`) that governs every event of that source and sweeps
+older per-event entries; an event-only link wins over the alias, and the
+`{"kind": "none"}` marker keeps the source broadcast for one event. Aliases are
+managed under Events → Sources & retention → Broadcaster links. Links are not
 media/signal evidence. Keep new events review-only and preserve data outside filters.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 
@@ -802,6 +815,18 @@ runs. Keep bounds, preview tokens, truthful partial outcomes and starvation-safe
 oldest-attempt ordering. See `docs/dev/import-exclusions-and-saved-searches.md`.
 
 
+## Source removal
+
+`DELETE /api/v1/scrapers/urls/{id}?delete_streams=true` removes a scraper source
+together with every stream whose `source_url` is the stored or normalized spelling,
+including streams linked to TV channels (TV channels themselves are never deleted),
+in one transaction; the Scraper delete dialog defaults that checkbox to on. The URL
+list carries `assigned_count` beside `channels_found`. `GET /scrapers/orphaned-sources`
+lists streams whose source URL is no longer configured, excluding `catalogue:`,
+`telegram-source:`, `saved-search:` and manual rows; `POST
+/scrapers/orphaned-sources/cleanup` deletes the ticked ones and rejects configured
+URLs. Scrape-time pruning of configured sources is unchanged.
+
 ## Built-in recordings
 
 Recordings are opt-in with an explicit persistent `RECORDINGS_DIR`. Keep DVR
@@ -853,8 +878,7 @@ First-run account setup and Settings → Access manage optional accounts without
 new Docker bootstrap credentials. Preserve the independently migrated access store
 and fail-closed marker across catalogue restore/recovery. Management is default-deny
 across aliases and ASGI prefixes; viewer-control, media, IPTV and administrative
-credentials have separate scopes. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page and works without accounts for verified
-home clients. When accounts are enabled, require casting permission. Remote control
+credentials have separate scopes. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page. Without accounts it follows app access unless `CAST_REQUIRE_HOME_NETWORK=true`, an environment-only flag kept out of `runtime-options.json` and never exposed in the UI; `cast/capabilities` reports the effective rule as `home_check`. When accounts are enabled, require casting permission and the home check. Remote control
 always requires an account and explicit opt-in; preserve local-browser ownership,
 bounded discovery and scoped proxy trust. The `auto` proxy default recognizes
 Docker bridge peers while excluding gateways; preserve explicit saved overrides.

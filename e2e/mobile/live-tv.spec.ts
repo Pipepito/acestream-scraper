@@ -21,11 +21,17 @@ async function fixtures(page: Page) {
     else if (path === '/setup') data = { setup_complete: true, restart_required: false };
     else if (path === '/tv-channels') data = { items: channels, total: channels.length };
     else if (/^\/tv-channels\/\d+$/.test(path)) data = channels.find((item) => item.id === Number(path.split('/').pop()));
+    else if (path === '/tv-channels/now-next') data = [{ tv_channel_id: 1, epg_channel_id: 1,
+      now: { title: 'Live match', start: new Date(now - 900_000).toISOString(), end: new Date(now + 900_000).toISOString() },
+      next: { title: 'Highlights', start: new Date(now + 900_000).toISOString(), end: new Date(now + 4500_000).toISOString() } }];
     else if (path === '/acestream-channels/') {
-      expect(new URL(request.url()).searchParams.get('assigned')).toBe('false');
       expect(new URL(request.url()).searchParams.get('is_online')).toBe('true');
+      expect(new URL(request.url()).searchParams.get('page_size')).toBe('50');
       data = { items: [orphan], total: 1 };
     }
+    else if (path === '/events') data = { total: 1, events: [{ id: 'e1', revision: 1, title: 'Derby day', sport: 'Football', competition: 'League', participants: [], timezone: 'UTC',
+      starts_at: new Date(now + 3_600_000).toISOString(), ends_at: null, state: 'scheduled', corrected: false, followed: false, archived: false, time_notes: '', provenance: [],
+      broadcasts: [{ id: 'b', label: 'Arena', language: '', quality: '', country: '', source_name: 'Guide', origin: '', content_id: null, compatibility: 'linked', reason: 'Linked TV channel', is_online: null, checked_at: null, target: { kind: 'tv', id: 1, name: 'Arena TV', country: '', source_name: '' } }] }] };
     else if (path === `/acestream-channels/${orphan.id}`) data = orphan;
     else if (path.startsWith('/acestream-channels/') || path.startsWith('/channels/')) data = streams[0];
     else if (path === '/epg/channels/resolve') data = { id: 1, name: 'Arena guide' };
@@ -58,7 +64,14 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByText('Now · Live match')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.getByRole('button', { name: 'Watch No streams TV' })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: /pagination/i })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Streams' }).click();
     await expect(page.getByRole('button', { name: 'Watch Independent live stream' })).toBeVisible();
+    await expect(page.getByText('Showing 1 of 1')).toBeVisible();
+    await page.getByRole('button', { name: 'Events' }).click();
+    await expect(page.getByText('Derby day')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Watch Arena' })).toBeVisible();
+    await page.getByRole('button', { name: 'TV channels' }).click();
     await page.screenshot({ path: test.info().outputPath(`catalog-${mode}.png`), fullPage: false, animations: 'disabled' });
     await page.getByRole('checkbox', { name: 'Favorites only' }).check();
     await expect(page.getByRole('button', { name: 'Watch No guide TV' })).toHaveCount(0);
@@ -69,9 +82,9 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Playback options', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible();
-    await page.getByRole('combobox', { name: /^Stream/ }).click();
-    await page.getByRole('option', { name: /Arena backup/ }).click();
-    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: /^Stream/ })).toHaveCount(0);
+    await page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Source 2: Arena backup/ }).click();
+    await expect(page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Source 2: Arena backup/ })).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id]);
     await expect.poll(() => leaves).toContain('session-1');
     await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveJSProperty('scrollWidth', await page.getByRole('region', { name: 'Live TV player', exact: true }).evaluate((el) => el.clientWidth));
@@ -79,6 +92,7 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Stop watching', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
     await expect.poll(() => leaves).toContain('session-2');
+    await page.getByRole('button', { name: 'Streams' }).click();
     await page.getByRole('button', { name: 'Watch Independent live stream' }).focus();
     await page.keyboard.press('Enter');
     await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id, orphan.id]);
@@ -90,6 +104,8 @@ for (const mode of ['light', 'dark']) {
 
 test('direct channel URL, guide error and retry, browser Back', async ({ page }) => {
   await fixtures(page);
+  // When the batched Now/Next read fails, rows fall back to their own guide queries, which carry Retry.
+  await page.route('**/tv-channels/now-next', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
   await page.route('**/epg/channels/1/programs*', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
   await page.goto('/live-tv');
   await expect(page.getByText('Guide unavailable.')).toBeVisible();
@@ -100,8 +116,8 @@ test('direct channel URL, guide error and retry, browser Back', async ({ page })
   await page.goBack();
   await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
   await page.goto('/live-tv?channel=1');
-  await page.getByRole('button', { name: 'Playback options', exact: true }).click();
-  await expect(page.getByRole('combobox', { name: /^Stream/ })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Sources' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Arena TV' })).toHaveAttribute('aria-current', 'true');
 });
 
 
@@ -140,6 +156,7 @@ for (const mode of ['light', 'dark']) {
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
     await page.goto('/live-tv');
     for (const title of ['Arena TV', 'Independent live stream']) {
+      if (title === 'Independent live stream') await page.getByRole('button', { name: 'Streams' }).click();
       await page.getByRole('button', { name: `Send to player ${title}`, exact: true }).press('Enter');
       const tv = page.getByRole('menuitem', { name: /Living room Panasonic television/ });
       await expect(tv).toBeVisible();
@@ -166,6 +183,7 @@ for (const mode of ['light', 'dark']) {
     await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
     await page.goto('/live-tv');
     for (const title of ['Arena TV', 'Independent live stream']) {
+      if (title === 'Independent live stream') await page.getByRole('button', { name: 'Streams' }).click();
       const sendButton = page.getByRole('button', { name: `Send to player ${title}`, exact: true });
       // Keyboard focus does not wait for the async saved-player list to load.
       await expect(sendButton).toBeEnabled();
@@ -217,6 +235,9 @@ for (const mode of ['light', 'dark']) {
     await page.goto('/live-tv');
     await page.getByRole('button', { name: 'TV guide for Arena TV' }).click();
     const guide = page.getByRole('region', { name: 'TV guide for Arena TV' });
+    // The schedule loads when the guide opens; decide the day only once it has settled.
+    await expect(guide.getByRole('tablist', { name: 'Schedule day' })).toBeVisible();
+    await expect(guide.getByText('Loading schedule…')).toHaveCount(0);
     // The fixture can cross local midnight in any of the tested timezones.
     if (!(await guide.getByRole('button', { name: 'Record Highlights' }).count())) {
       await guide.getByRole('tab', { name: 'Tomorrow' }).click();

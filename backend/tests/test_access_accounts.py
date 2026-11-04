@@ -237,7 +237,7 @@ def test_cast_network_defaults_without_manual_networks(mode, host, allowed, monk
     from starlette.requests import Request
     from fastapi import HTTPException
     from app.services.access_service import require_server_cast
-    monkeypatch.setattr('app.config.settings.get_settings', lambda: SimpleNamespace(FORWARDED_ALLOW_IPS=''))
+    monkeypatch.setattr('app.config.settings.get_settings', lambda: SimpleNamespace(FORWARDED_ALLOW_IPS='', CAST_REQUIRE_HOME_NETWORK=True))
     request = Request({'type': 'http', 'method': 'GET', 'scheme': 'http', 'path': '/', 'headers': [(b'host', b'app.test')],
         'server': ('app.test', 80), 'client': (host, 1234), 'state': {'peer': (host, 1234), 'access_mode': mode,
         'access_policy': AccessPolicy(), 'access_user': {'id': 'owner', 'administrator': True, 'permissions': []} if mode == 'accounts' else None}})
@@ -273,6 +273,10 @@ def test_local_open_cast_api_requires_csrf_and_blocks_outsiders(access_client, m
         assert client.put('/api/v1/cast/settings', json={}).status_code == 403
     finally:
         client.close()
+    # Outsiders are blocked only when the deployment keeps the home gate.
+    from app.config.settings import get_settings
+    monkeypatch.setenv('CAST_REQUIRE_HOME_NETWORK', 'true')
+    get_settings.cache_clear()
     remote = TestClient(main.app, base_url='https://app.test', client=('8.8.8.8', 1234))
     try:
         csrf = remote.get('/api/v1/auth/status').json()['csrf']
@@ -286,6 +290,69 @@ def test_local_open_cast_api_requires_csrf_and_blocks_outsiders(access_client, m
         assert remote.get('/api/v1/cast/capabilities').json()['server_devices'] is False
     finally:
         remote.close()
+        get_settings.cache_clear()
+
+
+def test_open_mode_public_client_can_cast_by_default(access_client, monkeypatch):
+    from app.services.cast_service import cast_service
+    import main
+    _, repo = access_client
+    repo.bootstrap('unused', '', False)
+    monkeypatch.setattr(cast_service.discovery, 'start', lambda: None)
+    remote = TestClient(main.app, base_url='https://app.test', client=('8.8.8.8', 1234))
+    try:
+        remote.headers['X-CSRF-Token'] = remote.get('/api/v1/auth/status').json()['csrf']
+        capabilities = remote.get('/api/v1/cast/capabilities').json()
+        assert capabilities['server_devices'] is True
+        assert capabilities['home_check'] == 'off'
+        assert capabilities['home_connection'] is False
+        # A visitor outside the home never supplies the receiver address through its Host header.
+        assert capabilities['media_url_configured'] is False and capabilities['media_url'] == ''
+        repo.update_policy({'cast_media_url': 'https://tv.example'})
+        assert remote.get('/api/v1/cast/capabilities').json()['media_url'] == 'https://tv.example'
+        for path in ['settings', 'devices', 'sessions']:
+            assert remote.get('/api/v1/cast/' + path).status_code == 200, path
+        assert remote.put('/api/v1/cast/settings', json={'compatibility_conversion': True}).status_code == 200
+        remote.headers['Origin'] = 'https://attacker.example'
+        assert remote.post('/api/v1/cast/sessions', json={'content_id': 'a' * 40}).status_code == 403
+    finally:
+        remote.close()
+
+
+def test_open_mode_env_enforces_home_gate(access_client, monkeypatch):
+    import main
+    from app.config.settings import get_settings
+    _, repo = access_client
+    repo.bootstrap('unused', '', False)
+    monkeypatch.setenv('CAST_REQUIRE_HOME_NETWORK', 'true')
+    get_settings.cache_clear()
+    remote = TestClient(main.app, base_url='https://app.test', client=('8.8.8.8', 1234))
+    try:
+        capabilities = remote.get('/api/v1/cast/capabilities').json()
+        assert capabilities['server_devices'] is False
+        assert capabilities['home_check'] == 'deployment'
+        assert remote.get('/api/v1/cast/devices').status_code == 403
+        assert remote.get('/api/v1/cast/settings').status_code == 403
+    finally:
+        remote.close()
+        get_settings.cache_clear()
+
+
+def test_accounts_remote_casting_keeps_request_origin_as_media_url(access_client):
+    import main
+    _, repo = access_client
+    client = TestClient(main.app, base_url='https://app.test', client=('8.8.4.4', 1234))
+    try:
+        client.headers['X-CSRF-Token'] = client.get('/api/v1/auth/status').json()['csrf']
+        enable(client)
+        repo.update_policy({'remote_casting': True})
+        capabilities = client.get('/api/v1/cast/capabilities').json()
+        # Accounts mode is unchanged by the open-mode hardening: an authenticated remote
+        # caster still gets the receiver address from the request origin.
+        assert capabilities['server_devices'] is True and capabilities['home_check'] == 'accounts'
+        assert capabilities['media_url_configured'] is True and capabilities['media_url'] == 'https://app.test'
+    finally:
+        client.close()
 
 
 def test_public_https_home_connection_can_be_trusted_without_remote_control(access_client):

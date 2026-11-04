@@ -284,3 +284,12 @@ the prior process group terminated. It never periodically unlinks active engine
 media. Custom commands and external engines require their own cache settings.
 See [Docker cache retention](../../wiki/Docker.md#engine-cache-retention) for paths,
 RAM implications, limits, and reclaiming existing cache.
+
+### Limit scheduled scans to Live TV
+
+In Settings → Automation, **Streams to check** defaults to **All active streams**.
+Choose **Assigned to active TV channels** to check all their active sources,
+including alternatives, or **Assigned to active favorite TV channels** to narrow
+the scan further. Scheduled scans and **Run status check now** read the current
+assignments and favorites at the start of each pass. An empty selection checks
+zero streams. Individual checks and playback work independently.

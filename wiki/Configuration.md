@@ -41,7 +41,7 @@ Docker still owns image choice, published port mappings, mounts, capabilities, e
 | Where | What to configure |
 |---|---|
 | **Settings → Playback** | Optional **Acestream Engine URL**, direct/Acexy routing and backend-facing Acexy URL. Save the engine URL and playback routing separately. |
-| **Settings → Automation** | Dedicated checker selection, scraping interval (1–168 hours), EPG interval (1–168 hours), stream-check interval (1–10080 minutes). Saved intervals apply immediately. |
+| **Settings → Automation** | Dedicated checker selection, scraping interval (1–168 hours), EPG interval (1–168 hours), stream-check interval (1–10080 minutes), and scan scope (all active streams, streams assigned to active TV channels, or streams assigned to active favorite TV channels). Saved intervals apply immediately. |
 | **Settings → Stream links** | Named playlist formats and default, optional PID/AppID compatibility. Shared with **Playlist → Manage link formats**. |
 | **Settings → Network** | Trusted reverse proxies, private source access, tuner networks, browser origins and public-address runtime default. Shares the setup controls; save and restart to apply. |
 | **Settings → Access** | The token this browser sends when the server has `API_TOKEN` configured. Stored locally in the browser. |

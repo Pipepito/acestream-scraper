@@ -8,7 +8,7 @@ import re
 
 from app.repositories.settings_repository import SettingsRepository
 from app.config.version import get_app_version
-from app.schemas.config import PlaybackRouting
+from app.schemas.config import PlaybackRouting, StreamCheckScope
 from app.services.public_url_service import InvalidPublicBaseUrl, normalize_public_base_url
 
 # How a hidden secret reads in the API.
@@ -170,6 +170,14 @@ class ConfigService:
             return int(interval_str)
         except (ValueError, TypeError):
             return int(self.settings_repo.DEFAULT_RESCRAPE_INTERVAL)
+
+    def get_stream_check_scope(self) -> StreamCheckScope:
+        return StreamCheckScope(scope=self.settings_repo.get_setting(SettingsRepository.STREAM_CHECK_SCOPE, "all"))
+
+    def set_stream_check_scope(self, config: StreamCheckScope) -> StreamCheckScope:
+        if not self.settings_repo.set_setting(SettingsRepository.STREAM_CHECK_SCOPE, config.scope):
+            raise HTTPException(status_code=500, detail="Failed to save stream check scope")
+        return config
 
     def get_channel_status_interval(self) -> int:
         try:

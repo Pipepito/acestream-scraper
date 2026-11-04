@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 
-def channels_in_check_order(db: Session, *, now: Optional[datetime] = None) -> List[str]:
+def channels_in_check_order(db: Session, *, http_only: bool = False, now: Optional[datetime] = None) -> List[str]:
     """Age work by the saved check interval so repeated short passes progress.
 
     Never-checked streams come first. Checked streams are grouped by how many
@@ -36,8 +36,9 @@ def channels_in_check_order(db: Session, *, now: Optional[datetime] = None) -> L
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
-    interval = ConfigService(SettingsRepository(db)).get_channel_status_interval() * 60
-    rows = ChannelRepository(db).get_status_check_inventory()
+    config = ConfigService(SettingsRepository(db))
+    interval = config.get_channel_status_interval() * 60
+    rows = ChannelRepository(db).status_check_inventory(config.get_stream_check_scope().scope, http_only=http_only)
 
     def priority(row):
         checked = row.last_checked

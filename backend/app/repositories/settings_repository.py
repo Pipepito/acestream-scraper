@@ -18,6 +18,7 @@ class SettingsRepository:
     NOTIFICATION_WEBHOOK_URL = 'notification_webhook_url'
     ADDPID = 'addpid'
     EPG_REFRESH_INTERVAL = 'epg_refresh_interval'
+    STREAM_CHECK_SCOPE = 'stream_check_scope'
     CHANNEL_STATUS_INTERVAL = 'channel_status_interval'
     ACESTREAM_CHECK_TIMEOUT = 'acestream_check_timeout'
     PUBLIC_BASE_URL = 'public_base_url'

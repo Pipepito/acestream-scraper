@@ -23,7 +23,7 @@ jest.mock('../services/guideSetupService', () => ({ guideSetupService: { config:
 jest.mock('../hooks/useBaseUrls');
 jest.mock('../components/recordings/RecordingSettingsFields', () => ({ __esModule: true, default: () => <div>Recording settings</div> }));
 jest.mock('../services/configService', () => ({
-  configService: { getAppId: jest.fn(), updateAppId: jest.fn(), getNotificationWebhookUrl: jest.fn().mockResolvedValue('') },
+  configService: { getStreamCheckScope: jest.fn().mockResolvedValue({ scope: 'all' }), updateStreamCheckScope: jest.fn(), getAppId: jest.fn(), updateAppId: jest.fn(), getNotificationWebhookUrl: jest.fn().mockResolvedValue('') },
   getScheduleAnchors: jest.fn().mockResolvedValue({ timezone: 'UTC', url_scraping: null, epg_refresh: null, channel_status: null }),
   saveScheduleAnchors: jest.fn(),
 }));
@@ -79,6 +79,16 @@ describe('Settings page', () => {
     (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
+  });
+
+  it.each(['assigned', 'favorites'] as const)('saves the %s stream check scope from Automation', async scope => {
+    jest.mocked(configService.updateStreamCheckScope).mockResolvedValue({ scope });
+    renderPage('automation');
+    const selector = await screen.findByRole('combobox', { name: 'Streams to check' });
+    expect(selector).toHaveValue('all');
+    fireEvent.change(selector, { target: { value: scope } });
+    await waitFor(() => expect(selector).toHaveValue(scope));
+    expect(jest.mocked(configService.updateStreamCheckScope).mock.calls[0][0]).toEqual({ scope });
   });
 
   it('opens network controls directly from their Settings tab without the wizard', async () => {

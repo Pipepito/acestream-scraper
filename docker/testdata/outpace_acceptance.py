@@ -10,6 +10,7 @@ from threading import Thread
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urljoin
 
 from app.models.models import AcestreamChannel
 from app.config.database import SessionLocal
@@ -76,6 +77,8 @@ def main():
         raise AssertionError('The app must identify the missing catalogue')
 
     with broadcast(6878) as content_id, EngineClient(base) as engine:
+        with urllib.request.urlopen(f'http://127.0.0.1:8000/tuner/stream/{content_id}.ts', timeout=30) as relay:
+            assert relay.read(188)[0] == 0x47
         a, b = engine.start(content_id), engine.start(content_id)
         assert a.command_url != b.command_url
         with urllib.request.urlopen(a.playback_url, timeout=60) as first, urllib.request.urlopen(b.playback_url, timeout=60) as second:
@@ -87,6 +90,27 @@ def main():
         for session in (a, b):
             with urllib.request.urlopen(session.stat_url, timeout=5) as r:
                 assert json.load(r)['error']
+        api = 'http://127.0.0.1:8000/api/v1/player/sessions'
+        request = urllib.request.Request(api, data=json.dumps({'content_id': content_id}).encode(),
+                                         headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(request, timeout=10) as r:
+            player = json.load(r)
+        resource = f"{api}/{player['id']}"
+        try:
+            deadline = time.monotonic() + 60
+            while time.monotonic() < deadline:
+                with urllib.request.urlopen(resource, timeout=5) as r:
+                    if json.load(r)['hls_ready']:
+                        break
+                time.sleep(1)
+            playlist_url = 'http://127.0.0.1:8000' + player['playlist_url']
+            with urllib.request.urlopen(playlist_url, timeout=5) as r:
+                segment = next(line for line in r.read().decode().splitlines() if line and not line.startswith('#'))
+            with urllib.request.urlopen(urljoin(playlist_url, segment), timeout=5) as r:
+                assert r.read(188)[0] == 0x47
+        finally:
+            with urllib.request.urlopen(urllib.request.Request(resource, method='DELETE'), timeout=10):
+                pass
     with broadcast(6880) as content_id, SessionLocal() as db:
         service = ChannelStatusService(db)
         assert service._get_engine_url() == 'http://127.0.0.1:6880'
@@ -110,7 +134,7 @@ def main():
     else:
         raise AssertionError('Checker failed to recover')
     assert (RUN / 'acestream.pid').read_text() == playback_pid
-    print('Verified two playback readers, isolated media check, checker restart and catalogue limitation.')
+    print('Verified tuner MPEG-TS, web-player HLS, two playback readers, isolated media check, checker restart and catalogue limitation.')
 
 
 if __name__ == '__main__':

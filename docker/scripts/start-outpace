@@ -11,6 +11,9 @@ if [[ ${0##*/} == start-check-engine ]]; then
     export OUTPACE_PEER_LISTEN=127.0.0.1:8622
     export OUTPACE_RTMP_BIND=127.0.0.1:0
 else
+    # Leave room for discovery inside the tuner's default 15-second startup budget.
+    export OUTPACE_PREBUFFER_MS="${OUTPACE_PREBUFFER_MS:-3000}"
+    export OUTPACE_PREBUFFER_TIMEOUT_MS="${OUTPACE_PREBUFFER_TIMEOUT_MS:-5000}"
     host=127.0.0.1
     [[ ${1:-} != --bind-all ]] || host=0.0.0.0
     export OUTPACE_DATA_DIR=/var/lib/outpace

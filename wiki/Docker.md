@@ -224,7 +224,10 @@ playback peers, publish TCP port 8621. On an existing installation, review the
 saved engine toggles, playback URL and Acexy routing in Settings, then restart.
 
 Use known public, unencrypted live content IDs. The engine can supply MPEG-TS to
-the web player, tuner and recorder. Source availability still depends on the peers.
+the web player, tuner and recorder. Playback defaults to a three-second prebuffer
+target with a five-second prebuffer deadline so the tuner can start within its
+own timeout. The checker samples media immediately. Source availability still
+depends on the peers.
 Outpace has no catalogue search endpoint and cannot resolve a search infohash to
 a content ID. Manual additions, source imports and searching your saved channels
 remain available. Premium and encrypted streams are outside the supported scope.

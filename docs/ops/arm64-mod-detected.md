@@ -258,3 +258,25 @@ HTTP 200, `get_version`, a playback URL or a peer count alone is insufficient.
 Test a fresh ID as well as a cached one, restart the engine, and repeat with the
 dedicated checker enabled. Stop the DNS-owning engine and confirm the survivor
 retains DNS resolution. Preserve other users' playback and production data.
+
+### ARM64 WebRTC import and plugin update messages
+
+On 2026-11-04, a local ARM64 image built from the issue #249 worktree based on
+`9fe04db` logged a missing `libwilhelm.so` while initializing `pywebrtc`.
+Loading `pywebrtc.so` directly in the unmodified, digest-pinned 3.2.17 upstream
+image reproduced the same failure. The system copy of `libOpenSLES.so` depends
+on that absent library. Trying the Python payload's copy first exposed another
+missing system dependency, `libbase.so`.
+
+The supervised engine reached its command listener after the import error on
+both initial start and UI restart. A separate connection refusal occurred in
+the engine's plugin update task. After restart, the real engine served a
+maintainer-supplied live content ID. A bounded 1 MiB sample contained 21 H.264
+video packets and 26 AAC audio packets, and the session stop returned HTTP 200.
+This run verified that stream on the direct route. WebRTC initialization and
+plugin updates were still degraded.
+
+For strict Docker browser journeys, set `E2E_BACKEND_LOG` to the **scraper**
+capture from that container (`$LOG_DIR/scraper.log`). The combined Docker console
+also contains engine and other sidecar tracebacks. Keep those logs for separate
+service diagnosis alongside the browser report.

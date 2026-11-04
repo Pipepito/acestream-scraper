@@ -210,7 +210,7 @@ const acestreamChannelService = {
   },
 
   /**
-   * Run the existing scheduled status job for all active streams
+   * Run the existing scheduled status job with its configured stream scope
    */
   runStatusCheckNow: async (): Promise<components['schemas']['ChannelStatusJobRunResponse']> => {
     const { data } = await apiClient.post('/v1/background-tasks/channel_status/run', {});

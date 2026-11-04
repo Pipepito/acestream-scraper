@@ -114,7 +114,7 @@ are never part of that list.
 Open **Acestream Channels**. This is the stream inventory populated by scraping or engine search.
 
 1. Filter by name, group, online state, or playlist visibility.
-2. Use the circular-arrow action to check one stream, or **Run status check now** for the current inventory.
+2. Use the circular-arrow action to check one stream, or **Run status check now** for all active streams. To limit that job and scheduled scans to Live TV, use **Settings → Automation → Streams to check** and select active TV channels or active favorite TV channels.
 3. Open the row's **More actions** menu to assign a stream to a TV channel.
 4. Open the row menu to edit, hide/show in playlists, mark its TV channel as a favorite, or delete it.
 5. Use **Export CSV** when you need an inventory snapshot.

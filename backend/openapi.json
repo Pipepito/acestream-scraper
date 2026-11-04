@@ -10472,6 +10472,24 @@
         "title": "StorageReport",
         "type": "object"
       },
+      "StreamCheckScope": {
+        "properties": {
+          "scope": {
+            "enum": [
+              "all",
+              "assigned",
+              "favorites"
+            ],
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope"
+        ],
+        "title": "StreamCheckScope",
+        "type": "object"
+      },
       "StreamStats": {
         "properties": {
           "download_speed_kbytes_sec": {
@@ -18007,6 +18025,68 @@
           }
         },
         "summary": "Update Schedule Anchors",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/stream-check-scope": {
+      "get": {
+        "operationId": "get_stream_check_scope_api_v1_config_stream_check_scope_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamCheckScope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Stream Check Scope",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "operationId": "set_stream_check_scope_api_v1_config_stream_check_scope_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StreamCheckScope"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamCheckScope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Stream Check Scope",
         "tags": [
           "config",
           "config"

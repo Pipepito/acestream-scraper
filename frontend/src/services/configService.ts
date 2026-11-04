@@ -1,6 +1,7 @@
 import apiClient from './apiClient';
 import type { components } from '../types/api-generated';
 
+type StreamCheckScope = components['schemas']['StreamCheckScope'];
 export type CheckEngineConfig = components['schemas']['CheckEngineConfigResponse'];
 export type PlaybackRouting = components['schemas']['PlaybackRouting'];
 
@@ -50,6 +51,8 @@ export interface Stats {
 const BASE_URL = '/v1/config';
 
 export const configService = {
+  getStreamCheckScope: async () => (await apiClient.get<StreamCheckScope>(`${BASE_URL}/stream-check-scope`)).data,
+  updateStreamCheckScope: async (config: StreamCheckScope) => (await apiClient.put<StreamCheckScope>(`${BASE_URL}/stream-check-scope`, config)).data,
   getCheckEngine: async (): Promise<CheckEngineConfig> => (await apiClient.get<CheckEngineConfig>(`${BASE_URL}/check-engine`)).data,
   updateCheckEngine: async (config: CheckEngineConfig): Promise<CheckEngineConfig> => (await apiClient.put<CheckEngineConfig>(`${BASE_URL}/check-engine`, { use_dedicated: config.use_dedicated, url: config.url })).data,
   getPlaybackRouting: async (): Promise<PlaybackRouting> => {

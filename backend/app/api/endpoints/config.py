@@ -23,6 +23,7 @@ from app.schemas.config import (
     EPGMatchingRun,
     RescrapeIntervalUpdate,
     ScheduleAnchors,
+    StreamCheckScope,
     SettingResponse,
     SettingsResponse,
 )
@@ -328,6 +329,16 @@ def get_check_engine(db: Session = Depends(get_db)):
 @router.put("/check-engine", response_model=CheckEngineConfigResponse)
 def update_check_engine(config: CheckEngineConfig, db: Session = Depends(get_db)):
     return CheckEngineConfigService(SettingsRepository(db)).save(config)
+
+
+@router.get("/stream-check-scope", response_model=StreamCheckScope)
+def get_stream_check_scope(config: ConfigService = Depends(get_config_service)):
+    return config.get_stream_check_scope()
+
+
+@router.put("/stream-check-scope", response_model=StreamCheckScope)
+def set_stream_check_scope(update: StreamCheckScope, config: ConfigService = Depends(get_config_service)):
+    return config.set_stream_check_scope(update)
 
 
 @router.get("/{key}", response_model=SettingResponse)

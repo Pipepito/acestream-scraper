@@ -1,7 +1,11 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+class StreamCheckScope(BaseModel):
+    scope: Literal["all", "assigned", "favorites"]
 
 
 class PlaybackRouting(BaseModel):

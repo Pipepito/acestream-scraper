@@ -1527,6 +1527,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/config/stream-check-scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Stream Check Scope */
+        get: operations["get_stream_check_scope_api_v1_config_stream_check_scope_get"];
+        /** Set Stream Check Scope */
+        put: operations["set_stream_check_scope_api_v1_config_stream_check_scope_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/config/{key}": {
         parameters: {
             query?: never;
@@ -9173,6 +9191,14 @@ export interface components {
              */
             mount_detection: "available" | "unavailable";
         };
+        /** StreamCheckScope */
+        StreamCheckScope: {
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "all" | "assigned" | "favorites";
+        };
         /** StreamStats */
         StreamStats: {
             /**
@@ -13325,6 +13351,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScheduleAnchors"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stream_check_scope_api_v1_config_stream_check_scope_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamCheckScope"];
+                };
+            };
+        };
+    };
+    set_stream_check_scope_api_v1_config_stream_check_scope_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StreamCheckScope"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamCheckScope"];
                 };
             };
             /** @description Validation Error */

@@ -149,3 +149,35 @@ def test_age_boundary_and_stable_id_ties(db_session):
     _stream(db_session, "a", T0 - timedelta(hours=1))
     db_session.commit()
     assert channels_in_check_order(db_session) == ["a", "b", "favorite"]
+
+
+def test_scoped_pass_uses_current_active_tv_assignments(client, db_session):
+    favorite = _tv(db_session, "Sports", True)
+    other = _tv(db_session, "News", False)
+    disabled = _tv(db_session, "Hidden", True)
+    disabled.is_active = False
+    _stream(db_session, "favorite", tv=favorite)
+    _stream(db_session, "alternate", tv=other)
+    _stream(db_session, "unused", tv=disabled)
+    _stream(db_session, "inactive", tv=favorite, active=False)
+    _stream(db_session, "loose")
+    db_session.commit()
+    path = "/api/v1/config/stream-check-scope"
+    assert client.get(path).json() == {"scope": "all"}
+    assert set(ordered_ids(db_session)) == {"favorite", "alternate", "unused", "loose"}
+    assert client.put(path, json={"scope": "assigned"}).status_code == 200
+    assert client.put(path, json={"scope": "invalid"}).status_code == 422
+    assert client.get(path).json() == {"scope": "assigned"}
+    assert ordered_ids(db_session) == ["favorite", "alternate"]
+    assert client.put(path, json={"scope": "favorites"}).status_code == 200
+    assert ordered_ids(db_session) == ["favorite"]
+    other.is_favorite = True
+    db_session.commit()
+    assert ordered_ids(db_session) == ["alternate", "favorite"]
+    assert client.put(path, json={"scope": "assigned"}).status_code == 200
+    db_session.get(AcestreamChannel, "alternate").tv_channel_id = None
+    favorite.is_active = False
+    db_session.commit()
+    assert ordered_ids(db_session) == []
+    assert client.put(path, json={"scope": "all"}).status_code == 200
+    assert len(ordered_ids(db_session)) == 4

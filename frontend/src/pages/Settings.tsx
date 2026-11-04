@@ -1,5 +1,6 @@
 import RecordingSettingsFields from '../components/recordings/RecordingSettingsFields';
 import GuideMatchingFields from '../components/GuideMatchingFields';
+import StreamCheckScopeField from '../components/StreamCheckScopeField';
 import ScheduleAnchorFields from '../components/ScheduleAnchorFields';
 import StreamLinkFormatsSection from '../components/StreamLinkFormatsSection';
 import CheckEngineFields from '../components/CheckEngineFields';
@@ -350,6 +351,7 @@ const Settings: React.FC = () => {
             onChange={setChannelStatusInterval}
             onSave={handleChannelStatusSave}
           />
+          <StreamCheckScopeField />
           <ScheduleAnchorFields />
 
         </Stack>

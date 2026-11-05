@@ -32,7 +32,8 @@ class FakeHttp:
     def post_json(self, url, body, headers=None):
         return self._answer('POST', url, headers, body)
 
-    def get_text(self, url, headers=None):
+    def get_text(self, url, headers=None, max_bytes=None):
+        self.max_bytes = max_bytes
         return self._answer('GET', url, headers)
 
 
@@ -333,6 +334,16 @@ def _brightcove(duration=-1):
     return {'duration': duration, 'sources': [
         {'type': 'application/dash+xml', 'src': 'https://bc/live.mpd'},
         {'type': 'application/x-mpegURL', 'src': 'https://bc/live.m3u8'}]}
+
+
+def test_telemadrid_reads_its_player_script_past_the_default_bound(fake):
+    """The script weighs 3.5 MB (02-11), more than the 2 MiB bound: the key is
+    in it, so it is asked for with room enough."""
+    from app.services.live_providers import telemadrid
+    http = fake({telemadrid.PLAYER_JS: 'x={policyKey:"PK1"}',
+                 'https://edge.api.brightcove.com/': _brightcove()})
+    assert live_providers.resolve('telemadrid://ref:Live_Telemadrid') == 'https://bc/live.m3u8'
+    assert http.max_bytes >= 4 * 1024 * 1024
 
 
 def test_telemadrid_returns_hls_and_caches_key(fake):

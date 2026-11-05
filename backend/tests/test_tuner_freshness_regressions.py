@@ -128,8 +128,9 @@ def test_streaming_route_uses_freshness_and_releases_claim(
         tuner.tuner_probe_service.start.assert_not_called()
         response = alembic_client.get(url)
         if all_recent_offline:
-            assert response.status_code == 502
-            assert attempts == []
+            # No candidate, but before giving up the relay tries the
+            # channel's sources it has not tried, recent offline ones too.
+            assert response.status_code == 200
         else:
             assert response.status_code == 200
             assert response.content == b"\x47" + bytes(187)
@@ -139,3 +140,29 @@ def test_streaming_route_uses_freshness_and_releases_claim(
     finally:
         for claim in relay_registry.active():
             relay_registry.close(claim.id)
+
+
+def test_a_second_get_goes_on_from_the_opening_through_the_route(
+    alembic_client, alembic_db_session, monkeypatch, allow_all_tuner_networks
+):
+    """Kodi's second GET of a channel resumes the first one's opening (the
+    route logs it and orders the sources from it)."""
+    from app.api.endpoints import tuner
+    import app.services.tuner_playback_service as playback
+    tv = seed(alembic_db_session, [("a", True, NOW - timedelta(minutes=1), 10),
+                                   ("b", True, NOW - timedelta(minutes=1), 100)])
+    monkeypatch.setattr(tuner, "_engine", Mock(return_value=Mock()))
+    monkeypatch.setattr(tuner.tuner_probe_service, "start", Mock(return_value=None))
+    attempts = []
+
+    async def relay(_engine, content_id, *args, **kwargs):
+        attempts.append(content_id)
+        yield b"\x47" + bytes(187)
+    monkeypatch.setattr(playback, "relay_engine_stream", relay)
+    first, _ = playback.take_over_opening(("testclient", tv.id))
+    first.current = "a" * 40
+    playback.end_opening(("testclient", tv.id), first)
+    response = alembic_client.get(f"/tuner/channel/{tv.id}.ts")
+    assert response.status_code == 200
+    assert attempts[0] == "a" * 40
+

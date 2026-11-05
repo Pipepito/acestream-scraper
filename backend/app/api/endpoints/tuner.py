@@ -11,6 +11,7 @@ import asyncio
 import time
 
 import html
+import logging
 import re
 from dataclasses import asdict
 from typing import List
@@ -33,9 +34,12 @@ from app.services.public_url_service import resolve_public_base_url
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream, relay_registry
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService, TunerSettings
+from app.services import tuner_playback_service
 from app.services.tuner_playback_service import relay_ranked_streams, prefer_recovered_sources
 from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
+
+logger = logging.getLogger(__name__)
 
 hdhr_router = APIRouter(prefix="/tuner", dependencies=[Depends(require_tuner_network)], tags=["hdhomerun"])
 router = APIRouter()  # /api/v1/tuner settings + status
@@ -334,9 +338,20 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     if request.method == "HEAD":
         return Response(status_code=200, headers=RELAY_HEADERS)
     limit = await run_in_threadpool(_tuner_count)
-    label = f"tuner:{request.client.host if request.client else '?'}"
+    client = request.client.host if request.client else '?'
+    label = f"tuner:{client}"
+    # Kodi's second GET (or the same person back on this channel) goes on
+    # from where the GET before it is instead of starting the sources again.
+    key = (client, tv_channel_id)
+    shared, previous = tuner_playback_service.take_over_opening(key)
+    resume_deadline, skip = None, set()
+    if previous is not None:
+        candidates, resume_deadline, skip = tuner_playback_service.resume_order(candidates, previous)
+        logger.info("TV relay opening resumed tv_channel_id=%s from=%s skip=%s", tv_channel_id,
+                    previous.current, sorted(skip))
     claim = relay_registry.try_open(candidates[0] if candidates else "", label, limit)
     if claim is None:
+        tuner_playback_service.end_opening(key, shared)
         raise APIError(code="TUNER_BUSY", message=f"All {limit} tuner slots are in use", status_code=503)
     refresh = tuner_probe_service.start(tv_channel_id)
 
@@ -373,9 +388,15 @@ async def tuner_channel(tv_channel_id: int, request: Request):
                                       experimental_transcoding=experimental_transcoding,
                                       plex_compatible_audio=relay_settings.plex_compatible_audio,
                                       attempt_seconds=relay_settings.source_start_seconds,
-                                      startup_budget_seconds=relay_settings.startup_budget_seconds)
+                                      startup_budget_seconds=relay_settings.startup_budget_seconds,
+                                      opening=shared, resume_deadline=resume_deadline, skip=skip,
+                                      last_resort_provider=lambda: run_in_threadpool(
+                                          _channel_candidates, tv_channel_id, include_offline=True),
+                                      last_resort_now=previous is not None and previous.last_resort,
+                                      tv_channel_id=tv_channel_id)
         first = await anext(iterator)
     except BaseException as exc:
+        tuner_playback_service.end_opening(key, shared)
         monitor.cancel()
         await asyncio.gather(monitor, return_exceptions=True)
         if iterator is not None:
@@ -383,6 +404,10 @@ async def tuner_channel(tv_channel_id: int, request: Request):
         if engine is not None:
             engine.close()
         relay_registry.close(claim.id)
+        if isinstance(exc, StopAsyncIteration):
+            # A newer GET of the channel took the opening over before this
+            # one sent anything.
+            return Response(status_code=200, headers=RELAY_HEADERS)
         if isinstance(exc, (EngineStreamError, EngineUnavailableError)):
             raise APIError(code="CHANNEL_STREAM_FAILED", message="No source could start playback within the startup budget", status_code=502) from exc
         raise
@@ -393,6 +418,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
             async for chunk in iterator:
                 yield chunk
         finally:
+            tuner_playback_service.end_opening(key, shared)
             monitor.cancel()
             await asyncio.gather(monitor, return_exceptions=True)
             await iterator.aclose()

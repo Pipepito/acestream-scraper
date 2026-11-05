@@ -274,6 +274,8 @@ async def lifespan(app: FastAPI):
             # channel_status opens the engine, so not at startup: a quarter of
             # an hour later, and only if it is still overdue then.
             task_service.catch_up_later("channel_status", delay_seconds=900)
+            from app.services.stream_history import install as install_stream_history
+            install_stream_history()
             await recording_coordinator.start()
             await player_service.start()
             await telegram_manager.start()

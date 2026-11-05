@@ -738,6 +738,22 @@ def _isolated_access_storage(tmp_path_factory, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _relay_memory_left_clean():
+    """The relay's process-wide memory does not reach the next test.
+
+    An early death keeps a source behind the others for 30 minutes, which
+    turns a later test's source order round; an opening left over is resumed
+    by a later GET of the same client and channel; a test that runs the app
+    leaves the outcome recorder writing to its database.
+    """
+    yield
+    from app.services import tuner_playback_service
+    tuner_playback_service._failures.clear()
+    tuner_playback_service._openings.clear()
+    tuner_playback_service.set_outcome_recorder(None)
+
+
+@pytest.fixture(autouse=True)
 def _relay_registry_left_clean():
     """Every test leaves the relay registry as it found it.
 

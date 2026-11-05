@@ -17,6 +17,7 @@ from app.models.models import AcestreamChannel, EPGSource, TVChannel
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.services.epg_service import EPGService
+from app.services.stream_history import scores_for
 from app.services.stream_ranking import preference_key, sort_streams_curated
 from app.utils.m3u import m3u_attr
 
@@ -212,13 +213,14 @@ class TunerService:
         channel fail with a live source assigned to it. A recent offline
         verdict from a status check still counts.
         """
-        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id)
+        streams = [s for s in ChannelRepository(self.db).get_tuner_streams(tv_channel_id) if supported_tuner_stream(s)]
         now = datetime.now(timezone.utc)
         fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
+        # Playback history (stream_history): within each group, sources that
+        # played before go first; a demoted source goes after every group.
+        history = scores_for(self.db, streams, now)
         ranked = []
         for stream in streams:
-            if not supported_tuner_stream(stream):
-                continue
             fresh = _checked_since(stream, fresh_since, now)
             if stream.is_online:
                 bucket = 0 if fresh else 1
@@ -226,7 +228,11 @@ class TunerService:
                 continue
             else:
                 bucket = 2
-            ranked.append((*preference_key(stream), bucket, -(stream.bitrate_bps or 0), stream.id.lower()))
+            past = history.get(stream.id.lower())
+            if past is not None and past.demoted:
+                bucket = 3
+            score = past.score if past is not None else 0.5
+            ranked.append((*preference_key(stream), bucket, -score, -(stream.bitrate_bps or 0), stream.id.lower()))
         return list(dict.fromkeys(row[-1] for row in sorted(ranked)))
 
     # --- lineup -------------------------------------------------------------

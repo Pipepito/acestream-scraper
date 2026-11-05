@@ -18,6 +18,9 @@ WEB = 'https://www.telemadrid.es/'
 ACCOUNT = '6416060453001'
 PLAYER = '2rfYSrHC79'
 PLAYER_JS = f'https://players.brightcove.net/{ACCOUNT}/{PLAYER}_default/index.min.js'
+# The player script measured 3,468,862 bytes on 2026-11-02, above the 2 MiB
+# provider response bound: without room for it no key, and no channel.
+PLAYER_JS_MAX_BYTES = 8 * 1024 * 1024
 API = f'https://edge.api.brightcove.com/playback/v1/accounts/{ACCOUNT}/videos/%s'
 HEADERS = {'User-Agent': base.USER_AGENT, 'Referer': WEB, 'Origin': WEB.rstrip('/')}
 # Measured over 30 minutes: playback needs no header.
@@ -42,7 +45,7 @@ def policy_key(refresh: bool = False) -> Optional[str]:
     global _policy_key
     if _policy_key and not refresh:
         return _policy_key
-    match = _POLICY.search(base.http.get_text(PLAYER_JS, HEADERS))
+    match = _POLICY.search(base.http.get_text(PLAYER_JS, HEADERS, max_bytes=PLAYER_JS_MAX_BYTES))
     if not match:
         base.log.warning('telemadrid: the player no longer publishes policyKey where expected')
         return None

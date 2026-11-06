@@ -25,7 +25,7 @@ from app.api.error_handlers import APIError
 from app.api.auth import authenticated_player_url
 from app.config.database import SessionLocal, get_db
 from app.repositories.settings_repository import SettingsRepository
-from app.schemas.tuner import TunerSettingsResponse, TunerSettingsUpdate, TunerStatusResponse, TunerUrls
+from app.schemas.tuner import TunerFirstSourceRequest, TunerSettingsResponse, TunerSettingsUpdate, TunerStatusResponse, TunerUrls
 from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError, playback_client_from_settings
 from app.services.epg_service import EPGService
 from app.services.player_service import player_service
@@ -33,6 +33,7 @@ from app.services.public_url_service import resolve_public_base_url
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream, relay_registry
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService, TunerSettings
+from app.services import tuner_first_source
 from app.services.channel_session import ChannelSession, NoSourceStarted, NoSources, TunerBusy, TunerEnvironment
 from app.services.tuner_playback_service import CHECKPOINT_SECONDS, ViewingCheckpoint, relay_ranked_streams
 from app.services.ts_clock import ClockWatch, watch_clock
@@ -76,6 +77,12 @@ def _tuner_count() -> int:
 
 def _relay_client_factory(**kwargs) -> httpx.AsyncClient:
     return httpx.AsyncClient(**kwargs)
+
+
+def _client_address(request: Request) -> str:
+    """The device a tuner request comes from, as the app sees it ('?' if
+    the server gives no peer). Clients behind the Docker gateway share it."""
+    return request.client.host if request.client else "?"
 
 
 def _validate_content_id(content_id: str) -> str:
@@ -346,7 +353,7 @@ def _channel_environment() -> TunerEnvironment:
     summary="TV channel MPEG-TS with automatic source failover",
     responses={200: {"content": {"video/mp2t": {"schema": {"type": "string", "format": "binary"}}}}})
 async def tuner_channel(tv_channel_id: int, request: Request):
-    session = ChannelSession(tv_channel_id, request.client.host if request.client else '?', _channel_environment())
+    session = ChannelSession(tv_channel_id, _client_address(request), _channel_environment())
     try:
         await session.check()
         if request.method == "HEAD":
@@ -406,6 +413,28 @@ def tuner_status(request: Request, db: Session = Depends(get_db)) -> TunerStatus
         client_allowed=gate.is_allowed(peer) and gate.is_allowed(client_ip), client_source=source, warnings=warnings,
         recent_denials=[asdict(denial) for denial in gate.recent_denials()],
     )
+
+
+# Device protocol for a client such as a Kodi skin, like the discovery routes:
+# out of the documented API.
+@hdhr_router.post("/channel/{tv_channel_id}/first-source", status_code=204, include_in_schema=False)
+def choose_first_source(tv_channel_id: int, payload: TunerFirstSourceRequest, request: Request,
+                        db: Session = Depends(get_db)) -> Response:
+    """The next opening of this channel from this device starts with
+    ``payload.source``; the client then opens the channel through the PVR as
+    always. The rules are tuner_first_source's."""
+    if payload.source not in TunerService(db).stream_ids(tv_channel_id):
+        raise APIError(code="SOURCE_NOT_ON_CHANNEL", message="The source does not belong to this channel",
+                       status_code=404, context={"tv_channel_id": tv_channel_id})
+    tuner_first_source.choose_first_source(_client_address(request), tv_channel_id, payload.source)
+    return Response(status_code=204)
+
+
+@hdhr_router.delete("/channel/{tv_channel_id}/first-source", status_code=204, include_in_schema=False)
+def clear_first_source(tv_channel_id: int, request: Request) -> Response:
+    """Automatic order again for the next opening from this device."""
+    tuner_first_source.clear_choice(_client_address(request), tv_channel_id)
+    return Response(status_code=204)
 
 
 # Must stay the last route on hdhr_router: it matches every /tuner/* path.

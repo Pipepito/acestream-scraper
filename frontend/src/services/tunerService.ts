@@ -11,6 +11,8 @@ export interface TunerSettings {
   source_start_seconds?: number;
   /** Seconds for the whole start across sources; keep it under the player's own timeout. */
   startup_budget_seconds?: number;
+  /** Leave out sources and channels with no useful prospect (off by default). */
+  hide_unusable?: boolean;
 }
 
 export type TunerSettingsUpdate = Partial<TunerSettings>;

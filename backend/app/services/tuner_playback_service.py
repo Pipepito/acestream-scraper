@@ -204,6 +204,7 @@ async def relay_ranked_streams(
     on_source_failure: Callable[[str], Awaitable[None]] | None = None,
     attempt_seconds: float | None = None,
     startup_budget_seconds: float | None = None,
+    switch_midstream: bool = False,
     opening: ChannelOpening | None = None,
     resume_deadline: float | None = None,
     skip: Collection[str] = (),
@@ -407,10 +408,17 @@ async def relay_ranked_streams(
                     deadline = time.monotonic() + startup_budget_seconds
                 if on_source_failure is not None:
                     await on_source_failure(content_id)
-                if first_at is not None and not experimental_transcoding:
+                if first_at is not None and not experimental_transcoding and not switch_midstream:
                     # Headers and media have already been sent. End this response so
                     # the client reconnects to the same stable TV URL for a new source.
                     return
+                if first_at is not None and switch_midstream:
+                    # Carry on with the next source in the SAME response: Kodi does
+                    # not reconnect, it goes back to its menu. Measured: Kodi
+                    # follows a raw switch to another source (new PIDs, other
+                    # resolution) as a stream change. It waits up to 60 s for data
+                    # (curllowspeedtime), so a fresh startup budget fits.
+                    deadline = time.monotonic() + startup_budget_seconds
                 # Always use current eligibility after a failure, not the startup snapshot.
                 if candidate_provider is not None:
                     with anyio.move_on_after(max(0, deadline - time.monotonic())) as scope:

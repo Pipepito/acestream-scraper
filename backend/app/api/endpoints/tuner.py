@@ -323,6 +323,17 @@ async def tuner_stream(content_id: str, request: Request):
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 
 
+def _switch_on_failure() -> bool:
+    # When the playing source stops sending, go on with another one in the
+    # same response instead of ending it. Off unless the setting turns it on.
+    db = SessionLocal()
+    try:
+        value = SettingsRepository(db).get_setting("tuner_switch_on_failure") or "false"
+        return str(value).lower() not in ("false", "0", "no")
+    finally:
+        db.close()
+
+
 def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) -> List[str]:
     db = SessionLocal()
     try:
@@ -396,6 +407,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
                                       plex_compatible_audio=relay_settings.plex_compatible_audio,
                                       attempt_seconds=relay_settings.source_start_seconds,
                                       startup_budget_seconds=relay_settings.startup_budget_seconds,
+                                      switch_midstream=await run_in_threadpool(_switch_on_failure),
                                       opening=shared, resume_deadline=resume_deadline, skip=skip,
                                       last_resort_provider=lambda: run_in_threadpool(
                                           _channel_candidates, tv_channel_id, include_offline=True),
@@ -424,6 +436,11 @@ async def tuner_channel(tv_channel_id: int, request: Request):
             yield first
             async for chunk in iterator:
                 yield chunk
+        except (EngineStreamError, EngineUnavailableError):
+            # No source left after playback had started (the midstream switch
+            # spent them all). Video already went out: end the response
+            # instead of breaking the transfer.
+            logger.info("TV relay ran out of sources after playback; ending tv_channel_id=%s", tv_channel_id)
         finally:
             tuner_playback_service.end_opening(key, shared)
             monitor.cancel()

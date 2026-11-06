@@ -221,3 +221,26 @@ def test_the_tuner_setting_hides_unusable_channels_in_the_playlist_and_lineup(db
     assert 'Stale Channel' not in _playlist(db_session)
     assert 'Stale Channel' in _playlist(db_session, hide_unusable=False)
     assert {entry.guide_name for entry in tuner.build_lineup().entries} == {'Live Channel'}
+
+
+def test_a_clock_that_starts_ahead_hides_nothing_until_the_lists_are_read(db_session):
+    from app.services.stream_history import unusable_ids
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    _stream(db_session, 'b', tv, last_seen=datetime.now(timezone.utc) - timedelta(days=3))
+    db_session.commit()
+    streams = db_session.query(AcestreamChannel).all()
+    assert unusable_ids(db_session, streams, now=datetime.now(timezone.utc) + timedelta(days=45)) == set()
+
+
+def test_a_box_left_off_for_weeks_hides_only_what_the_last_reading_had_already_lost(db_session):
+    gone = TVChannel(name='Stale Channel', is_active=True)
+    kept = TVChannel(name='Live Channel', is_active=True)
+    db_session.add_all([gone, kept])
+    db_session.flush()
+    last_reading = datetime.now(timezone.utc) - timedelta(days=21)
+    _stream(db_session, 'a', gone, last_seen=last_reading - timedelta(days=20))
+    _stream(db_session, 'c', kept, last_seen=last_reading)
+    db_session.commit()
+    body = _playlist(db_session, hide_unusable=True)
+    assert 'Live Channel' in body and 'Stale Channel' not in body

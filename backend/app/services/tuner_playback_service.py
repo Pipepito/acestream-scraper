@@ -327,6 +327,8 @@ async def relay_ranked_streams(
                     with anyio.fail_after(max(0, attempt_deadline - time.monotonic())) as timer[0]:
                         first = await anext(iterator)
                     first_at = last_at = time.monotonic()
+                    # Bytes of the source itself: from here on the source plays.
+                    registry.source_playing(claim.id)
                     if opening is not None:
                         opening.current_deadline = None
                     yield first

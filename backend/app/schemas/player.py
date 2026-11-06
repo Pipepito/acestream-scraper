@@ -77,6 +77,10 @@ class ActiveStream(BaseModel):
     #: Who is pulling the relay, e.g. "tuner:192.168.1.5" (relays only).
     client_label: Optional[str] = None
     started_at: Optional[datetime] = None
+    #: Relays only: ``probing`` while ``content_id`` is open but has not
+    #: delivered video yet, ``playing`` once
+    #: it has. Back to ``probing`` on every automatic switch to another source.
+    source_state: Optional[Literal["probing", "playing"]] = None
 
 
 class ActiveStreamListResponse(BaseModel):

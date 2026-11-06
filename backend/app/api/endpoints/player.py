@@ -118,6 +118,7 @@ def active_streams(db: Session = Depends(get_db)) -> ActiveStreamListResponse:
             viewers=1,
             client_label=relay.client_label,
             started_at=datetime.fromtimestamp(relay.started_at, tz=timezone.utc),
+            source_state=relay.source_state,
         )
         for relay in relays
     ]

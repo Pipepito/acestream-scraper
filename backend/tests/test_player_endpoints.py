@@ -210,6 +210,26 @@ def test_active_streams_lists_relays_next_to_browser_sessions_with_channel_names
     client.delete(f"/api/v1/player/sessions/{session['id']}")
 
 
+def test_a_relay_says_whether_its_source_is_probing_or_playing(client, player):
+    """A relay's source is probing until it delivers video and playing after;
+    browser sessions carry no such state."""
+    from app.services.stream_relay import relay_registry
+
+    session = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
+    relay = relay_registry.open("1" * 40, "tuner:192.168.1.5")
+    try:
+        def states():
+            return {stream["kind"]: stream["source_state"] for stream in client.get("/api/v1/player/streams").json()["streams"]}
+        assert states() == {"browser": None, "relay": "probing"}
+        relay_registry.source_playing(relay.id)
+        assert states() == {"browser": None, "relay": "playing"}
+        relay_registry.select_stream(relay.id, "2" * 40)
+        assert states() == {"browser": None, "relay": "probing"}
+    finally:
+        relay_registry.close(relay.id)
+        client.delete(f"/api/v1/player/sessions/{session['id']}")
+
+
 def test_active_streams_names_an_unknown_channel_nothing(client, player):
     session = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
     try:

@@ -9950,6 +9950,12 @@ export interface components {
             experimental_transcoding?: boolean;
             /** Friendly Name */
             friendly_name: string;
+            /**
+             * Hide Unusable
+             * @description Leave out sources no list has published for two weeks or whose recent playback clearly failed, and channels left with none (lineup and M3U playlists)
+             * @default false
+             */
+            hide_unusable?: boolean;
             /** Max Channels */
             max_channels: number;
             /** Only Online */
@@ -9981,6 +9987,8 @@ export interface components {
             experimental_transcoding?: boolean | null;
             /** Friendly Name */
             friendly_name?: string | null;
+            /** Hide Unusable */
+            hide_unusable?: boolean | null;
             /** Max Channels */
             max_channels?: number | null;
             /** Only Online */
@@ -10491,6 +10499,7 @@ export interface operations {
                 only_online?: boolean;
                 include_unassigned?: boolean | null;
                 per_source?: boolean;
+                hide_unusable?: boolean | null;
                 include_groups?: string | null;
                 exclude_groups?: string | null;
                 base_url?: string | null;
@@ -15661,6 +15670,8 @@ export interface operations {
                 include_unassigned?: boolean | null;
                 /** @description TV relay formats: list each source under its channel, to switch by hand. */
                 per_source?: boolean;
+                /** @description Override the tuner hide_unusable setting for this request. */
+                hide_unusable?: boolean | null;
                 favorites_only?: boolean;
                 include_groups?: string[] | null;
                 exclude_groups?: string[] | null;
@@ -15705,6 +15716,8 @@ export interface operations {
                 include_unassigned?: boolean | null;
                 /** @description TV relay formats: list each source under its channel, to switch by hand. */
                 per_source?: boolean;
+                /** @description Override the tuner hide_unusable setting for this request. */
+                hide_unusable?: boolean | null;
                 favorites_only?: boolean;
                 include_groups?: string[] | null;
                 exclude_groups?: string[] | null;
@@ -19826,6 +19839,7 @@ export interface operations {
                 only_online?: boolean;
                 include_unassigned?: boolean | null;
                 per_source?: boolean;
+                hide_unusable?: boolean | null;
                 include_groups?: string | null;
                 exclude_groups?: string | null;
                 base_url?: string | null;
@@ -19867,6 +19881,7 @@ export interface operations {
                 only_online?: boolean;
                 include_unassigned?: boolean | null;
                 per_source?: boolean;
+                hide_unusable?: boolean | null;
                 include_groups?: string | null;
                 exclude_groups?: string | null;
                 base_url?: string | null;

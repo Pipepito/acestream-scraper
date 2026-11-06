@@ -7,6 +7,7 @@ started. The relay records how each attempt ended; within each freshness group
 a source that played goes first, and a source that is clearly dead goes after
 every group (it is never dropped, only tried last).
 """
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -172,3 +173,51 @@ def test_stream_attempts_migration_upgrade_path(tmp_path, previous_revision):
     assert 'stream_attempts' not in inspect(engine).get_table_names()
     upgrade_to_head(path)
     engine.dispose()
+
+
+def _playlist(db, **options):
+    from app.services.playlist_service import PlaylistService
+    return asyncio.run(PlaylistService(db).generate_playlist(
+        only_online=False, base_url='http://tuner.example/tuner/channel/{tv_channel_id}.ts', **options))
+
+
+def test_hide_unusable_leaves_out_a_channel_with_no_useful_source(db_session):
+    gone = TVChannel(name='Stale Channel', is_active=True)
+    kept = TVChannel(name='Live Channel', is_active=True)
+    db_session.add_all([gone, kept])
+    db_session.flush()
+    _stream(db_session, 'a', gone, last_seen=datetime.now(timezone.utc) - timedelta(days=60))
+    _stream(db_session, 'b', gone)
+    _attempts(db_session, 'b', 'no_data', 3)
+    _stream(db_session, 'c', kept)
+    db_session.commit()
+    assert 'Stale Channel' in _playlist(db_session)
+    hidden = _playlist(db_session, hide_unusable=True)
+    assert 'Stale Channel' not in hidden and 'Live Channel' in hidden
+
+
+def test_hide_unusable_keeps_a_channel_while_one_source_is_useful(db_session):
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv, last_seen=datetime.now(timezone.utc) - timedelta(days=60))
+    _stream(db_session, 'b', tv, online=None)
+    db_session.commit()
+    body = _playlist(db_session, hide_unusable=True, per_source=True)
+    assert 'Example Sports' in body
+    assert 'b' * 40 in body and 'a' * 40 not in body
+
+
+def test_the_tuner_setting_hides_unusable_channels_in_the_playlist_and_lineup(db_session):
+    gone = TVChannel(name='Stale Channel', is_active=True)
+    kept = TVChannel(name='Live Channel', is_active=True)
+    db_session.add_all([gone, kept])
+    db_session.flush()
+    _stream(db_session, 'a', gone, last_seen=datetime.now(timezone.utc) - timedelta(days=60))
+    _stream(db_session, 'c', kept)
+    db_session.commit()
+    tuner = TunerService(db_session)
+    assert not tuner.settings().hide_unusable
+    assert {entry.guide_name for entry in tuner.build_lineup().entries} == {'Stale Channel', 'Live Channel'}
+    tuner.update_settings(hide_unusable=True)
+    assert 'Stale Channel' not in _playlist(db_session)
+    assert 'Stale Channel' in _playlist(db_session, hide_unusable=False)
+    assert {entry.guide_name for entry in tuner.build_lineup().entries} == {'Live Channel'}

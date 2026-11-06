@@ -917,5 +917,7 @@ each freshness group by decayed playback history with the list's online share
 as prior, and demotes, never drops, sources unseen by any list for 14 days,
 with clearly bad recent history, or from mostly offline lists without own
 history. Saved preferences stay first; engine outages do not count against a
-source. Migration `20261102_1200` follows `20261103_1200`. See
-`docs/ops/stream-history.md`.
+source. Migration `20261102_1200` follows `20261103_1200`. The opt-in tuner
+setting `hide_unusable` (off by default; playlist URLs may override it) leaves
+the stale and clearly bad ones out of the lineup and M3U playlists, never for
+a mostly offline list alone. See `docs/ops/stream-history.md`.

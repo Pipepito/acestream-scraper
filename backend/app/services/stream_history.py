@@ -126,6 +126,31 @@ def scores_for(db, streams, now: Optional[datetime] = None) -> Dict[str, SourceS
     return score_sources(streams, attempts, health, now)
 
 
+def unusable_ids(db, streams, now: Optional[datetime] = None) -> set[str]:
+    """Sources with no useful prospect: no list has published them for
+    ``STALE_DAYS``, or their own recent playback history is clearly bad.
+
+    Deliberately narrower than ``demoted``: a mostly offline list alone does
+    not make a source unusable, because status checks of a box that is only on
+    now and then are often hours or days old. Used by the playlist's
+    ``hide_unusable`` option; a source becomes usable again as soon as a list
+    publishes it or it plays."""
+    now = now or datetime.now(timezone.utc)
+    streams = list(streams)
+    scores = scores_for(db, streams, now)
+    unusable = set()
+    for stream in streams:
+        cid = stream.id.lower()
+        last_seen = getattr(stream, 'last_seen', None)
+        stale = (last_seen is not None and _aware(last_seen) <= now + FUTURE_TOLERANCE
+                 and now - _aware(last_seen) > timedelta(days=STALE_DAYS))
+        past = scores.get(cid)
+        bad = past is not None and past.evidence >= BAD_EVIDENCE and past.score < BAD_SCORE
+        if stale or bad:
+            unusable.add(cid)
+    return unusable
+
+
 class StreamHistoryRecorder:
     """Queues outcomes from the relay and writes them on one daemon thread."""
 

@@ -64,6 +64,7 @@ class PlaylistService:
         include_unassigned: Optional[bool] = None,
         epg_url: Optional[str] = None,
         per_source: bool = False,
+        hide_unusable: Optional[bool] = None,
     ) -> str:
         """
         Generate an M3U playlist with the specified filters
@@ -91,6 +92,16 @@ class PlaylistService:
             exclude_groups=exclude_groups,
             favorites_only=favorites_only
         )
+        if hide_unusable is None:
+            from app.repositories.settings_repository import SettingsRepository
+            setting = SettingsRepository(self.db).get_setting(SettingsRepository.TUNER_HIDE_UNUSABLE)
+            hide_unusable = str(setting or 'false').lower() in ('true', '1')
+        if hide_unusable:
+            # stream_history decides what has no useful prospect; a TV
+            # channel left without any of its sources drops out below.
+            from app.services.stream_history import unusable_ids
+            gone = unusable_ids(self.db, channels)
+            channels = [channel for channel in channels if channel.id.lower() not in gone]
 
         if "{tv_channel_id}" in base_url:
             tv_ids = {channel.tv_channel_id for channel in channels if channel.tv_channel_id is not None}

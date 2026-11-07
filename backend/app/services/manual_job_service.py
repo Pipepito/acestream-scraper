@@ -4,13 +4,15 @@ import inspect
 from datetime import datetime, timezone
 from starlette.concurrency import run_in_threadpool
 from app.services.task_service import task_service
+from app.services import notification_service
 
 
 def _summary(kind, result):
     if kind == 'url_scraping':
         rows = result if isinstance(result, list) else [result]
         return {'processed': len(rows), 'failures': sum(str(status).lower().startswith('error') for _, status in rows),
-                'channels': sum(len(channels) for channels, _ in rows)}
+                'channels': sum(len(channels) for channels, _ in rows),
+                'import_exclusions': {'excluded_candidates': sum(getattr(row, 'excluded_count', 0) for row in rows)}}
     if kind == 'epg_refresh':
         rows = result if isinstance(result, list) else [result]
         successful = sum(bool(row.get('success')) for row in rows)
@@ -36,14 +38,21 @@ async def run_manual_job(kind, func, *args):
             result = await run_in_threadpool(func, *args)
         state['last_result'] = _summary(kind, result)
         state['status'] = 'idle'
+        if kind == 'url_scraping':
+            # Notify once for the explicit action, including a multi-source batch.
+            # Scheduled scrapes have their own summary hook; ingestion itself
+            # must not notify or every source would send a duplicate.
+            await run_in_threadpool(notification_service.scraping_completed, state['last_result'])
         return result
     except asyncio.CancelledError:
         state['status'] = 'interrupted'
         state['last_error'] = 'Manual run was interrupted'
         raise
-    except Exception:
+    except Exception as exc:
         state['status'] = 'error'
         state['last_error'] = 'Manual run failed; see application logs for details'
+        if kind == 'url_scraping':
+            await run_in_threadpool(notification_service.task_failed, kind, exc)
         raise
     finally:
         await asyncio.to_thread(task_service.persist_current_state, job_id, state)

@@ -1,6 +1,7 @@
 """
 Base scraper class with common acestream link extraction logic.
 """
+import asyncio
 import re
 import logging
 import json
@@ -91,7 +92,7 @@ class BaseScraper(ABC):
                         return channels
 
         # Fallback to regular linksData extraction only if listaplana.txt didn't yield results
-        script_tag = soup.find('script', text=re.compile(r'const linksData'))
+        script_tag = soup.find('script', string=re.compile(r'const linksData'))
         if script_tag:
             script_content = script_tag.string
             json_str = re.search(r'const linksData = (\{.*?\});', script_content, re.DOTALL)
@@ -362,9 +363,17 @@ class BaseScraper(ABC):
         status = "OK"
         retries_left = self.retries
         is_m3u_file = url_to_scrape.lower().endswith((".m3u", ".m3u8"))
+        # A broadcaster's website (atresplayer.com, telemadrid.es...) is read
+        # through its API and imported as the M3U list it amounts to.
+        from app.services import live_providers
+        live_provider = live_providers.for_source_url(url_to_scrape)
+        is_m3u_file = is_m3u_file or live_provider is not None
         while retries_left >= 0:
             try:
-                content = await self.fetch_content(url_to_scrape)
+                if live_provider is not None:
+                    content = await asyncio.to_thread(live_providers.playlist, live_provider)
+                else:
+                    content = await self.fetch_content(url_to_scrape)
                 named_channels = self.extract_named_text_list(content)
                 if named_channels:
                     channels.extend(named_channels)

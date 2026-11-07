@@ -12,7 +12,7 @@ from app.scrapers.ipfs import IpfsScraper
 
 
 CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
-IPNS_NAME = 'k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb'
+IPNS_NAME = 'synthetic-fixture'
 
 M3U_CONTENT = """#EXTM3U
 #EXTINF:-1 group-title="Sports" tvg-logo="http://logo/1.png",Sports One

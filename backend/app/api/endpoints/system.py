@@ -20,10 +20,17 @@ from app.services.system_services_service import (
     SystemServicesService,
 )
 
-router = APIRouter(tags=["system"])
-
 from app.schemas.storage import StorageReport
 from app.services.storage_service import storage_report
+from app.schemas.updates import UpdateStatus
+from app.services.update_service import check_updates
+
+router = APIRouter(tags=["system"])
+
+
+@router.get("/updates", response_model=UpdateStatus, summary="Check for a newer published stable release")
+def get_updates() -> UpdateStatus:
+    return check_updates()
 
 
 @router.get('/storage', response_model=StorageReport, summary='Container directories and filesystem space')

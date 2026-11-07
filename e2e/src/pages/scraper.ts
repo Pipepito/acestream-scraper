@@ -59,7 +59,7 @@ export class ScraperPage extends AppShell {
 
   async delete(url: string): Promise<void> {
     await this.rowMenuAction(this.row(url), url, 'Delete');
-    await this.confirmDialog('Delete this source?', 'Delete');
+    await this.confirmDialog('Delete this source?', 'Delete source');
   }
 
   async refresh(): Promise<void> {

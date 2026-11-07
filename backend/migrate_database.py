@@ -15,6 +15,7 @@ The migration runs in two phases so startup never blocks on the largest table:
   refresh may already have inserted, and checkpoints after every commit so a
   restart resumes where it stopped.
 """
+from contextlib import closing
 import json
 import os
 import shutil
@@ -95,7 +96,7 @@ class DatabaseMigrator:
         schemas = {}
 
         try:
-            with sqlite3.connect(self.v1_db_path) as conn:
+            with closing(sqlite3.connect(self.v1_db_path)) as conn, conn:
                 cursor = conn.cursor()
 
                 # Get all table names

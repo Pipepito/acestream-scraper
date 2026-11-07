@@ -44,9 +44,13 @@ def test_refresh_checks_offline_first_skips_fresh_invalid_and_inactive(alembic_d
             is_online=online, is_active=active, last_checked=datetime.now(timezone.utc) if fresh else None))
     db_session.commit()
     probe = AsyncMock()
+    http_id = 'url:' + 'f' * 40
+    db_session.add(AcestreamChannel(id=http_id, name='laSexta', tv_channel_id=tv.id,
+        is_online=None, is_active=True, stream_url='atresplayer://lasexta'))
+    db_session.commit()
     monkeypatch.setattr(module.ChannelStatusService, 'check_channel_status', probe)
     module.refresh_channel(tv.id, Event())
-    assert [call.args[0].id for call in probe.call_args_list] == ['b' * 40, 'c' * 40, 'a' * 40]
+    assert [call.args[0].id for call in probe.call_args_list] == ['b' * 40, 'c' * 40, http_id, 'a' * 40]
     assert all(call.kwargs['priority'] == module.ProbePriority.PLAYBACK for call in probe.call_args_list)
 
 

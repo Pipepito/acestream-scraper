@@ -40,7 +40,7 @@ class TestConfigEndpoints:
         update_data = {"value": invalid_url}
 
         response = alembic_client.put("/api/v1/config/base_url", json=update_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_get_ace_engine_url_default(self, alembic_client):
         """Test getting acestream engine URL setting."""
@@ -100,7 +100,7 @@ class TestConfigEndpoints:
         update_data = {"value": invalid_interval}
 
         response = alembic_client.put("/api/v1/config/rescrape_interval", json=update_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_rescrape_interval_negative_value(self, alembic_client):
         """Test updating rescrape interval with negative value."""
@@ -108,7 +108,7 @@ class TestConfigEndpoints:
         update_data = {"value": negative_interval}
 
         response = alembic_client.put("/api/v1/config/rescrape_interval", json=update_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_get_addpid_setting_default(self, alembic_client):
         """Test getting addpid setting."""
@@ -300,7 +300,7 @@ class TestConfigIntegration:
             update_data = {"value": invalid_url}
             response = alembic_client.put("/api/v1/config/base_url", json=update_data)
             # Should reject invalid URLs
-            assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+            assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Test numeric validation
         invalid_intervals = [
@@ -314,7 +314,7 @@ class TestConfigIntegration:
             update_data = {"value": invalid_interval}
             response = alembic_client.put("/api/v1/config/rescrape_interval", json=update_data)
             # Should reject invalid intervals
-            assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+            assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_config_defaults_initialization(self, alembic_client):
         """Test that config endpoints have sensible defaults."""

@@ -8,6 +8,7 @@ the other engine's waiting thread takes over and removes the stale socket.
 import fcntl
 import ipaddress
 import os
+import socket
 import threading
 import time
 
@@ -77,10 +78,23 @@ def run_shared_listener(listener, resolver, socket_path="/dev/socket/dnsproxyd")
         time.sleep(1)
 
 
-def start_shared_dns(listener, resolver):
+def start_shared_dns(listener, resolver, wait_ready=True):
     thread = threading.Thread(
         target=run_shared_listener, args=(listener, resolver),
         name="shared-dnsproxyd", daemon=True,
     )
     thread.start()
-    return thread
+    if not wait_ready:
+        return thread
+    # Do not enter the engine before either our listener or the other engine's
+    # listener is accepting native requests. Connecting without a query is safe.
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                client.settimeout(0.1)
+                client.connect("/dev/socket/dnsproxyd")
+            return thread
+        except OSError:
+            time.sleep(0.02)
+    raise RuntimeError("bionic DNS listener did not become ready")

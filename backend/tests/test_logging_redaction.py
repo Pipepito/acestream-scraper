@@ -20,6 +20,15 @@ def test_filter_leaves_other_paths_alone():
     assert record.args[2] == "/api/v1/health"
 
 
+def test_cast_media_capabilities_are_redacted_without_breaking_access_format():
+    record = _record(('127.0.0.1:1', 'GET', '/api/v1/viewers/id/media/index.m3u8?cap=private-value', '1.1', 200))
+    RedactTokenFilter().filter(record)
+    assert len(record.args) == 5 and 'private-value' not in record.getMessage()
+    cast = logging.LogRecord('pychromecast', logging.INFO, __file__, 1, 'Sent %s', ({'url': 'http://tv/media?cap=private-value'},), None)
+    RedactTokenFilter().filter(cast)
+    assert 'private-value' not in cast.getMessage()
+
+
 def test_setup_logging_installs_the_filter_once():
     setup_logging()
     setup_logging()

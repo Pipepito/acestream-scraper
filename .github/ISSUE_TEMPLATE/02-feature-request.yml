@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a feature or improvement and explain the problem it solves.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Search existing requests first. Describe the user need; implementation details are optional.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Who encounters the problem, and what is difficult in the current workflow?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain what the user should be able to do and give a concrete example.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: What have you tried or considered? Say none if there is no workaround.
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: What would a successful result look like?
+      description: Describe a few observable outcomes that would satisfy the request.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add relevant integrations, examples, mockups, or implementation ideas. Remove private information.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for similar requests.
+          required: true

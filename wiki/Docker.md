@@ -106,12 +106,13 @@ Docker images are published under `pipepito/acestream-scraper`.
 |---|---|---|---|
 | `latest` / `scraper-acestream-acexy` | Yes | Yes | The full package |
 | `scraper-acestream` | Yes | No | A bundled engine without Acexy |
+| `scraper-outpace` | Outpace | No | Experimental live playback and optional checker |
 | `scraper-acexy` | No | Yes | A proxy for an external engine |
 | `scraper` | No | No | Scraping/playlists or external playback services |
 
 Every variant includes the web app, FFmpeg and ffprobe. On amd64 and arm64, every variant also includes Cloudflare WARP, IPFS (Kubo), ZeroNet and Tor. Removing the engine or proxy does not remove these shared tools.
 
-With default settings, only the web app starts. FFmpeg/ffprobe are available when needed; AceStream, Acexy, WARP, IPFS, ZeroNet and Tor remain off until enabled. The [command builder](https://pipepito.github.io/acestream-scraper/) sets the appropriate service options. An engine-containing image can also run an optional separate checking engine.
+The Outpace flavor starts its playback engine on fresh installs. For the other flavors, only the web app starts by default. FFmpeg/ffprobe are available when needed; AceStream, Acexy, WARP, IPFS, ZeroNet and Tor remain off until enabled. The [command builder](https://pipepito.github.io/acestream-scraper/) sets the appropriate service options. An engine-containing image can also run an optional separate checking engine.
 
 Every flavor is published for `linux/amd64`, `linux/arm64`, and `linux/arm/v7`. The AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, and `latest`) install a different engine per platform:
 
@@ -129,7 +130,14 @@ changes, or extra capabilities are needed. `linux/arm/v7` builds and installs
 but has not been runtime-tested on real ARMv7 hardware yet, so treat it as
 experimental.
 
-WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (it needs `--cap-add NET_ADMIN --cap-add SYS_ADMIN` and `--device /dev/net/tun`). The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
+The bundled ARM engines resolve native connectivity checks and DHT bootstrap
+names through a shared listener backed by the Python resolver. It follows the
+container's configured DNS servers, including WARP changes, and retains local
+host aliases. No public DNS server or fixed hostname list is imposed. See the
+[native DNS investigation](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/arm64-mod-detected.md#native-libc-dns-follow-up-issue-253)
+for verification and ARMv7 limitations.
+
+WARP is installed in every flavor's `linux/amd64` and `linux/arm64` images, but it only starts when `ENABLE_WARP=true` (full tunneling on `develop` needs `--cap-add NET_ADMIN` and `--device /dev/net/tun`; see DNS-only mode below). The command builder retains `SYS_ADMIN` for older release selections. The `linux/arm/v7` images ship without the WARP client (Cloudflare publishes no 32-bit ARM build), so `ENABLE_WARP` is unsupported there.
 
 ZeroNet works in two modes. The `linux/amd64` and `linux/arm64` images bundle a [zeronet-conservancy](https://github.com/zeronet-conservancy/zeronet-conservancy) node, pinned by commit to a state that carries DHT peer discovery — opt-in, nothing runs until `ENABLE_ZERONET=true` (add `ENABLE_TOR=true` for TOR, like the v1 image). The node runs on its own Python 3.11 under `/opt/zeronet` because its dependency set predates the app's Python; 32-bit ARM images ship without it because gevent publishes no armv7l wheels — there, and whenever you prefer it, ZeroNet runs as an external sidecar/service and the app reaches it through `ZERONET_URL`.
 
@@ -143,13 +151,43 @@ upgrading; a rollback uses the retained legacy files, not subsequent v2 state.
 
 The bundled node includes a targeted manifest-verification patch. See [verification scope and remaining upstream limitations](../docs/ops/zeronet-verification.md).
 
+Sources written as `zero://<site>/<file>` use the complete configured `ZERONET_URL`,
+including HTTPS, non-default ports, IPv6 and a gateway path prefix. A missing-site
+bootstrap request uses the same prefix before retrying the requested file. Explicit
+HTTP source URLs retain their own address. Bare JSON link lists retain names next
+to their AceStream IDs; direct JSON/M3U fetch failures are reported on the source.
+
 The checked-in compose stack keeps the `zeronet` service behind an optional `zeronet` profile and points the default app config at `http://host.docker.internal:43110`. It uses an amd64-focused sidecar image. On 32-bit ARM hosts, point `ZERONET_URL` at an external ZeroNet service or swap in a compatible sidecar. With the embedded node enabled, leave `ZERONET_URL` unset — the entrypoint targets the embedded UI port automatically.
 
 IPFS is also bundled: every flavor ships the [Kubo](https://github.com/ipfs/kubo) IPFS daemon on `linux/amd64` and `linux/arm64`. Kubo publishes no 32-bit ARM build, so `linux/arm/v7` images ship without it (the container exits with a clear error if `ENABLE_IPFS=true` is requested there — same situation as WARP). The daemon is opt-in: nothing IPFS-related runs until `ENABLE_IPFS=true`. `ipfs://` and `ipns://` sources are fetched through `IPFS_GATEWAY_URL`, which defaults to the embedded gateway at `http://127.0.0.1:8081` — the gateway uses `8081` in-container because Acexy already listens on `8080`. You can also scrape IPFS without the embedded daemon: keep `ENABLE_IPFS=false` and point `IPFS_GATEWAY_URL` at an external node, e.g. `http://host.docker.internal:8080` for a Kubo/IPFS Desktop install on the Docker host (this works on every platform, `linux/arm/v7` included).
 
 AceStream platform availability is manifest-driven via `docker/manifests/acestream.json`. Adding a new supported AceStream architecture means updating that manifest. The manifest pins the engine source and support level (`stable` or `experimental`) per platform: conventional archives are checksum-pinned and vendored, while both ARM entries pin the jopsis multi-platform OCI digest.
 
-If you run with `ENABLE_WARP=true`, the container must be started with the runtime capabilities `NET_ADMIN` and `SYS_ADMIN`.
+Full WARP tunneling on `develop` requires `NET_ADMIN` and `/dev/net/tun`.
+`NET_ADMIN` permits network configuration; `/dev/net/tun` supplies the virtual
+network device. The current bundled client works without `SYS_ADMIN`, which
+grants broad system privileges. The command builder omits it for `develop` and
+retains it for compatibility with older release selections.
+
+On `develop`, select **DNS only (no traffic tunnel)** in the command builder,
+or set `ENABLE_WARP=true`, `WARP_DNS_ONLY=true` and `WARP_ENABLE_NAT=true`.
+DNS-only mode encrypts DNS lookups with Cloudflare, while video and other traffic
+use the normal connection. The bundled Linux client still needs
+`--cap-add NET_ADMIN`; it does not need `SYS_ADMIN` or `/dev/net/tun` in this mode.
+The legacy `WARP_ENABLE_NAT` name controls automatic connection for both modes;
+DNS-only mode never installs NAT rules. With it disabled, the selected DNS-only
+mode is configured but you must connect from the WARP page.
+
+Missing WARP prerequisites or failed startup leave the web startup screen and
+authenticated diagnostics available. Network sidecars and application jobs stay
+blocked; the app does not silently fall back to a direct connection. Health stays
+unhealthy until fixed. Recreate the container with the required permissions and
+the same data mounts, or explicitly disable WARP in the saved runtime configuration.
+An in-app setting cannot add Docker capabilities or devices. Retry in the startup
+screen cannot repair container permissions; restart after correcting deployment.
+If the host has no `/dev/net/tun` but the command includes `--device`, Docker
+itself refuses to create the container, before the app can show diagnostics.
+Choose DNS-only mode and omit that device mapping, or provide host TUN support.
 
 ### Pre-release channel (`develop`)
 
@@ -163,6 +201,38 @@ Channel tags are moving tags: they are re-pushed for the same platforms as the r
 ```bash
 docker pull pipepito/acestream-scraper:develop
 ```
+
+### Experimental Outpace image
+
+Build the branch locally with `docker build --target scraper-outpace -t scraper:outpace .`.
+Start with a fresh configuration to use the bundled playback engine. This example
+also enables a separate checking process:
+
+```bash
+docker run --rm -p 0.0.0.0:8000:8000 \
+  -e ENABLE_ACESTREAM_CHECK_ENGINE=true \
+  -v scraper-config:/app/config -v outpace-playback:/var/lib/outpace \
+  -v outpace-check:/var/lib/outpace-check scraper:outpace
+```
+
+Select the engine by image tag. The planned development tag is
+`develop-scraper-outpace`. The Outpace flavor includes the upstream 0.9.0 binary
+for amd64, arm64 and ARMv7. Scraper talks directly to playback on 6878 and the
+optional checker on loopback port 6880. Both processes have separate identities,
+storage and peer listeners. Keep the engine HTTP API private. To allow incoming
+playback peers, publish TCP port 8621. On an existing installation, review the
+saved engine toggles, playback URL and Acexy routing in Settings, then restart.
+
+Use known public, unencrypted live content IDs. The engine can supply MPEG-TS to
+the web player, tuner and recorder. Playback defaults to a three-second prebuffer
+target with a five-second prebuffer deadline so the tuner can start within its
+own timeout. The checker samples media immediately. Source availability still
+depends on the peers.
+Outpace has no catalogue search endpoint and cannot resolve a search infohash to
+a content ID. Manual additions, source imports and searching your saved channels
+remain available. Premium and encrypted streams are outside the supported scope.
+See the [upstream API compatibility table](https://github.com/jamezrin/outpace/blob/v0.9.0/docs/protocol/compat-matrix.md)
+and [source and license](https://github.com/jamezrin/outpace/tree/v0.9.0).
 
 ## Basic Docker Commands
 
@@ -238,7 +308,7 @@ docker run -d \
   pipepito/acestream-scraper:latest
 ```
 
-- `ENABLE_ACESTREAM_ENGINE=true` starts the engine; no extra capabilities are required (only WARP needs `NET_ADMIN`/`SYS_ADMIN`).
+- `ENABLE_ACESTREAM_ENGINE=true` starts the engine; no extra capabilities are required (WARP needs `NET_ADMIN`; older release examples also retain `SYS_ADMIN`).
 - On ARM, `/var/lib/acestream` (`ACESTREAM_HOME`) holds the Android engine's state: `acestream.conf`, `acestream.log`, `acestream_error.log`, and the `.ACEStream/` directory with the disk cache. A host-folder mount is optional but highly recommended so the cache and the per-install device id (`.device_id`) survive container replacement; the mount is harmless on amd64.
 - Ports: `6878` is the engine HTTP API (the backend talks to it through `ACE_ENGINE_URL`, default `http://localhost:6878` when the bundled engine is enabled; otherwise empty); `8621` tcp/udp is the P2P port. Only publish `6878` if you want to reach the engine from outside the container, and only on trusted networks: the engine is started with `--bind-all` on every platform (`ACESTREAM_BIND_ALL=true` by default; set it to `false` to keep the engine's loopback/RFC1918-only filter) so published-port clients are accepted, and the engine HTTP API has no authentication.
 - Logs: the entrypoint supervises the engine, so its output shows up in `docker logs acestream-scraper` (on ARM the launcher passes `--log-stdout` for this). On ARM the engine also writes `acestream.log` / `acestream_error.log` under `/var/lib/acestream`. Every image flavour also captures bounded console history: use **Overview → Services → Download diagnostics** to save a ZIP from your phone, or `GET /api/v1/system/diagnostics` with the normal API token. Collection begins after upgrading to an image with this feature. Common credentials and URLs are masked on export; review before sharing. See [runtime diagnostics](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/runtime-diagnostics.md) for limits and retention.
@@ -253,6 +323,12 @@ ARM caveats:
 - **No WARP on linux/arm/v7 images:** `cloudflare-warp` ships for amd64 and arm64 only.
 - **Performance and streaming stability** on real ARM hardware are not yet validated; report results if you try it.
 - Repackaging the official APK payload is a grey area under the AceStream user agreement, as with every community ARM image. Enable the engine at your own discretion.
+
+The Docker command generator shows engine access guidance when port 6878 is
+published. `ACESTREAM_HTTP_HOST=localhost` is an internal connection destination,
+not a restriction on accepted clients. Keep it for the bundled engine;
+`ACESTREAM_BIND_ALL=true` already accepts remote clients. Use a published host
+address of `0.0.0.0` when all IPv4 host interfaces should be reachable.
 
 #### Playing streams on ARM
 
@@ -316,6 +392,33 @@ docker run -d \
 - Ports: `4001` tcp/udp is the swarm port (publishing it improves peer connectivity), `8081` is the HTTP gateway (only needed outside the container if you want to browse IPFS content through the node). The RPC API on `5001` has **no authentication** and full control of the node; it binds to the container loopback by default. If you need the WebUI, set `-e IPFS_API_HOST=0.0.0.0` and publish it only on the host loopback: `-p 127.0.0.1:5001:5001`.
 - Port overrides: `IPFS_SWARM_PORT` (default `4001`), `IPFS_API_PORT` (default `5001`), `IPFS_GATEWAY_PORT` (default `8081`; `8080` is taken by Acexy in-container). The entrypoint re-applies these to the IPFS config on every boot.
 - Once running, add sources as `ipfs://<cid>/path/list.m3u` (or `ipns://<name>/...`) in the Scraper page — they are fetched through the embedded gateway. A bare `ipfs://<cid>` whose content is an M3U playlist also works; the scraper detects the playlist by content.
+
+Bundled Kubo is a security rebuild of v0.43.1 from checksum-verified upstream
+source, using a patched Go toolchain and reviewed dependency locks. See
+[`docker/ipfs/README.md`](../docker/ipfs/README.md) for provenance. Upstream provides no ARMv7 binary; that platform still needs an external
+IPFS gateway. Existing persistent IPFS repositories are retained on upgrade.
+
+### Runtime dependency maintenance
+
+WARP retains the official daemon, CLI and diagnostic tools on amd64/arm64.
+The unused desktop taskbar and its GUI libraries are excluded. The signed APT
+package's control information and checksum remain under
+`/usr/share/doc/cloudflare-warp`; startup, state storage and required capabilities
+are unchanged. New vendor dependencies require a packaging review.
+
+Python package managers and their bootstrap wheels are build-only. Install extra
+Python packages in a derived image build or a separate environment; do not rely
+on `pip` being available in the production container. ZeroNet keeps its own
+interpreter and runtime dependencies. Existing encrypted Telegram sessions remain
+compatible with the updated cryptography library.
+
+The AMD64 AceStream executable keeps its required Python 3.10 runtime. Its old
+bundled certifi and IDNA eggs are replaced with maintained packages. Its native
+egg loaders retain setuptools 81's `pkg_resources` compatibility API in the
+engine's private dependency directory. Review this
+engine's dependency inventory separately from ARM: dependencies requiring Python
+3.11 cannot be substituted without an upstream engine update. Verify the real
+playback/checker lifecycle after changing any of its bundled libraries.
 
 ### View Running Containers
 ```bash
@@ -436,3 +539,97 @@ so it does not require mounting the engine's temporary files into the scraper.
 ## Optional DNS override
 
 The command builder's **Use xdp.es DNS** option is off by default. Enabling it adds `--dns=85.208.114.52` to Docker commands or a `dns:` entry to Compose. It selects [xdp.es Standard](https://xdp.es/about), without ad filtering, using ordinary unencrypted DNS. Recreate the container to apply or remove it; WARP may override DNS while connected.
+
+## Gluetun forwarded P2P ports
+
+For a bundled playback engine sharing Gluetun’s network namespace, opt into
+forwarded-port synchronization with `ACESTREAM_GLUETUN_PORT_FILE`. See
+[Gluetun setup](Gluetun.md) for the shared read-only directory, port ownership,
+restart behavior and provider requirements.
+
+
+## First-run configuration on develop
+
+The web wizard at `/setup` saves reviewed runtime options in
+`runtime-config.json` beside the SQLite database (normally `/app/config`). Keep the
+whole directory mounted and writable. Environment values for migrated options seed
+only a missing file; use **Settings → Setup wizard** for subsequent changes, then
+restart. Image selection, ports, volumes, capabilities and private credentials
+remain in Compose. Existing database preferences remain authoritative. See
+[configuration precedence](Configuration.md#first-run-setup) and the
+[option audit](../docs/dev/runtime-configuration-audit.md). This development feature
+is not evidence that the currently published stable image includes it.
+
+## Recording storage
+
+For built-in DVR, mount an existing persistent directory, set `RECORDINGS_DIR` to its absolute container path and enable recordings in Settings → Automation. Keep it separate from player HLS/cache storage. See [Recordings](Recordings.md) for admission, retention, permissions and rollback.
+
+## Reusing image layers when building
+
+Use `scripts/ci/build_multiarch_images.sh` for local image builds. It requires
+BuildKit 0.13 or newer and exports loaded and pushed images with a fixed
+`SOURCE_DATE_EPOCH=946684800` (2000-01-01 UTC) and `rewrite-timestamp=true`.
+This normalizes image/file timestamps; the image creation timestamp is therefore
+not the build date. The SPA HTML uses Cache-Control: no-store so normalized
+file timestamps cannot leave browsers on an obsolete app shell. Use CI records and build provenance for build time and source
+revision. Do not substitute each application commit's timestamp: that changes
+otherwise identical dependency layers on every update.
+
+The Dockerfile uses linked copies for application files, Python dependencies and
+bundled services, so changing an earlier layer need not rebuild or re-export an
+unchanged payload. Runtime package installation precedes application content;
+entrypoint permissions are set during copying instead of a later layer.
+
+The first update using this layout can still download replacement layers.
+Subsequent updates reuse identical content already present on the client. Base
+image updates and changed dependency versions intentionally change layers.
+This is not a guarantee of identical cold builds: floating upstream images,
+package repositories and generated dependency files can still change. Retaining
+the builder cache remains useful; never retain stale packages indefinitely just
+to make downloads smaller.
+
+## Accounts and Chromecast
+
+The first-run screen offers account setup; no authentication Docker variables or
+bootstrap secrets are needed. Administrators manage accounts and passwords in
+Settings → Access. Container owners can recover a forgotten password with
+`docker exec -it <container> python -m app.auth reset-password`.
+
+Server-side Chromecast discovery requires multicast access to the home network;
+published HTTP ports alone do not forward mDNS. Keep the receiver-accessible URL
+and verified home client networks in Settings. See [Accounts and casting](Accounts-and-Casting.md)
+for permissions, Kodi access, HTTPS, browser support and backup/rollback procedures.
+
+## Managing WARP from the app
+
+Open **System → WARP** to connect, disconnect or reconnect, select the current
+routing/DNS mode, and register a license. DNS-only modes do not tunnel video;
+proxy mode only tunnels clients explicitly using the WARP SOCKS5 proxy. Reconnect
+and exclusion changes can interrupt current playback. Automatic startup connection
+continues to select WARP with DNS over HTTPS.
+
+**Excluded hosts** sends selected hostnames directly instead of through WARP.
+Use **Add Atresmedia**, then **Save and apply exclusions** to add
+`api.atresplayer.com` and `atres-live.atresmedia.com`. Enter up to 64 hostnames,
+one per line or separated by commas; URLs, paths, IP addresses, ports and wildcards
+are rejected. An empty list removes app-managed exclusions. Other WARP exclusions
+are preserved and shown separately.
+
+The app verifies the active list after saving. If WARP is unavailable or rejects
+an operation, the desired list remains saved with a visible warning; start WARP
+and use **Save and apply exclusions** again. Partial changes retain removal
+history so retries and service restarts converge on the saved list. A stale tab
+must reload before it can overwrite another session's changes. Managed WARP
+policies using include mode must be changed by their administrator.
+
+The app saves `warp-exclusions.json` beside the SQLite database. Keep that directory
+on persistent storage. WARP startup and supervisor recovery reapply it before the
+startup connection barrier completes. `WARP_EXCLUDE_HOSTS` remains a comma/space
+separated bootstrap input when no saved file exists; after saving, the file wins,
+including an intentionally empty list. Changing the environment later does not
+overwrite saved choices. Exclusion changes apply without recreating the container.
+
+**Startup settings** controls the WARP service, automatic connection before engines,
+and IPv4 preference through the existing saved runtime configuration. Save these
+in the app, then restart the container to apply them. Docker devices/capabilities
+and persistent volumes still belong in the deployment configuration.

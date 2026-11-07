@@ -31,9 +31,11 @@ export class ErrorMonitor {
   readonly consoleErrors: string[] = [];
   readonly pageErrors: string[] = [];
   readonly apiFailures: ApiFailure[] = [];
+  readonly cancelledReads: ApiFailure[] = [];
   readonly backendErrors: string[] = [];
   private readonly extraAllowedApi: RegExp[] = [];
   private readonly extraAllowedConsole: RegExp[] = [];
+  private readonly extraAllowedBackend: RegExp[] = [];
   private snapshots: Snapshot[] = [];
 
   constructor(private readonly page: Page, private readonly policy: ErrorPolicy) {}
@@ -68,7 +70,16 @@ export class ErrorMonitor {
     });
     this.page.on('requestfailed', (req) => {
       if (req.url().includes('/api/')) {
-        this.apiFailures.push({ method: req.method(), url: req.url(), status: 0, body: req.failure()?.errorText ?? 'request failed' });
+        const failure = { method: req.method(), url: req.url(), status: 0, body: req.failure()?.errorText ?? 'request failed' };
+        // Navigation and player teardown cancel in-flight reads. Keep these in
+        // the evidence, but distinguish explicit browser cancellation from an
+        // HTTP error, a transport failure, or an interrupted mutation.
+        if (['GET', 'HEAD'].includes(failure.method)
+          && ['NS_BINDING_ABORTED', 'net::ERR_ABORTED', 'cancelled'].includes(failure.body)) {
+          this.cancelledReads.push(failure);
+        } else {
+          this.apiFailures.push(failure);
+        }
       }
     });
   }
@@ -79,6 +90,10 @@ export class ErrorMonitor {
   }
   allowConsole(pattern: RegExp): void {
     this.extraAllowedConsole.push(pattern);
+  }
+  /** A specific backend error deliberately provoked by this test only. */
+  allowBackend(pattern: RegExp): void {
+    this.extraAllowedBackend.push(pattern);
   }
 
   private collectBackendErrors(): void {
@@ -110,21 +125,24 @@ export class ErrorMonitor {
     this.collectBackendErrors();
     const api = this.unexpectedApi();
     const consoleMsgs = this.unexpectedConsole();
+    const backend = this.backendErrors.filter((line) => !this.extraAllowedBackend.some((pattern) => pattern.test(line)));
     const report = {
       apiFailures: api,
       consoleErrors: consoleMsgs,
-      backendErrors: this.backendErrors,
+      backendErrors: backend,
+      allBackendErrors: this.backendErrors,
       allApiFailures: this.apiFailures,
+      cancelledReads: this.cancelledReads,
     };
-    const total = api.length + consoleMsgs.length + this.backendErrors.length;
-    if (total > 0 || this.apiFailures.length > 0) {
+    const total = api.length + consoleMsgs.length + backend.length;
+    if (total > 0 || this.apiFailures.length > 0 || this.backendErrors.length > 0 || this.cancelledReads.length > 0) {
       await testInfo.attach('error-monitor.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
     }
     if (total > 0) {
       const summary = [
         ...api.map((f) => `API ${f.status} ${f.method} ${f.url.replace(/^https?:\/\/[^/]+/, '')} ${f.body.replace(/\s+/g, ' ').slice(0, 160)}`),
         ...consoleMsgs.map((m) => `CONSOLE ${m.replace(/\s+/g, ' ').slice(0, 200)}`),
-        ...this.backendErrors.map((m) => `BACKEND ${m.replace(/\s+/g, ' ').slice(0, 200)}`),
+        ...backend.map((m) => `BACKEND ${m.replace(/\s+/g, ' ').slice(0, 200)}`),
       ].join('\n');
       testInfo.annotations.push({ type: 'errors-observed', description: summary });
       process.stdout.write(`\n[error-monitor] ${testInfo.title}\n${summary}\n`);

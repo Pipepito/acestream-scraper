@@ -1,0 +1,92 @@
+name: Bug report
+description: Report a failure or unexpected behavior with enough detail to reproduce it.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues and read the [troubleshooting guide](https://github.com/Pipepito/acestream-scraper/wiki/Troubleshooting) first.
+        Report one problem per issue. Review attachments before posting; do not include tokens, passwords, private source URLs, databases, or full environment dumps.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the failure and include the exact error message, if any.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Give numbered steps and say whether the failure is consistent or intermittent.
+      placeholder: |
+        1. Open…
+        2. Select…
+        3. Observe…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and image
+      description: Include the image tag AND image ID/digest, or the Git commit for source installs. If unavailable, explain why.
+      placeholder: "v2.x.x; pipepito/acestream-scraper:develop; sha256:…"
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - Docker Compose
+        - Docker run
+        - Portainer or NAS container manager
+        - From source
+        - Other (describe below)
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: CPU architecture
+      options:
+        - amd64 / x86_64
+        - arm64 / aarch64
+        - arm/v7 (experimental)
+        - Other or unknown
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and relevant configuration
+      description: Include host OS, browser/player versions, image flavor, and enabled services. For playback, describe direct/Acexy routing, checker selection, and any reverse proxy or media server. Use N/A for irrelevant details.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Diagnostics and screenshots
+      description: Include the time and timezone of the failure. Attach reviewed diagnostics from Overview → Services → Download diagnostics, screenshots, or a short redacted log excerpt. If unavailable, explain why. See the Bug Reporting guide for startup failures.
+    validations:
+      required: true
+  - type: textarea
+    id: attempts
+    attributes:
+      label: What have you tried?
+      description: Note workarounds and whether a previous version worked. A proposed fix is welcome but not required.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: I reviewed my text and attachments and removed private information.
+          required: true

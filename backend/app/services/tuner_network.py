@@ -93,6 +93,10 @@ async def require_tuner_network(request: Request) -> None:
     """Both the raw peer and the (possibly forwarded) client must be allowed:
     a LAN host spoofing X-Forwarded-For fails on the peer, a trusted proxy
     forwarding a public client fails on the forwarded address."""
+    if getattr(request.state, 'access_mode', 'open') == 'accounts':
+        user = getattr(request.state, 'access_user', None)
+        if getattr(request.state, 'playback_authorized', False) or (user and user['administrator']):
+            return
     gate = get_tuner_gate()
     peer = (getattr(request.state, "peer", None) or (None, 0))[0]
     client_ip = request.client.host if request.client else None

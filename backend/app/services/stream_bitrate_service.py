@@ -118,3 +118,33 @@ async def probe_media(engine_url: str, playback_url: object, *, timeout: float =
                 except ProcessLookupError:
                     pass
                 await process.wait()
+
+
+async def verify_media_sample(sample: bytes, *, timeout: float = 5.0) -> bool | None:
+    """Identify encoded A/V packets in bytes, without granting ffprobe network/file access."""
+    configured = get_settings().FFMPEG_BINARY_PATH
+    sibling = Path(configured).with_name('ffprobe') if configured else None
+    binary = str(sibling) if sibling and os.access(sibling, os.X_OK) else shutil.which('ffprobe')
+    if not binary:
+        return None
+    process = None
+    try:
+        async with asyncio.timeout(timeout):
+            process = await asyncio.create_subprocess_exec(
+                binary, '-v', 'error', '-protocol_whitelist', 'pipe',
+                '-probesize', str(SAMPLE_BYTES), '-analyzeduration', '2000000',
+                '-show_entries', 'packet=stream_index,size:stream=index,codec_type,codec_name',
+                '-of', 'json', '-i', 'pipe:0', stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+            )
+            stdout, _ = await process.communicate(sample[:SAMPLE_BYTES])
+            return process.returncode == 0 and has_media_packets(json.loads(stdout))
+    except (TimeoutError, OSError, ValueError):
+        return None
+    finally:
+        if process is not None and process.returncode is None:
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+            await asyncio.shield(process.wait())

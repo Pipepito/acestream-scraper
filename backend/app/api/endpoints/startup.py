@@ -10,7 +10,11 @@ router = APIRouter(tags=['startup'])
 
 
 @router.get('', response_model=StartupStatus)
-def status():
+def status(request: Request):
+    if getattr(request.state, 'access_mode', 'open') != 'open':
+        user = getattr(request.state, 'access_user', None)
+        if not user or not user['administrator']:
+            return StartupStatus(status=startup_service.status, phase='Application status', events=[], recovery_token='')
     return startup_service.snapshot()
 
 

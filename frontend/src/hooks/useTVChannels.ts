@@ -25,11 +25,12 @@ export const useAllTVChannels = (skip = 0, limit = 100) => {
   });
 };
 
-export const useTVChannelCatalog = (filters?: TVChannelListFilters) => {
+export const useTVChannelCatalog = (filters?: TVChannelListFilters, refetchInterval?: number) => {
   return useQuery<TVChannel[]>({
     queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog', { favorites: filters?.favorites ?? false, search: filters?.search ?? '' }],
     queryFn: () => tvChannelService.getCatalog(undefined, filters),
     staleTime: 1000 * 60 * 5,
+    refetchInterval,
     // Keep the previous list rendered while a filter change refetches, so
     // toggling the favorites switch doesn't unmount the whole page.
     placeholderData: keepPreviousData,
@@ -39,12 +40,13 @@ export const useTVChannelCatalog = (filters?: TVChannelListFilters) => {
 /**
  * Hook for fetching a single TV channel by ID
  */
-export const useTVChannel = (id: number) => {
+export const useTVChannel = (id: number, refetchInterval?: number) => {
   return useQuery({
     queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, id],
     queryFn: () => tvChannelService.getById(id),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!id,
+    refetchInterval,
   });
 };
 
@@ -206,6 +208,21 @@ export const useReorderTVChannels = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] }),
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL] }),
+      ]);
+    },
+  });
+};
+
+export const useReorderTVChannelAcestreams = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tvChannelId, streamIds, expectedOrder }: { tvChannelId: number; streamIds: string[]; expectedOrder: string[] }) =>
+      tvChannelService.reorderAcestreams(tvChannelId, streamIds, expectedOrder),
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, variables.tvChannelId] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TV_CHANNEL_ACESTREAMS, variables.tvChannelId] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ALL_TV_CHANNELS] }),
       ]);
     },
   });

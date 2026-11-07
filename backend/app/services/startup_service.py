@@ -29,13 +29,19 @@ class StartupService:
             self.events.append(StartupEvent(time=datetime.now(timezone.utc).isoformat(), message=message, level=level))
 
     def fail(self, exc, database=False):
+        import os
         import sqlite3
         import errno
+        from warp_prerequisites import WarpStartupError, WARP_DOCKER_GUIDANCE, WARP_DNS_GUIDANCE, WARP_SETUP_GUIDANCE
         from app.repositories.startup_recovery import NoRecoverableDataError, InterruptedRecoveryError
         from sqlalchemy.exc import DBAPIError
         cause = exc.orig if isinstance(exc, DBAPIError) else exc
         guidance = 'Download diagnostics and try again. If this keeps happening, share the report with support.'
-        if isinstance(cause, NoRecoverableDataError):
+        if isinstance(cause, WarpStartupError):
+            guidance = WARP_DOCKER_GUIDANCE if os.environ.get('SCRAPER_WARP_STARTUP_ERROR') == 'prerequisites' else WARP_SETUP_GUIDANCE
+            if os.environ.get('SCRAPER_WARP_STARTUP_ERROR') == 'prerequisites' and os.environ.get('WARP_DNS_ONLY', '').lower() in ('true', '1', 'yes', 'on'):
+                guidance = WARP_DNS_GUIDANCE
+        elif isinstance(cause, NoRecoverableDataError):
             guidance = 'No readable data could be recovered. Your original files have been kept. Download diagnostics for help, or choose Start fresh to set up the app again.'
         elif isinstance(cause, InterruptedRecoveryError):
             guidance = 'A previous recovery was interrupted. Choose Recover readable data to rebuild from its preserved backup, or Start fresh to set up the app again.'

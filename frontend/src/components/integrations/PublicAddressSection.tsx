@@ -41,7 +41,7 @@ export interface PublicAddressSectionProps {
 /** Where tuners, remote players and copied links reach this server. */
 const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) => {
   const queryClient = useQueryClient();
-  const { data, isLoading } = usePublicUrl();
+  const { data, isLoading, error, refetch } = usePublicUrl();
   const { data: tuner } = useTunerStatus();
   const denial = newestDenial(tuner?.recent_denials ?? []);
   const [value, setValue] = useState('');
@@ -67,6 +67,12 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
       setSaving(false);
     }
   };
+
+  if (error) return <ContentSection title="Public address">
+    <Alert severity="error" action={<Button color="inherit" onClick={() => void refetch()}>Retry</Button>}>
+      Could not load the public address: {getErrorMessage(error)}
+    </Alert>
+  </ContentSection>;
 
   return (
     <Box id="public-address">
@@ -115,7 +121,7 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
               inputProps={{ 'aria-label': 'Public address' }}
               helperText="Scheme and host, optionally a port. Leave empty to derive it from each request."
             />
-            <Button type="submit" variant="contained" disabled={saving || value.trim() === saved}>
+            <Button type="submit" variant="contained" disabled={!data || saving || value.trim() === saved}>
               Save
             </Button>
           </Stack>

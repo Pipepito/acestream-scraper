@@ -5,9 +5,10 @@ import logging
 import aiohttp
 from app.utils.outbound_http import source_session
 import asyncio
+import json
 import re
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from app.models.url_types import ZeronetURL
 from app.scrapers.base import BaseScraper
@@ -75,14 +76,82 @@ class ZeronetScraper(BaseScraper):
                     channels.append(channel)
         return channels
 
+    # The node answers a file of a site it does not hold yet with this page
+    # (a form with add_nonce) instead of the file, and never adds the site by
+    # itself. The node keeps no sites across container recreations unless
+    # /data/zeronet is a volume, so after every redeploy each source hit it.
+    ADD_SITE_MARKER = 'name="add_nonce"'
+
+    def site_root(self, internal_url: str) -> str:
+        """http://host:43110/<site>/... -> http://host:43110/<site>/"""
+        parsed = urlparse(internal_url)
+        gateway = urlparse(self.zeronet_url or 'http://127.0.0.1:43110')
+        prefix = gateway.path.rstrip('/') if (parsed.scheme, parsed.netloc) == (gateway.scheme, gateway.netloc) else ''
+        path = parsed.path
+        if prefix and path.startswith(prefix + '/'):
+            path = path[len(prefix):]
+        else:
+            prefix = ''
+        site = path.lstrip('/').split('/', 1)[0]
+        return f"{parsed.scheme}://{parsed.netloc}{prefix}/{site}/"
+
+    async def add_site(self, session, internal_url: str) -> None:
+        """Ask the node to add the site: requesting its root page adds it and
+        starts the download. The caller's retries then wait for the file."""
+        root = self.site_root(internal_url)
+        validate_outbound_url(root)
+        logger.info(f"ZeroNet node does not hold this site yet; adding it via {root}")
+        try:
+            async with session.get(root, headers=self.headers, timeout=self.timeout) as response:
+                response.raise_for_status()
+                await response.read()
+        except aiohttp.ClientError as e:
+            logger.warning(f"Could not add ZeroNet site {root}: {e}")
+
+    @staticmethod
+    def channels_from_json(content: str) -> list:
+        """(id, name, {}) from a JSON list of links, such as a site's links.json
+        ({"links": [{"name": ..., "url": "acestream://<id>"}]}). Any object with
+        an acestream:// value counts, its name taken from name/title/label."""
+        try:
+            data = json.loads(content)
+        except ValueError:
+            return []
+        found, seen = [], set()
+
+        def walk(node):
+            if isinstance(node, dict):
+                name = next((str(node[k]).strip() for k in ('name', 'title', 'label')
+                             if isinstance(node.get(k), str) and node[k].strip()), None)
+                for value in node.values():
+                    if isinstance(value, str):
+                        for cid in re.findall(r'acestream://([0-9a-fA-F]{40})', value):
+                            cid = cid.lower()
+                            if cid not in seen:
+                                seen.add(cid)
+                                found.append((cid, name or cid, {}))
+                    else:
+                        walk(value)
+            elif isinstance(node, list):
+                for item in node:
+                    walk(item)
+
+        walk(data)
+        return found
+
     async def fetch_content(self, url: str) -> str:
         """Fetch content from Zeronet URLs using internal service with retries."""
         # Use the ZeronetURL object to handle URL conversion
         parsed_url = urlparse(url)
-        zeronet_host = parsed_url.netloc.split(':')[0] if parsed_url.netloc else '127.0.0.1'
+        if url.startswith('zero://'):
+            # The netloc of zero://<site>/... is the site, not the node.
+            zeronet_host = urlparse(self.zeronet_url or 'http://127.0.0.1:43110').hostname or '127.0.0.1'
+        else:
+            zeronet_host = parsed_url.netloc.split(':')[0] if parsed_url.netloc else '127.0.0.1'
 
         # Get the internal HTTP URL for ZeroNet service
-        internal_url = self.url_obj.get_internal_url(zeronet_host)
+        internal_url = self.url_obj.get_internal_url(
+            zeronet_host, gateway_url=self.zeronet_url or 'http://127.0.0.1:43110')
 
         # SSRF guard: zeronet-type URLs pass through get_internal_url
         # verbatim when they aren't real zero.net addresses, so they must not
@@ -112,6 +181,15 @@ class ZeronetScraper(BaseScraper):
                         response.raise_for_status()
                         content = await response.text()
 
+                        if self.ADD_SITE_MARKER in content:
+                            await self.add_site(session, internal_url)
+                            retry_count += 1
+                            if retry_count < self.retries:
+                                await asyncio.sleep(2 ** retry_count)
+                                continue
+                            raise ValueError("ZeroNet site is not ready and did not "
+                                             "download in time; it will be read on the next scrape")
+
                         # If it's an M3U file, just return the content without further processing
                         if is_m3u_file:
                             if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
@@ -136,8 +214,7 @@ class ZeronetScraper(BaseScraper):
 
                             # Handle relative URLs
                             if iframe_url.startswith('/'):
-                                base_url = f"http://{zeronet_host}:43110"
-                                iframe_url = base_url + iframe_url
+                                iframe_url = urljoin(internal_url, iframe_url)
 
                             try:
                                 validate_outbound_url(iframe_url)
@@ -200,19 +277,40 @@ class ZeronetScraper(BaseScraper):
         return ""  # Empty content if all attempts fail
 
     async def scrape(self, url: str = None):
-        """Override: If M3U, delegate parsing to M3UService; else fallback to base."""
+        """Override: M3U files go to M3UService and bare JSON files to
+        channels_from_json; everything else falls back to the base scraper.
+        Both early paths record the source's status like the base does (they
+        used to leave it at "active" with no processing time)."""
         url_to_scrape = url if url else self.url_obj.get_normalized_url()
-        is_m3u_file = url_to_scrape.lower().endswith(('.m3u', '.m3u8'))
-        if is_m3u_file:
-            content = await self.fetch_content(url_to_scrape)
-            # Delegate all parsing to M3UService for consistency and logging
-            channels = self.m3u_service.extract_channels_from_content(
-                content,
-                db=getattr(self, 'db', None),
-                epg_service=getattr(self, 'epg_service', None),
-                tv_channel_service=getattr(self, 'tv_channel_service', None)
-            )
-            status = f"Extracted {len(channels)} channels from direct M3U file"
-            return channels, status
+        path = urlparse(url_to_scrape).path.lower()
+        if path.endswith(('.m3u', '.m3u8')):
+            try:
+                content = await self.fetch_content(url_to_scrape)
+                # Delegate all parsing to M3UService for consistency and logging
+                channels = self.m3u_service.extract_channels_from_content(
+                    content,
+                    db=getattr(self, 'db', None),
+                    epg_service=getattr(self, 'epg_service', None),
+                    tv_channel_service=getattr(self, 'tv_channel_service', None)
+                )
+                status = "OK"
+            except Exception as e:
+                channels, status = [], f"Error: {str(e)}"
+            await self.update_url_status(url_to_scrape, status)
+            return channels, status if status != "OK" else f"Extracted {len(channels)} channels from direct M3U file"
+        # A bare JSON file (a site's links.json): the HTML extractors only read
+        # `const linksData` inside a <script>, so it used to give 0 channels
+        # with status OK.
+        if path.endswith('.json'):
+            try:
+                content = await self.fetch_content(url_to_scrape)
+            except Exception as e:
+                status = f"Error: {str(e)}"
+                await self.update_url_status(url_to_scrape, status)
+                return [], status
+            channels = self.channels_from_json(content)
+            if channels:
+                await self.update_url_status(url_to_scrape, "OK")
+                return channels, f"Extracted {len(channels)} channels from JSON file"
         # Fallback to base scraper for non-M3U
         return await super().scrape(url)

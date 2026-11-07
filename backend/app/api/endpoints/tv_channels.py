@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.config.database import get_db
-from app.services.tvchannel_service import TVChannelService
+from app.services.tvchannel_service import TVChannelService, StaleEPGPreview
 from app.services.tv_matching_service import TVMatchingService
 from app.schemas.tv_matching import TVMatchPreview, TVMatchApplyRequest, TVMatchApplyResponse, TVMatchOptions
 from app.services.acestreamchannel_service import AcestreamChannelService
@@ -31,6 +31,8 @@ from app.schemas.channel import (
     TVChannelResponse,
     TVChannelUpdate,
     TVChannelReorderRequest,
+    TVChannelStreamReorderRequest,
+    TVChannelNowNext,
 )
 
 router = APIRouter()
@@ -42,7 +44,7 @@ from fastapi import Query
 @router.post("/automatch/preview", response_model=TVMatchPreview)
 def preview_tv_matches(request: TVMatchOptions | None = None, db: Session = Depends(get_db)) -> TVMatchPreview:
     try:
-        return TVMatchingService(db).preview(assumed_country=request.assumed_country if request else None)
+        return TVMatchingService(db).preview(assumed_country=request.assumed_country if request else None, include_similar=request.include_similar if request else False)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -53,6 +55,12 @@ def apply_tv_matches(request: TVMatchApplyRequest, db: Session = Depends(get_db)
         return TVMatchingService(db).apply(request)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/now-next", response_model=List[TVChannelNowNext])
+def tv_channel_now_next(db: Session = Depends(get_db)) -> List[TVChannelNowNext]:
+    """Current and next programme for every active TV channel with a guide mapping, in one query window."""
+    return TVChannelService(db).now_next()
 
 
 @router.get("/", response_model=TVChannelListResponse)
@@ -118,12 +126,12 @@ async def get_tv_channel_acestream_matches(
     status_code=status.HTTP_200_OK,
     response_model=EPGMatchAnalysisResponse,
 )
-async def analyze_epg_matches(request: EPGMatchAnalysisRequest, db: Session = Depends(get_db)):
+def analyze_epg_matches(request: EPGMatchAnalysisRequest, db: Session = Depends(get_db)):
     service = EPGMatchService(db)
     try:
         return service.analyze_matches(strictness=request.strictness, source_id=request.source_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
 @router.post("/reorder", response_model=MessageResponse)
@@ -160,7 +168,7 @@ async def create_tv_channels_from_epg(request: TVChannelCreateFromEPGRequest, db
     status_code=status.HTTP_200_OK,
     response_model=TVChannelCreateFromEPGAnalysisResponse,
 )
-async def create_tv_channels_from_epg_analysis(
+def create_tv_channels_from_epg_analysis(
     request: TVChannelCreateFromEPGAnalysisRequest,
     db: Session = Depends(get_db),
 ):
@@ -169,9 +177,13 @@ async def create_tv_channels_from_epg_analysis(
         return service.create_tv_channels_from_epg_analysis(
             strictness=request.strictness,
             epg_channel_ids=request.epg_channel_ids,
+            source_id=request.source_id,
+            expected_previews=request.expected_previews,
         )
+    except StaleEPGPreview as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
 @router.post("/", response_model=TVChannelResponse, status_code=status.HTTP_201_CREATED)
@@ -181,7 +193,7 @@ async def create_tv_channel(tv_channel: TVChannelCreate, db: Session = Depends(g
     """
     if not tv_channel.name:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Name cannot be empty"
         )
 
@@ -225,7 +237,7 @@ async def update_tv_channel(
 
     updated_channel = service.update_tv_channel(
         tv_channel_id=tv_channel_id,
-        updates=tv_channel_update.dict(exclude_unset=True)
+        updates=tv_channel_update.model_dump(exclude_unset=True)
     )
     return updated_channel
 
@@ -309,6 +321,33 @@ async def remove_acestream_association(
 
     # Return empty Response with 204 status code
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{tv_channel_id}/acestreams/reorder",
+    response_model=List[AcestreamChannelResponse],
+)
+def reorder_tv_channel_acestreams(
+    tv_channel_id: int,
+    request: TVChannelStreamReorderRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Reorder streams for a TV channel by setting their preference order (1, 2, ...).
+    """
+    service = TVChannelService(db)
+    channel = service.get_tv_channel_by_id(tv_channel_id)
+    if not channel:
+        raise HTTPException(status_code=404, detail="TV Channel not found")
+    try:
+        updated_streams = service.reorder_streams(
+            tv_channel_id=tv_channel_id,
+            stream_ids=request.stream_ids,
+            expected_order=request.expected_order,
+        )
+        return updated_streams
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @router.post(

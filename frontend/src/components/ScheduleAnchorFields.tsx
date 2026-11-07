@@ -8,6 +8,7 @@ const jobs = [
   ['url_scraping', 'Scrape sources start time'],
   ['epg_refresh', 'EPG refresh start time'],
   ['channel_status', 'Stream checks start time'],
+  ['offline_stream_cleanup', 'Offline cleanup start time'],
 ] as const;
 
 export default function ScheduleAnchorFields() {

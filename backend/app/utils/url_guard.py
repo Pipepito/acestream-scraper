@@ -44,15 +44,15 @@ class BlockedURLError(ValueError):
 
 
 def _allow_private_targets() -> bool:
-    return os.environ.get("ALLOW_PRIVATE_SCRAPE_TARGETS", "true").strip().lower() in {
-        "1", "true", "yes", "on",
-    }
+    from runtime_config import active_value
+    return active_value('ALLOW_PRIVATE_SCRAPE_TARGETS', 'true').strip().lower() in {'true', '1', 'yes', 'on'}
 
 
 def _exempt_hosts() -> set:
     hosts = set()
     for env_name in ("ZERONET_URL", "IPFS_GATEWAY_URL"):
-        value = os.environ.get(env_name, "")
+        from runtime_config import active_value
+        value = active_value(env_name)
         if value:
             parsed = urlparse(value if "://" in value else f"http://{value}")
             if parsed.hostname:

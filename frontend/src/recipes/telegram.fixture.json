@@ -1,0 +1,25 @@
+{
+  "recipe": {
+    "schema_version": 1,
+    "name": "Telegram name and ID pairs",
+    "version": "1.0.0",
+    "mode": "regex",
+    "records": "^[^\\r\\n]+\\r?\\n[ \\t]*(?:acestream://)?[0-9a-f]{40}[ \\t]*(?=\\r?$)",
+    "flags": "im",
+    "fields": {
+      "name": {
+        "selector": "",
+        "attribute": "",
+        "path": "",
+        "pattern": "^([^\\r\\n]+)"
+      },
+      "id": {
+        "selector": "",
+        "attribute": "",
+        "path": "",
+        "pattern": "\\r?\\n[ \\t]*(?:acestream://)?([0-9a-f]{40})[ \\t]*(?=\\r?$)"
+      }
+    }
+  },
+  "sample": "7raul:\n🇷🇺 Eurosport 2 HD\n6176281b9c46a5621a0e88524f8dc621f173b8e0\n\n🇩🇪Eurosport 2 HD\nac675c82d6dfd4a201532c18b42e48dacb7c32c6\n\n🇪🇸M. Liga 🇻4️⃣\n31c19ffb3472c289c5bbbbc174449c8ed0d19e38\n\n🇪🇸 Campeones 🇻4️⃣\ne572a5178ff72eed7d1d751a18b4b3419699f370\n🇪🇸 Campeones 🇻4️⃣\nbb5a8bf7752e978460ee1710e5e8950a5c9e1f99\n🇪🇸 Campeones 🇻4️⃣\n0f0850a62ecdc4f79eec221cbebad01f3e0242bc"
+}

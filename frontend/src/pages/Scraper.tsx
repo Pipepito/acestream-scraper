@@ -1,9 +1,11 @@
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { responsiveTableSx } from '../styles/responsiveTable';
 import React, { useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
+  Tabs,
+  Tab,
   Button,
   TextField,
   Dialog,
@@ -37,13 +39,18 @@ import { useURLs, useCreateURL, useUpdateURL, usePatchURL, useDeleteURL, useScra
 import { CreateURLDTO, UpdateURLDTO, ScrapedURL, scraperService } from '../services/scraperService';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
+import ImportExclusions from '../components/imports/ImportExclusions';
+import SavedSearches from '../components/imports/SavedSearches';
 import StatusLine from '../components/StatusLine';
 import RowActionsMenu from '../components/RowActionsMenu';
 import { useConfirm } from '../components/ConfirmDialog';
+import DeleteSourceDialog from '../components/scraper/DeleteSourceDialog';
+import OrphanedSourcesDialog from '../components/scraper/OrphanedSourcesDialog';
 import { formatRelativeTime } from '../utils/format';
 import { formatDateTime } from '../utils/formatters';
 
 interface URLFormData {
+  name: string;
   url: string;
   url_type: string;
   enabled: boolean;
@@ -51,6 +58,7 @@ interface URLFormData {
 }
 
 export const URL_TYPE_LABELS: Record<string, string> = {
+  broadcaster: 'Built-in broadcaster',
   auto: 'Auto-detect',
   regular: 'Regular HTTP',
   zeronet: 'ZeroNet',
@@ -83,13 +91,14 @@ const renderScrapeResult = (url: { status?: string | null }) => {
 };
 
 const initialFormData: URLFormData = {
+  name: '',
   url: '',
   url_type: 'auto',
   enabled: true,
   scrape_bare_ids: false
 };
 
-const Scraper: React.FC = () => {
+const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirm();
@@ -102,6 +111,7 @@ const Scraper: React.FC = () => {
 
   // Queries and mutations
   const { data: urls, isLoading, refetch } = useURLs();
+  const providers = useQuery({ queryKey: ['builtin-providers'], queryFn: scraperService.getProviders, enabled: openDialog });
   const createURL = useCreateURL();
   const updateURL = useUpdateURL(currentId || 0);
   const patchURL = usePatchURL();
@@ -134,6 +144,7 @@ const Scraper: React.FC = () => {
     setIsEdit(edit);
     if (edit && url) {
       setFormData({
+        name: url.name ?? '',
         url: url.url,
         url_type: url.url_type,
         enabled: url.enabled,
@@ -209,22 +220,25 @@ const Scraper: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (await confirm({ title: 'Delete this source?', body: 'Channels already found from it stay in the inventory.', confirmLabel: 'Delete', danger: true })) {
-      try {
-        await deleteURL.mutateAsync(id);
-        setSnackbar({
-          open: true,
-          message: 'URL deleted successfully',
-          severity: 'success'
-        });
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: `Error: ${(error as Error).message}`,
-          severity: 'error'
-        });
-      }
+  const [deletingSource, setDeletingSource] = useState<ScrapedURL | null>(null);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const handleDelete = (source: ScrapedURL) => setDeletingSource(source);
+  const confirmDelete = async (deleteStreams: boolean) => {
+    if (!deletingSource) return;
+    try {
+      const result = await deleteURL.mutateAsync({ id: deletingSource.id, deleteStreams });
+      setDeletingSource(null);
+      setSnackbar({
+        open: true,
+        message: deleteStreams ? `Source deleted with ${result.deleted_streams} stream${result.deleted_streams === 1 ? '' : 's'}.` : 'Source deleted. Its streams stay in the inventory.',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error: ${(error as Error).message}`,
+        severity: 'error'
+      });
     }
   };
 
@@ -337,9 +351,10 @@ const Scraper: React.FC = () => {
             </Button>
           </Stack>
         }
-        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
+        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Clean up removed sources…', onClick: () => setCleanupOpen(true) }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
+      {navigation}
       <StatusLine
         aria-label="Source status"
         items={[
@@ -369,7 +384,7 @@ const Scraper: React.FC = () => {
               {urls && urls.length > 0 ? (
                 urls.map((url) => (
                   <TableRow key={url.id} hover>
-                    <TableCell data-label="URL" sx={{ wordBreak: 'break-all' }}>{url.url}</TableCell>
+                    <TableCell data-label="URL" sx={{ overflowWrap: 'anywhere' }}>{url.name ? <Typography variant="body2" fontWeight={600}>{url.name}</Typography> : null}{url.url}</TableCell>
                     <TableCell data-label="Type" sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}{url.extraction_recipe && <Chip size="small" label="Custom recipe" sx={{ ml: 1 }} />}</TableCell>
                     <TableCell data-label="Enabled">
                       <Switch
@@ -403,9 +418,9 @@ const Scraper: React.FC = () => {
                           label={`More actions for ${url.url}`}
                           actions={[
                             { label: 'Edit', onClick: () => handleOpenDialog(true, url) },
-                            { label: 'Configure extraction', onClick: () => navigate(`/scraper/builder?source=${url.id}`) },
-                            { label: 'Harvest bare IDs', checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: bareIdsUpdatingId === url.id || Boolean(url.extraction_recipe) },
-                            { label: 'Delete', danger: true, onClick: () => handleDelete(url.id) },
+                            { label: 'Configure extraction', disabled: url.url_type === 'broadcaster', onClick: () => navigate(`/scraper/builder?source=${url.id}`) },
+                            { label: 'Harvest bare IDs', checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: url.url_type === 'broadcaster' || bareIdsUpdatingId === url.id || Boolean(url.extraction_recipe) },
+                            { label: 'Delete', danger: true, onClick: () => handleDelete(url) },
                           ]}
                         />
                       </Stack>
@@ -432,6 +447,27 @@ const Scraper: React.FC = () => {
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>{isEdit ? 'Edit URL' : 'Add URL'}</DialogTitle>
         <DialogContent>
+          {providers.isError ? <Alert severity="error" action={<Button onClick={() => void providers.refetch()}>Retry</Button>}>Unable to load built-in providers.</Alert> : null}
+          {!isEdit ? <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
+            <InputLabel id="builtin-provider-label">Built-in provider</InputLabel>
+            <Select labelId="builtin-provider-label" label="Built-in provider"
+              value={formData.url_type === 'broadcaster' ? providers.data?.find(provider => provider.url === formData.url)?.id ?? '' : ''}
+              onChange={event => {
+                const provider = providers.data?.find(item => item.id === event.target.value);
+                setFormData(previous => {
+                  const previousProvider = providers.data?.find(item => item.url === previous.url);
+                  const customName = previous.name && previous.name !== previousProvider?.name;
+                  return provider
+                    ? { ...previous, url: provider.url, url_type: 'broadcaster', name: customName ? previous.name : provider.name, scrape_bare_ids: false }
+                    : { ...previous, url: '', url_type: 'auto', name: customName ? previous.name : '' };
+                });
+              }}>
+              <MenuItem value="">Custom source URL</MenuItem>
+              {providers.data?.map(provider => <MenuItem key={provider.id} value={provider.id}>{provider.name}</MenuItem>)}
+            </Select>
+            <FormHelperText>Built-in broadcasters import channels directly through their adapter. Saving does not import channels.</FormHelperText>
+          </FormControl> : null}
+          <TextField label="Friendly name (optional)" name="name" fullWidth value={formData.name} onChange={handleChange} inputProps={{ maxLength: 255 }} helperText="Shown in the source list and channel filters." sx={{ mb: 2 }} />
           <TextField
             margin="dense"
             name="url"
@@ -452,6 +488,7 @@ const Scraper: React.FC = () => {
               label="URL Type"
               onChange={handleSelectChange}
             >
+              <MenuItem value="broadcaster">Built-in broadcaster</MenuItem>
               <MenuItem value="auto">Auto-detect</MenuItem>
               <MenuItem value="regular">Regular HTTP</MenuItem>
               <MenuItem value="zeronet">ZeroNet</MenuItem>
@@ -476,6 +513,7 @@ const Scraper: React.FC = () => {
             <FormControlLabel
               control={
                 <Switch
+                  disabled={formData.url_type === 'broadcaster'}
                   checked={formData.scrape_bare_ids}
                   onChange={(e) => setFormData({ ...formData, scrape_bare_ids: e.target.checked })}
                 />
@@ -511,8 +549,24 @@ const Scraper: React.FC = () => {
         </Alert>
       </Snackbar>
       {confirmDialog}
+      <DeleteSourceDialog open={Boolean(deletingSource)} source={deletingSource} busy={deleteURL.isPending} onClose={() => setDeletingSource(null)} onConfirm={(deleteStreams) => void confirmDelete(deleteStreams)} />
+      <OrphanedSourcesDialog open={cleanupOpen} onClose={() => setCleanupOpen(false)} onDone={(message) => setSnackbar({ open: true, message, severity: 'success' })} />
     </Box>
   );
 };
 
+const Catalogues = React.lazy(() => import('./Catalogues'));
+
+const Scraper: React.FC = () => {
+  const [params, setParams] = useSearchParams();
+  const selected = params.get('tab');
+  const tab = selected === 'w3u' || selected === 'searches' || selected === 'exclusions' ? selected : 'sources';
+  const navigation = <Tabs value={tab} onChange={(_, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} aria-label="Scraper sections" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2 }}>
+    <Tab value="sources" label="Sources" /><Tab value="w3u" label="W3U catalogues" /><Tab value="searches" label="Saved searches" /><Tab value="exclusions" label="Import exclusions" />
+  </Tabs>;
+  return <Box>
+    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title="Scraper" subtitle="Manage discoveries and future imports." />{navigation}
+      {tab === 'w3u' ? <React.Suspense fallback={<p role="status">Loading catalogues…</p>}><Catalogues embedded /></React.Suspense> : tab === 'searches' ? <SavedSearches /> : <ImportExclusions />}</>}
+  </Box>;
+};
 export default Scraper;

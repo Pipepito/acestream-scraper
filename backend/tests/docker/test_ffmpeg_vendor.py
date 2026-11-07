@@ -65,4 +65,4 @@ def test_dockerfile_builds_ffmpeg_from_the_vendored_archive():
     assert "FFMPEG_VENDORED_FILE" in builder and "FFMPEG_SHA256" in builder
     assert "--mount=type=bind,source=docker/vendor,target=/tmp/ffmpeg-vendor,readonly" in builder
     assert "build-ffmpeg.sh" in builder
-    assert "COPY --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/" in dockerfile
+    assert "COPY --link --from=ffmpeg-builder /out/ /opt/ffmpeg/bin/" in dockerfile

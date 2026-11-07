@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Probe the configuration actually launched, not edits awaiting a restart.
+RUNTIME_CONFIG_SCRIPT="$(dirname "$0")/backend/runtime_config.py"
+if [ ! -f "$RUNTIME_CONFIG_SCRIPT" ]; then RUNTIME_CONFIG_SCRIPT=/app/runtime_config.py; fi
+if [ "${SCRAPER_RUNTIME_LOADED:-}" != 1 ] && [ -f "$RUNTIME_CONFIG_SCRIPT" ]; then
+    exec python3 "$RUNTIME_CONFIG_SCRIPT" health bash "$0" "$@"
+fi
+
 normalize_bool() {
     case "${1:-false}" in
         1|true|TRUE|True|yes|YES|on|ON) printf 'true\n' ;;

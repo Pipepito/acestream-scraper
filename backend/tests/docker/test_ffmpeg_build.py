@@ -31,7 +31,7 @@ PLAYER_COMMAND = [
     "-i", "/f/sample.m2ts",
     "-map", "0:v:0", "-map", "0:a:0?",
     "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2",
-    "-f", "hls", "-hls_time", "2", "-hls_list_size", "6", "-hls_delete_threshold", "2",
+    "-f", "hls", "-hls_time", "2", "-hls_list_size", "30", "-hls_delete_threshold", "2",
     "-hls_flags", "delete_segments+independent_segments+omit_endlist+temp_file",
     "-hls_segment_type", "mpegts", "-hls_segment_filename", "/out/player/seg%05d.ts",
     "/out/player/index.m3u8",
@@ -93,6 +93,16 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
                            capture_output=True, text=True, timeout=300)
     assert probe.returncode == 0, probe.stderr
     assert [stream["codec_name"] for stream in json.loads(probe.stdout)["streams"]] == ["h264", "ac3"], probe.stdout
+    compatible = subprocess.run(base + ["/ff/ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", "/f/sample.m2ts",
+        "-t", "1", "-c:v", "libx264", "-preset", "veryfast", "-profile:v", "main", "-pix_fmt", "yuv420p", "-threads", "2",
+        "-vf", "scale=w='min(1280,iw)':h='min(720,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=30",
+        "-g", "60", "-c:a", "aac", "-ac", "2", "-f", "mpegts", "/out/compatible.ts"], capture_output=True, text=True, timeout=300)
+    assert compatible.returncode == 0, compatible.stderr
+    converted_probe = subprocess.run(base + ["/ff/ffprobe", "-v", "error", "-show_entries", "stream=codec_name,width,height,r_frame_rate", "-of", "json", "/out/compatible.ts"], capture_output=True, text=True, timeout=300)
+    assert converted_probe.returncode == 0, converted_probe.stderr
+    converted = json.loads(converted_probe.stdout)['streams']
+    assert [stream['codec_name'] for stream in converted] == ['h264', 'aac']
+    assert converted[0]['width'] <= 1280 and converted[0]['height'] <= 720 and converted[0]['r_frame_rate'] == '30/1'
     remux = subprocess.run(base + ["/ff/ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", "/f/sample.m2ts",
                                    "-c", "copy", "-f", "hls", "-hls_time", "1", "/out/copy.m3u8"], capture_output=True, text=True, timeout=300)
     assert remux.returncode == 0, remux.stderr
@@ -106,6 +116,14 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
     assert player.returncode == 0, player.stderr
     assert (out / "player" / "index.m3u8").exists() and list((out / "player").glob("seg*.ts"))
 
+    # The player needs both WebVTT decoding and encoding, not just discovery.
+    (tmp_path / "captions.vtt").write_text("WEBVTT\n\n00:00:00.100 --> 00:00:01.000\nCaption\n")
+    captions = subprocess.run(base + ["/ff/ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-i", "/ff/captions.vtt", "-c:s", "webvtt", "/out/captions.vtt"],
+        capture_output=True, text=True, timeout=300)
+    assert captions.returncode == 0, captions.stderr
+    assert "Caption" in (out / "captions.vtt").read_text()
+
     # Exercise the relay's actual encoding flags against the bundled binary.
     from app.services.tuner_remux import remux_argv
     relay = subprocess.run(base[:3] + ['-i'] + base[3:] + remux_argv('/ff/ffmpeg', version=1, offset=0),
@@ -116,3 +134,20 @@ def test_ffmpeg_builder_produces_a_working_static_binary(tmp_path, platform):
         'stream=codec_name', '-of', 'json', '/out/relay.ts'], capture_output=True, text=True, timeout=300)
     assert relay_probe.returncode == 0, relay_probe.stderr
     assert [item['codec_name'] for item in json.loads(relay_probe.stdout)['streams']] == ['mpeg2video', 'aac']
+
+    # DVR preserves source video; AAC preparation must work on every platform
+    # without libx264, concat, Matroska or reopening an output file for faststart.
+    dvr = subprocess.run(base[:3] + ['-i'] + base[3:] + ['/ff/ffmpeg', '-nostdin',
+        '-hide_banner', '-loglevel', 'error', '-protocol_whitelist', 'pipe', '-f', 'mpegts',
+        '-i', 'pipe:0', '-map', '0:v:0?', '-map', '0:a:0?', '-c', 'copy', '-c:a', 'aac',
+        '-b:a', '160k', '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
+        '-f', 'mp4', 'pipe:1'], input=FIXTURE.read_bytes(), capture_output=True, timeout=300)
+    assert dvr.returncode == 0, dvr.stderr.decode(errors='replace')
+    (out / 'recording.mp4').write_bytes(dvr.stdout)
+    dvr_probe = subprocess.run(base + ['/ff/ffprobe', '-v', 'error', '-show_entries',
+        'stream=codec_name:packet=pts_time,size', '-of', 'json', '/out/recording.mp4'],
+        capture_output=True, text=True, timeout=300)
+    assert dvr_probe.returncode == 0, dvr_probe.stderr
+    observed = json.loads(dvr_probe.stdout)
+    assert [item['codec_name'] for item in observed['streams']] == ['h264', 'aac']
+    assert len(observed['packets']) > 1

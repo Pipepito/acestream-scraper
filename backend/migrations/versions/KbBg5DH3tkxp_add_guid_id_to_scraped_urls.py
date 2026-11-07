@@ -51,6 +51,13 @@ def get_dialect():
     return op.get_bind().dialect.name
 
 
+def drop_previous_primary_key(batch_op):
+    """Clear reflected PK flags before replacing the legacy URL/integer key."""
+    primary_key = sa.inspect(op.get_bind()).get_pk_constraint('scraped_urls')
+    if primary_key['constrained_columns']:
+        batch_op.drop_constraint(primary_key['name'] or 'pk_scraped_urls', type_='primary')
+
+
 def upgrade():
     connection = op.get_bind()
     dialect = get_dialect()
@@ -87,15 +94,19 @@ def upgrade():
 
             # For SQLite (which doesn't support dropping primary keys directly),
             # we'll recreate the table without the primary key constraint
-            with op.batch_alter_table('scraped_urls', recreate='always') as batch_op:
+            with op.batch_alter_table(
+                'scraped_urls', recreate='always',
+                naming_convention={'pk': 'pk_%(table_name)s'},
+            ) as batch_op:
+                drop_previous_primary_key(batch_op)
                 # Drop the id column (this implicitly removes the primary key in SQLite)
                 batch_op.drop_column('id')
 
                 # Rename temp_guid to id
                 batch_op.alter_column('temp_guid', new_column_name='id', nullable=False)
 
-                # Create new primary key constraint
-                batch_op.create_primary_key('pk_scraped_urls', ['id'])
+                # Batch operations retain the original column key after rename.
+                batch_op.create_primary_key('pk_scraped_urls', ['temp_guid'])
     else:
         # The id column doesn't exist yet, add it
         with op.batch_alter_table('scraped_urls') as batch_op:
@@ -113,7 +124,11 @@ def upgrade():
 
         # Make the id column the primary key and not nullable
         # For SQLite, we'll recreate the table to add the primary key
-        with op.batch_alter_table('scraped_urls', recreate='always') as batch_op:
+        with op.batch_alter_table(
+            'scraped_urls', recreate='always',
+            naming_convention={'pk': 'pk_%(table_name)s'},
+        ) as batch_op:
+            drop_previous_primary_key(batch_op)
             # Alter the id column to be not nullable
             batch_op.alter_column('id', nullable=False)
 
@@ -144,10 +159,14 @@ def downgrade():
                 )
 
             # For SQLite, recreate the table to change the primary key
-            with op.batch_alter_table('scraped_urls', recreate='always') as batch_op:
+            with op.batch_alter_table(
+                'scraped_urls', recreate='always',
+                naming_convention={'pk': 'pk_%(table_name)s'},
+            ) as batch_op:
+                drop_previous_primary_key(batch_op)
                 # Drop the GUID id column
                 batch_op.drop_column('id')
 
                 # Rename temp_id to id and make it the primary key
                 batch_op.alter_column('temp_id', new_column_name='id', nullable=False)
-                batch_op.create_primary_key('pk_scraped_urls', ['id'])
+                batch_op.create_primary_key('pk_scraped_urls', ['temp_id'])

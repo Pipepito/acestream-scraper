@@ -20,7 +20,10 @@ const ERROR_COPY: Record<ApiError['kind'], string> = {
 export const getErrorMessage = (error: unknown): string => {
   const normalizedError = normalizeApiError(error);
 
-  if (normalizedError.kind === 'validation' && normalizedError.message.trim()) {
+  // Explicit API errors carry operator-facing messages, including actionable
+  // 5xx failures such as unavailable recording storage. Raw/unexpected server
+  // failures still receive generic copy.
+  if ((normalizedError.kind === 'validation' || (normalizedError.code && normalizedError.code !== 'INTERNAL_ERROR')) && normalizedError.message.trim()) {
     return normalizedError.message;
   }
 

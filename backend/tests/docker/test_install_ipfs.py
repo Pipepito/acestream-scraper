@@ -1,7 +1,7 @@
 """Contract tests for docker/scripts/install-ipfs.sh.
 
 Unlike the acestream installer tests these run the script directly (no image
-build): the paths that matter — the per-platform pin table, the 32-bit ARM
+build): the paths that matter — the platform selection, the 32-bit ARM
 no-op, and the unsupported-platform failure — need no network and no docker.
 The amd64/arm64 download paths are exercised by the real image builds in CI.
 """
@@ -52,7 +52,7 @@ def test_missing_target_platform_fails(tmp_path):
 
 
 def test_pinned_platforms_cover_the_image_matrix():
-    """amd64 and arm64 must carry sha512 pins; arm/v7 is the explicit no-op.
+    """amd64 and arm64 build pinned source; arm/v7 is the explicit no-op.
 
     docker/manifests/platforms.json defines the platforms images are built
     for — every one of them must be handled by the installer's case table.
@@ -61,8 +61,10 @@ def test_pinned_platforms_cover_the_image_matrix():
     assert 'linux/amd64)' in script
     assert 'linux/arm64|linux/arm64/v8)' in script
     assert 'linux/arm/v7|linux/arm/v6)' in script
-    # Two 128-hex sha512 pins, one per downloadable platform.
+    # One pinned upstream source shared by both cross-compiled platforms.
     import re
 
-    pins = re.findall(r'KUBO_SHA512="([0-9a-f]{128})"', script)
-    assert len(pins) == 2
+    assert re.search(r"^KUBO_SOURCE_SHA256=[0-9a-f]{64}$", script, re.M)
+    assert re.search(r"^KUBO_COMMIT=[0-9a-f]{40}$", script, re.M)
+    assert "-mod=readonly" in script
+    assert "GOTOOLCHAIN=local" in script

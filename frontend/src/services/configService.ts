@@ -1,6 +1,7 @@
 import apiClient from './apiClient';
 import type { components } from '../types/api-generated';
 
+type StreamCheckScope = components['schemas']['StreamCheckScope'];
 export type CheckEngineConfig = components['schemas']['CheckEngineConfigResponse'];
 export type PlaybackRouting = components['schemas']['PlaybackRouting'];
 
@@ -50,6 +51,8 @@ export interface Stats {
 const BASE_URL = '/v1/config';
 
 export const configService = {
+  getStreamCheckScope: async () => (await apiClient.get<StreamCheckScope>(`${BASE_URL}/stream-check-scope`)).data,
+  updateStreamCheckScope: async (config: StreamCheckScope) => (await apiClient.put<StreamCheckScope>(`${BASE_URL}/stream-check-scope`, config)).data,
   getCheckEngine: async (): Promise<CheckEngineConfig> => (await apiClient.get<CheckEngineConfig>(`${BASE_URL}/check-engine`)).data,
   updateCheckEngine: async (config: CheckEngineConfig): Promise<CheckEngineConfig> => (await apiClient.put<CheckEngineConfig>(`${BASE_URL}/check-engine`, { use_dedicated: config.use_dedicated, url: config.url })).data,
   getPlaybackRouting: async (): Promise<PlaybackRouting> => {
@@ -83,6 +86,21 @@ export const configService = {
 
   updatePublicBaseUrl: async (value: string): Promise<void> => {
     await apiClient.put(`${BASE_URL}/public_base_url`, { value });
+  },
+
+  /** Webhook that receives task notifications (empty string = off). */
+  getNotificationWebhookUrl: async (): Promise<string> => {
+    const response = await apiClient.get<Setting>(`${BASE_URL}/notification_webhook_url`);
+    return response.data.value;
+  },
+
+  updateNotificationWebhookUrl: async (value: string): Promise<void> => {
+    await apiClient.put(`${BASE_URL}/notification_webhook_url`, { value });
+  },
+
+  /** Send a test notification to the saved webhook. */
+  testNotificationWebhook: async (): Promise<void> => {
+    await apiClient.post(`${BASE_URL}/notification_webhook_url/test`);
   },
 
   /**
@@ -214,3 +232,8 @@ export const configService = {
 export type ScheduleAnchors = import('../types/api-generated').components['schemas']['ScheduleAnchors'];
 export const getScheduleAnchors = async (): Promise<ScheduleAnchors> => (await apiClient.get<ScheduleAnchors>(`${BASE_URL}/schedule-anchors`)).data;
 export const saveScheduleAnchors = async (schedule: ScheduleAnchors): Promise<ScheduleAnchors> => (await apiClient.put<ScheduleAnchors>(`${BASE_URL}/schedule-anchors`, schedule)).data;
+
+export type OfflineCleanupConfig = Required<components['schemas']['OfflineCleanupConfig']>;
+export const getOfflineCleanup = async (): Promise<OfflineCleanupConfig> => (await apiClient.get<OfflineCleanupConfig>('/v1/config/offline-cleanup')).data;
+export const saveOfflineCleanup = async (config: OfflineCleanupConfig): Promise<OfflineCleanupConfig> => (await apiClient.put<OfflineCleanupConfig>('/v1/config/offline-cleanup', config)).data;
+export const previewOfflineCleanup = async (config: OfflineCleanupConfig): Promise<components['schemas']['OfflineCleanupPreview']> => (await apiClient.post<components['schemas']['OfflineCleanupPreview']>('/v1/config/offline-cleanup/preview', config)).data;

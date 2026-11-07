@@ -241,13 +241,13 @@ class TestWARPModeEndpoint:
         """Test setting invalid WARP mode."""
         request_data = {"mode": "invalid_mode"}
         response = client.post("/api/v1/warp/mode", json=request_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @patch(WARP_SET_MODE_PATH, new_callable=AsyncMock)
     def test_set_warp_mode_missing_data(self, mock_set_mode, client):
         """Test setting WARP mode without mode parameter."""
         response = client.post("/api/v1/warp/mode", json={})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @patch(WARP_SET_MODE_PATH, new_callable=AsyncMock)
     def test_set_warp_mode_failure(self, mock_set_mode, client):
@@ -322,7 +322,7 @@ class TestWARPLicenseEndpoint:
     def test_register_warp_license_missing_data(self, mock_register_license, client):
         """Test registering WARP license without license parameter."""
         response = client.post("/api/v1/warp/license", json={})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert response.json()["error"]["code"] == "WARP_LICENSE_REQUIRED"
 
     @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)
@@ -330,7 +330,7 @@ class TestWARPLicenseEndpoint:
         """Test registering WARP license with empty license."""
         request_data = {"license": ""}
         response = client.post("/api/v1/warp/license", json=request_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert response.json()["error"]["code"] == "WARP_LICENSE_REQUIRED"
 
     @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)

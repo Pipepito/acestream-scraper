@@ -1,5 +1,6 @@
 """Real MPEG-TS transitions and bounded subprocess cleanup (when FFmpeg exists)."""
 import asyncio
+import os
 import subprocess
 from unittest.mock import Mock
 
@@ -23,9 +24,13 @@ def ffmpeg():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("second_codec", ["mpeg2video", "libx264"])
 async def test_real_media_switch_keeps_decodable_video_and_announces_new_tables(ffmpeg, tmp_path, monkeypatch, second_codec):
+    # Production FFmpeg deliberately excludes lavfi, libx264 and framemd5.
+    # A full test tool generates/inspects fixtures; remux_source still uses the
+    # configured production binary, so this also exercises minimal image builds.
+    media_tool = os.environ.get('FFMPEG_TEST_TOOL_PATH', ffmpeg)
     feeds = {}
     for cid, color in [('one', 'red'), ('two', 'blue')]:
-        result = subprocess.run([ffmpeg, '-v', 'error', '-f', 'lavfi', '-i',
+        result = subprocess.run([media_tool, '-v', 'error', '-f', 'lavfi', '-i',
             f'color=c={color}:s=160x90:r=10', '-t', '2', '-c:v', 'mpeg2video' if cid == 'one' else second_codec,
             '-f', 'mpegts', 'pipe:1'], capture_output=True, check=True, timeout=15)
         feeds[cid] = result.stdout
@@ -67,7 +72,7 @@ async def test_real_media_switch_keeps_decodable_video_and_announces_new_tables(
     assert discontinuities >= 2
     video = tmp_path / 'switched.ts'
     video.write_bytes(output)
-    decoded = subprocess.run([ffmpeg, '-v', 'error', '-i', str(video), '-map', '0:v:0',
+    decoded = subprocess.run([media_tool, '-v', 'error', '-i', str(video), '-map', '0:v:0',
         '-f', 'framemd5', 'pipe:1'], capture_output=True, check=True, timeout=15)
     frames = [line for line in decoded.stdout.decode().splitlines() if not line.startswith('#')]
     # Both solid-colour sources decode, not just the first source before its EOF.

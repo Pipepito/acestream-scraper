@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -22,7 +22,18 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Add as AddIcon, ArrowBack as BackIcon, Delete as DeleteIcon, Edit as EditIcon, ExpandLess, ExpandMore } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  ArrowBack as BackIcon,
+  ArrowDownward,
+  ArrowUpward,
+  Delete as DeleteIcon,
+  DragIndicator,
+  Edit as EditIcon,
+  ExpandLess,
+  ExpandMore,
+  Save as SaveIcon,
+} from '@mui/icons-material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
 import { Link as RouterLink } from 'react-router-dom';
 import BatchAcestreamAssignment from '../components/BatchAcestreamAssignment';
@@ -31,10 +42,13 @@ import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import { useConfirm } from '../components/ConfirmDialog';
+import { normalizeApiError } from '../services/apiErrors';
+import { AcestreamChannel } from '../types/channelTypes';
 import { useAcestreamChannels } from '../hooks/useChannels';
 import { useResolveEPGChannel } from '../hooks/useEPG';
 import {
   useAssociateAcestream,
+  useReorderTVChannelAcestreams,
   useRemoveAcestreamAssociation,
   useTVChannel,
   useTVChannelAcestreams,
@@ -55,6 +69,12 @@ interface EditFormData {
   is_favorite: boolean;
 }
 
+interface StreamOrderDraft {
+  channelId: number;
+  streams: AcestreamChannel[];
+  expectedOrder: string[];
+}
+
 const TVChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -67,6 +87,53 @@ const TVChannelDetail: React.FC = () => {
   const associateAcestreamMutation = useAssociateAcestream();
   const removeAcestreamMutation = useRemoveAcestreamAssociation();
   const updateChannelMutation = useUpdateTVChannel();
+  const reorderStreamsMutation = useReorderTVChannelAcestreams();
+
+  const [orderDraft, setOrderDraft] = useState<StreamOrderDraft | null>(null);
+  const draft = orderDraft?.channelId === channelId ? orderDraft : null;
+  const orderedStreams = draft?.streams ?? channel?.acestream_channels ?? [];
+  const isOrderModified = draft !== null && orderedStreams.some((stream, index) => stream.id !== draft.expectedOrder[index]);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const draggedStreamId = useRef<string | null>(null);
+  const [dragOverStreamId, setDragOverStreamId] = useState<string | null>(null);
+
+  const moveStream = (id: string, targetId: string) => {
+    if (isSavingOrder || id === targetId) return;
+    const from = orderedStreams.findIndex((stream) => stream.id === id);
+    const to = orderedStreams.findIndex((stream) => stream.id === targetId);
+    if (from < 0 || to < 0) return;
+    const next = [...orderedStreams];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    setOrderDraft({
+      channelId, streams: next,
+      expectedOrder: draft?.expectedOrder ?? orderedStreams.map((stream) => stream.id),
+    });
+  };
+
+  const moveStreamStep = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= orderedStreams.length) return;
+    moveStream(orderedStreams[index].id, orderedStreams[targetIndex].id);
+  };
+
+  const handleSaveOrder = async () => {
+    if (!channel || !draft || orderedStreams.length < 2 || !isOrderModified || isSavingOrder) return;
+    setIsSavingOrder(true);
+    try {
+      await reorderStreamsMutation.mutateAsync({
+        tvChannelId: channelId,
+        streamIds: orderedStreams.map((s) => s.id),
+        expectedOrder: draft.expectedOrder,
+      });
+      setOrderDraft(null);
+      setNotice({ message: 'Stream preference order saved successfully.', severity: 'success' });
+    } catch (err) {
+      setNotice({ message: normalizeApiError(err).message || 'Failed to save stream order.', severity: 'error' });
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
 
   const [openAssociateDialog, setOpenAssociateDialog] = useState(false);
   const [openBatchAssignDialog, setOpenBatchAssignDialog] = useState(false);
@@ -313,7 +380,20 @@ const TVChannelDetail: React.FC = () => {
       <ContentSection
         title="Streams"
         actions={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+            {draft && (
+              <Button disabled={isSavingOrder} onClick={() => setOrderDraft(null)}>Cancel</Button>
+            )}
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              startIcon={<SaveIcon />}
+              disabled={!isOrderModified || isSavingOrder || streamCount < 2}
+              onClick={() => void handleSaveOrder()}
+            >
+              {isSavingOrder ? 'Saving…' : 'Save order'}
+            </Button>
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpenAssociateDialog(true)}>
               Add stream
             </Button>
@@ -327,12 +407,30 @@ const TVChannelDetail: React.FC = () => {
           <Alert severity="info">No streams yet. Add one so this channel can play.</Alert>
         ) : (
           <List sx={{ p: 0 }}>
-            {channel.acestream_channels.map((acestream) => (
+            {orderedStreams.map((acestream, index) => (
               <ListItem
                 key={acestream.id}
                 divider
+                onDragOver={(e) => {
+                  if (!isSavingOrder && draggedStreamId.current !== null) {
+                    e.preventDefault();
+                    setDragOverStreamId(acestream.id);
+                    e.dataTransfer.dropEffect = 'move';
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggedStreamId.current !== null) {
+                    moveStream(draggedStreamId.current, acestream.id);
+                  }
+                  draggedStreamId.current = null;
+                  setDragOverStreamId(null);
+                }}
                 sx={{
-                  alignItems: 'flex-start', px: { xs: 0, sm: 2 }, pr: { xs: 0, sm: 12 },
+                  alignItems: 'center',
+                  px: { xs: 1, sm: 2 },
+                  pr: { xs: 1, sm: 12 },
+                  bgcolor: dragOverStreamId === acestream.id ? 'action.selected' : 'transparent',
                   flexDirection: { xs: 'column', sm: 'row' },
                   '& .MuiListItemSecondaryAction-root': {
                     position: { xs: 'static', sm: 'absolute' },
@@ -360,6 +458,62 @@ const TVChannelDetail: React.FC = () => {
                   </Box>
                 }
               >
+                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mr: { xs: 0, sm: 2 }, mb: { xs: 1, sm: 0 }, alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+                  <IconButton
+                    size="small"
+                    draggable={!isSavingOrder}
+                    disabled={isSavingOrder}
+                    aria-label={`Drag ${acestream.name}`}
+                    sx={{ cursor: 'grab' }}
+                    onDragStart={(e) => {
+                      draggedStreamId.current = acestream.id;
+                      e.dataTransfer.setData('text/plain', String(acestream.id));
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragEnd={() => {
+                      draggedStreamId.current = null;
+                      setDragOverStreamId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' && index > 0) {
+                        e.preventDefault();
+                        moveStreamStep(index, 'up');
+                      } else if (e.key === 'ArrowDown' && index < orderedStreams.length - 1) {
+                        e.preventDefault();
+                        moveStreamStep(index, 'down');
+                      }
+                    }}
+                  >
+                    <DragIndicator />
+                  </IconButton>
+                  <Typography
+                    aria-label={`Order ${index + 1}`}
+                    sx={{
+                      minWidth: 28,
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                    }}
+                  >
+                    {index + 1}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    aria-label={`Move ${acestream.name} up`}
+                    disabled={isSavingOrder || index === 0}
+                    onClick={() => moveStreamStep(index, 'up')}
+                  >
+                    <ArrowUpward fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    aria-label={`Move ${acestream.name} down`}
+                    disabled={isSavingOrder || index === orderedStreams.length - 1}
+                    onClick={() => moveStreamStep(index, 'down')}
+                  >
+                    <ArrowDownward fontSize="small" />
+                  </IconButton>
+                </Stack>
                 <ListItemText
                   primary={acestream.name}
                   primaryTypographyProps={{ fontWeight: 600 }}

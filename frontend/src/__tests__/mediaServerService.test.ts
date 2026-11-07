@@ -57,4 +57,11 @@ describe('tunerService', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/v1/tuner/settings');
     expect(apiClient.put).toHaveBeenCalledWith('/v1/tuner/settings', { friendly_name: 'AceStream Tuner', max_channels: 450 });
   });
+
+  it('sends hide_unusable with the tuner settings', async () => {
+    (apiClient.put as jest.Mock).mockResolvedValue({ data: { hide_unusable: true } });
+    const saved = await tunerService.updateSettings({ hide_unusable: true });
+    expect(apiClient.put).toHaveBeenCalledWith('/v1/tuner/settings', { hide_unusable: true });
+    expect(saved.hide_unusable).toBe(true);
+  });
 });

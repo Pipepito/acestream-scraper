@@ -44,4 +44,13 @@ describe('job names and results', () => {
     expect(summarizeJobResult('channel_cleanup', { deleted: 0 })).toBe('0 channels removed');
     expect(summarizeJobResult('channel_cleanup', null)).toBeNull();
   });
+  it('keeps deferred search candidates distinct from deferred whole searches', () => {
+    const summary = summarizeJobResult('url_scraping', { processed: 0, failures: 0, saved_searches: {
+      partial: 1, interrupted: 2, deferred_candidates: 3, deferred_searches: 4,
+    } });
+    expect(summary).toContain('1 partial');
+    expect(summary).toContain('2 interrupted');
+    expect(summary).toContain('3 candidates deferred');
+    expect(summary).toContain('4 searches deferred');
+  });
 });

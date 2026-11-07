@@ -4,6 +4,7 @@ Integration tests for Health endpoints
 
 import pytest
 from fastapi import status
+from app.config.version import get_app_version
 
 
 class TestHealthEndpoints:
@@ -23,8 +24,9 @@ class TestHealthEndpoints:
         # Status should be healthy or degraded (depends on external services)
         assert data["status"] in ["healthy", "degraded", "unhealthy"]
 
-        # Version should be present
-        assert data["version"] is not None
+        # Both public surfaces follow the release file instead of a stale literal.
+        assert data["version"] == get_app_version()
+        assert alembic_client.get("/openapi.json").json()["info"]["version"] == get_app_version()
 
         # Acestream status should be checked
         assert "status" in data["acestream"]

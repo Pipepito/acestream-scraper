@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { TestMemoryRouter as MemoryRouter } from '../testUtils/router';
 import StartupGate from '../components/StartupGate';
 import { startupService, type StartupStatus } from '../services/startupService';
 import { ApiError } from '../services/apiErrors';

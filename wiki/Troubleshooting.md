@@ -26,7 +26,7 @@ Start with **Overview → Services** and **Scheduled jobs**. Service state, the 
 5. At the session limit, close another viewer or wait for cleanup before retrying. Different channels/audio choices use separate FFmpeg sessions. Multiple viewers of the same choice share one.
 6. If checks interrupt players connected straight to an engine, use a dedicated checker. A PID alone cannot isolate stopping the same source on native engine 3.2.11. The app can coordinate its own web/relay sessions; direct external players are outside that registry.
 
-For stable TV relay URLs, default recovery ends a failed response and relies on the player reconnecting to the **same URL**. Recently failed sources are tried later. A raw content-ID URL has no channel fallback. **Experimental transcoding recovery** in Integrations → Tuner settings attempts recovery within the same connection, costs substantial CPU and is not a guarantee of uninterrupted playback. See [relay behavior](Media-Servers.md#channels-with-several-streams).
+For stable TV relay URLs, default recovery ends a failed response and relies on the player reconnecting to the **same URL**. Recently failed sources are tried later. A raw content-ID URL has no channel fallback. **Experimental transcoding recovery** in Integrations → Media servers → Tuner settings attempts recovery within the same connection, costs substantial CPU and is not a guarantee of uninterrupted playback. See [relay behavior](Media-Servers.md#channels-with-several-streams).
 
 ## Playlist or remote player cannot reach the stream
 

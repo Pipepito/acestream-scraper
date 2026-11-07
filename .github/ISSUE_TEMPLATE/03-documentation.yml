@@ -1,0 +1,30 @@
+name: Documentation improvement
+description: Report incorrect, missing, or confusing instructions.
+labels: [documentation]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page or section
+      description: Link to the affected guide or describe where the missing information should go.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is incorrect or unclear?
+      description: Explain what you were trying to do and where the instructions fell short.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested improvement
+      description: Describe the correction or information needed. You do not need to write the final wording.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Relevant version or environment
+      description: Include this when the instructions depend on a version, platform, or deployment method.

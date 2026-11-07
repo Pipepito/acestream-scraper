@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.repositories.settings_repository import SettingsRepository
 from app.services.check_engine_config_service import CheckEngineConfigService
+from app.repositories.channel_repository import ChannelRepository
+from app.services.config_service import ConfigService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -34,7 +36,11 @@ def get_background_tasks_status():
 
 @router.post("/background-tasks/channel_status/run", response_model=ChannelStatusJobRunResponse, tags=["background-tasks"])
 def run_channel_status_job(db: Session = Depends(get_db)):
-    if not CheckEngineConfigService(SettingsRepository(db)).effective_url():
+    settings = SettingsRepository(db)
+    if (not CheckEngineConfigService(settings).effective_url() and not ChannelRepository(db).status_check_inventory(
+        ConfigService(settings).get_stream_check_scope().scope, http_only=True,
+    ).first()):
+        # HTTP streams need no engine; with none of them there is nothing to check.
         return ChannelStatusJobRunResponse(status="disabled", message="No engine configured. Add a playback or checking engine in Settings to enable stream checks.")
     outcome = task_service.run_task_now("channel_status")
     if outcome == "unavailable":
@@ -42,6 +48,6 @@ def run_channel_status_job(db: Session = Depends(get_db)):
     message = (
         "The stream status job is already running or waiting. Follow its progress in Overview."
         if outcome == "already_running" else
-        "Stream status job queued for all active streams. Follow its progress in Overview."
+        "Stream status job queued. Follow its progress in Overview."
     )
     return ChannelStatusJobRunResponse(status=outcome, message=message)

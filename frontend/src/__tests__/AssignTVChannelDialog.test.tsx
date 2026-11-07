@@ -12,7 +12,7 @@ it('finds a channel beyond the first 100 by number and category, and resets when
   await user.type(screen.getByRole('combobox'), 'Documentaries');
   await user.click(await screen.findByRole('option', { name: /150 · Channel 150/ }));
   await user.click(screen.getByRole('button', { name: 'Assign' }));
-  expect(props.onAssign).toHaveBeenCalledWith(150);
+  expect(props.onAssign).toHaveBeenCalledWith({ tvChannelId: 150 });
   rerender(<AssignTVChannelDialog {...props} open={false} />);
   rerender(<AssignTVChannelDialog {...props} />);
   expect(screen.getByRole('button', { name: 'Assign' })).toBeDisabled();

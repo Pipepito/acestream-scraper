@@ -1,3 +1,4 @@
+import RecordButton from '../recordings/RecordButton';
 import React, { useMemo, useState } from 'react';
 import { Alert, Box, Button, Chip, Collapse, LinearProgress, List, ListItem, Stack, Tab, Tabs, Typography, useTheme } from '@mui/material';
 import { addDays, format, parseISO, startOfDay } from 'date-fns';
@@ -8,6 +9,8 @@ import NowNext from './NowNext';
 
 export interface ScheduleViewProps {
   epgChannelId: number;
+  tvChannelId?: number;
+  tvChannelName?: string;
   /** Injectable clock for tests. */
   now?: Date;
 }
@@ -20,7 +23,7 @@ export const dayLabel = (offset: number, base: Date): string => {
   return format(addDays(base, offset), 'EEE d');
 };
 
-const ProgramRow: React.FC<{ program: EPGProgram; past: boolean }> = ({ program, past }) => {
+const ProgramRow: React.FC<{ program: EPGProgram; past: boolean; tvChannelId?: number; tvChannelName?: string }> = ({ program, past, tvChannelId, tvChannelName }) => {
   const [open, setOpen] = useState(false);
   const details = [program.subtitle, program.description].filter(Boolean).join(' — ');
   return (
@@ -41,6 +44,7 @@ const ProgramRow: React.FC<{ program: EPGProgram; past: boolean }> = ({ program,
             </Typography>
             {program.category ? <Chip label={program.category} size="small" variant="outlined" /> : null}
           </Stack>
+          {!past && tvChannelId ? <RecordButton channelId={tvChannelId} channelName={tvChannelName ?? "TV Channel"} programme={program} /> : null}
           {details ? (
             <>
               <Collapse in={open}>
@@ -60,7 +64,7 @@ const ProgramRow: React.FC<{ program: EPGProgram; past: boolean }> = ({ program,
 };
 
 /** Day-tabbed schedule for one guide channel: Now/Next for today, then the day's programmes grouped by hour. */
-const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, now: suppliedNow }) => {
+const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, tvChannelId, tvChannelName, now: suppliedNow }) => {
   const clock = useNow();
   const now = suppliedNow ?? clock;
   const theme = useTheme();
@@ -139,7 +143,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, now: supplied
               </Typography>
               <List disablePadding aria-label={`Programmes from ${hour}`}>
                 {items.map((program) => (
-                  <ProgramRow key={program.id} program={program} past={dayOffset === 0 && parseISO(program.end_time) <= now} />
+                  <ProgramRow tvChannelId={tvChannelId} tvChannelName={tvChannelName} key={program.id} program={program} past={dayOffset === 0 && parseISO(program.end_time) <= now} />
                 ))}
               </List>
             </Box>

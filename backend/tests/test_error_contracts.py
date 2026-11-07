@@ -27,7 +27,10 @@ def test_error_envelope_shape_for_core_endpoints(client, monkeypatch):
     assert data["error"]["correlation_id"]
 
 
-def test_unexpected_error_uses_internal_error_contract(backend_runtime):
+def test_unexpected_error_uses_internal_error_contract(alembic_backend_runtime):
+    # Entering lifespan performs real migrations: never bind this test to the
+    # operator database (which can belong to a different development branch).
+    backend_runtime = alembic_backend_runtime
     from app.api.dependencies import get_scraper_service
 
     backend_runtime.app.dependency_overrides[get_scraper_service] = lambda: _FailingScraperService()

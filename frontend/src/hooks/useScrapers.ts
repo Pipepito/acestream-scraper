@@ -39,6 +39,7 @@ export const useCreateURL = () => {
     mutationFn: (urlData: CreateURLDTO) => scraperService.createURL(urlData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
     },
   });
 };
@@ -54,6 +55,7 @@ export const useUpdateURL = (id: number) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['url', id] });
       queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
     },
   });
 };
@@ -70,6 +72,7 @@ export const usePatchURL = () => {
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['url', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
     },
   });
 };
@@ -81,9 +84,11 @@ export const useDeleteURL = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => scraperService.deleteURL(id),
+    mutationFn: ({ id, deleteStreams }: { id: number; deleteStreams: boolean }) => scraperService.deleteURL(id, deleteStreams),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
+      queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
     },
   });
 };
@@ -99,6 +104,7 @@ export const useScrapeURL = (id: number) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['url', id] });
       queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
       queryClient.invalidateQueries({ queryKey: ['channels'] });
     },
   });
@@ -114,6 +120,7 @@ export const useScrapeAllURLs = () => {
     mutationFn: () => scraperService.scrapeAllURLs(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-sources'] });
       queryClient.invalidateQueries({ queryKey: ['channels'] });
     },
   });

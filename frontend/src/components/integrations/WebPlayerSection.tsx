@@ -1,38 +1,10 @@
 import React from 'react';
-import { Alert, Chip, List, ListItem, ListItemText, Stack, Typography } from '@mui/material';
+import { Alert, Stack, Typography } from '@mui/material';
 import ContentSection from '../layout/ContentSection';
 import InlineStatusNotice from '../state/InlineStatusNotice';
 import { useActiveStreams, usePlayerCapabilities } from '../../hooks/usePlayer';
-import type { ActiveStream } from '../../services/playerService';
-import { formatRelativeTime } from '../../utils/format';
+import ActiveStreamsList from '../player/ActiveStreamsList';
 import { getErrorMessage } from '../../utils/errorUtils';
-
-/** The chip each stream earns. Relays only ever stream — they exist while bytes move. */
-const STATE_LABEL: Record<ActiveStream['state'], string> = {
-  starting: 'Starting',
-  ready: 'Playing',
-  error: 'Failed',
-  stopped: 'Stopped',
-  streaming: 'Streaming',
-};
-
-/** First 8 characters of the id, for a channel this server has no name for. */
-const shortId = (contentId: string): string => `${contentId.slice(0, 8)}…`;
-
-/** What to call a stream: its channel name, or the head of the id when we know no name. */
-const streamTitle = (stream: ActiveStream): string => stream.channel_name ?? `Unnamed channel ${shortId(stream.content_id)}`;
-
-/** Where a relay's bytes are going: "tuner:192.168.1.5" is one client's address. */
-const relayClient = (label: string | null): string => (label ? label.replace(/^tuner:/, '') : 'unknown address');
-
-/** The facts line under a stream's name. */
-const streamFacts = (stream: ActiveStream): string => {
-  if (stream.kind === 'relay') {
-    return `Media server or player at ${relayClient(stream.client_label)} · started ${formatRelativeTime(stream.started_at)}`;
-  }
-  const viewers = `${stream.viewers} ${stream.viewers === 1 ? 'viewer' : 'viewers'}`;
-  return stream.peers === null ? `In a browser · ${viewers}` : `In a browser · ${viewers} · ${stream.peers} peers`;
-};
 
 /** ffmpeg availability and everything the server is streaming right now. */
 const WebPlayerSection: React.FC = () => {
@@ -76,28 +48,10 @@ const WebPlayerSection: React.FC = () => {
         {ffmpegLine()}
         {streamsFailed ? (
           <InlineStatusNotice severity="error" title="Unable to load what is playing" description={getErrorMessage(streamsError)} />
-        ) : list.length === 0 ? (
-          <Typography variant="body2">Nothing is playing right now.</Typography>
-        ) : (
-          <List dense>
-            {list.map((stream) => (
-              <ListItem key={`${stream.kind}-${stream.id}`} secondaryAction={<Chip size="small" label={STATE_LABEL[stream.state]} />}>
-                <ListItemText
-                  primary={streamTitle(stream)}
-                  secondary={
-                    <>
-                      {streamFacts(stream)}
-                      <Typography component="span" variant="caption" sx={{ display: 'block', fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
-                        {stream.content_id}
-                      </Typography>
-                    </>
-                  }
-                  secondaryTypographyProps={{ component: 'div' }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        )}
+        ) : !active ? (
+          <Typography role="status">Loading playback…</Typography>
+        ) : <ActiveStreamsList streams={list} showContentId />}
+
       </Stack>
     </ContentSection>
   );

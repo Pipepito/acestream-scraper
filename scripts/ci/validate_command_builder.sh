@@ -55,6 +55,15 @@ runtime_sources = "\n".join(
 )
 errors = []
 
+# Every offered setting declares whether the wizard owns it after first boot.
+file_options = {item["name"] for item in json.loads(
+    (root / "backend/app/config/runtime-options.json").read_text(encoding="utf-8")
+)}
+for item in data["runtimeSettings"]:
+    expected_owner = "runtime-file" if item["env"] in file_options else "deployment"
+    if item.get("configurationOwner") != expected_owner:
+        errors.append(f"configuration ownership differs for {item['env']}")
+
 # Every flavor on the page must be a real Dockerfile target, and vice versa.
 targets = set(re.findall(r"^FROM .+ AS (scraper[\w-]*)$", dockerfile, flags=re.M))
 flavors = {f["id"] for f in data["flavors"]}
@@ -153,7 +162,7 @@ for env_name, condition in expected_conditions.items():
     matches = [setting for setting in settings if setting.get("env") == env_name]
     if not matches or matches[0].get("appliesWhen") != condition:
         errors.append(f"runtime setting {env_name} must use appliesWhen={condition}")
-if "engineOn && platform.id !== 'amd64'" not in builder:
+if "engineOn && !outpace && platform.id !== 'amd64'" not in builder:
     errors.append("engine state volume is not limited to ARM engine selections")
 
 for required in ("WARP_ENABLE_NAT", "/dev/net/tun:/dev/net/tun", "--cap-add NET_ADMIN", "--cap-add SYS_ADMIN"):

@@ -878,4 +878,9 @@ get_field('xml.days_forward')['help']=pair('Default: 7 days ahead. Choose from 1
 for b in get_screen('guide-export')['blocks']:
  if b['type']=='form':b['implementation_effect']=b['effect'];b['effect']=pair('A guide file is prepared for the selected channels and dates. Its channel names match the playlist.|Se prepara una guía para los canales y fechas elegidos. Los nombres coinciden con la lista.')
 
-if __name__=='__main__':build()
+if __name__=='__main__':
+ from simplify_workflows import refine
+ refine(SCREENS)
+ build()
+ from compose_review06 import build as build_review06
+ build_review06()

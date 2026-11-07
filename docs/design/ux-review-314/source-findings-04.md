@@ -1,5 +1,6 @@
 # Source findings · review 04
 
+> Review 06 is the current design-only continuation: [package](README.md), [simplified ownership](before-after-map.md), [shared presets](shared-foundations-06.md), [graphics](asset-selection-06.md) and [new evidence](verification-review-06.md). Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
 Evidence type: source inspection at `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`, 7 November 2026. This is separate from the earlier live [observed defects](evidence.md). No mutation was attempted on the live installation; its revision remains unknown.
 
 ## F15 — Bulk stream edits can misrepresent success and repeat batch work

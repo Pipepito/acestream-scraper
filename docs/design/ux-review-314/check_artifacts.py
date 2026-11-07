@@ -42,7 +42,7 @@ for origin,ref in links:
   fragments+=1
   if target not in cache:cache[target]=anchors(target)
   if unquote(u.fragment) not in cache[target]:failures.append(f'{origin.name}: missing fragment {ref}')
-generated=['workflow-data.js','workflow-data.json','workflow-specification.md','traceability-matrix.md','source-contracts.md','source-control-map.md','workflow-gallery.html']
+generated=['workflow-data.js','workflow-data.json','workflow-specification.md','traceability-matrix.md','source-contracts.md','source-control-map.md','workflow-gallery.html','index.html','navigation-map.json','before-after-map.md']
 before={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in generated}
 result=subprocess.run([sys.executable,str(ROOT/'compose_workflows.py')],capture_output=True,text=True)
 if result.returncode:failures.append('Generator failed: '+result.stderr)
@@ -51,16 +51,24 @@ drift=[p for p in generated if before[p]!=after[p]]
 if drift:failures.append('Generated drift: '+str(drift))
 data=json.loads((ROOT/'workflow-data.json').read_text());screens=data['screens']
 export_names={p.name for p in (ROOT/'workflow-exports').glob('*.jpg')}
-expected={s['id']+'-'+lang+'.jpg' for s in screens for lang in ['en','es']}
-if export_names!=expected:failures.append('Export inventory mismatch '+str(sorted(export_names^expected)))
+expected={s['id']+'-'+preset+'-'+lang+'.jpg' for s in screens for preset in ['lime','coral','cyan'] for lang in ['en','es']}
+legacy={n for n in export_names if not re.search(r'-(lime|coral|cyan)-(en|es)\.jpg$',n)}
+if export_names-legacy!=expected:failures.append('Current export inventory mismatch '+str(sorted((export_names-legacy)^expected)))
 if '**RECONCILE BEFORE HANDOFF**' in (ROOT/'source-control-map.md').read_text():failures.append('Unmapped input/dialog module')
 runtime_keys={f['key'] for s in screens if s['family']=='runtime' for b in s['blocks'] for f in b.get('fields',[])}
 if len(runtime_keys)!=47:failures.append('Runtime coverage differs from 47 options')
 engine=(ROOT/'workflow-engine.js').read_text()
 if re.search(r'\b(fetch|XMLHttpRequest|WebSocket)\s*\(',engine):failures.append('Unexpected network API in synthetic engine')
-if re.search(r'(localStorage|sessionStorage)\s*\.',engine):failures.append('Unexpected browser persistence in synthetic engine')
+storage_keys=re.findall(r"localStorage\.(?:getItem|setItem)\(['\"]([^'\"]+)",engine)
+if set(storage_keys)!={'ace-design-314:preset'} or 'sessionStorage.' in engine:failures.append('Unexpected browser preference storage scope')
 node=subprocess.run(['node','--check',str(ROOT/'workflow-engine.js')],capture_output=True,text=True)
 if node.returncode:failures.append(node.stderr)
-report=dict(local_links=local,local_fragments=fragments,generated_files=len(generated),generated_drift=drift,screens=len(screens),exports=len(export_names),runtime_fields=len(runtime_keys),failures=failures)
+asset_manifest=json.loads((ROOT/'assets/selected/asset-manifest.json').read_text())
+for asset in asset_manifest:
+ path=ROOT/asset['file']
+ if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=asset['sha256']:failures.append('Asset hash mismatch: '+asset['file'])
+contracts=subprocess.run([sys.executable,str(ROOT/'openapi_contracts.py'),'--check','--self-test'],capture_output=True,text=True)
+if contracts.returncode:failures.append('OpenAPI reference check: '+contracts.stderr)
+report=dict(selected_image_files=len(asset_manifest),selected_image_bytes=sum(a['bytes'] for a in asset_manifest),local_links=local,local_fragments=fragments,generated_files=len(generated),generated_drift=drift,screens=len(screens),exports=len(export_names-legacy),historical_exports=len(legacy),runtime_fields=len(runtime_keys),failures=failures)
 (OUT/'artifact-checks.json').write_text(json.dumps(report,indent=2))
 print(json.dumps(report,indent=2));raise SystemExit(bool(failures))

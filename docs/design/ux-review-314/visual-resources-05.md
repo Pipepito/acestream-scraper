@@ -1,5 +1,6 @@
 # Visual resources and immersive third interface
 
+> Review 06 is the current design-only continuation: [package](README.md), [simplified ownership](before-after-map.md), [shared presets](shared-foundations-06.md), [graphics](asset-selection-06.md) and [new evidence](verification-review-06.md). Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
 7 November 2026. **Owner-confirmed direction:** keep three interfaces and make the third substantially more immersive. The existing cyan proposal is its starting reference. This is approval of the direction and interface count, not approval of final artwork, tokens, typography or a rebrand. Asset production and the third interface's rendered composition remain implementation deliverables in #316/#319 and their feature owners.
 
 ## What the reference review established

@@ -184,6 +184,29 @@
           "El programa cambió desde que lo abriste. Revisa la captura y la guía actual; no sustituyas el horario sin confirmación."
         ]
       },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-schedule",
+        "current": "/live-tv?channel=demo",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-schedule",
+        "save": [
+          {
+            "editor": "schedule",
+            "timing": "explicit action",
+            "api": "recordingService.create"
+          }
+        ],
+        "source": [
+          "frontend/src/components/recordings/RecordingDialog.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -305,6 +328,29 @@
           "Esta hora no existe en Europe/Madrid. Elige una hora anterior a las 02:00 o a partir de las 03:00."
         ]
       },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-dst",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-dst",
+        "save": [
+          {
+            "editor": "dst",
+            "timing": "explicit action",
+            "api": "recordingService.create / edit"
+          }
+        ],
+        "source": [
+          "frontend/src/utils/recordingTimes.ts"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -416,6 +462,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-now",
+        "current": "/live-tv",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-now",
+        "save": [
+          {
+            "editor": "now",
+            "timing": "explicit action",
+            "api": "recordingService.create"
+          }
+        ],
+        "source": [
+          "frontend/src/components/recordings/RecordingDialog.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -922,6 +991,29 @@
           "Recuperando grabación"
         ]
       },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-active",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-active",
+        "save": [
+          {
+            "editor": "end",
+            "timing": "explicit action",
+            "api": "recordingService.edit"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Recordings.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -950,6 +1042,9 @@
       ],
       "owner": 319,
       "blocks": [
+        {
+          "type": "artwork-peek"
+        },
         {
           "type": "player",
           "title": "Coastlines: the Atlantic",
@@ -1084,7 +1179,53 @@
         "preparing": [
           "Preparing playback for Part 1. Original files are unchanged.",
           "Preparando reproducción de la Parte 1. Los originales no cambian."
+        ],
+        "art-absent": [
+          "No artwork is available. Names and actions are ready.",
+          "No hay imagen disponible. Los nombres y acciones siguen listos."
+        ],
+        "art-slow": [
+          "Artwork is taking longer. Continue without it.",
+          "La imagen tarda. Puedes continuar sin ella."
+        ],
+        "art-blocked": [
+          "Artwork could not be loaded from this address. Use the text details.",
+          "No se pudo cargar la imagen de esta dirección. Consulta los datos."
+        ],
+        "art-rejected": [
+          "This image type is not supported. Use the text details.",
+          "El tipo de imagen no es compatible. Consulta los datos."
+        ],
+        "art-oversized": [
+          "The image exceeds the safe size limit. It has not been opened.",
+          "La imagen supera el límite seguro. No se ha abierto."
+        ],
+        "art-decode-failed": [
+          "This image could not be displayed. Try loading it again.",
+          "No se pudo mostrar la imagen. Prueba a cargarla de nuevo."
+        ],
+        "art-changed": [
+          "The artwork changed. Load the new image when you are ready.",
+          "La imagen cambió. Carga la nueva cuando quieras."
         ]
+      },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-parts",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-parts",
+        "save": [],
+        "source": [
+          "frontend/src/components/recordings/RecordingPlayback.tsx",
+          "backend/app/schemas/recordings.py"
+        ],
+        "owner": 319
       },
       "baseStates": [
         "loading",
@@ -1224,6 +1365,29 @@
           "Compatible copy ready. Both original and copy appear under Part 1.",
           "Copia compatible lista. El original y la copia aparecen en la Parte 1."
         ]
+      },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-copy",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-copy",
+        "save": [
+          {
+            "editor": "copy",
+            "timing": "explicit action",
+            "api": "recordingService.convert"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Recordings.tsx"
+        ],
+        "owner": 319
       },
       "baseStates": [
         "loading",
@@ -1409,6 +1573,29 @@
           "El almacenamiento no está configurado. Pide al propietario un RECORDINGS_DIR persistente; estos ajustes no crean un montaje."
         ]
       },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-settings",
+        "current": "/settings?tab=automation",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-settings",
+        "save": [
+          {
+            "editor": "recording-settings",
+            "timing": "explicit action",
+            "api": "recordingService.configure"
+          }
+        ],
+        "source": [
+          "frontend/src/components/recordings/RecordingSettingsFields.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -1527,6 +1714,23 @@
           "El espacio libre está por debajo de la reserva. Se detiene la captura; las grabaciones protegidas siguen protegidas."
         ]
       },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-storage",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-storage",
+        "save": [],
+        "source": [
+          "frontend/src/components/recordings/RecordingOverview.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -1596,6 +1800,23 @@
       ],
       "permission": "administrator",
       "states": {},
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-cancel",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-cancel",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Recordings.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -1673,6 +1894,23 @@
           "No se eliminó nada. Hay un archivo protegido, activo o en uso; actualiza su estado antes de reintentar."
         ]
       },
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-delete",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-delete",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Recordings.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -1745,6 +1983,23 @@
       ],
       "permission": "administrator",
       "states": {},
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recording-disable",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "contextual editor or detail",
+        "canonical": "recording-disable",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Recordings.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -1971,6 +2226,29 @@
           }
         ]
       },
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-activate",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-activate",
+        "save": [
+          {
+            "editor": "activate",
+            "timing": "explicit action",
+            "api": "accessService.bootstrap"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/AccountSetup.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -2090,6 +2368,29 @@
           "Those details did not sign you in. Check the username and password; do not reveal whether an account exists.",
           "Esos datos no permiten iniciar sesión. Revisa usuario y contraseña; no se revela si la cuenta existe."
         ]
+      },
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-login",
+        "current": "/watch",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-login",
+        "save": [
+          {
+            "editor": "login",
+            "timing": "explicit action",
+            "api": "accessService.login"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/LoginForm.tsx"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -2292,10 +2593,14 @@
         {
           "type": "note",
           "text": [
+            "Casting to your devices and controlling server devices have separate permissions. Remote control also needs to be enabled.",
+            "Enviar a tus dispositivos y controlar los del servidor tienen permisos distintos. El control remoto también debe estar activado."
+          ],
+          "tone": "info",
+          "implementation_text": [
             "No invented “remote control” permission: cast and cast_server are separate scopes. Remote access also needs the existing opt-in.",
             "No se inventa un permiso de control remoto: cast y cast_server son ámbitos distintos. El acceso remoto requiere además la activación existente."
-          ],
-          "tone": "info"
+          ]
         },
         {
           "type": "links",
@@ -2323,6 +2628,29 @@
           "This is the last enabled administrator. Keep it enabled and administrative, or create another administrator first. Nothing changed.",
           "Es el último administrador activo. Mantenlo activo y administrador, o crea otro antes. No se cambió nada."
         ]
+      },
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-account",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "section",
+        "canonical": "access-account",
+        "save": [
+          {
+            "editor": "account",
+            "timing": "explicit action",
+            "api": "accessService.updateUser"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/AccessSettings.tsx"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -2552,6 +2880,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-create",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-create",
+        "save": [
+          {
+            "editor": "create-account",
+            "timing": "explicit action",
+            "api": "accessService.createUser"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/AccessSettings.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -2737,6 +3088,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-policy",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-policy",
+        "save": [
+          {
+            "editor": "policy",
+            "timing": "explicit action",
+            "api": "accessService.savePolicy"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/AccessSettings.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -2837,6 +3211,29 @@
         }
       ],
       "permission": "signed-in account; own password",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-password",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-password",
+        "save": [
+          {
+            "editor": "password",
+            "timing": "explicit action",
+            "api": "accessService.password"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/PasswordForm.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -2946,6 +3343,23 @@
           "No se devolvieron sesiones. Actualiza antes de interpretarlo como una revocación correcta."
         ]
       },
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-sessions",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-sessions",
+        "save": [],
+        "source": [
+          "frontend/src/components/access/AccessSettings.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -3048,6 +3462,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-credentials",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-credentials",
+        "save": [
+          {
+            "editor": "credential",
+            "timing": "explicit action",
+            "api": "accessService.issueCredential"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/AccessSettings.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -3123,6 +3560,23 @@
           "Copy is unavailable. Select the displayed value and copy it manually before dismissing.",
           "No se puede copiar. Selecciona el valor y cópialo manualmente antes de ocultarlo."
         ]
+      },
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-secret",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-secret",
+        "save": [],
+        "source": [
+          "frontend/src/components/access/AccessSettings.tsx"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -3213,6 +3667,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-disable",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-disable",
+        "save": [
+          {
+            "editor": "disable-access",
+            "timing": "explicit action",
+            "api": "accessService.disable"
+          }
+        ],
+        "source": [
+          "frontend/src/components/access/AccessSettings.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -3311,6 +3788,23 @@
         }
       ],
       "permission": "informational; no network action",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "access-transport",
+        "current": "/settings?tab=access",
+        "destination": "settings",
+        "section": "access-account",
+        "presentation": "contextual editor or detail",
+        "canonical": "access-transport",
+        "save": [],
+        "source": [
+          "frontend/src/components/access/AccountTransportNotice.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -3337,6 +3831,18 @@
       ],
       "owner": 320,
       "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "add-channels",
+              "label": [
+                "Add channels",
+                "Añadir canales"
+              ]
+            }
+          ]
+        },
         {
           "type": "form",
           "id": "channel-filter",
@@ -3800,6 +4306,31 @@
           "Ningún canal coincide. Quita filtros para ver el catálogo; no se detiene la reproducción."
         ]
       },
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "primary destination",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channels",
+        "current": "/tv-channels",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "primary destination",
+        "canonical": "channels",
+        "save": [
+          {
+            "editor": "channel-filter",
+            "timing": "explicit action",
+            "api": "local URL / catalogue query"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/TVChannels.tsx",
+          "frontend/src/components/TVChannelFilters.tsx",
+          "frontend/src/components/TVChannelsTable.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -4031,6 +4562,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channel-edit",
+        "current": "/tv-channels/:id",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-edit",
+        "save": [
+          {
+            "editor": "tv",
+            "timing": "explicit action",
+            "api": "tvChannelService.create / update"
+          }
+        ],
+        "source": [
+          "frontend/src/components/TVChannelFormDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -4059,6 +4613,9 @@
       ],
       "owner": 320,
       "blocks": [
+        {
+          "type": "artwork-peek"
+        },
         {
           "type": "facts",
           "title": [
@@ -4178,6 +4735,53 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "states": {
+        "art-absent": [
+          "No artwork is available. Names and actions are ready.",
+          "No hay imagen disponible. Los nombres y acciones siguen listos."
+        ],
+        "art-slow": [
+          "Artwork is taking longer. Continue without it.",
+          "La imagen tarda. Puedes continuar sin ella."
+        ],
+        "art-blocked": [
+          "Artwork could not be loaded from this address. Use the text details.",
+          "No se pudo cargar la imagen de esta dirección. Consulta los datos."
+        ],
+        "art-rejected": [
+          "This image type is not supported. Use the text details.",
+          "El tipo de imagen no es compatible. Consulta los datos."
+        ],
+        "art-oversized": [
+          "The image exceeds the safe size limit. It has not been opened.",
+          "La imagen supera el límite seguro. No se ha abierto."
+        ],
+        "art-decode-failed": [
+          "This image could not be displayed. Try loading it again.",
+          "No se pudo mostrar la imagen. Prueba a cargarla de nuevo."
+        ],
+        "art-changed": [
+          "The artwork changed. Load the new image when you are ready.",
+          "La imagen cambió. Carga la nueva cuando quieras."
+        ]
+      },
+      "location": {
+        "id": "channel-detail",
+        "current": "/tv-channels/:id",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-detail",
+        "save": [],
+        "source": [
+          "frontend/src/pages/TVChannelDetail.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -4185,8 +4789,7 @@
         "empty",
         "filtered",
         "partial"
-      ],
-      "states": {}
+      ]
     },
     {
       "id": "channel-reorder",
@@ -4248,6 +4851,23 @@
           "The inventory changed elsewhere. Nothing was saved. Reload the complete list and review your order again.",
           "El inventario cambió en otro lugar. No se guardó nada. Recarga la lista completa y revisa el orden."
         ]
+      },
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channel-reorder",
+        "current": "/tv-channels",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-reorder",
+        "save": [],
+        "source": [
+          "frontend/src/components/TVChannelReorder.tsx"
+        ],
+        "owner": 320
       },
       "baseStates": [
         "loading",
@@ -4314,6 +4934,23 @@
           "The inventory changed elsewhere. Nothing was saved. Reload the complete list and review your order again.",
           "El inventario cambió en otro lugar. No se guardó nada. Recarga la lista completa y revisa el orden."
         ]
+      },
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channel-preferences",
+        "current": "/tv-channels",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-preferences",
+        "save": [],
+        "source": [
+          "frontend/src/pages/TVChannelDetail.tsx"
+        ],
+        "owner": 320
       },
       "baseStates": [
         "loading",
@@ -4568,6 +5205,30 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "streams",
+        "current": "/acestream-channels",
+        "destination": "channels",
+        "section": "streams",
+        "presentation": "section",
+        "canonical": "streams",
+        "save": [
+          {
+            "editor": "streams-filter",
+            "timing": "explicit action",
+            "api": "channelService query"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/AcestreamChannels.tsx",
+          "frontend/src/components/channels/ChannelFilterBar.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -4835,6 +5496,24 @@
           "No hay medición. Muestra desconocido, no cero. Importar no demostró señal."
         ]
       },
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "stream-stats",
+        "current": "/acestream-channels",
+        "destination": "channels",
+        "section": "streams",
+        "presentation": "contextual editor or detail",
+        "canonical": "stream-stats",
+        "save": [],
+        "source": [
+          "frontend/src/components/channels/StreamStatistics.tsx",
+          "frontend/src/components/ChannelActivityLogDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5063,6 +5742,30 @@
         "Create a stream and optionally attach it to an existing TV channel atomically.",
         "Crea una emisión y vincúlala opcionalmente a un canal existente de forma atómica."
       ],
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "stream-edit",
+        "current": "/acestream-channels",
+        "destination": "channels",
+        "section": "streams",
+        "presentation": "contextual editor or detail",
+        "canonical": "stream-edit",
+        "save": [
+          {
+            "editor": "stream",
+            "timing": "explicit action",
+            "api": "channelService.create"
+          }
+        ],
+        "source": [
+          "frontend/src/components/QuickEditDialog.tsx",
+          "frontend/src/components/TVChannelLinkField.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5232,6 +5935,30 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "stream-bulk",
+        "current": "/acestream-channels",
+        "destination": "channels",
+        "section": "streams",
+        "presentation": "contextual editor or detail",
+        "canonical": "stream-bulk",
+        "save": [
+          {
+            "editor": "bulk",
+            "timing": "explicit action",
+            "api": "channelService bulk commands"
+          }
+        ],
+        "source": [
+          "frontend/src/components/BulkOperations.tsx",
+          "frontend/src/components/BatchAssignDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5323,6 +6050,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channel-assign",
+        "current": "/tv-channels/:id",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-assign",
+        "save": [],
+        "source": [
+          "frontend/src/components/BatchAcestreamAssignment.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5474,6 +6218,29 @@
           "Northlight tiene dos candidatos. Elige un destino; no selecciones ambos ni elijas por ID de fila."
         ]
       },
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "stream-match",
+        "current": "/tv-channels",
+        "destination": "channels",
+        "section": "streams",
+        "presentation": "contextual editor or detail",
+        "canonical": "stream-match",
+        "save": [
+          {
+            "editor": "similar-options",
+            "timing": "explicit action",
+            "api": "TVMatchOptions preview"
+          }
+        ],
+        "source": [
+          "frontend/src/components/TVAutoMatchDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5530,6 +6297,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channel-delete",
+        "current": "/tv-channels",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-delete",
+        "save": [],
+        "source": [
+          "frontend/src/components/TVChannelDeleteDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5646,9 +6430,38 @@
               ]
             }
           ]
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "guide-auto",
+              "label": [
+                "Automatic exact matches",
+                "Coincidencias exactas automáticas"
+              ]
+            }
+          ]
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-sources",
+        "current": "/epg?tab=sources",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "section",
+        "canonical": "guide-sources",
+        "save": [],
+        "source": [
+          "frontend/src/components/EPGSourcesTable.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5766,9 +6579,44 @@
             "Fuente eliminada; revisa los canales sin programación."
           ],
           "danger": true
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "guide-match",
+              "label": [
+                "Next: review guide matches",
+                "Siguiente: revisar coincidencias"
+              ]
+            }
+          ]
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-source",
+        "current": "/epg?tab=sources",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-source",
+        "save": [
+          {
+            "editor": "guide-source",
+            "timing": "explicit action",
+            "api": "epgService.createSource / updateSource"
+          }
+        ],
+        "source": [
+          "frontend/src/components/EPGSourceDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5895,6 +6743,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-detail",
+        "current": "/epg/channels/:id",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-detail",
+        "save": [],
+        "source": [
+          "frontend/src/pages/EPGChannelDetail.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -5976,6 +6841,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-choice",
+        "current": "/epg?tab=matching",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-choice",
+        "save": [],
+        "source": [
+          "frontend/src/components/EPGMatchAnalysisPanel.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -6126,6 +7008,18 @@
               ]
             }
           ]
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "dashboard",
+              "label": [
+                "Start watching",
+                "Empezar a ver"
+              ]
+            }
+          ]
         }
       ],
       "permission": "administrator",
@@ -6134,6 +7028,29 @@
           "The source scope or preview changed. Selection is cleared; fetch and review a fresh preview. No stale row is applied.",
           "Cambió el ámbito o la vista previa. Se borra la selección; obtén y revisa otra. No se aplica una fila obsoleta."
         ]
+      },
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-match",
+        "current": "/epg?tab=matching",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-match",
+        "save": [
+          {
+            "editor": "guide-scope",
+            "timing": "explicit action",
+            "api": "guideSetupService preview"
+          }
+        ],
+        "source": [
+          "frontend/src/components/EPGMatchAnalysisPanel.tsx"
+        ],
+        "owner": 320
       },
       "baseStates": [
         "loading",
@@ -6249,6 +7166,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-rule",
+        "current": "/epg/channels/:id",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-rule",
+        "save": [
+          {
+            "editor": "rule",
+            "timing": "explicit action",
+            "api": "epgService stringMappings"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/EPGChannelDetail.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -6304,18 +7244,15 @@
             "Guardar preferencia"
           ],
           "effect": [
-            "Use exact matches after future successful updates. Ambiguous matches still need your review.",
-            "Usa coincidencias exactas tras futuras actualizaciones correctas. Las ambiguas requieren revisión."
+            "Saved for future successful updates. Ambiguous names still need your review.",
+            "Guardado para futuras actualizaciones correctas. Los nombres ambiguos requieren revisión."
           ],
           "api": "configService epg-matching",
-          "confirm": [
-            "Enable future exact matches? Existing assignments and imported guide identities remain protected.",
-            "¿Activar futuras coincidencias exactas? Se protegen las asignaciones e identidades existentes."
-          ],
           "implementation_effect": [
             "Applies to future successful ingestion. Current UI saves immediately; this staged Save is a proposed interaction change requiring review.",
             "Se aplica tras futuras importaciones correctas. La UI actual guarda al instante; este guardado por botón requiere revisión."
-          ]
+          ],
+          "saveTiming": "immediate"
         },
         {
           "type": "facts",
@@ -6348,6 +7285,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-auto",
+        "current": "/settings?tab=automation",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-auto",
+        "save": [
+          {
+            "editor": "guide-auto",
+            "timing": "immediate",
+            "api": "configService epg-matching"
+          }
+        ],
+        "source": [
+          "frontend/src/components/GuideMatchingFields.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -6489,6 +7449,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-export",
+        "current": "/epg?tab=export",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-export",
+        "save": [
+          {
+            "editor": "xml",
+            "timing": "explicit action",
+            "api": "epgService.generateXml"
+          }
+        ],
+        "source": [
+          "frontend/src/components/EPGXmlOutputPanel.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -6604,6 +7587,23 @@
           "One guide source failed to refresh. These counts describe the last available data, not complete current coverage.",
           "Una fuente falló. Las cifras describen los últimos datos disponibles, no la cobertura actual completa."
         ]
+      },
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-coverage",
+        "current": "/epg",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-coverage",
+        "save": [],
+        "source": [
+          "frontend/src/components/GuideCoverage.tsx"
+        ],
+        "owner": 320
       },
       "baseStates": [
         "loading",
@@ -6812,6 +7812,25 @@
               ]
             }
           ]
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "public-address",
+              "label": [
+                "Address and credentials",
+                "Dirección y credenciales"
+              ]
+            },
+            {
+              "target": "formats",
+              "label": [
+                "Shared stream formats",
+                "Formatos de emisión compartidos"
+              ]
+            }
+          ]
         }
       ],
       "permission": "administrator",
@@ -6834,6 +7853,30 @@
           "These options produce no entries. Change filters; do not present an empty playlist as a failed server.",
           "Estas opciones no producen entradas. Cambia filtros; una lista vacía no es un fallo del servidor."
         ]
+      },
+      "destination": "connections",
+      "section": "playlist",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "playlist",
+        "current": "/playlist",
+        "destination": "connections",
+        "section": "playlist",
+        "presentation": "section",
+        "canonical": "playlist",
+        "save": [
+          {
+            "editor": "playlist",
+            "timing": "explicit action",
+            "api": "usePlaylistLink / playlistService"
+          }
+        ],
+        "source": [
+          "frontend/src/components/playlist/PlaylistOptionsForm.tsx",
+          "frontend/src/components/playlist/PlaylistLinkPanel.tsx"
+        ],
+        "owner": 320
       },
       "baseStates": [
         "loading",
@@ -7036,6 +8079,39 @@
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "playlist",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "formats",
+        "current": "/settings?tab=links",
+        "destination": "connections",
+        "section": "playlist",
+        "presentation": "contextual editor or detail",
+        "canonical": "formats",
+        "save": [
+          {
+            "editor": "format",
+            "timing": "explicit action",
+            "api": "baseUrlService.createBaseUrl"
+          },
+          {
+            "editor": "link-identifiers-0",
+            "timing": "explicit action",
+            "api": "configService independent setting: links.add_pid"
+          },
+          {
+            "editor": "link-identifiers-1",
+            "timing": "explicit action",
+            "api": "configService independent setting: links.app_id"
+          }
+        ],
+        "source": [
+          "frontend/src/components/StreamLinkFormatsSection.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -7140,6 +8216,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "playlist",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "format-edit",
+        "current": "/settings?tab=links",
+        "destination": "connections",
+        "section": "playlist",
+        "presentation": "contextual editor or detail",
+        "canonical": "format-edit",
+        "save": [
+          {
+            "editor": "edit-format",
+            "timing": "explicit action",
+            "api": "baseUrlService.updateBaseUrl"
+          }
+        ],
+        "source": [
+          "frontend/src/components/StreamLinkFormatsSection.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -7171,10 +8270,14 @@
         {
           "type": "note",
           "text": [
+            "Paste a website or playlist address. Save it for later, or find its channels now.",
+            "Pega una dirección web o de lista. Guárdala para más tarde o busca sus canales ahora."
+          ],
+          "tone": "info",
+          "implementation_text": [
             "HTTP/HTTPS pages and nested playlists keep redirect, DNS and private-network safeguards.",
             "Las páginas HTTP/HTTPS y listas anidadas conservan las protecciones de redirección, DNS y red privada."
-          ],
-          "tone": "info"
+          ]
         },
         {
           "type": "form",
@@ -7205,12 +8308,16 @@
                 "Dirección de fuente"
               ],
               "help": [
-                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
-                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+                "Paste the complete address. Save only keeps it for later; finding channels starts an import.",
+                "Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación."
               ],
               "value": "https://source.example.invalid/channels",
               "kind": "text",
-              "required": true
+              "required": true,
+              "implementation_help": [
+                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
+                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+              ]
             },
             {
               "key": "source.url_type",
@@ -7219,8 +8326,8 @@
                 "Tipo de fuente"
               ],
               "help": [
-                "HTTP/HTTPS pages and nested playlists keep redirect, DNS and private-network safeguards.",
-                "Las páginas HTTP/HTTPS y listas anidadas conservan las protecciones de redirección, DNS y red privada."
+                "Use the normal website option unless your provider asks for a specific type.",
+                "Usa la opción web normal salvo que tu proveedor indique otro tipo."
               ],
               "value": "regular",
               "kind": "select",
@@ -7230,6 +8337,10 @@
                 "zeronet|ZeroNet|ZeroNet",
                 "ipfs|IPFS|IPFS",
                 "broadcaster|Built-in broadcaster|Proveedor integrado"
+              ],
+              "implementation_help": [
+                "HTTP/HTTPS pages and nested playlists keep redirect, DNS and private-network safeguards.",
+                "Las páginas HTTP/HTTPS y listas anidadas conservan las protecciones de redirección, DNS y red privada."
               ]
             },
             {
@@ -7257,7 +8368,8 @@
               ],
               "value": false,
               "kind": "checkbox",
-              "advanced": true
+              "advanced": true,
+              "default": false
             }
           ],
           "action": [
@@ -7265,11 +8377,12 @@
             "Solo guardar fuente"
           ],
           "effect": [
-            "Source saved; no streams imported yet.",
-            "Fuente guardada; todavía no se han importado emisiones."
+            "Save only keeps the source. Save and find channels saves it, then queues an import separately.",
+            "Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado."
           ],
           "api": "scraperService createURL / updateURL",
-          "intent": true
+          "intent": true,
+          "secondaryAction": true
         },
         {
           "type": "command",
@@ -7285,7 +8398,10 @@
             "Source saved. Import waiting; if queueing fails, retry import without adding a duplicate source.",
             "Fuente guardada. Importación en espera; si falla la cola, reintenta sin duplicar la fuente."
           ],
-          "next": "source-results"
+          "next": "source-results",
+          "requiresForm": "source",
+          "inlineInForm": true,
+          "primary": true
         },
         {
           "type": "links",
@@ -7320,6 +8436,29 @@
           "Source saved, but import failed. Existing channels remain. Retry update; do not add the source again.",
           "Fuente guardada, pero la importación falló. Se conservan canales. Reintenta actualizar; no vuelvas a añadirla."
         ]
+      },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "source-web",
+        "current": "/scraper?tab=sources",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "source-web",
+        "save": [
+          {
+            "editor": "source",
+            "timing": "explicit action",
+            "api": "scraperService createURL / updateURL"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
       },
       "baseStates": [
         "loading",
@@ -7385,12 +8524,16 @@
                 "Dirección de fuente"
               ],
               "help": [
-                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
-                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+                "Paste the complete address. Save only keeps it for later; finding channels starts an import.",
+                "Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación."
               ],
               "value": "https://source.example.invalid/channels",
               "kind": "text",
-              "required": true
+              "required": true,
+              "implementation_help": [
+                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
+                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+              ]
             },
             {
               "key": "source.url_type",
@@ -7399,8 +8542,8 @@
                 "Tipo de fuente"
               ],
               "help": [
-                "The current form starts with Auto-detect. A custom recipe is optional and never proves signal.",
-                "El formulario actual empieza con detección automática. La receta es opcional y no demuestra señal."
+                "Use the normal website option unless your provider asks for a specific type.",
+                "Usa la opción web normal salvo que tu proveedor indique otro tipo."
               ],
               "value": "auto",
               "kind": "select",
@@ -7410,6 +8553,10 @@
                 "zeronet|ZeroNet|ZeroNet",
                 "ipfs|IPFS|IPFS",
                 "broadcaster|Built-in broadcaster|Proveedor integrado"
+              ],
+              "implementation_help": [
+                "The current form starts with Auto-detect. A custom recipe is optional and never proves signal.",
+                "El formulario actual empieza con detección automática. La receta es opcional y no demuestra señal."
               ]
             },
             {
@@ -7437,7 +8584,8 @@
               ],
               "value": false,
               "kind": "checkbox",
-              "advanced": true
+              "advanced": true,
+              "default": false
             }
           ],
           "action": [
@@ -7445,11 +8593,12 @@
             "Solo guardar fuente"
           ],
           "effect": [
-            "Source saved; no streams imported yet.",
-            "Fuente guardada; todavía no se han importado emisiones."
+            "Save only keeps the source. Save and find channels saves it, then queues an import separately.",
+            "Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado."
           ],
           "api": "scraperService createURL / updateURL",
-          "intent": true
+          "intent": true,
+          "secondaryAction": true
         },
         {
           "type": "command",
@@ -7465,7 +8614,10 @@
             "Source saved. Import waiting; if queueing fails, retry import without adding a duplicate source.",
             "Fuente guardada. Importación en espera; si falla la cola, reintenta sin duplicar la fuente."
           ],
-          "next": "source-results"
+          "next": "source-results",
+          "requiresForm": "source",
+          "inlineInForm": true,
+          "primary": true
         },
         {
           "type": "links",
@@ -7500,6 +8652,29 @@
           "Source saved, but import failed. Existing channels remain. Retry update; do not add the source again.",
           "Fuente guardada, pero la importación falló. Se conservan canales. Reintenta actualizar; no vuelvas a añadirla."
         ]
+      },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "source-auto",
+        "current": "/scraper?tab=sources",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "source-auto",
+        "save": [
+          {
+            "editor": "source",
+            "timing": "explicit action",
+            "api": "scraperService createURL / updateURL"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
       },
       "baseStates": [
         "loading",
@@ -7565,12 +8740,16 @@
                 "Dirección de fuente"
               ],
               "help": [
-                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
-                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+                "Paste the complete address. Save only keeps it for later; finding channels starts an import.",
+                "Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación."
               ],
               "value": "https://source.example.invalid/channels",
               "kind": "text",
-              "required": true
+              "required": true,
+              "implementation_help": [
+                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
+                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+              ]
             },
             {
               "key": "source.url_type",
@@ -7579,8 +8758,8 @@
                 "Tipo de fuente"
               ],
               "help": [
-                "Uses the configured ZeroNet gateway. Unavailable gateway is a prerequisite error, not an empty catalogue.",
-                "Usa la pasarela ZeroNet configurada. Si falta, es un requisito pendiente, no un catálogo vacío."
+                "Use the normal website option unless your provider asks for a specific type.",
+                "Usa la opción web normal salvo que tu proveedor indique otro tipo."
               ],
               "value": "zeronet",
               "kind": "select",
@@ -7590,6 +8769,10 @@
                 "zeronet|ZeroNet|ZeroNet",
                 "ipfs|IPFS|IPFS",
                 "broadcaster|Built-in broadcaster|Proveedor integrado"
+              ],
+              "implementation_help": [
+                "Uses the configured ZeroNet gateway. Unavailable gateway is a prerequisite error, not an empty catalogue.",
+                "Usa la pasarela ZeroNet configurada. Si falta, es un requisito pendiente, no un catálogo vacío."
               ]
             },
             {
@@ -7617,7 +8800,8 @@
               ],
               "value": false,
               "kind": "checkbox",
-              "advanced": true
+              "advanced": true,
+              "default": false
             }
           ],
           "action": [
@@ -7625,11 +8809,12 @@
             "Solo guardar fuente"
           ],
           "effect": [
-            "Source saved; no streams imported yet.",
-            "Fuente guardada; todavía no se han importado emisiones."
+            "Save only keeps the source. Save and find channels saves it, then queues an import separately.",
+            "Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado."
           ],
           "api": "scraperService createURL / updateURL",
-          "intent": true
+          "intent": true,
+          "secondaryAction": true
         },
         {
           "type": "command",
@@ -7645,7 +8830,10 @@
             "Source saved. Import waiting; if queueing fails, retry import without adding a duplicate source.",
             "Fuente guardada. Importación en espera; si falla la cola, reintenta sin duplicar la fuente."
           ],
-          "next": "source-results"
+          "next": "source-results",
+          "requiresForm": "source",
+          "inlineInForm": true,
+          "primary": true
         },
         {
           "type": "links",
@@ -7680,6 +8868,29 @@
           "Source saved, but import failed. Existing channels remain. Retry update; do not add the source again.",
           "Fuente guardada, pero la importación falló. Se conservan canales. Reintenta actualizar; no vuelvas a añadirla."
         ]
+      },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "source-zeronet",
+        "current": "/scraper?tab=sources",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "source-zeronet",
+        "save": [
+          {
+            "editor": "source",
+            "timing": "explicit action",
+            "api": "scraperService createURL / updateURL"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
       },
       "baseStates": [
         "loading",
@@ -7745,12 +8956,16 @@
                 "Dirección de fuente"
               ],
               "help": [
-                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
-                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+                "Paste the complete address. Save only keeps it for later; finding channels starts an import.",
+                "Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación."
               ],
               "value": "https://source.example.invalid/channels",
               "kind": "text",
-              "required": true
+              "required": true,
+              "implementation_help": [
+                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
+                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+              ]
             },
             {
               "key": "source.url_type",
@@ -7759,8 +8974,8 @@
                 "Tipo de fuente"
               ],
               "help": [
-                "Uses the configured IPFS gateway. Preserve content identity; show bounded-fetch failures without deleting saved channels.",
-                "Usa la pasarela IPFS. Conserva la identidad; muestra fallos limitados sin borrar canales."
+                "Use the normal website option unless your provider asks for a specific type.",
+                "Usa la opción web normal salvo que tu proveedor indique otro tipo."
               ],
               "value": "ipfs",
               "kind": "select",
@@ -7770,6 +8985,10 @@
                 "zeronet|ZeroNet|ZeroNet",
                 "ipfs|IPFS|IPFS",
                 "broadcaster|Built-in broadcaster|Proveedor integrado"
+              ],
+              "implementation_help": [
+                "Uses the configured IPFS gateway. Preserve content identity; show bounded-fetch failures without deleting saved channels.",
+                "Usa la pasarela IPFS. Conserva la identidad; muestra fallos limitados sin borrar canales."
               ]
             },
             {
@@ -7797,7 +9016,8 @@
               ],
               "value": false,
               "kind": "checkbox",
-              "advanced": true
+              "advanced": true,
+              "default": false
             }
           ],
           "action": [
@@ -7805,11 +9025,12 @@
             "Solo guardar fuente"
           ],
           "effect": [
-            "Source saved; no streams imported yet.",
-            "Fuente guardada; todavía no se han importado emisiones."
+            "Save only keeps the source. Save and find channels saves it, then queues an import separately.",
+            "Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado."
           ],
           "api": "scraperService createURL / updateURL",
-          "intent": true
+          "intent": true,
+          "secondaryAction": true
         },
         {
           "type": "command",
@@ -7825,7 +9046,10 @@
             "Source saved. Import waiting; if queueing fails, retry import without adding a duplicate source.",
             "Fuente guardada. Importación en espera; si falla la cola, reintenta sin duplicar la fuente."
           ],
-          "next": "source-results"
+          "next": "source-results",
+          "requiresForm": "source",
+          "inlineInForm": true,
+          "primary": true
         },
         {
           "type": "links",
@@ -7860,6 +9084,29 @@
           "Source saved, but import failed. Existing channels remain. Retry update; do not add the source again.",
           "Fuente guardada, pero la importación falló. Se conservan canales. Reintenta actualizar; no vuelvas a añadirla."
         ]
+      },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "source-ipfs",
+        "current": "/scraper?tab=sources",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "source-ipfs",
+        "save": [
+          {
+            "editor": "source",
+            "timing": "explicit action",
+            "api": "scraperService createURL / updateURL"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
       },
       "baseStates": [
         "loading",
@@ -7941,8 +9188,8 @@
                 "Tipo de fuente"
               ],
               "help": [
-                "Registry-backed adapters provide their own fixed address. Saving still does not import channels.",
-                "Los adaptadores del registro proporcionan su dirección fija. Guardar no importa canales."
+                "Use the normal website option unless your provider asks for a specific type.",
+                "Usa la opción web normal salvo que tu proveedor indique otro tipo."
               ],
               "value": "broadcaster",
               "kind": "select",
@@ -7952,6 +9199,10 @@
                 "zeronet|ZeroNet|ZeroNet",
                 "ipfs|IPFS|IPFS",
                 "broadcaster|Built-in broadcaster|Proveedor integrado"
+              ],
+              "implementation_help": [
+                "Registry-backed adapters provide their own fixed address. Saving still does not import channels.",
+                "Los adaptadores del registro proporcionan su dirección fija. Guardar no importa canales."
               ]
             },
             {
@@ -7961,13 +9212,17 @@
                 "Dirección de fuente"
               ],
               "help": [
-                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
-                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+                "Paste the complete address. Save only keeps it for later; finding channels starts an import.",
+                "Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación."
               ],
               "value": "https://source.example.invalid/channels",
               "kind": "text",
               "required": true,
-              "readonly": true
+              "readonly": true,
+              "implementation_help": [
+                "Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches.",
+                "Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas."
+              ]
             },
             {
               "key": "source.enabled",
@@ -7995,7 +9250,8 @@
               "value": false,
               "kind": "checkbox",
               "advanced": true,
-              "disabled": true
+              "disabled": true,
+              "default": false
             }
           ],
           "action": [
@@ -8003,11 +9259,12 @@
             "Solo guardar fuente"
           ],
           "effect": [
-            "Source saved; no streams imported yet.",
-            "Fuente guardada; todavía no se han importado emisiones."
+            "Save only keeps the source. Save and find channels saves it, then queues an import separately.",
+            "Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado."
           ],
           "api": "scraperService createURL / updateURL",
-          "intent": true
+          "intent": true,
+          "secondaryAction": true
         },
         {
           "type": "command",
@@ -8023,7 +9280,10 @@
             "Source saved. Import waiting; if queueing fails, retry import without adding a duplicate source.",
             "Fuente guardada. Importación en espera; si falla la cola, reintenta sin duplicar la fuente."
           ],
-          "next": "source-results"
+          "next": "source-results",
+          "requiresForm": "source",
+          "inlineInForm": true,
+          "primary": true
         },
         {
           "type": "links",
@@ -8058,6 +9318,29 @@
           "Source saved, but import failed. Existing channels remain. Retry update; do not add the source again.",
           "Fuente guardada, pero la importación falló. Se conservan canales. Reintenta actualizar; no vuelvas a añadirla."
         ]
+      },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "source-provider",
+        "current": "/scraper?tab=sources",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "source-provider",
+        "save": [
+          {
+            "editor": "source",
+            "timing": "explicit action",
+            "api": "scraperService createURL / updateURL"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
       },
       "baseStates": [
         "loading",
@@ -8160,6 +9443,25 @@
               ]
             }
           ]
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "setup-guide",
+              "label": [
+                "Next: add a programme guide",
+                "Siguiente: añadir una guía"
+              ]
+            },
+            {
+              "target": "channels",
+              "label": [
+                "Review imported channels",
+                "Revisar canales importados"
+              ]
+            }
+          ]
         }
       ],
       "permission": "administrator",
@@ -8178,6 +9480,23 @@
           "Some records failed. Keep existing channels and show imported, excluded, invalid and failed counts separately.",
           "Fallaron algunos registros. Conserva canales y separa cantidades importadas, excluidas, inválidas y fallidas."
         ]
+      },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "source-results",
+        "current": "/scraper",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "source-results",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
       },
       "baseStates": [
         "loading",
@@ -8242,6 +9561,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "source-remove",
+        "current": "/scraper",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "source-remove",
+        "save": [
+          {
+            "editor": "remove-source",
+            "timing": "explicit action",
+            "api": "DELETE scrapers/urls/{id}?delete_streams="
+          }
+        ],
+        "source": [
+          "frontend/src/components/scraper/DeleteSourceDialog.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -8320,6 +9662,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "sources-orphans",
+        "current": "/scraper",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "sources-orphans",
+        "save": [],
+        "source": [
+          "frontend/src/components/scraper/OrphanedSourcesDialog.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -8500,6 +9859,29 @@
           "Vista previa caducada o revisión cambiada. Carga otra; la selección anterior no autoriza importar."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "w3u",
+        "current": "/scraper?tab=w3u",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "w3u",
+        "save": [
+          {
+            "editor": "catalogue-preview",
+            "timing": "explicit action",
+            "api": "catalogueService preview"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Catalogues.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -8634,6 +10016,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "w3u-save",
+        "current": "/scraper?tab=w3u",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "w3u-save",
+        "save": [
+          {
+            "editor": "catalogue-save",
+            "timing": "explicit action",
+            "api": "catalogueService save"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Catalogues.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -8797,6 +10202,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "w3u-detail",
+        "current": "/scraper?tab=w3u",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "w3u-detail",
+        "save": [
+          {
+            "editor": "w3u-browse",
+            "timing": "explicit action",
+            "api": "local catalogue view"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Catalogues.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -8903,6 +10331,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "w3u-folder",
+        "current": "/scraper?tab=w3u",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "w3u-folder",
+        "save": [
+          {
+            "editor": "folder",
+            "timing": "explicit action",
+            "api": "catalogueService folder assignment"
+          }
+        ],
+        "source": [
+          "frontend/src/components/catalogues/FolderMatchDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -9028,6 +10479,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "saved-search",
+        "current": "/scraper?tab=searches",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "saved-search",
+        "save": [
+          {
+            "editor": "saved-search",
+            "timing": "explicit action",
+            "api": "savedSearchService save"
+          }
+        ],
+        "source": [
+          "frontend/src/components/imports/SavedSearchDialog.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -9133,6 +10607,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "saved-search-preview",
+        "current": "/scraper?tab=searches",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "saved-search-preview",
+        "save": [],
+        "source": [
+          "frontend/src/components/imports/SavedSearches.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -9279,6 +10770,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "exclusion",
+        "current": "/scraper?tab=exclusions",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "exclusion",
+        "save": [
+          {
+            "editor": "exclusion",
+            "timing": "explicit action",
+            "api": "importExclusionService save"
+          }
+        ],
+        "source": [
+          "frontend/src/components/imports/ImportExclusions.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -9412,6 +10926,29 @@
           "El motor no pudo resolver el ID seleccionado. No se guardó ni reprodujo nada; reintenta cuando esté disponible."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "search",
+        "current": "/search",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "search",
+        "save": [
+          {
+            "editor": "search",
+            "timing": "explicit action",
+            "api": "searchService.search"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Search.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -9530,6 +11067,29 @@
           "TV catalogue unavailable. Keep the chosen search result and offer Retry; no partial stream import.",
           "Catálogo de TV no disponible. Conserva el resultado y ofrece Reintentar; no importes parcialmente."
         ]
+      },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "search-add-link",
+        "current": "/search",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "search-add-link",
+        "save": [
+          {
+            "editor": "add-link",
+            "timing": "explicit action",
+            "api": "searchService.resolve + import tv_channel_id"
+          }
+        ],
+        "source": [
+          "frontend/src/components/search/AddAndLinkDialog.tsx"
+        ],
+        "owner": 321
       },
       "baseStates": [
         "loading",
@@ -9654,6 +11214,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-installed",
+        "current": "/scraper/builder",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-installed",
+        "save": [
+          {
+            "editor": "fetch",
+            "timing": "explicit action",
+            "api": "recipeService.fetch"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/ExtractionBuilder.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -9804,6 +11387,29 @@
       ],
       "permission": "administrator",
       "standalone": true,
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-standalone",
+        "current": "standalone helper",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-standalone",
+        "save": [
+          {
+            "editor": "sample",
+            "timing": "explicit action",
+            "api": "standalone recipe worker"
+          }
+        ],
+        "source": [
+          "frontend/src/recipes/standalone.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -10197,6 +11803,29 @@
           "Esta regla no se admite. Conserva el borrador y muestra el motivo sin ejecutar regex sin límites."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-html",
+        "current": "/scraper/builder",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-html",
+        "save": [
+          {
+            "editor": "recipe-html",
+            "timing": "explicit action",
+            "api": "recipeService.preview / standalone worker"
+          }
+        ],
+        "source": [
+          "frontend/src/recipes/RecipeFields.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -10514,6 +12143,29 @@
           "Esta regla no se admite. Conserva el borrador y muestra el motivo sin ejecutar regex sin límites."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-json",
+        "current": "/scraper/builder",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-json",
+        "save": [
+          {
+            "editor": "recipe-json",
+            "timing": "explicit action",
+            "api": "recipeService.preview / standalone worker"
+          }
+        ],
+        "source": [
+          "frontend/src/recipes/RecipeFields.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -10756,6 +12408,29 @@
           "Esta regla no se admite. Conserva el borrador y muestra el motivo sin ejecutar regex sin límites."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-regex",
+        "current": "/scraper/builder",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-regex",
+        "save": [
+          {
+            "editor": "recipe-regex",
+            "timing": "explicit action",
+            "api": "recipeService.preview / standalone worker"
+          }
+        ],
+        "source": [
+          "frontend/src/recipes/RecipeFields.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -10860,6 +12535,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-manual",
+        "current": "/scraper/builder",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-manual",
+        "save": [
+          {
+            "editor": "manual",
+            "timing": "explicit action",
+            "api": "RecipeBuilder source selection"
+          }
+        ],
+        "source": [
+          "frontend/src/recipes/RecipeBuilder.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -11032,6 +12730,23 @@
           "Elige una muestra menor"
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-large",
+        "current": "/scraper/builder",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-large",
+        "save": [],
+        "source": [
+          "frontend/src/recipes/VisualPicker.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -11161,6 +12876,23 @@
           "La receta o muestra cambió tras probar. Vuelve a probar antes de guardar; los resultados antiguos son referencia."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "helper-results",
+        "current": "/scraper/builder",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "helper-results",
+        "save": [],
+        "source": [
+          "frontend/src/recipes/RecipeResults.tsx"
+        ],
+        "owner": 321
+      },
       "baseStates": [
         "loading",
         "error",
@@ -11177,12 +12909,12 @@
       "id": "dashboard",
       "family": "viewing",
       "title": [
-        "Ready when you are",
-        "Todo preparado"
+        "Watch",
+        "Ver"
       ],
       "goal": [
-        "Watch, find your recordings or see what is coming up.",
-        "Ve la TV, encuentra tus grabaciones o consulta lo próximo."
+        "Your channels. Something worth watching.",
+        "Tus canales. Algo que apetece ver."
       ],
       "route": "/",
       "source": [
@@ -11191,113 +12923,7 @@
       "owner": 319,
       "blocks": [
         {
-          "type": "feature",
-          "title": "Coastlines: the Atlantic",
-          "text": [
-            "Northlight · documentary · synthetic programme artwork",
-            "Northlight · documental · ilustración ficticia"
-          ],
-          "target": "live"
-        },
-        {
-          "type": "rows",
-          "title": [
-            "Your television",
-            "Tu televisión"
-          ],
-          "rows": [
-            {
-              "title": [
-                "Browse 3 channels",
-                "Explorar 3 canales"
-              ],
-              "text": [
-                "2 have a recent verified signal; this is not a promise of present playback.",
-                "2 tienen señal verificada reciente; no garantiza reproducción actual."
-              ],
-              "target": "live"
-            },
-            {
-              "title": [
-                "Saved recordings",
-                "Grabaciones guardadas"
-              ],
-              "text": [
-                "Coastlines: the Atlantic · ready",
-                "Coastlines: the Atlantic · lista"
-              ],
-              "target": "recording-parts"
-            },
-            {
-              "title": [
-                "Northlight Cup",
-                "Northlight Cup"
-              ],
-              "text": [
-                "Tomorrow · kickoff not confirmed",
-                "Mañana · hora sin confirmar"
-              ],
-              "target": "event-detail"
-            }
-          ]
-        },
-        {
-          "type": "facts",
-          "title": [
-            "Next content updates",
-            "Próximas actualizaciones"
-          ],
-          "rows": [
-            [
-              [
-                "Sources",
-                "Fuentes"
-              ],
-              [
-                "In 25 min",
-                "En 25 min"
-              ]
-            ],
-            [
-              [
-                "Guide",
-                "Guía"
-              ],
-              [
-                "Waiting behind source update",
-                "Esperando actualización de fuentes"
-              ]
-            ],
-            [
-              [
-                "Signal checks",
-                "Comprobaciones"
-              ],
-              [
-                "Unknown · schedule unavailable",
-                "Desconocido · horario no disponible"
-              ]
-            ]
-          ]
-        },
-        {
-          "type": "links",
-          "items": [
-            {
-              "target": "playlist",
-              "label": [
-                "Open playlist dialog",
-                "Abrir diálogo de lista"
-              ]
-            },
-            {
-              "target": "system",
-              "label": [
-                "System status",
-                "Estado del sistema"
-              ]
-            }
-          ]
+          "type": "watch-home"
         },
         {
           "type": "links",
@@ -11305,8 +12931,8 @@
             {
               "target": "dashboard-events",
               "label": [
-                "Home event preferences",
-                "Preferencias de eventos"
+                "Upcoming event preferences",
+                "Preferencias de próximos eventos"
               ]
             }
           ]
@@ -11321,6 +12947,34 @@
         "partial": [
           "Upcoming events could not load. Channels and recordings remain usable. Retry events only.",
           "No se cargaron eventos próximos. Canales y grabaciones siguen disponibles. Reintenta solo eventos."
+        ],
+        "art-absent": [
+          "No artwork is available. Names and actions are ready.",
+          "No hay imagen disponible. Los nombres y acciones siguen listos."
+        ],
+        "art-slow": [
+          "Artwork is taking longer. Continue without it.",
+          "La imagen tarda. Puedes continuar sin ella."
+        ],
+        "art-blocked": [
+          "Artwork could not be loaded from this address. Use the text details.",
+          "No se pudo cargar la imagen de esta dirección. Consulta los datos."
+        ],
+        "art-rejected": [
+          "This image type is not supported. Use the text details.",
+          "El tipo de imagen no es compatible. Consulta los datos."
+        ],
+        "art-oversized": [
+          "The image exceeds the safe size limit. It has not been opened.",
+          "La imagen supera el límite seguro. No se ha abierto."
+        ],
+        "art-decode-failed": [
+          "This image could not be displayed. Try loading it again.",
+          "No se pudo mostrar la imagen. Prueba a cargarla de nuevo."
+        ],
+        "art-changed": [
+          "The artwork changed. Load the new image when you are ready.",
+          "La imagen cambió. Carga la nueva cuando quieras."
         ]
       },
       "stateBlocks": {
@@ -11395,25 +13049,39 @@
           "Te damos la bienvenida"
         ]
       },
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "primary destination",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "dashboard",
+        "current": "/",
+        "destination": "dashboard",
+        "section": "dashboard",
+        "presentation": "primary destination",
+        "canonical": "dashboard",
+        "save": [],
+        "source": [
+          "frontend/src/pages/TVDashboard.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
-        "permission",
-        "empty",
-        "filtered",
-        "partial"
+        "permission"
       ]
     },
     {
       "id": "live",
       "family": "viewing",
       "title": [
-        "Live TV",
-        "TV en directo"
+        "Watch",
+        "Ver"
       ],
       "goal": [
-        "Browse without interrupting the channel already playing.",
-        "Explora sin interrumpir el canal en reproducción."
+        "Choose a channel and keep browsing while you watch.",
+        "Elige un canal y sigue explorando mientras lo ves."
       ],
       "route": "/live-tv",
       "source": [
@@ -11421,6 +13089,9 @@
       ],
       "owner": 319,
       "blocks": [
+        {
+          "type": "watch-context"
+        },
         {
           "type": "player",
           "title": "Northlight · Coastlines: the Atlantic",
@@ -11539,7 +13210,8 @@
                 "Now Coastlines: the Atlantic · next Inside the studio",
                 "Ahora Coastlines: the Atlantic · después Inside the studio"
               ],
-              "target": "channel-detail"
+              "target": "live",
+              "watchChannel": "Northlight"
             },
             {
               "title": [
@@ -11550,7 +13222,8 @@
                 "No guide data · watching does not require a guide",
                 "Sin guía · no es necesaria para ver"
               ],
-              "target": "channel-detail"
+              "target": "live",
+              "watchChannel": "World 24"
             }
           ]
         },
@@ -11603,6 +13276,34 @@
         "empty": [
           "No channels yet. Open setup if you can manage this installation; viewers should ask its owner.",
           "Aún no hay canales. Abre configuración si puedes administrarla; los espectadores deben pedir ayuda al propietario."
+        ],
+        "art-absent": [
+          "No artwork is available. Names and actions are ready.",
+          "No hay imagen disponible. Los nombres y acciones siguen listos."
+        ],
+        "art-slow": [
+          "Artwork is taking longer. Continue without it.",
+          "La imagen tarda. Puedes continuar sin ella."
+        ],
+        "art-blocked": [
+          "Artwork could not be loaded from this address. Use the text details.",
+          "No se pudo cargar la imagen de esta dirección. Consulta los datos."
+        ],
+        "art-rejected": [
+          "This image type is not supported. Use the text details.",
+          "El tipo de imagen no es compatible. Consulta los datos."
+        ],
+        "art-oversized": [
+          "The image exceeds the safe size limit. It has not been opened.",
+          "La imagen supera el límite seguro. No se ha abierto."
+        ],
+        "art-decode-failed": [
+          "This image could not be displayed. Try loading it again.",
+          "No se pudo mostrar la imagen. Prueba a cargarla de nuevo."
+        ],
+        "art-changed": [
+          "The artwork changed. Load the new image when you are ready.",
+          "La imagen cambió. Carga la nueva cuando quieras."
         ]
       },
       "implementation_states": {
@@ -11618,6 +13319,29 @@
           "Video is not arriving. Keep the last frame with a textual status and offer another source; do not label the channel permanently offline.",
           "No llega vídeo. Conserva el último fotograma con estado textual y ofrece otra emisión; no declares el canal sin señal permanente."
         ]
+      },
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "live",
+        "current": "/live-tv",
+        "destination": "dashboard",
+        "section": "dashboard",
+        "presentation": "contextual editor or detail",
+        "canonical": "live",
+        "save": [
+          {
+            "editor": "browse",
+            "timing": "explicit action",
+            "api": "LiveTV URL state"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/LiveTV.tsx"
+        ],
+        "owner": 319
       },
       "baseStates": [
         "loading",
@@ -11753,6 +13477,29 @@
           "No hay capacidad para cambiar pistas. Conserva un estado útil cuando lo permita el ciclo; ofrece Reintentar o Cancelar."
         ]
       },
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "player-tracks",
+        "current": "player dialog",
+        "destination": "dashboard",
+        "section": "dashboard",
+        "presentation": "contextual editor or detail",
+        "canonical": "player-tracks",
+        "save": [
+          {
+            "editor": "tracks",
+            "timing": "explicit action",
+            "api": "playerService shared viewer lifecycle"
+          }
+        ],
+        "source": [
+          "frontend/src/components/player/StreamPlayerDialog.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -11849,6 +13596,23 @@
           "Esta cuenta no puede usar grabaciones. Volver a entrar no concede permiso; pide acceso al administrador."
         ]
       },
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "viewer",
+        "current": "/watch",
+        "destination": "dashboard",
+        "section": "dashboard",
+        "presentation": "contextual editor or detail",
+        "canonical": "viewer",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Watch.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -11876,6 +13640,9 @@
       ],
       "owner": 319,
       "blocks": [
+        {
+          "type": "event-feature"
+        },
         {
           "type": "form",
           "id": "agenda",
@@ -12141,6 +13908,30 @@
         }
       ],
       "permission": "administrator",
+      "destination": "events",
+      "section": "events",
+      "presentation": "primary destination",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "events",
+        "current": "/events",
+        "destination": "events",
+        "section": "events",
+        "presentation": "primary destination",
+        "canonical": "events",
+        "save": [
+          {
+            "editor": "agenda",
+            "timing": "explicit action",
+            "api": "eventPreferences"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventAgenda.tsx",
+          "frontend/src/pages/Events.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -12172,6 +13963,9 @@
       ],
       "owner": 319,
       "blocks": [
+        {
+          "type": "event-artwork"
+        },
         {
           "type": "facts",
           "title": [
@@ -12304,6 +14098,34 @@
         "unknown": [
           "This event has a date but no confirmed start time. A timed recording needs a confirmed time.",
           "Este evento tiene fecha, pero aún no tiene hora de inicio confirmada. Para programar una grabación hace falta una hora."
+        ],
+        "art-absent": [
+          "No artwork is available. Names and actions are ready.",
+          "No hay imagen disponible. Los nombres y acciones siguen listos."
+        ],
+        "art-slow": [
+          "Artwork is taking longer. Continue without it.",
+          "La imagen tarda. Puedes continuar sin ella."
+        ],
+        "art-blocked": [
+          "Artwork could not be loaded from this address. Use the text details.",
+          "No se pudo cargar la imagen de esta dirección. Consulta los datos."
+        ],
+        "art-rejected": [
+          "This image type is not supported. Use the text details.",
+          "El tipo de imagen no es compatible. Consulta los datos."
+        ],
+        "art-oversized": [
+          "The image exceeds the safe size limit. It has not been opened.",
+          "La imagen supera el límite seguro. No se ha abierto."
+        ],
+        "art-decode-failed": [
+          "This image could not be displayed. Try loading it again.",
+          "No se pudo mostrar la imagen. Prueba a cargarla de nuevo."
+        ],
+        "art-changed": [
+          "The artwork changed. Load the new image when you are ready.",
+          "La imagen cambió. Carga la nueva cuando quieras."
         ]
       },
       "stateBlocks": {
@@ -12404,6 +14226,23 @@
           "Time not confirmed",
           "Hora sin confirmar"
         ]
+      },
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-detail",
+        "current": "/events?event=demo&zone=Europe/Madrid",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-detail",
+        "save": [],
+        "source": [
+          "frontend/src/components/events/EventDetails.tsx"
+        ],
+        "owner": 319
       },
       "baseStates": [
         "loading",
@@ -12601,6 +14440,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-provider",
+        "current": "/events",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-provider",
+        "save": [
+          {
+            "editor": "provider",
+            "timing": "explicit action",
+            "api": "eventService provider preview"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventProviderFields.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -12858,6 +14720,29 @@
         "Manual, URL and JSON paths share the reviewed import contract.",
         "Los flujos manual, URL y JSON comparten la importación revisada."
       ],
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-import",
+        "current": "/events",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-import",
+        "save": [
+          {
+            "editor": "event-import",
+            "timing": "explicit action",
+            "api": "eventService preview"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventImportPanel.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -12965,6 +14850,29 @@
           "The preview token or source revision changed. Select again from a fresh preview; existing events are retained.",
           "Cambió el token o revisión. Selecciona de una vista nueva; se conservan eventos existentes."
         ]
+      },
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-review",
+        "current": "/events",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-review",
+        "save": [
+          {
+            "editor": "event-refresh",
+            "timing": "explicit action",
+            "api": "EventApply.refresh_source"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventImportPanel.tsx"
+        ],
+        "owner": 319
       },
       "baseStates": [
         "loading",
@@ -13147,6 +15055,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-correct",
+        "current": "/events?event=demo",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-correct",
+        "save": [
+          {
+            "editor": "correction",
+            "timing": "explicit action",
+            "api": "eventService.update"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventDetails.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -13261,6 +15192,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-mapping",
+        "current": "/events?event=demo",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-mapping",
+        "save": [
+          {
+            "editor": "broadcast-link",
+            "timing": "explicit action",
+            "api": "eventService broadcaster mapping"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventBroadcastMapper.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -13386,6 +15340,29 @@
           "Preview fingerprint changed. Nothing applied; review the new interval and target.",
           "Cambió la huella. No se aplicó nada; revisa nuevo intervalo y destino."
         ]
+      },
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-overlay",
+        "current": "/events?event=demo",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-overlay",
+        "save": [
+          {
+            "editor": "overlay",
+            "timing": "explicit action",
+            "api": "eventService overlay preview"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventGuideOverlay.tsx"
+        ],
+        "owner": 319
       },
       "baseStates": [
         "loading",
@@ -13516,6 +15493,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-sources",
+        "current": "/events",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-sources",
+        "save": [
+          {
+            "editor": "event-retention",
+            "timing": "explicit action",
+            "api": "eventService retention"
+          }
+        ],
+        "source": [
+          "frontend/src/components/events/EventSourcesPanel.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -13550,53 +15550,64 @@
         {
           "type": "rows",
           "title": [
-            "Choose a destination",
-            "Elige un destino"
+            "Where would you like to watch?",
+            "¿Dónde quieres ver la TV?"
           ],
           "rows": [
             {
               "title": [
-                "Browser",
-                "Navegador"
+                "This browser",
+                "Este navegador"
               ],
               "text": [
-                "Availability and sessions",
-                "Disponibilidad y sesiones"
+                "Playback setup and current sessions.",
+                "Configuración de reproducción y sesiones."
               ],
               "target": "browser-player"
             },
             {
               "title": [
-                "Google Cast TV",
-                "Google Cast TV"
+                "TVs and players",
+                "TV y reproductores"
               ],
               "text": [
-                "Home receivers and original-video compatibility",
-                "Receptores y compatibilidad"
+                "Send to a TV, or open VLC and Kodi.",
+                "Envía a una TV o abre VLC y Kodi."
               ],
               "target": "casting"
             },
             {
               "title": [
-                "VLC / Kodi",
-                "VLC / Kodi"
+                "Media servers",
+                "Servidores multimedia"
               ],
               "text": [
-                "Manual entry and remote opt-in",
-                "Alta manual y activación remota"
+                "Plex, Jellyfin and tuner settings.",
+                "Plex, Jellyfin y sintonizador."
               ],
-              "target": "remote-player"
+              "target": "media-server"
             },
             {
               "title": [
-                "Plex / Jellyfin",
-                "Plex / Jellyfin"
+                "Playlists",
+                "Listas"
               ],
               "text": [
-                "Tuner, playlists and guide",
-                "Sintonizador, listas y guía"
+                "Export channels with the right address and format.",
+                "Exporta canales con dirección y formato adecuados."
               ],
-              "target": "media-server"
+              "target": "playlist"
+            },
+            {
+              "title": [
+                "Notifications",
+                "Notificaciones"
+              ],
+              "text": [
+                "Choose where useful alerts are sent.",
+                "Elige dónde recibir avisos útiles."
+              ],
+              "target": "notifications"
             }
           ]
         },
@@ -13606,28 +15617,31 @@
             {
               "target": "public-address",
               "label": [
-                "Address for players",
-                "Dirección para reproductores"
-              ]
-            },
-            {
-              "target": "telegram-auth",
-              "label": [
-                "Telegram sources",
-                "Fuentes Telegram"
-              ]
-            },
-            {
-              "target": "notifications",
-              "label": [
-                "Notifications",
-                "Notificaciones"
+                "Address used by other devices",
+                "Dirección para otros dispositivos"
               ]
             }
           ]
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "primary destination",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "connections",
+        "current": "proposed orientation layer",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "primary destination",
+        "canonical": "connections",
+        "save": [],
+        "source": [
+          "frontend/src/components/integrations/IntegrationPage.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -13655,6 +15669,25 @@
       ],
       "owner": 322,
       "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "playback-settings",
+              "label": [
+                "Playback setup",
+                "Configurar reproducción"
+              ]
+            },
+            {
+              "target": "player-sessions",
+              "label": [
+                "Current sessions",
+                "Sesiones actuales"
+              ]
+            }
+          ]
+        },
         {
           "type": "facts",
           "title": [
@@ -13769,6 +15802,23 @@
           "Show the reported missing capability; HTTP media can work without AceStream.",
           "Muestra la capacidad que falta; HTTP puede funcionar sin AceStream."
         ]
+      },
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "browser-player",
+        "current": "/integrations/web-player",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "section",
+        "canonical": "browser-player",
+        "save": [],
+        "source": [
+          "frontend/src/components/integrations/WebPlayerSection.tsx"
+        ],
+        "owner": 322
       },
       "baseStates": [
         "loading",
@@ -13895,6 +15945,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "public-address",
+        "current": "/integrations/public-address",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "public-address",
+        "save": [
+          {
+            "editor": "address",
+            "timing": "explicit action",
+            "api": "configService public-base-url"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/PublicAddressSection.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -13923,6 +15996,25 @@
       ],
       "owner": 322,
       "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "casting",
+              "label": [
+                "Send to a TV",
+                "Enviar a una TV"
+              ]
+            },
+            {
+              "target": "remote-player",
+              "label": [
+                "VLC, Kodi and other players",
+                "VLC, Kodi y otros reproductores"
+              ]
+            }
+          ]
+        },
         {
           "type": "facts",
           "title": [
@@ -14041,6 +16133,23 @@
           "Esta conexión o cuenta no puede controlar TVs. Muestra el motivo; reintentar no concede permiso."
         ]
       },
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "casting",
+        "current": "/integrations/tv-casting",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "casting",
+        "save": [],
+        "source": [
+          "frontend/src/pages/integrations/TvCasting.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -14147,6 +16256,29 @@
         }
       ],
       "permission": "administrator / recognized open-mode configuration capability",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "casting-settings",
+        "current": "/integrations/tv-casting",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "casting-settings",
+        "save": [
+          {
+            "editor": "cast-settings",
+            "timing": "explicit action",
+            "api": "castService.saveSettings"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/integrations/TvCasting.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -14219,6 +16351,29 @@
         }
       ],
       "permission": "administrator / public HTTPS / home not yet verified",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "casting-trust",
+        "current": "/integrations/tv-casting",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "casting-trust",
+        "save": [
+          {
+            "editor": "trust",
+            "timing": "explicit action",
+            "api": "castService.trustHome"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/integrations/TvCasting.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -14389,6 +16544,29 @@
           "Conversion yielded to recording. Show whether original playback is still available.",
           "La conversión cedió a grabación. Indica si el original sigue disponible."
         ]
+      },
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "casting-control",
+        "current": "player casting options",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "casting-control",
+        "save": [
+          {
+            "editor": "cast-control",
+            "timing": "explicit action",
+            "api": "castService.command"
+          }
+        ],
+        "source": [
+          "frontend/src/components/player/CastControls.tsx"
+        ],
+        "owner": 322
       },
       "baseStates": [
         "loading",
@@ -14585,6 +16763,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "remote-player",
+        "current": "/integrations/remote-players",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "remote-player",
+        "save": [
+          {
+            "editor": "remote",
+            "timing": "explicit action",
+            "api": "remotePlayerService create / update"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/RemotePlayerDialog.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -14712,6 +16913,29 @@
           "Cambió dirección. Borra desafío y verifica nuevo certificado."
         ]
       },
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "remote-android",
+        "current": "/integrations/remote-players",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "remote-android",
+        "save": [
+          {
+            "editor": "android-pair",
+            "timing": "explicit action",
+            "api": "remotePlayerService.finishAndroidPairing"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/RemotePlayerDialog.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -14823,6 +17047,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "remote-discovery",
+        "current": "/integrations/remote-players",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "remote-discovery",
+        "save": [
+          {
+            "editor": "scan",
+            "timing": "explicit action",
+            "api": "remotePlayerService.scan"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/FindPlayersDialog.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -14959,6 +17206,29 @@
           "App opening requested; do not claim playback started. Offer copy if the app did not open.",
           "Apertura solicitada; no afirmes reproducción. Ofrece copiar si no se abrió."
         ]
+      },
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "remote-control",
+        "current": "PlayOnMenu",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "remote-control",
+        "save": [
+          {
+            "editor": "remote-command",
+            "timing": "explicit action",
+            "api": "remotePlayerService.command"
+          }
+        ],
+        "source": [
+          "frontend/src/components/player/PlayOnMenu.tsx"
+        ],
+        "owner": 322
       },
       "baseStates": [
         "loading",
@@ -15171,6 +17441,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "media-server",
+        "current": "/integrations/media-servers",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "media-server",
+        "save": [
+          {
+            "editor": "media",
+            "timing": "explicit action",
+            "api": "mediaServerService create / update"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/MediaServerDialog.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -15409,6 +17702,29 @@
         "Stable channel IDs and bounded startup.",
         "IDs estables e inicio limitado."
       ],
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "tuner",
+        "current": "/integrations/media-servers",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "tuner",
+        "save": [
+          {
+            "editor": "tuner",
+            "timing": "explicit action",
+            "api": "tunerService.updateSettings"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/MediaServersSection.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -15558,6 +17874,29 @@
           "Telegram exige esperar. Muestra plazo del servidor; conserva progreso y evita intentos repetidos."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "telegram-auth",
+        "current": "/integrations/telegram",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "telegram-auth",
+        "save": [
+          {
+            "editor": "telegram-auth",
+            "timing": "explicit action",
+            "api": "telegramService login"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/TelegramSection.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -15658,6 +17997,34 @@
         }
       ],
       "permission": "same Telegram transport/header gate",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "telegram-code",
+        "current": "/integrations/telegram",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "telegram-code",
+        "save": [
+          {
+            "editor": "telegram-code",
+            "timing": "explicit action",
+            "api": "telegramService code"
+          },
+          {
+            "editor": "telegram-password",
+            "timing": "explicit action",
+            "api": "telegramService password"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/TelegramSection.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -15938,6 +18305,29 @@
         }
       ],
       "permission": "Telegram admin header; HTTPS/localhost; joined membership",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "telegram-source",
+        "current": "/integrations/telegram",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "telegram-source",
+        "save": [
+          {
+            "editor": "telegram-source",
+            "timing": "explicit action",
+            "api": "telegramService source"
+          }
+        ],
+        "source": [
+          "frontend/src/components/integrations/TelegramSourceEditor.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -16038,6 +18428,29 @@
           "Saved URL cannot be safely displayed or validated. Keep it masked; replace explicitly, never submit the mask as a URL.",
           "La URL guardada no se puede mostrar o validar. Mantén máscara; sustituye expresamente, nunca envíes máscara como URL."
         ]
+      },
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "notifications",
+        "current": "/settings?tab=automation",
+        "destination": "connections",
+        "section": "connections",
+        "presentation": "contextual editor or detail",
+        "canonical": "notifications",
+        "save": [
+          {
+            "editor": "webhook",
+            "timing": "explicit action",
+            "api": "configService notification-webhook"
+          }
+        ],
+        "source": [
+          "frontend/src/components/NotificationsSection.tsx"
+        ],
+        "owner": 322
       },
       "baseStates": [
         "loading",
@@ -16233,6 +18646,34 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "warp",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "warp",
+        "current": "/warp",
+        "destination": "system",
+        "section": "warp",
+        "presentation": "section",
+        "canonical": "warp",
+        "save": [
+          {
+            "editor": "warp-mode",
+            "timing": "explicit action",
+            "api": "warpService.setMode"
+          },
+          {
+            "editor": "warp-license",
+            "timing": "explicit action",
+            "api": "warpService.registerLicense"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/WARP.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -16353,6 +18794,29 @@
           "Desired hosts saved, but active exclusions differ. Retry apply; do not claim fully applied.",
           "Hosts deseados guardados, pero lista activa distinta. Reintenta aplicar; no afirmes aplicación completa."
         ]
+      },
+      "destination": "system",
+      "section": "warp",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "warp-exclusions",
+        "current": "/warp",
+        "destination": "system",
+        "section": "warp",
+        "presentation": "contextual editor or detail",
+        "canonical": "warp-exclusions",
+        "save": [
+          {
+            "editor": "exclusions",
+            "timing": "explicit action",
+            "api": "warpService exclusions"
+          }
+        ],
+        "source": [
+          "frontend/src/components/WarpExclusionsSection.tsx"
+        ],
+        "owner": 322
       },
       "baseStates": [
         "loading",
@@ -16499,6 +18963,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "warp",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "warp-startup",
+        "current": "/warp",
+        "destination": "system",
+        "section": "warp",
+        "presentation": "contextual editor or detail",
+        "canonical": "warp-startup",
+        "save": [
+          {
+            "editor": "warp-runtime",
+            "timing": "explicit action",
+            "api": "runtime setup API"
+          }
+        ],
+        "source": [
+          "frontend/src/components/WarpStartupSection.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -16530,102 +19017,117 @@
         {
           "type": "rows",
           "title": [
-            "Settings sections",
-            "Secciones"
+            "Make it yours",
+            "A tu gusto"
           ],
           "rows": [
             {
               "title": [
-                "Playback",
-                "Reproducción"
+                "Accounts and access",
+                "Cuentas y acceso"
               ],
               "text": [
-                "Engine address and saved route",
-                "Dirección de motor y ruta guardada"
-              ],
-              "target": "playback-settings"
-            },
-            {
-              "title": [
-                "Automation",
-                "Automatización"
-              ],
-              "text": [
-                "Independent schedules and cleanup policies",
-                "Horarios y políticas independientes"
-              ],
-              "target": "automation"
-            },
-            {
-              "title": [
-                "Stream links",
-                "Enlaces"
-              ],
-              "text": [
-                "Shared formats and PID/AppID",
-                "Formatos compartidos y PID/AppID"
-              ],
-              "target": "formats"
-            },
-            {
-              "title": [
-                "Access",
-                "Acceso"
-              ],
-              "text": [
-                "Accounts, public viewing and credentials",
-                "Cuentas, acceso público y credenciales"
+                "Give people the access they need.",
+                "Da a cada persona el acceso que necesita."
               ],
               "target": "access-account"
             },
             {
               "title": [
-                "Network",
-                "Red"
+                "Appearance and language",
+                "Apariencia e idioma"
               ],
               "text": [
-                "Runtime, proxies and tuner networks",
-                "Ejecución, proxies y redes IPTV"
+                "One app, three ways to see it.",
+                "Una aplicación, tres formas de verla."
               ],
-              "target": "network"
+              "target": "preferences"
+            },
+            {
+              "title": [
+                "Background updates",
+                "Actualizaciones en segundo plano"
+              ],
+              "text": [
+                "When to update sources, guides and signal checks.",
+                "Cuándo actualizar fuentes, guías y señal."
+              ],
+              "target": "automation"
             }
           ]
         },
         {
-          "type": "links",
-          "items": [
+          "type": "rows",
+          "title": [
+            "Settings beside their task",
+            "Ajustes junto a su tarea"
+          ],
+          "rows": [
             {
-              "target": "recording-settings",
-              "label": [
+              "title": [
                 "Recording settings",
                 "Ajustes de grabación"
-              ]
+              ],
+              "text": [
+                "Storage, capacity and retention.",
+                "Almacenamiento, capacidad y conservación."
+              ],
+              "target": "recording-settings"
             },
             {
-              "target": "guide-auto",
-              "label": [
-                "Exact guide matching",
-                "Coincidencias exactas"
-              ]
+              "title": [
+                "Playback and devices",
+                "Reproducción y dispositivos"
+              ],
+              "text": [
+                "This browser, TVs, players and playlists.",
+                "Este navegador, TV, reproductores y listas."
+              ],
+              "target": "connections"
             },
             {
-              "target": "notifications",
-              "label": [
-                "Notifications",
-                "Notificaciones"
-              ]
+              "title": [
+                "Guide matching",
+                "Vinculación de guía"
+              ],
+              "text": [
+                "Review matches and optional exact automation.",
+                "Revisa coincidencias y automatización exacta opcional."
+              ],
+              "target": "guide-match"
             },
             {
-              "target": "preferences",
-              "label": [
-                "Language and appearance",
-                "Idioma y apariencia"
-              ]
+              "title": [
+                "Advanced setup",
+                "Configuración avanzada"
+              ],
+              "text": [
+                "Runtime options, network and restart requirements.",
+                "Opciones de ejecución, red y reinicios."
+              ],
+              "target": "runtime-playback"
             }
           ]
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "settings",
+      "presentation": "primary destination",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "settings",
+        "current": "/settings",
+        "destination": "settings",
+        "section": "settings",
+        "presentation": "primary destination",
+        "canonical": "settings",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Settings.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -16752,6 +19254,34 @@
         }
       ],
       "permission": "administrator",
+      "destination": "connections",
+      "section": "browser-player",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "playback-settings",
+        "current": "/settings?tab=playback",
+        "destination": "connections",
+        "section": "browser-player",
+        "presentation": "contextual editor or detail",
+        "canonical": "playback-settings",
+        "save": [
+          {
+            "editor": "engine-url",
+            "timing": "explicit action",
+            "api": "configService ace-engine-url"
+          },
+          {
+            "editor": "route",
+            "timing": "explicit action",
+            "api": "configService playback-routing"
+          }
+        ],
+        "source": [
+          "frontend/src/components/player/PlaybackRoutingFields.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -16958,10 +19488,11 @@
             "Aplicar ámbito"
           ],
           "effect": [
-            "Scope saved independently; this button is a proposed explicit-save treatment.",
-            "Ámbito guardado por separado; el botón es una propuesta de guardado explícito."
+            "Check scope saved.",
+            "Ámbito de comprobación guardado."
           ],
-          "api": "configService stream-check-scope"
+          "api": "configService stream-check-scope",
+          "saveTiming": "immediate"
         },
         {
           "type": "links",
@@ -17005,6 +19536,49 @@
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "automation",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "automation",
+        "current": "/settings?tab=automation",
+        "destination": "settings",
+        "section": "automation",
+        "presentation": "section",
+        "canonical": "automation",
+        "save": [
+          {
+            "editor": "intervals-0",
+            "timing": "explicit action",
+            "api": "configService independent setting: schedule.rescrape_interval"
+          },
+          {
+            "editor": "intervals-1",
+            "timing": "explicit action",
+            "api": "configService independent setting: schedule.epg_refresh_interval"
+          },
+          {
+            "editor": "intervals-2",
+            "timing": "explicit action",
+            "api": "configService independent setting: schedule.channel_status_interval"
+          },
+          {
+            "editor": "checker",
+            "timing": "explicit action",
+            "api": "configService check-engine"
+          },
+          {
+            "editor": "scope",
+            "timing": "immediate",
+            "api": "configService stream-check-scope"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Settings.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -17153,6 +19727,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "automation",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "schedule-anchors",
+        "current": "/settings?tab=automation",
+        "destination": "settings",
+        "section": "automation",
+        "presentation": "contextual editor or detail",
+        "canonical": "schedule-anchors",
+        "save": [
+          {
+            "editor": "anchors",
+            "timing": "explicit action",
+            "api": "configService schedule-anchors"
+          }
+        ],
+        "source": [
+          "frontend/src/components/ScheduleAnchorFields.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -17329,6 +19926,29 @@
           "Se eliminaron elegibles, pero falló actualizar fuentes. Informa ambos; no marques toda la limpieza fallida."
         ]
       },
+      "destination": "settings",
+      "section": "automation",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "offline-cleanup",
+        "current": "/settings?tab=automation",
+        "destination": "settings",
+        "section": "automation",
+        "presentation": "contextual editor or detail",
+        "canonical": "offline-cleanup",
+        "save": [
+          {
+            "editor": "offline",
+            "timing": "explicit action",
+            "api": "configService offline-cleanup"
+          }
+        ],
+        "source": [
+          "frontend/src/components/settings/OfflineCleanupFields.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -17430,6 +20050,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "network",
+        "current": "/settings?tab=network",
+        "destination": "system",
+        "section": "runtime-playback",
+        "presentation": "contextual editor or detail",
+        "canonical": "network",
+        "save": [],
+        "source": [
+          "frontend/src/components/settings/NetworkSettingsFields.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -17533,9 +20170,52 @@
               ]
             }
           ]
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "runtime-playback",
+              "label": [
+                "Advanced setup",
+                "Configuración avanzada"
+              ]
+            },
+            {
+              "target": "recovery",
+              "label": [
+                "Catalogue recovery",
+                "Recuperar catálogo"
+              ]
+            },
+            {
+              "target": "changelog",
+              "label": [
+                "What changed",
+                "Qué cambió"
+              ]
+            }
+          ]
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "system",
+      "presentation": "primary destination",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "system",
+        "current": "/system",
+        "destination": "system",
+        "section": "system",
+        "presentation": "primary destination",
+        "canonical": "system",
+        "save": [],
+        "source": [
+          "frontend/src/pages/SystemDashboard.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -17687,6 +20367,23 @@
           "Motor externo. Sin controles del supervisor; muestra dirección sin fingir que Iniciar lo controla."
         ]
       },
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "services",
+        "current": "/system",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "services",
+        "save": [],
+        "source": [
+          "frontend/src/components/ServicesPanel.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -17814,6 +20511,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "jobs",
+        "current": "/system",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "jobs",
+        "save": [],
+        "source": [
+          "frontend/src/components/overview/ScheduledJobs.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -17932,6 +20646,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "job-detail",
+        "current": "/system",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "job-detail",
+        "save": [],
+        "source": [
+          "frontend/src/components/overview/ScheduledJobs.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18052,6 +20783,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "storage",
+        "current": "/system",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "storage",
+        "save": [],
+        "source": [
+          "frontend/src/components/overview/StoragePanel.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18160,6 +20908,23 @@
         "Download bounded masked tails; raw log language stays original.",
         "Descarga fragmentos limitados con datos ocultos; conserva idioma de registros."
       ],
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "diagnostics",
+        "current": "/system",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "diagnostics",
+        "save": [],
+        "source": [
+          "frontend/src/components/DiagnosticsDownload.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18326,6 +21091,23 @@
           "Fuente guardada, guía fallida. Conserva fuente y permite reintentar guía o terminar sin ella."
         ]
       },
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "setup",
+        "current": "/setup",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "setup",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Setup.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18436,6 +21218,23 @@
           "Enter the configured API token to read protected startup information. Recovery never bypasses authentication.",
           "Introduce token configurado para leer estado protegido. Recuperación nunca omite autenticación."
         ]
+      },
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "startup",
+        "current": "outer startup gate",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "startup",
+        "save": [],
+        "source": [
+          "frontend/src/components/StartupGate.tsx"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -18548,6 +21347,23 @@
           "Marca de recuperación interrumpida. Muestra instrucciones seguras; no lo trates como instalación vacía."
         ]
       },
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recovery",
+        "current": "startup failure gate",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "recovery",
+        "save": [],
+        "source": [
+          "frontend/src/components/StartupGate.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18580,10 +21396,14 @@
         {
           "type": "note",
           "text": [
+            "Back up the catalogue first. Restore the source and settings data that can still be read. Damaged entries may be skipped; channel listings and activity must be rebuilt. Accounts stay unchanged.",
+            "Haz una copia del catálogo primero. Recupera las fuentes y ajustes que aún se puedan leer. Se pueden omitir datos dañados; los canales y la actividad deberán reconstruirse. Las cuentas se conservan."
+          ],
+          "tone": "warning",
+          "implementation_text": [
             "Back up database and migration files first. Copy readable source/configuration rows in supported order; damaged rows may be skipped. Listings and activity are not copied. Accounts are independent.",
             "Copia primero BD y archivos de migración. Copia fuentes/configuración legibles en orden; pueden omitirse filas dañadas. No se copian programación ni actividad. Cuentas independientes."
-          ],
-          "tone": "warning"
+          ]
         },
         {
           "type": "form",
@@ -18600,12 +21420,16 @@
                 "Entiendo esta recuperación"
               ],
               "help": [
-                "Required; current recovery token is revalidated on submission. No automatic destructive retries.",
-                "Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos."
+                "Required. Check the consequence above before continuing. If recovery fails, review the result before trying again.",
+                "Obligatorio. Revisa las consecuencias antes de continuar. Si la recuperación falla, revisa el resultado antes de reintentar."
               ],
               "value": false,
               "kind": "checkbox",
-              "required": true
+              "required": true,
+              "implementation_help": [
+                "Required; current recovery token is revalidated on submission. No automatic destructive retries.",
+                "Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos."
+              ]
             }
           ],
           "action": [
@@ -18613,17 +21437,21 @@
             "Recuperar catálogo legible"
           ],
           "effect": [
-            "Back up database and migration files first. Copy readable source/configuration rows in supported order; damaged rows may be skipped. Listings and activity are not copied. Accounts are independent.",
-            "Copia primero BD y archivos de migración. Copia fuentes/configuración legibles en orden; pueden omitirse filas dañadas. No se copian programación ni actividad. Cuentas independientes."
+            "Back up the catalogue first. Restore the source and settings data that can still be read. Damaged entries may be skipped; channel listings and activity must be rebuilt. Accounts stay unchanged.",
+            "Haz una copia del catálogo primero. Recupera las fuentes y ajustes que aún se puedan leer. Se pueden omitir datos dañados; los canales y la actividad deberán reconstruirse. Las cuentas se conservan."
           ],
           "api": "startupService recovery",
           "intent": true,
           "danger": true,
           "confirm": [
+            "Back up the catalogue first. Restore the source and settings data that can still be read. Damaged entries may be skipped; channel listings and activity must be rebuilt. Accounts stay unchanged.",
+            "Haz una copia del catálogo primero. Recupera las fuentes y ajustes que aún se puedan leer. Se pueden omitir datos dañados; los canales y la actividad deberán reconstruirse. Las cuentas se conservan."
+          ],
+          "next": "recovery-result",
+          "implementation_effect": [
             "Back up database and migration files first. Copy readable source/configuration rows in supported order; damaged rows may be skipped. Listings and activity are not copied. Accounts are independent.",
             "Copia primero BD y archivos de migración. Copia fuentes/configuración legibles en orden; pueden omitirse filas dañadas. No se copian programación ni actividad. Cuentas independientes."
-          ],
-          "next": "recovery-result"
+          ]
         },
         {
           "type": "links",
@@ -18639,6 +21467,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recovery-readable",
+        "current": "startup recovery",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "recovery-readable",
+        "save": [
+          {
+            "editor": "recovery-readable",
+            "timing": "explicit action",
+            "api": "startupService recovery"
+          }
+        ],
+        "source": [
+          "frontend/src/components/StartupGate.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18670,10 +21521,14 @@
         {
           "type": "note",
           "text": [
+            "Back up the catalogue first. Replace its data and set up your sources and catalogue settings again. Accounts, access restrictions and passwords stay unchanged.",
+            "Haz una copia del catálogo primero. Sustituye sus datos y vuelve a configurar las fuentes y los ajustes del catálogo. Las cuentas, restricciones de acceso y contraseñas se conservan."
+          ],
+          "tone": "warning",
+          "implementation_text": [
             "Back up database and migration files first, then replace catalogue data and reconfigure catalogue settings. Accounts and their fail-closed marker remain separate; this is not a password reset.",
             "Copia primero BD y migración; después sustituye catálogo y reconfigura ajustes. Cuentas y marca de protección son independientes; no restablece contraseñas."
-          ],
-          "tone": "warning"
+          ]
         },
         {
           "type": "form",
@@ -18690,12 +21545,16 @@
                 "Entiendo esta recuperación"
               ],
               "help": [
-                "Required; current recovery token is revalidated on submission. No automatic destructive retries.",
-                "Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos."
+                "Required. Check the consequence above before continuing. If recovery fails, review the result before trying again.",
+                "Obligatorio. Revisa las consecuencias antes de continuar. Si la recuperación falla, revisa el resultado antes de reintentar."
               ],
               "value": false,
               "kind": "checkbox",
-              "required": true
+              "required": true,
+              "implementation_help": [
+                "Required; current recovery token is revalidated on submission. No automatic destructive retries.",
+                "Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos."
+              ]
             }
           ],
           "action": [
@@ -18703,17 +21562,21 @@
             "Empezar catálogo nuevo"
           ],
           "effect": [
-            "Back up database and migration files first, then replace catalogue data and reconfigure catalogue settings. Accounts and their fail-closed marker remain separate; this is not a password reset.",
-            "Copia primero BD y migración; después sustituye catálogo y reconfigura ajustes. Cuentas y marca de protección son independientes; no restablece contraseñas."
+            "Back up the catalogue first. Replace its data and set up your sources and catalogue settings again. Accounts, access restrictions and passwords stay unchanged.",
+            "Haz una copia del catálogo primero. Sustituye sus datos y vuelve a configurar las fuentes y los ajustes del catálogo. Las cuentas, restricciones de acceso y contraseñas se conservan."
           ],
           "api": "startupService recovery",
           "intent": true,
           "danger": true,
           "confirm": [
+            "Back up the catalogue first. Replace its data and set up your sources and catalogue settings again. Accounts, access restrictions and passwords stay unchanged.",
+            "Haz una copia del catálogo primero. Sustituye sus datos y vuelve a configurar las fuentes y los ajustes del catálogo. Las cuentas, restricciones de acceso y contraseñas se conservan."
+          ],
+          "next": "recovery-result",
+          "implementation_effect": [
             "Back up database and migration files first, then replace catalogue data and reconfigure catalogue settings. Accounts and their fail-closed marker remain separate; this is not a password reset.",
             "Copia primero BD y migración; después sustituye catálogo y reconfigura ajustes. Cuentas y marca de protección son independientes; no restablece contraseñas."
-          ],
-          "next": "recovery-result"
+          ]
         },
         {
           "type": "links",
@@ -18729,6 +21592,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recovery-fresh",
+        "current": "startup recovery",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "recovery-fresh",
+        "save": [
+          {
+            "editor": "recovery-fresh",
+            "timing": "explicit action",
+            "api": "startupService recovery"
+          }
+        ],
+        "source": [
+          "frontend/src/components/StartupGate.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18840,6 +21726,23 @@
           "Recuperación incompleta. Conserva copia y marca; no afirmes éxito. Sigue el reintento seguro indicado."
         ]
       },
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recovery-result",
+        "current": "startup recovery",
+        "destination": "system",
+        "section": "system",
+        "presentation": "contextual editor or detail",
+        "canonical": "recovery-result",
+        "save": [],
+        "source": [
+          "frontend/src/components/StartupGate.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -18863,6 +21766,9 @@
       ],
       "owner": 317,
       "blocks": [
+        {
+          "type": "preset-picker"
+        },
         {
           "type": "form",
           "id": "preferences",
@@ -18940,6 +21846,29 @@
           "Preference changed for this tab, but could not be saved for next time. Continue using the app; offer Retry storage.",
           "Preferencia cambiada en esta pestaña, pero no se guardó para la próxima vez. Continúa; ofrece reintentar."
         ]
+      },
+      "destination": "settings",
+      "section": "preferences",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "preferences",
+        "current": "shared shell preferences",
+        "destination": "settings",
+        "section": "preferences",
+        "presentation": "section",
+        "canonical": "preferences",
+        "save": [
+          {
+            "editor": "preferences",
+            "timing": "explicit action",
+            "api": "proposed browser preference resource"
+          }
+        ],
+        "source": [
+          "frontend/src/components/layout/AppShell.tsx"
+        ],
+        "owner": 317
       },
       "baseStates": [
         "loading",
@@ -19060,6 +21989,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "notices",
+        "current": "shared shell",
+        "destination": "system",
+        "section": "settings",
+        "presentation": "contextual editor or detail",
+        "canonical": "notices",
+        "save": [
+          {
+            "editor": "api-token",
+            "timing": "explicit action",
+            "api": "apiToken browser credential"
+          }
+        ],
+        "source": [
+          "frontend/src/components/ApiTokenNotice.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -19180,6 +22132,23 @@
         "Keep useful route context and offer a safe way back.",
         "Conserva contexto útil y ofrece vuelta segura."
       ],
+      "destination": "dashboard",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "not-found",
+        "current": "*",
+        "destination": "dashboard",
+        "section": "settings",
+        "presentation": "contextual editor or detail",
+        "canonical": "not-found",
+        "save": [],
+        "source": [
+          "frontend/src/pages/NotFound.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -19249,6 +22218,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "system",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "changelog",
+        "current": "/changelog",
+        "destination": "system",
+        "section": "settings",
+        "presentation": "contextual editor or detail",
+        "canonical": "changelog",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Changelog.tsx"
+        ],
+        "owner": 322
+      },
       "baseStates": [
         "loading",
         "error",
@@ -19330,6 +22316,29 @@
         }
       ],
       "permission": "administrator",
+      "destination": "settings",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "unsaved",
+        "current": "shared dirty guard",
+        "destination": "settings",
+        "section": "settings",
+        "presentation": "contextual editor or detail",
+        "canonical": "unsaved",
+        "save": [
+          {
+            "editor": "unsaved-example",
+            "timing": "explicit action",
+            "api": "proposed form dirty guard"
+          }
+        ],
+        "source": [
+          "frontend/src/components/ConfirmDialog.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -19529,6 +22538,30 @@
           "Installed capability is unavailable or supervisor-owned. Explain why the field is read-only; do not fake enablement.",
           "Capacidad ausente o gestionada por supervisor. Explica solo lectura; no finjas activación."
         ]
+      },
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "runtime-playback",
+        "current": "/setup · Connection settings (advanced)",
+        "destination": "system",
+        "section": "runtime-playback",
+        "presentation": "section",
+        "canonical": "runtime-playback",
+        "save": [
+          {
+            "editor": "runtime-playback",
+            "timing": "explicit action",
+            "api": "setupService.update expected_revision"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/RuntimeSetup.tsx",
+          "backend/app/config/runtime-options.json"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -19739,6 +22772,30 @@
           "Installed capability is unavailable or supervisor-owned. Explain why the field is read-only; do not fake enablement.",
           "Capacidad ausente o gestionada por supervisor. Explica solo lectura; no finjas activación."
         ]
+      },
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "runtime-network",
+        "current": "/setup · Connection settings (advanced)",
+        "destination": "system",
+        "section": "runtime-playback",
+        "presentation": "contextual editor or detail",
+        "canonical": "runtime-network",
+        "save": [
+          {
+            "editor": "runtime-network",
+            "timing": "explicit action",
+            "api": "setupService.update expected_revision"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/RuntimeSetup.tsx",
+          "backend/app/config/runtime-options.json"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -20039,6 +23096,30 @@
           "Installed capability is unavailable or supervisor-owned. Explain why the field is read-only; do not fake enablement.",
           "Capacidad ausente o gestionada por supervisor. Explica solo lectura; no finjas activación."
         ]
+      },
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "runtime-services",
+        "current": "/setup · Connection settings (advanced)",
+        "destination": "system",
+        "section": "runtime-playback",
+        "presentation": "contextual editor or detail",
+        "canonical": "runtime-services",
+        "save": [
+          {
+            "editor": "runtime-services",
+            "timing": "explicit action",
+            "api": "setupService.update expected_revision"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/RuntimeSetup.tsx",
+          "backend/app/config/runtime-options.json"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -20388,6 +23469,30 @@
           "Capacidad ausente o gestionada por supervisor. Explica solo lectura; no finjas activación."
         ]
       },
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "runtime-advanced",
+        "current": "/setup · Connection settings (advanced)",
+        "destination": "system",
+        "section": "runtime-playback",
+        "presentation": "contextual editor or detail",
+        "canonical": "runtime-advanced",
+        "save": [
+          {
+            "editor": "runtime-advanced",
+            "timing": "explicit action",
+            "api": "setupService.update expected_revision"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/RuntimeSetup.tsx",
+          "backend/app/config/runtime-options.json"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -20631,6 +23736,30 @@
           "Installed capability is unavailable or supervisor-owned. Explain why the field is read-only; do not fake enablement.",
           "Capacidad ausente o gestionada por supervisor. Explica solo lectura; no finjas activación."
         ]
+      },
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "runtime-engine-ports",
+        "current": "/setup · Connection settings (advanced)",
+        "destination": "system",
+        "section": "runtime-playback",
+        "presentation": "contextual editor or detail",
+        "canonical": "runtime-engine-ports",
+        "save": [
+          {
+            "editor": "runtime-engine-ports",
+            "timing": "explicit action",
+            "api": "setupService.update expected_revision"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/RuntimeSetup.tsx",
+          "backend/app/config/runtime-options.json"
+        ],
+        "owner": 318
       },
       "baseStates": [
         "loading",
@@ -20882,6 +24011,30 @@
           "Capacidad ausente o gestionada por supervisor. Explica solo lectura; no finjas activación."
         ]
       },
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "runtime-gateway-ports",
+        "current": "/setup · Connection settings (advanced)",
+        "destination": "system",
+        "section": "runtime-playback",
+        "presentation": "contextual editor or detail",
+        "canonical": "runtime-gateway-ports",
+        "save": [
+          {
+            "editor": "runtime-gateway-ports",
+            "timing": "explicit action",
+            "api": "setupService.update expected_revision"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/RuntimeSetup.tsx",
+          "backend/app/config/runtime-options.json"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -20909,6 +24062,28 @@
       ],
       "owner": 319,
       "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "recording-schedule",
+              "label": [
+                "Schedule recording",
+                "Programar grabación"
+              ]
+            },
+            {
+              "target": "recording-settings",
+              "label": [
+                "Recording settings",
+                "Ajustes de grabación"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "recording-feature"
+        },
         {
           "type": "form",
           "id": "recording-filter",
@@ -21051,6 +24226,29 @@
         }
       ],
       "permission": "recordings; action permission separately checked",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "primary destination",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "recordings",
+        "current": "/recordings",
+        "destination": "recordings",
+        "section": "recordings",
+        "presentation": "primary destination",
+        "canonical": "recordings",
+        "save": [
+          {
+            "editor": "recording-filter",
+            "timing": "explicit action",
+            "api": "recordingService.list"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/Recordings.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -21167,6 +24365,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channel-activity",
+        "current": "/acestream-channels",
+        "destination": "channels",
+        "section": "streams",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-activity",
+        "save": [],
+        "source": [
+          "frontend/src/components/ChannelActivityLogDialog.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -21514,6 +24729,38 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "stream-bulk-fields",
+        "current": "/acestream-channels",
+        "destination": "channels",
+        "section": "streams",
+        "presentation": "contextual editor or detail",
+        "canonical": "stream-bulk-fields",
+        "save": [
+          {
+            "editor": "bulk-fields",
+            "timing": "explicit action",
+            "api": "BulkChannelEditRequest"
+          },
+          {
+            "editor": "bulk-tv-properties",
+            "timing": "explicit action",
+            "api": "source-only contract mismatch → TVChannelUpdate"
+          }
+        ],
+        "source": [
+          "frontend/src/pages/AcestreamChannels.tsx",
+          "frontend/src/components/BulkOperations.tsx",
+          "frontend/src/services/channelService.ts",
+          "backend/app/schemas/channel.py",
+          "backend/app/api/endpoints/channels.py"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -21664,6 +24911,31 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "guide-inventory",
+        "current": "/epg?tab=channels",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "guide-inventory",
+        "save": [
+          {
+            "editor": "guide-browse",
+            "timing": "explicit action",
+            "api": "epgService inventory"
+          }
+        ],
+        "source": [
+          "frontend/src/components/EPGChannelInventoryTable.tsx",
+          "frontend/src/components/epg/ScheduleView.tsx",
+          "frontend/src/pages/EPG.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -21799,6 +25071,29 @@
         }
       ],
       "permission": "live / channels media capability",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "player-picker",
+        "current": "shared player dialog",
+        "destination": "dashboard",
+        "section": "dashboard",
+        "presentation": "contextual editor or detail",
+        "canonical": "player-picker",
+        "save": [
+          {
+            "editor": "picker",
+            "timing": "explicit action",
+            "api": "player channel picker"
+          }
+        ],
+        "source": [
+          "frontend/src/components/player/ChannelPickerDialog.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -21890,6 +25185,23 @@
         }
       ],
       "permission": "live; management control may require administrator",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "player-sessions",
+        "current": "shared player controls",
+        "destination": "dashboard",
+        "section": "dashboard",
+        "presentation": "contextual editor or detail",
+        "canonical": "player-sessions",
+        "save": [],
+        "source": [
+          "frontend/src/components/player/ActiveStreamsList.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -22058,6 +25370,29 @@
           "Cambios aplicados en pestaña pero sin guardar para próxima visita. Conserva intereses visibles."
         ]
       },
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "dashboard-events",
+        "current": "/",
+        "destination": "dashboard",
+        "section": "dashboard",
+        "presentation": "contextual editor or detail",
+        "canonical": "dashboard-events",
+        "save": [
+          {
+            "editor": "dashboard-events",
+            "timing": "explicit action",
+            "api": "readEventPreferences / writeEventPreferences"
+          }
+        ],
+        "source": [
+          "frontend/src/components/overview/UpcomingEvents.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -22141,6 +25476,23 @@
         }
       ],
       "permission": "administrator",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "event-broadcasters",
+        "current": "/events",
+        "destination": "events",
+        "section": "events",
+        "presentation": "contextual editor or detail",
+        "canonical": "event-broadcasters",
+        "save": [],
+        "source": [
+          "frontend/src/components/events/BroadcasterLinks.tsx"
+        ],
+        "owner": 319
+      },
       "baseStates": [
         "loading",
         "error",
@@ -22242,6 +25594,30 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "canonicalId": "source-web",
+      "location": {
+        "id": "setup-source",
+        "current": "/setup",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "reuse canonical editor",
+        "canonical": "source-web",
+        "save": [
+          {
+            "editor": "source",
+            "timing": "explicit action",
+            "api": "scraperService createURL / updateURL"
+          }
+        ],
+        "source": [
+          "frontend/src/components/setup/SetupSources.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -22356,6 +25732,30 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "canonicalId": "guide-source",
+      "location": {
+        "id": "setup-guide",
+        "current": "/setup",
+        "destination": "channels",
+        "section": "guide-sources",
+        "presentation": "reuse canonical editor",
+        "canonical": "guide-source",
+        "save": [
+          {
+            "editor": "guide-source",
+            "timing": "explicit action",
+            "api": "epgService.createSource / updateSource"
+          }
+        ],
+        "source": [
+          "frontend/src/components/setup/SetupGuide.tsx"
+        ],
+        "owner": 318
+      },
       "baseStates": [
         "loading",
         "error",
@@ -22517,6 +25917,35 @@
         }
       ],
       "permission": "administrator",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "channel-inline",
+        "current": "/tv-channels",
+        "destination": "channels",
+        "section": "channels",
+        "presentation": "contextual editor or detail",
+        "canonical": "channel-inline",
+        "save": [
+          {
+            "editor": "inline-number",
+            "timing": "enter-blur",
+            "api": "TVChannelUpdate.channel_number"
+          },
+          {
+            "editor": "inline-favorite",
+            "timing": "immediate",
+            "api": "TVChannelUpdate.is_favorite"
+          }
+        ],
+        "source": [
+          "frontend/src/components/ChannelNumberField.tsx",
+          "frontend/src/components/TVChannelsTable.tsx"
+        ],
+        "owner": 320
+      },
       "baseStates": [
         "loading",
         "error",
@@ -22525,6 +25954,253 @@
         "pending",
         "success",
         "conflict"
+      ],
+      "states": {}
+    },
+    {
+      "id": "sources",
+      "family": "sources",
+      "title": [
+        "Channel sources",
+        "Fuentes de canales"
+      ],
+      "goal": [
+        "Keep your channels up to date.",
+        "Mantén tus canales al día."
+      ],
+      "route": "/sources",
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321,
+      "permission": "administrator",
+      "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "add-channels",
+              "label": [
+                "Add channels",
+                "Añadir canales"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rows",
+          "title": [
+            "Your sources",
+            "Tus fuentes"
+          ],
+          "rows": [
+            {
+              "title": [
+                "Family channels",
+                "Family channels"
+              ],
+              "text": [
+                "Updated 16:00 · 3 streams · next update tomorrow",
+                "Actualizada 16:00 · 3 emisiones · próxima mañana"
+              ],
+              "target": "source-web"
+            },
+            {
+              "title": [
+                "Local playlist",
+                "Local playlist"
+              ],
+              "text": [
+                "Saved · import not started",
+                "Guardada · importación sin iniciar"
+              ],
+              "target": "w3u-detail"
+            }
+          ]
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "source-results",
+              "label": [
+                "Import results",
+                "Resultados de importación"
+              ]
+            },
+            {
+              "target": "saved-search",
+              "label": [
+                "Saved searches",
+                "Búsquedas guardadas"
+              ]
+            },
+            {
+              "target": "exclusion",
+              "label": [
+                "Excluded results",
+                "Resultados excluidos"
+              ]
+            },
+            {
+              "target": "sources-orphans",
+              "label": [
+                "Unlinked streams",
+                "Emisiones sin fuente"
+              ]
+            },
+            {
+              "target": "automation",
+              "label": [
+                "Background updates",
+                "Actualizaciones en segundo plano"
+              ]
+            }
+          ]
+        }
+      ],
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "section",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "sources",
+        "current": "/sources",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "section",
+        "canonical": "sources",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
+      },
+      "baseStates": [
+        "loading",
+        "error",
+        "permission",
+        "empty",
+        "filtered",
+        "partial"
+      ],
+      "states": {}
+    },
+    {
+      "id": "add-channels",
+      "family": "sources",
+      "title": [
+        "Add channels",
+        "Añadir canales"
+      ],
+      "goal": [
+        "Choose where your channels come from. A programme guide can be added afterwards.",
+        "Elige de dónde vienen tus canales. Puedes añadir una guía después."
+      ],
+      "route": "/sources",
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321,
+      "permission": "administrator",
+      "blocks": [
+        {
+          "type": "rows",
+          "title": [
+            "Choose a source",
+            "Elige una fuente"
+          ],
+          "rows": [
+            {
+              "title": [
+                "Website or playlist address",
+                "Dirección de web o lista"
+              ],
+              "text": [
+                "Paste a link you already have.",
+                "Pega un enlace que ya tengas."
+              ],
+              "target": "source-web"
+            },
+            {
+              "title": [
+                "Supported provider",
+                "Proveedor compatible"
+              ],
+              "text": [
+                "Use the provider’s guided form.",
+                "Usa el formulario del proveedor."
+              ],
+              "target": "source-provider"
+            },
+            {
+              "title": [
+                "W3U playlist file",
+                "Archivo de lista W3U"
+              ],
+              "text": [
+                "Review folders before importing channels.",
+                "Revisa carpetas antes de importar."
+              ],
+              "target": "w3u"
+            },
+            {
+              "title": [
+                "Find a stream",
+                "Buscar una emisión"
+              ],
+              "text": [
+                "Search, resolve and add it to a TV channel.",
+                "Busca, identifica y añade a un canal."
+              ],
+              "target": "search"
+            }
+          ]
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "target": "stream-edit",
+              "label": [
+                "Add one stream manually",
+                "Añadir una emisión a mano"
+              ]
+            },
+            {
+              "target": "telegram-auth",
+              "label": [
+                "Use Telegram as a source",
+                "Usar Telegram como fuente"
+              ]
+            }
+          ]
+        }
+      ],
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "designStatus": "composed; proposed; not owner-approved or implemented",
+      "location": {
+        "id": "add-channels",
+        "current": "/sources",
+        "destination": "channels",
+        "section": "sources",
+        "presentation": "contextual editor or detail",
+        "canonical": "add-channels",
+        "save": [],
+        "source": [
+          "frontend/src/pages/Scraper.tsx"
+        ],
+        "owner": 321
+      },
+      "baseStates": [
+        "loading",
+        "error",
+        "permission",
+        "empty",
+        "filtered",
+        "partial"
       ],
       "states": {}
     }

@@ -1,4 +1,4 @@
-"""Isolated review-04 design checks. No application, supplier or installation execution.
+"""Isolated review-06 design checks. No application, supplier or installation execution.
 
 Uses existing cached Playwright/Chromium and optional axe. All browser requests are
 fulfilled from this public design directory at design.invalid; everything else aborts.
@@ -12,6 +12,7 @@ from playwright.sync_api import sync_playwright
 ap=argparse.ArgumentParser()
 ap.add_argument('--output',required=True)
 ap.add_argument('--axe')
+ap.add_argument('--presets',default='lime,coral,cyan')
 ap.add_argument('--smoke',action='store_true')
 ap.add_argument('--interactions-only',action='store_true')
 ap.add_argument('--exports',action='store_true')
@@ -32,7 +33,7 @@ CHECK_LAYOUT="""() => {
   if(r.left < -1 || r.right > innerWidth+1)bad.push({tag:e.tagName,id:e.id,text:(e.innerText||e.getAttribute('aria-label')||'').slice(0,80),left:r.left,right:r.right});
   if(['BUTTON','SUMMARY'].includes(e.tagName)&&e.scrollWidth>e.clientWidth+2)bad.push({id:e.id,text:e.innerText,clip:'control content'});
  }
- return {overflow:document.documentElement.scrollWidth>innerWidth+1,clipped:bad,main:document.querySelectorAll('main').length,h1:document.querySelectorAll('h1').length,language:document.documentElement.lang};
+ return {overflow:document.documentElement.scrollWidth>innerWidth+1,clipped:bad,multipleCurrentTabs:document.querySelectorAll('.section-nav [aria-current]').length>1,main:document.querySelectorAll('main').length,h1:document.querySelectorAll('h1').length,language:document.documentElement.lang};
 }"""
 with sync_playwright() as pw:
  browser=pw.chromium.launch(headless=True)
@@ -49,7 +50,7 @@ with sync_playwright() as pw:
  page.on('console',lambda m:report['console'].append(dict(type=m.type,text=m.text)) if m.type in ['warning','error'] else None)
  def go(screen,lang='en',theme='light',width=1440,**extra):
   page.set_viewport_size(dict(width=width,height=900))
-  page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen=screen,lang=lang,theme=theme,**extra)),wait_until='load')
+  page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen=screen,lang=lang,theme=theme,review=1,**extra)),wait_until='load')
   page.evaluate('document.fonts.ready')
   page.wait_for_selector('main h1')
  def layout(label):
@@ -60,28 +61,26 @@ with sync_playwright() as pw:
   report['a11y'].append(dict(case=label,**r))
  for i,s in enumerate([] if args.interactions_only else screens):
   sid=s['id']
-  combinations=[('en','light',1440),('es','dark',390)] if args.smoke else list(itertools.product(['en','es'],['light','dark'],[320,390,768,1440]))
-  for lang,theme,width in combinations:
-   go(sid,lang,theme,width);layout(f'{sid}/{lang}/{theme}/{width}')
-  # Contrast / names / semantics in both representative layouts, advanced controls included.
-  for lang,theme,width in [('en','light',1440),('es','dark',390)]:
-   go(sid,lang,theme,width)
-   page.evaluate("document.querySelectorAll('form details').forEach(d=>d.open=true)")
-   layout(f'{sid}/{lang}/{theme}/{width}/advanced')
-   axe(f'{sid}/{lang}/{theme}/{width}')
-   if args.exports:
-    page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen=sid,lang=lang,theme=theme,presentation=1)),wait_until='load')
-    page.evaluate('document.fonts.ready')
-    # Main export shows the initial composition; advanced fields remain available interactively.
-    dest=ROOT/'workflow-exports'/f'{sid}-{lang}.jpg';dest.parent.mkdir(exist_ok=True)
-    page.screenshot(path=str(dest),full_page=True,type='jpeg',quality=78)
-    report['exports'].append(str(dest.relative_to(ROOT)))
-  if not args.smoke:
-   for direction,palette,lang,width in itertools.product(['calm','broadcast'],['coral','lime'],['en','es'],[390]):
-    go(sid,lang,'dark',width,direction=direction,palette=palette);layout(f'{sid}/{lang}/dark/{width}/{direction}/{palette}')
-   states=list(dict.fromkeys(s['baseStates']+list(s.get('states',{}))))
-   for st,lang,theme,width in itertools.product(states,['en','es'],['light','dark'],[390]):
-    go(sid,lang,theme,width,state=st);layout(f'{sid}/{lang}/{theme}/{width}/{st}')
+  presets=args.presets.split(',')
+  combinations=[('en','light',1440),('es','dark',390)] if args.smoke else list(itertools.product(['en','es'],['light','dark'],[320,820,1440]))
+  for preset in presets:
+   for lang,theme,width in combinations:
+    go(sid,lang,theme,width,preset=preset);layout(f'{sid}/{preset}/{lang}/{theme}/{width}')
+   for lang,theme,width in [('en','light',1440),('es','dark',390)]:
+    go(sid,lang,theme,width,preset=preset)
+    page.evaluate("document.querySelectorAll('form details').forEach(d=>d.open=true)")
+    layout(f'{sid}/{preset}/{lang}/{theme}/{width}/advanced');axe(f'{sid}/{preset}/{lang}/{theme}/{width}')
+    if args.exports:
+     page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen=sid,lang=lang,theme=theme,preset=preset,presentation=1)),wait_until='load')
+     page.evaluate('document.fonts.ready')
+     dest=ROOT/'workflow-exports'/f'{sid}-{preset}-{lang}.jpg';dest.parent.mkdir(exist_ok=True)
+     page.screenshot(path=str(dest),full_page=True,type='jpeg',quality=65)
+     report['exports'].append(str(dest.relative_to(ROOT)))
+   if not args.smoke:
+    for st in list(dict.fromkeys(s['baseStates']+list(s.get('states',{})))):
+     stateaxes=[('en','light'),('es','dark')] if st in s.get('states',{}) else [('es','dark')]
+     for lang,theme in stateaxes:
+      go(sid,lang,theme,390,preset=preset,state=st);layout(f'{sid}/{preset}/{lang}/{theme}/390/{st}')
   if i%10==0:print(f'Workflow {i+1}/{len(screens)}; layouts {len(report["layouts"])}; axe {len(report["a11y"])}',flush=True)
  (OUT/'workflow-layout-stage.json').write_text(json.dumps(report,indent=2))
  # Focused interactions across materially different contracts.
@@ -162,16 +161,46 @@ with sync_playwright() as pw:
    r=page.evaluate(CHECK_LAYOUT);report['reflow'].append(dict(case=sid+'/320-css-pixel-reflow',**r))
    go(sid,'es','light',1280);page.add_style_tag(content='p,label,input,select,textarea,button,summary,dt,dd,a,small{font-size:200%!important}')
    r=page.evaluate(CHECK_LAYOUT);report['reflow'].append(dict(case=sid+'/200-percent-text-stress',**r))
-  go('dashboard',state='first-use');check('first_use_has_no_populated_hero',page.locator('.workflow-feature').count()==0 and 'Add a channel source' in page.locator('main').inner_text())
+  go('dashboard',state='first-use');check('first_use_has_no_populated_hero',page.locator('.watch-hero').count()==0 and 'Add a channel source' in page.locator('main').inner_text())
   go('stream-stats',state='unknown');check('unknown_statistics_not_zero', 'Unknown · not zero' in page.locator('main').inner_text())
   go('event-detail',state='unknown');check('date_only_has_no_invented_time', 'World Friendly' in page.locator('main').inner_text() and '00:00' not in page.locator('main').inner_text())
   go('access-activate',state='blocked');check('public_http_blocks_password_entry',page.locator('input[type=password]').count()==0)
   go('recording-active',state='finalizing');check('finalizing_locks_stop_and_edit',page.locator('[data-action=command]').is_disabled() and page.locator('[data-field="recording.end_time"]').is_disabled())
   check('reduced_motion',page.evaluate('matchMedia("(prefers-reduced-motion: reduce)").matches'))
-  check('no_storage_written',page.evaluate('localStorage.length===0 && sessionStorage.length===0'))
+  check('only_design_preference_storage',page.evaluate("Object.keys(localStorage).every(k=>k==='ace-design-314:preset') && sessionStorage.length===0"))
   check('no_real_media_elements',page.locator('video,audio,iframe').count()==0)
+  # Same behavioral contract across presentation presets.
+  for preset in ['lime','coral','cyan']:
+   go('unsaved',preset=preset,channel='fixture-channel',returnTo='recordings')
+   page.locator('#f-draft-source_name').fill('Kept draft')
+   page.locator('#preset-select').focus();page.locator('#preset-select').select_option('cyan' if preset!='cyan' else 'lime')
+   check(preset+'_preset_keeps_draft',page.locator('#f-draft-source_name').input_value()=='Kept draft')
+   check(preset+'_preset_keeps_focus',page.locator(':focus').get_attribute('id')=='preset-select')
+   check(preset+'_preset_keeps_query','channel=fixture-channel' in page.url and 'returnTo=recordings' in page.url)
+   go('guide-match',preset=preset);page.locator('[data-choice]').first.check();page.locator('#preset-select').select_option('coral' if preset!='coral' else 'lime')
+   check(preset+'_preset_keeps_selection',page.locator('[data-choice]').first.is_checked())
+   go('live',preset=preset);page.evaluate('window.retainedPlayer=document.getElementById("synthetic-player")');owner=page.evaluate('__workflow.playback.owner');page.locator('#preset-select').select_option('coral')
+   check(preset+'_preset_keeps_player',page.evaluate('retainedPlayer===document.getElementById("synthetic-player")') and page.evaluate('__workflow.playback.owner')==owner)
+   go('automation',preset=preset);page.clock.install();page.locator('#f-schedule-rescrape_interval').fill('25');page.locator('#form-intervals-0 [type=submit]').click();page.locator('#preset-select').select_option('cyan')
+   check(preset+'_preset_keeps_pending',page.evaluate('__workflow.pending')==1 and page.locator('#form-intervals-0 [type=submit]').is_disabled())
+   page.clock.fast_forward(250);check(preset+'_pending_finishes_after_switch',page.evaluate('__workflow.pending')==0 and not page.evaluate('__workflow.dirty'))
+   page.clock.resume()
+  go('dashboard',preset='not-known');check('unknown_preset_falls_back_cyan',page.evaluate('__workflow.preset')=='cyan')
+  page.locator('#appearance-open').click();check('preset_dialog_modal',page.locator('#appearance').evaluate('(e)=>e.matches(":modal")'))
+  page.locator('#appearance [data-preset=coral]').click();check('preset_choice_applies',page.evaluate('__workflow.preset')=='coral')
+  page.locator('#appearance-close').click();check('preset_dialog_focus_returns',page.locator(':focus').get_attribute('id')=='appearance-open')
+  page.goto('http://design.invalid/workflow-prototype.html?screen=dashboard&review=1');check('preset_remembered',page.evaluate('__workflow.preset')=='coral')
+  go('preferences',preset='cyan',storage='failed');page.locator('#workflow-content [data-preset=lime]').click();check('storage_failure_keeps_choice',page.evaluate('__workflow.preset')=='lime' and page.locator('[data-action=retry-storage]').is_visible())
+  go('dashboard');check('online_only_default',not page.locator('#watch-all').is_checked() and page.locator('[data-watch-card]:visible').count()==2)
+  page.locator('#watch-all').check();check('show_all_adds_unverified',page.locator('[data-watch-card]:visible').count()==3)
+  page.locator('#watch-search').fill('Atelier');check('watch_filter_works',page.locator('[data-watch-card]:visible').count()==1)
+  page.locator('[data-watch-card]:visible [data-action=watch]').click();check('watch_starts_selected_fixture',page.evaluate('__workflow.playback.active') and page.evaluate('__workflow.playback.channel')=='Atelier')
+  go('guide-auto');page.locator('#f-epg_matching-enabled').check();page.wait_for_function('()=>__workflow.pending===0');check('guide_auto_immediate_no_confirm',not page.locator('#confirm').is_visible() and not page.evaluate('__workflow.dirty'))
+  go('event-detail');check('event_artwork_explicit_initially',page.locator('.event-artwork img').count()==0);page.locator('[data-action=load-artwork]').click();check('event_artwork_explicit_load',page.locator('.event-artwork img').count()==1)
+  go('setup-source');check('setup_reuses_source_editor',page.evaluate('__workflow.current')=='source-web')
+  go('setup-guide');check('setup_reuses_guide_editor',page.evaluate('__workflow.current')=='guide-source')
  browser.close()
-failures=[x for x in report['layouts']+report['reflow'] if x['overflow'] or x['clipped'] or x['main']!=1 or x['h1']!=1]
+failures=[x for x in report['layouts']+report['reflow'] if x.get('multipleCurrentTabs') or x['overflow'] or x['clipped'] or x['main']!=1 or x['h1']!=1]
 report['elapsed_seconds']=round(time.monotonic()-start,1)
 report['summary']=dict(screens=len(screens),layout_cases=len(report['layouts']),layout_failures=len(failures),axe_cases=len(report['a11y']),axe_violating_cases=sum(bool(x['violations']) for x in report['a11y']),functional_pass=sum(report['functional'].values()),functional_fail=sum(not x for x in report['functional'].values()),reflow_cases=len(report['reflow']),errors=len(report['errors']),console=len(report['console']),blocked=len(report['blocked']),exports=len(report['exports']))
 report['failures']=failures

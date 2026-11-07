@@ -1,5 +1,6 @@
 # Whole-app design coverage and handoff contract
 
+> Review 06 is the current design-only continuation: [package](README.md), [simplified ownership](before-after-map.md), [shared presets](shared-foundations-06.md), [graphics](asset-selection-06.md) and [new evidence](verification-review-06.md). Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
 > Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
 
 **Latest source update:** develop advanced to cf952af during review 03. The [current-source delta](current-source-delta.md) adds availability, matching/linking, retention fields and tuner hiding without changing route counts. Read it alongside the coverage delta; post-merge live checks remain pending.

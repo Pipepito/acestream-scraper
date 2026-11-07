@@ -1,10 +1,10 @@
-# Composed workflow specification · review 04
+# Composed workflow specification · review 06
 
-Application evidence pinned to `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`. Composed design proposals, author-reviewed through the recorded checks; not user-approved or implemented. 144 compositions; 473 field occurrences. Original names and machine values remain unchanged.
+Application evidence pinned to `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`. Composed design proposals, author-reviewed through the recorded checks; not user-approved or implemented. 146 compositions; 473 field occurrences. Original names and machine values remain unchanged.
 
-Read [interaction contracts](interaction-contracts.md), [source contracts](source-contracts.md), [traceability](traceability-matrix.md), [rendered verification](verification-review-04.md) and [acceptance protocols](acceptance-protocols.md). The local prototype is intentionally not an API/client implementation. Adapter names below describe integration boundaries; use the linked current source for exact callable signatures and request paths.
+Read [interaction contracts](interaction-contracts.md), [source contracts](source-contracts.md), [traceability](traceability-matrix.md), [rendered verification](verification-review-06.md) and [acceptance protocols](acceptance-protocols.md). The local prototype is intentionally not an API/client implementation. Adapter names below describe integration boundaries; use the linked current source for exact callable signatures and request paths.
 
-## How to implement this specification
+## Future implementation boundary
 
 A screen is a composed workflow, not necessarily a new route. Dialog-intent compositions can reuse the existing dialog host; on phones use a full-height dialog with the same accessible title, safe Cancel, focus return and dirty guard. Do not add routes merely to mirror this gallery. Existing routing, account gates and API transactions remain authoritative.
 
@@ -13,6 +13,9 @@ Every form below inherits validation before submission, disabled pending submiss
 Select options are written as `machine value → English / Español`. Optional field values, domain data, IDs, addresses, dates and logs must not be translated. Credentials never persist in prototype storage. All numbers in screenshots are synthetic.
 
 <a id="recording-schedule"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-schedule`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Schedule a programme / Programar una grabación
 
 [Open composition](workflow-prototype.html?screen=recording-schedule) · existing route/context: `/live-tv?channel=demo` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -56,6 +59,9 @@ Select options are written as `machine value → English / Español`. Optional f
 **Contextual exits:** [Repeated or missing clock time / Hora repetida o inexistente](workflow-prototype.html?screen=recording-dst); [Record now / Grabar ahora](workflow-prototype.html?screen=recording-now).
 
 <a id="recording-dst"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-dst`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Choose the exact time / Elegir la hora exacta
 
 [Open composition](workflow-prototype.html?screen=recording-dst) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -88,6 +94,9 @@ Select options are written as `machine value → English / Español`. Optional f
 **Contextual exits:** [Back to schedule / Volver a programación](workflow-prototype.html?screen=recording-schedule).
 
 <a id="recording-now"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-now`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Record now / Grabar ahora
 
 [Open composition](workflow-prototype.html?screen=recording-now) · existing route/context: `/live-tv` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -121,6 +130,9 @@ Select options are written as `machine value → English / Español`. Optional f
 **Contextual exits:** [Starting and recovering / Inicio y recuperación](workflow-prototype.html?screen=recording-active); [Recording settings / Ajustes de grabación](workflow-prototype.html?screen=recording-settings).
 
 <a id="recording-active"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-active`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Recording in progress / Grabación en curso
 
 [Open composition](workflow-prototype.html?screen=recording-active) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -220,6 +232,9 @@ Result copy: Stop requested. Finalizing the captured files; this is not file del
 **Contextual exits:** [Parts and gaps / Partes e interrupciones](workflow-prototype.html?screen=recording-parts).
 
 <a id="recording-parts"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-parts`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Parts and playback / Partes y reproducción
 
 [Open composition](workflow-prototype.html?screen=recording-parts) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -230,10 +245,17 @@ Result copy: Stop requested. Finalizing the captured files; this is not file del
 
 **Permission:** administrator. Preserve current server enforcement; view availability does not grant action authority.
 
-**Rendered states:** ready, loading, error, permission, empty, filtered, partial, pending, success, conflict, unsupported, preparing. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
+**Rendered states:** ready, loading, error, permission, empty, filtered, partial, pending, success, conflict, unsupported, preparing, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 - **unsupported:** This part cannot play in the browser. Download the original or prepare a supported compatible copy. / Esta parte no se puede reproducir en el navegador. Descarga el original o prepara una copia compatible.
 - **preparing:** Preparing playback for Part 1. Original files are unchanged. / Preparando reproducción de la Parte 1. Los originales no cambian.
+- **art-absent:** No artwork is available. Names and actions are ready. / No hay imagen disponible. Los nombres y acciones siguen listos.
+- **art-slow:** Artwork is taking longer. Continue without it. / La imagen tarda. Puedes continuar sin ella.
+- **art-blocked:** Artwork could not be loaded from this address. Use the text details. / No se pudo cargar la imagen de esta dirección. Consulta los datos.
+- **art-rejected:** This image type is not supported. Use the text details. / El tipo de imagen no es compatible. Consulta los datos.
+- **art-oversized:** The image exceeds the safe size limit. It has not been opened. / La imagen supera el límite seguro. No se ha abierto.
+- **art-decode-failed:** This image could not be displayed. Try loading it again. / No se pudo mostrar la imagen. Prueba a cargarla de nuevo.
+- **art-changed:** The artwork changed. Load the new image when you are ready. / La imagen cambió. Carga la nueva cuando quieras.
 
 **Player region:** Coastlines: the Atlantic · Part 1 · ready · static player illustration / Parte 1 · lista · ilustración estática del reproductor. Static illustration only; use the media interaction contract for ownership and integrated acceptance.
 
@@ -254,6 +276,9 @@ Result copy: Protected. Remove protection explicitly before deleting. / Protegid
 **Contextual exits:** [Delete files / Eliminar archivos](workflow-prototype.html?screen=recording-delete); [Storage and retention / Espacio y conservación](workflow-prototype.html?screen=recording-storage).
 
 <a id="recording-copy"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-copy`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Prepare a compatible copy / Preparar una copia compatible
 
 [Open composition](workflow-prototype.html?screen=recording-copy) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -292,6 +317,9 @@ Result copy: Protected. Remove protection explicitly before deleting. / Protegid
 - Original retained / Original conservado: Download original remains available when no file hold prevents it. / El original sigue disponible para descargar según su estado.
 
 <a id="recording-settings"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-settings`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Recording settings / Ajustes de grabación
 
 [Open composition](workflow-prototype.html?screen=recording-settings) · existing route/context: `/settings?tab=automation` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -328,6 +356,9 @@ Result copy: Protected. Remove protection explicitly before deleting. / Protegid
 **Contextual exits:** [Review storage / Revisar almacenamiento](workflow-prototype.html?screen=recording-storage); [Disable impact preview / Revisar efectos al desactivar](workflow-prototype.html?screen=recording-disable).
 
 <a id="recording-storage"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-storage`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Storage for recordings / Espacio para grabaciones
 
 [Open composition](workflow-prototype.html?screen=recording-storage) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -356,6 +387,9 @@ Result copy: Protected. Remove protection explicitly before deleting. / Protegid
 **Contextual exits:** [Change limits and retention / Cambiar límites y conservación](workflow-prototype.html?screen=recording-settings); [Filesystem details / Detalles del sistema de archivos](workflow-prototype.html?screen=storage); [Review protected files / Revisar archivos protegidos](workflow-prototype.html?screen=recording-parts).
 
 <a id="recording-cancel"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-cancel`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Cancel this schedule / Cancelar esta programación
 
 [Open composition](workflow-prototype.html?screen=recording-cancel) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -378,6 +412,9 @@ Result copy: Schedule cancelled. It remains in history. / Programación cancelad
 **Contextual exits:** [Keep recording files / Conservar archivos](workflow-prototype.html?screen=recording-parts); [Upcoming schedule / Próxima programación](workflow-prototype.html?screen=recording-schedule).
 
 <a id="recording-delete"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-delete`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Delete saved files / Eliminar archivos guardados
 
 [Open composition](workflow-prototype.html?screen=recording-delete) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -401,6 +438,9 @@ Result copy: Files deleted; history remains. Space may not update until the next
 **Contextual exits:** [Keep recording files / Conservar archivos](workflow-prototype.html?screen=recording-parts); [Upcoming schedule / Próxima programación](workflow-prototype.html?screen=recording-schedule).
 
 <a id="recording-disable"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** contextual editor or detail. **Canonical editor:** `recording-disable`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Disable all recording / Desactivar las grabaciones
 
 [Open composition](workflow-prototype.html?screen=recording-disable) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -423,6 +463,9 @@ Result copy: Recording disabled. Saved files remain available according to file 
 **Contextual exits:** [Keep recording files / Conservar archivos](workflow-prototype.html?screen=recording-parts); [Upcoming schedule / Próxima programación](workflow-prototype.html?screen=recording-schedule).
 
 <a id="access-activate"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-activate`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Choose who can use this installation / Elegir quién puede usar esta instalación
 
 [Open composition](workflow-prototype.html?screen=access-activate) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -472,6 +515,9 @@ Result copy: Recording disabled. Saved files remain available according to file 
 **Contextual exits:** [Supported connections / Conexiones compatibles](workflow-prototype.html?screen=access-transport).
 
 <a id="access-login"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-login`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Sign in / Iniciar sesión
 
 [Open composition](workflow-prototype.html?screen=access-login) · existing route/context: `/watch` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -505,6 +551,9 @@ Result copy: Recording disabled. Saved files remain available according to file 
 **Contextual exits:** [Connection help / Ayuda de conexión](workflow-prototype.html?screen=access-transport); [Viewing permissions / Permisos de visualización](workflow-prototype.html?screen=viewer).
 
 <a id="access-account"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** section. **Canonical editor:** `access-account`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Account permissions / Permisos de cuenta
 
 [Open composition](workflow-prototype.html?screen=access-account) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -540,11 +589,14 @@ Result copy: Recording disabled. Saved files remain available according to file 
 | `permissions.cast` · checkbox | Cast to my devices / Enviar a mis dispositivos<br>This feature only. Administrative access is separate. / Solo esta función. La administración es independiente. | Repository default: false for policy; UI account seed live/channels/guide; API account default [] | disabled when account.administrator is on |
 | `permissions.cast_server` · checkbox | Cast to server devices / Enviar a dispositivos del servidor<br>This feature only. Administrative access is separate. / Solo esta función. La administración es independiente. | Repository default: false for policy; UI account seed live/channels/guide; API account default [] | disabled when account.administrator is on |
 
-**Explanation:** No invented “remote control” permission: cast and cast_server are separate scopes. Remote access also needs the existing opt-in. / No se inventa un permiso de control remoto: cast y cast_server son ámbitos distintos. El acceso remoto requiere además la activación existente.
+**Explanation:** Casting to your devices and controlling server devices have separate permissions. Remote control also needs to be enabled. / Enviar a tus dispositivos y controlar los del servidor tienen permisos distintos. El control remoto también debe estar activado.
 
 **Contextual exits:** [Create account / Crear cuenta](workflow-prototype.html?screen=access-create); [Review sessions / Revisar sesiones](workflow-prototype.html?screen=access-sessions).
 
 <a id="access-create"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-create`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Create an account / Crear una cuenta
 
 [Open composition](workflow-prototype.html?screen=access-create) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -581,6 +633,9 @@ Result copy: Recording disabled. Saved files remain available according to file 
 **Contextual exits:** [Edit existing permissions / Editar permisos existentes](workflow-prototype.html?screen=access-account).
 
 <a id="access-policy"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-policy`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Viewing without signing in / Ver sin iniciar sesión
 
 [Open composition](workflow-prototype.html?screen=access-policy) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -616,6 +671,9 @@ Result copy: Recording disabled. Saved files remain available according to file 
 **Contextual exits:** [Casting permissions and trust / Permisos y confianza de Cast](workflow-prototype.html?screen=casting-settings); [Reverse proxies and tuner access / Proxies y acceso al sintonizador](workflow-prototype.html?screen=network).
 
 <a id="access-password"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-password`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Change your password / Cambiar tu contraseña
 
 [Open composition](workflow-prototype.html?screen=access-password) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -644,6 +702,9 @@ Result copy: Recording disabled. Saved files remain available according to file 
 | `password.password_confirmation` · password | Confirm new password / Confirmar contraseña nueva<br>Must match exactly; count Unicode characters, not UTF-16 units. / Debe coincidir exactamente; cuenta caracteres Unicode, no unidades UTF-16. | Never read back a saved secret. Empty input; omit/clear/replace semantics follow this resource. | required=True |
 
 <a id="access-sessions"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-sessions`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Login sessions / Sesiones iniciadas
 
 [Open composition](workflow-prototype.html?screen=access-sessions) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -674,6 +735,9 @@ Result copy: Selected session signed out. / Sesión seleccionada cerrada.. Reche
 **Contextual exits:** [Playback and API credentials / Credenciales IPTV y API](workflow-prototype.html?screen=access-credentials).
 
 <a id="access-credentials"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-credentials`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Playback and API credentials / Credenciales de reproducción y API
 
 [Open composition](workflow-prototype.html?screen=access-credentials) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -703,6 +767,9 @@ Result copy: Selected session signed out. / Sesión seleccionada cerrada.. Reche
 Result copy: Credential revoked. Existing URLs need replacement. / Credencial revocada. Hay que sustituir las URLs.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="access-secret"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-secret`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Save your new credential / Guardar la credencial nueva
 
 [Open composition](workflow-prototype.html?screen=access-secret) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -732,6 +799,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Explanation:** Copy failure must leave the value selectable and visible. Never place a secret in the page URL, analytics or persistent browser preferences. / Si falla la copia, el valor sigue visible y seleccionable. Nunca se guarda en la URL, analítica o preferencias persistentes.
 
 <a id="access-disable"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-disable`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Remove account protection / Quitar la protección de cuentas
 
 [Open composition](workflow-prototype.html?screen=access-disable) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -761,6 +831,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 | `access.current_password` · password | Administrator password / Contraseña de administrador<br>Required. The independent access store is not a catalogue backup. / Obligatoria. El almacén independiente de acceso no es una copia del catálogo. | Never read back a saved secret. Empty input; omit/clear/replace semantics follow this resource. | required=True |
 
 <a id="access-transport"></a>
+
+**Simplified location:** Settings → Account permissions. **Composition:** contextual editor or detail. **Canonical editor:** `access-transport`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Use a supported connection / Usar una conexión compatible
 
 [Open composition](workflow-prototype.html?screen=access-transport) · existing route/context: `/settings?tab=access` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -786,6 +859,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Contextual exits:** [Return to sign in / Volver al inicio de sesión](workflow-prototype.html?screen=access-login); [Review player address / Revisar dirección para reproductores](workflow-prototype.html?screen=public-address).
 
 <a id="channels"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** primary destination. **Canonical editor:** `channels`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## TV channels / Canales de TV
 
 [Open composition](workflow-prototype.html?screen=channels) · existing route/context: `/tv-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -799,6 +875,8 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Rendered states:** ready, loading, error, permission, dirty, pending, success, conflict, empty, filtered, partial. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 - **filtered:** No channels match these filters. Clear filters to see the catalogue; this does not stop playback. / Ningún canal coincide. Quita filtros para ver el catálogo; no se detiene la reproducción.
+
+**Contextual exits:** [Add channels / Añadir canales](workflow-prototype.html?screen=add-channels).
 
 ### Find channels / Buscar canales
 
@@ -840,6 +918,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Contextual exits:** [Number and favorite controls / Controles de número y favorito](workflow-prototype.html?screen=channel-inline).
 
 <a id="channel-edit"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** contextual editor or detail. **Canonical editor:** `channel-edit`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Edit TV channel / Editar canal de TV
 
 [Open composition](workflow-prototype.html?screen=channel-edit) · existing route/context: `/tv-channels/:id` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -877,6 +958,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Contextual exits:** [Return to channel / Volver al canal](workflow-prototype.html?screen=channel-detail).
 
 <a id="channel-detail"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** contextual editor or detail. **Canonical editor:** `channel-detail`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Northlight / Northlight
 
 [Open composition](workflow-prototype.html?screen=channel-detail) · existing route/context: `/tv-channels/:id` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -887,8 +971,15 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 
 **Permission:** administrator. Preserve current server enforcement; view availability does not grant action authority.
 
-**Rendered states:** ready, loading, error, permission, empty, filtered, partial. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
+**Rendered states:** ready, loading, error, permission, empty, filtered, partial, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
+- **art-absent:** No artwork is available. Names and actions are ready. / No hay imagen disponible. Los nombres y acciones siguen listos.
+- **art-slow:** Artwork is taking longer. Continue without it. / La imagen tarda. Puedes continuar sin ella.
+- **art-blocked:** Artwork could not be loaded from this address. Use the text details. / No se pudo cargar la imagen de esta dirección. Consulta los datos.
+- **art-rejected:** This image type is not supported. Use the text details. / El tipo de imagen no es compatible. Consulta los datos.
+- **art-oversized:** The image exceeds the safe size limit. It has not been opened. / La imagen supera el límite seguro. No se ha abierto.
+- **art-decode-failed:** This image could not be displayed. Try loading it again. / No se pudo mostrar la imagen. Prueba a cargarla de nuevo.
+- **art-changed:** The artwork changed. Load the new image when you are ready. / La imagen cambió. Carga la nueva cuando quieras.
 
 **Read-only context: Channel summary / Resumen del canal**
 
@@ -906,6 +997,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Contextual exits:** [Watch / guide / record / Ver / guía / grabar](workflow-prototype.html?screen=live); [Preferred stream order / Orden de emisiones preferidas](workflow-prototype.html?screen=channel-preferences); [Add existing streams / Añadir emisiones existentes](workflow-prototype.html?screen=channel-assign); [Open source-qualified guide / Abrir guía con su fuente](workflow-prototype.html?screen=guide-detail); [Edit channel / Editar canal](workflow-prototype.html?screen=channel-edit); [Delete channel / Eliminar canal](workflow-prototype.html?screen=channel-delete).
 
 <a id="channel-reorder"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** contextual editor or detail. **Canonical editor:** `channel-reorder`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Reorder all TV channels / Reordenar todos los canales de TV
 
 [Open composition](workflow-prototype.html?screen=channel-reorder) · existing route/context: `/tv-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -927,6 +1021,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Contextual exits:** [Cancel and return / Cancelar y volver](workflow-prototype.html?screen=channels).
 
 <a id="channel-preferences"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** contextual editor or detail. **Canonical editor:** `channel-preferences`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Preferred streams for Northlight / Emisiones preferidas para Northlight
 
 [Open composition](workflow-prototype.html?screen=channel-preferences) · existing route/context: `/tv-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -948,6 +1045,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Contextual exits:** [Cancel and return / Cancelar y volver](workflow-prototype.html?screen=channels).
 
 <a id="streams"></a>
+
+**Simplified location:** TV channels → Streams. **Composition:** section. **Canonical editor:** `streams`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Streams / Emisiones
 
 [Open composition](workflow-prototype.html?screen=streams) · existing route/context: `/acestream-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -988,6 +1088,9 @@ Result copy: Credential hidden. Only its label and scope remain. / Credencial oc
 **Contextual exits:** [Activity details / Detalles de actividad](workflow-prototype.html?screen=channel-activity).
 
 <a id="stream-stats"></a>
+
+**Simplified location:** TV channels → Streams. **Composition:** contextual editor or detail. **Canonical editor:** `stream-stats`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Northlight HD · observations / Northlight HD · observaciones
 
 [Open composition](workflow-prototype.html?screen=stream-stats) · existing route/context: `/acestream-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1046,6 +1149,9 @@ Result copy: Check queued. Waiting is not offline. / Comprobación en cola. Espe
 **Contextual exits:** [Review checking engine / Revisar motor de comprobación](workflow-prototype.html?screen=automation); [Back to streams / Volver a emisiones](workflow-prototype.html?screen=streams).
 
 <a id="stream-edit"></a>
+
+**Simplified location:** TV channels → Streams. **Composition:** contextual editor or detail. **Canonical editor:** `stream-edit`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Add and link a stream / Añadir y vincular una emisión
 
 [Open composition](workflow-prototype.html?screen=stream-edit) · existing route/context: `/acestream-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1085,6 +1191,9 @@ Result copy: Check queued. Waiting is not offline. / Comprobación en cola. Espe
 **Contextual exits:** [Add from Search / Añadir desde Buscar](workflow-prototype.html?screen=search-add-link).
 
 <a id="stream-bulk"></a>
+
+**Simplified location:** TV channels → Streams. **Composition:** contextual editor or detail. **Canonical editor:** `stream-bulk`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Bulk stream actions / Acciones en lote
 
 [Open composition](workflow-prototype.html?screen=stream-bulk) · existing route/context: `/acestream-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1121,6 +1230,9 @@ Result copy: Selected deletion finished; review individual failures before retry
 **Contextual exits:** [All editable metadata / Todos los datos editables](workflow-prototype.html?screen=stream-bulk-fields).
 
 <a id="channel-assign"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** contextual editor or detail. **Canonical editor:** `channel-assign`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Assign existing streams / Asignar emisiones existentes
 
 [Open composition](workflow-prototype.html?screen=channel-assign) · existing route/context: `/tv-channels/:id` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1141,6 +1253,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 **Contextual exits:** [Review name suggestions / Revisar sugerencias de nombres](workflow-prototype.html?screen=stream-match); [Back to Northlight / Volver a Northlight](workflow-prototype.html?screen=channel-detail).
 
 <a id="stream-match"></a>
+
+**Simplified location:** TV channels → Streams. **Composition:** contextual editor or detail. **Canonical editor:** `stream-match`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Match streams to TV channels / Vincular emisiones a canales de TV
 
 [Open composition](workflow-prototype.html?screen=stream-match) · existing route/context: `/tv-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1177,6 +1292,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 **Contextual exits:** [Programme-guide matching is separate / La vinculación de guía es independiente](workflow-prototype.html?screen=guide-match).
 
 <a id="channel-delete"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** contextual editor or detail. **Canonical editor:** `channel-delete`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Delete Northlight? / ¿Eliminar Northlight?
 
 [Open composition](workflow-prototype.html?screen=channel-delete) · existing route/context: `/tv-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1197,6 +1315,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 Result copy: Channel removed. Refresh inventory; retained streams remain manageable. / Canal eliminado. Actualiza el catálogo; se pueden gestionar las emisiones conservadas.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="guide-sources"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** section. **Canonical editor:** `guide-sources`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Programme guides / Guías de programación
 
 [Open composition](workflow-prototype.html?screen=guide-sources) · existing route/context: `/epg?tab=sources` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1219,7 +1340,12 @@ Result copy: Channel removed. Refresh inventory; retained streams remain managea
 
 **Contextual exits:** [Guide inventory and day / Inventario y día](workflow-prototype.html?screen=guide-inventory).
 
+**Contextual exits:** [Automatic exact matches / Coincidencias exactas automáticas](workflow-prototype.html?screen=guide-auto).
+
 <a id="guide-source"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-source`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Edit guide source / Editar fuente de guía
 
 [Open composition](workflow-prototype.html?screen=guide-source) · existing route/context: `/epg?tab=sources` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1253,7 +1379,12 @@ Result copy: Guide refresh waiting. Old listings remain until a successful impor
 
 Result copy: Guide source removed; review channels without listings. / Fuente eliminada; revisa los canales sin programación.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
+**Contextual exits:** [Next: review guide matches / Siguiente: revisar coincidencias](workflow-prototype.html?screen=guide-match).
+
 <a id="guide-detail"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-detail`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Northlight · Sample guide / Northlight · Sample guide
 
 [Open composition](workflow-prototype.html?screen=guide-detail) · existing route/context: `/epg/channels/:id` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1283,6 +1414,9 @@ Result copy: Guide source removed; review channels without listings. / Fuente el
 **Contextual exits:** [Add a matching rule / Añadir regla de coincidencia](workflow-prototype.html?screen=guide-rule); [Link a TV channel / Vincular canal de TV](workflow-prototype.html?screen=guide-choice); [Create TV channel from guide / Crear canal de TV desde guía](workflow-prototype.html?screen=channel-edit).
 
 <a id="guide-choice"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-choice`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Choose the correct guide source / Elegir la fuente de guía correcta
 
 [Open composition](workflow-prototype.html?screen=guide-choice) · existing route/context: `/epg?tab=matching` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1303,6 +1437,9 @@ No automatic selection. Exactly one choice. Show row-specific result; expire sel
 **Contextual exits:** [Inspect schedule before choosing / Revisar programación antes de elegir](workflow-prototype.html?screen=guide-detail).
 
 <a id="guide-match"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-match`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Review guide matches / Revisar coincidencias de guía
 
 [Open composition](workflow-prototype.html?screen=guide-match) · existing route/context: `/epg?tab=matching` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1334,7 +1471,12 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 
 **Contextual exits:** [Review ambiguous Atelier / Revisar Atelier ambiguo](workflow-prototype.html?screen=guide-choice); [Automatic exact matching / Vinculación exacta automática](workflow-prototype.html?screen=guide-auto).
 
+**Contextual exits:** [Start watching / Empezar a ver](workflow-prototype.html?screen=dashboard).
+
 <a id="guide-rule"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-rule`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Guide matching rule / Regla de coincidencia de guía
 
 [Open composition](workflow-prototype.html?screen=guide-rule) · existing route/context: `/epg/channels/:id` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1370,6 +1512,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 Result copy: Rule removed. Existing assignments are not a fresh review result. / Regla eliminada. Las asignaciones existentes no son una revisión nueva.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="guide-auto"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-auto`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Automatic exact matching / Vinculación exacta automática
 
 [Open composition](workflow-prototype.html?screen=guide-auto) · existing route/context: `/settings?tab=automation` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1385,11 +1530,9 @@ Result copy: Rule removed. Existing assignments are not a fresh review result. /
 
 ### After successful updates / Tras actualizaciones correctas
 
-**Save timing:** explicit action. **Action:** Save matching preference / Guardar preferencia. **Boundary:** `configService epg-matching`. Submit this resource only; other sections retain independent state.
+**Save timing:** immediate. **Action:** Save matching preference / Guardar preferencia. **Boundary:** `configService epg-matching`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Use exact matches after future successful updates. Ambiguous matches still need your review. / Usa coincidencias exactas tras futuras actualizaciones correctas. Las ambiguas requieren revisión.
-
-**Confirmation:** Enable future exact matches? Existing assignments and imported guide identities remain protected. / ¿Activar futuras coincidencias exactas? Se protegen las asignaciones e identidades existentes.. Cancel initially focused; Escape cancels; return focus to invoker.
+**Consequence:** Saved for future successful updates. Ambiguous names still need your review. / Guardado para futuras actualizaciones correctas. Los nombres ambiguos requieren revisión.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
@@ -1403,6 +1546,9 @@ Result copy: Rule removed. Existing assignments are not a fresh review result. /
 | Finished / Finalizado | 7 Nov 16:00 · synthetic / 7 nov 16:00 · ficticio |
 
 <a id="guide-export"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-export`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Export programme guide / Exportar guía de programación
 
 [Open composition](workflow-prototype.html?screen=guide-export) · existing route/context: `/epg?tab=export` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1442,6 +1588,9 @@ Result copy: Rule removed. Existing assignments are not a fresh review result. /
 **Contextual exits:** [Check coverage / Consultar cobertura](workflow-prototype.html?screen=guide-coverage); [Matching playlist / Lista correspondiente](workflow-prototype.html?screen=playlist).
 
 <a id="guide-coverage"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-coverage`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Guide coverage / Cobertura de guía
 
 [Open composition](workflow-prototype.html?screen=guide-coverage) · existing route/context: `/epg` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1471,6 +1620,9 @@ Result copy: Rule removed. Existing assignments are not a fresh review result. /
 - World 24 / World 24: Guide linked; no programmes in the selected window / Guía vinculada; sin programas en este intervalo [Open related workflow](workflow-prototype.html?screen=guide-source).
 
 <a id="playlist"></a>
+
+**Simplified location:** Where would you like to watch? → Your playlist. **Composition:** section. **Canonical editor:** `playlist`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Your playlist / Tu lista de reproducción
 
 [Open composition](workflow-prototype.html?screen=playlist) · existing route/context: `/playlist` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1516,7 +1668,12 @@ https://tv.example.invalid/app/playlists/m3u?format=tv-relay
 
 **Contextual exits:** [Manage shared stream formats / Gestionar formatos compartidos](workflow-prototype.html?screen=formats); [Address used by players / Dirección para reproductores](workflow-prototype.html?screen=public-address); [Playback credentials / Credenciales de reproducción](workflow-prototype.html?screen=access-credentials); [Download matching guide / Descargar guía correspondiente](workflow-prototype.html?screen=guide-export).
 
+**Contextual exits:** [Address and credentials / Dirección y credenciales](workflow-prototype.html?screen=public-address); [Shared stream formats / Formatos de emisión compartidos](workflow-prototype.html?screen=formats).
+
 <a id="formats"></a>
+
+**Simplified location:** Where would you like to watch? → Your playlist. **Composition:** contextual editor or detail. **Canonical editor:** `formats`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Stream link formats / Formatos de enlaces de emisión
 
 [Open composition](workflow-prototype.html?screen=formats) · existing route/context: `/settings?tab=links` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1570,6 +1727,9 @@ https://tv.example.invalid/app/playlists/m3u?format=tv-relay
 **Contextual exits:** [Return to playlist with filters / Volver a la lista con filtros](workflow-prototype.html?screen=playlist).
 
 <a id="format-edit"></a>
+
+**Simplified location:** Where would you like to watch? → Your playlist. **Composition:** contextual editor or detail. **Canonical editor:** `format-edit`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Edit Demo relay / Editar Demo relay
 
 [Open composition](workflow-prototype.html?screen=format-edit) · existing route/context: `/settings?tab=links` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1601,6 +1761,9 @@ Result copy: Named format removed. Refresh format selection and show the resulti
 **Explanation:** The built-in format is edited through its own pattern control and cannot be treated as a deletable named entry. / El patrón integrado se edita en su control y no se trata como una entrada propia eliminable.
 
 <a id="source-web"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `source-web`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Web or playlist source / Fuente web o lista
 
 [Open composition](workflow-prototype.html?screen=source-web) · existing route/context: `/scraper?tab=sources` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1615,21 +1778,21 @@ Result copy: Named format removed. Refresh format selection and show the resulti
 
 - **import-failed:** Source saved, but import failed. Existing channels remain. Retry update; do not add the source again. / Fuente guardada, pero la importación falló. Se conservan canales. Reintenta actualizar; no vuelvas a añadirla.
 
-**Explanation:** HTTP/HTTPS pages and nested playlists keep redirect, DNS and private-network safeguards. / Las páginas HTTP/HTTPS y listas anidadas conservan las protecciones de redirección, DNS y red privada.
+**Explanation:** Paste a website or playlist address. Save it for later, or find its channels now. / Pega una dirección web o de lista. Guárdala para más tarde o busca sus canales ahora.
 
 ### Source configuration / Configuración de fuente
 
 **Save timing:** explicit action. **Action:** Save source only / Solo guardar fuente. **Boundary:** `scraperService createURL / updateURL`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Source saved; no streams imported yet. / Fuente guardada; todavía no se han importado emisiones.
+**Consequence:** Save only keeps the source. Save and find channels saves it, then queues an import separately. / Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
 | `source.name` · text | Source name (optional) / Nombre de fuente (opcional)<br>Up to 255 characters. This original name appears in source filters. / Hasta 255 caracteres. Aparece en los filtros con su nombre original. | Load current saved/server value; illustrative fixture: Family channels | maxlength=255 |
-| `source.url` · text | Source address / Dirección de fuente<br>Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True |
-| `source.url_type` · select | Source type / Tipo de fuente<br>HTTP/HTTPS pages and nested playlists keep redirect, DNS and private-network safeguards. / Las páginas HTTP/HTTPS y listas anidadas conservan las protecciones de redirección, DNS y red privada. | Load current saved/server value; illustrative fixture: regular | auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
+| `source.url` · text | Source address / Dirección de fuente<br>Paste the complete address. Save only keeps it for later; finding channels starts an import. / Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True; Adapter/contract note: Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. |
+| `source.url_type` · select | Source type / Tipo de fuente<br>Use the normal website option unless your provider asks for a specific type. / Usa la opción web normal salvo que tu proveedor indique otro tipo. | Load current saved/server value; illustrative fixture: regular | Adapter/contract note: HTTP/HTTPS pages and nested playlists keep redirect, DNS and private-network safeguards. / Las páginas HTTP/HTTPS y listas anidadas conservan las protecciones de redirección, DNS y red privada.; auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
 | `source.enabled` · checkbox | Update this source / Actualizar esta fuente<br>Enabled by default. Disabled retains saved channels. / Activada por defecto. Desactivar conserva los canales. | Load current saved/server value; illustrative fixture: True | No additional prototype constraint; preserve current source validation. |
-| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Load current saved/server value; illustrative fixture: False | Advanced disclosure |
+| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Repository default: False | Advanced disclosure |
 
 **Save and find channels / Guardar y buscar canales:** Save this source, then queue one import? These are separate operations. / ¿Guardar la fuente y poner una importación en cola? Son operaciones distintas.
 
@@ -1638,6 +1801,9 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 **Contextual exits:** [Custom extraction recipe / Receta de extracción](workflow-prototype.html?screen=helper-installed); [Remove source / Eliminar fuente](workflow-prototype.html?screen=source-remove); [Review orphaned streams / Revisar emisiones huérfanas](workflow-prototype.html?screen=sources-orphans).
 
 <a id="source-auto"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `source-auto`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Automatic source detection / Detección automática de fuente
 
 [Open composition](workflow-prototype.html?screen=source-auto) · existing route/context: `/scraper?tab=sources` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1658,15 +1824,15 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 
 **Save timing:** explicit action. **Action:** Save source only / Solo guardar fuente. **Boundary:** `scraperService createURL / updateURL`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Source saved; no streams imported yet. / Fuente guardada; todavía no se han importado emisiones.
+**Consequence:** Save only keeps the source. Save and find channels saves it, then queues an import separately. / Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
 | `source.name` · text | Source name (optional) / Nombre de fuente (opcional)<br>Up to 255 characters. This original name appears in source filters. / Hasta 255 caracteres. Aparece en los filtros con su nombre original. | Load current saved/server value; illustrative fixture: Family channels | maxlength=255 |
-| `source.url` · text | Source address / Dirección de fuente<br>Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True |
-| `source.url_type` · select | Source type / Tipo de fuente<br>The current form starts with Auto-detect. A custom recipe is optional and never proves signal. / El formulario actual empieza con detección automática. La receta es opcional y no demuestra señal. | Load current saved/server value; illustrative fixture: auto | auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
+| `source.url` · text | Source address / Dirección de fuente<br>Paste the complete address. Save only keeps it for later; finding channels starts an import. / Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True; Adapter/contract note: Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. |
+| `source.url_type` · select | Source type / Tipo de fuente<br>Use the normal website option unless your provider asks for a specific type. / Usa la opción web normal salvo que tu proveedor indique otro tipo. | Load current saved/server value; illustrative fixture: auto | Adapter/contract note: The current form starts with Auto-detect. A custom recipe is optional and never proves signal. / El formulario actual empieza con detección automática. La receta es opcional y no demuestra señal.; auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
 | `source.enabled` · checkbox | Update this source / Actualizar esta fuente<br>Enabled by default. Disabled retains saved channels. / Activada por defecto. Desactivar conserva los canales. | Load current saved/server value; illustrative fixture: True | No additional prototype constraint; preserve current source validation. |
-| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Load current saved/server value; illustrative fixture: False | Advanced disclosure |
+| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Repository default: False | Advanced disclosure |
 
 **Save and find channels / Guardar y buscar canales:** Save this source, then queue one import? These are separate operations. / ¿Guardar la fuente y poner una importación en cola? Son operaciones distintas.
 
@@ -1675,6 +1841,9 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 **Contextual exits:** [Custom extraction recipe / Receta de extracción](workflow-prototype.html?screen=helper-installed); [Remove source / Eliminar fuente](workflow-prototype.html?screen=source-remove); [Review orphaned streams / Revisar emisiones huérfanas](workflow-prototype.html?screen=sources-orphans).
 
 <a id="source-zeronet"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `source-zeronet`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## ZeroNet source / Fuente ZeroNet
 
 [Open composition](workflow-prototype.html?screen=source-zeronet) · existing route/context: `/scraper?tab=sources` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1695,15 +1864,15 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 
 **Save timing:** explicit action. **Action:** Save source only / Solo guardar fuente. **Boundary:** `scraperService createURL / updateURL`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Source saved; no streams imported yet. / Fuente guardada; todavía no se han importado emisiones.
+**Consequence:** Save only keeps the source. Save and find channels saves it, then queues an import separately. / Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
 | `source.name` · text | Source name (optional) / Nombre de fuente (opcional)<br>Up to 255 characters. This original name appears in source filters. / Hasta 255 caracteres. Aparece en los filtros con su nombre original. | Load current saved/server value; illustrative fixture: Family channels | maxlength=255 |
-| `source.url` · text | Source address / Dirección de fuente<br>Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True |
-| `source.url_type` · select | Source type / Tipo de fuente<br>Uses the configured ZeroNet gateway. Unavailable gateway is a prerequisite error, not an empty catalogue. / Usa la pasarela ZeroNet configurada. Si falta, es un requisito pendiente, no un catálogo vacío. | Load current saved/server value; illustrative fixture: zeronet | auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
+| `source.url` · text | Source address / Dirección de fuente<br>Paste the complete address. Save only keeps it for later; finding channels starts an import. / Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True; Adapter/contract note: Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. |
+| `source.url_type` · select | Source type / Tipo de fuente<br>Use the normal website option unless your provider asks for a specific type. / Usa la opción web normal salvo que tu proveedor indique otro tipo. | Load current saved/server value; illustrative fixture: zeronet | Adapter/contract note: Uses the configured ZeroNet gateway. Unavailable gateway is a prerequisite error, not an empty catalogue. / Usa la pasarela ZeroNet configurada. Si falta, es un requisito pendiente, no un catálogo vacío.; auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
 | `source.enabled` · checkbox | Update this source / Actualizar esta fuente<br>Enabled by default. Disabled retains saved channels. / Activada por defecto. Desactivar conserva los canales. | Load current saved/server value; illustrative fixture: True | No additional prototype constraint; preserve current source validation. |
-| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Load current saved/server value; illustrative fixture: False | Advanced disclosure |
+| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Repository default: False | Advanced disclosure |
 
 **Save and find channels / Guardar y buscar canales:** Save this source, then queue one import? These are separate operations. / ¿Guardar la fuente y poner una importación en cola? Son operaciones distintas.
 
@@ -1712,6 +1881,9 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 **Contextual exits:** [Custom extraction recipe / Receta de extracción](workflow-prototype.html?screen=helper-installed); [Remove source / Eliminar fuente](workflow-prototype.html?screen=source-remove); [Review orphaned streams / Revisar emisiones huérfanas](workflow-prototype.html?screen=sources-orphans).
 
 <a id="source-ipfs"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `source-ipfs`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## IPFS source / Fuente IPFS
 
 [Open composition](workflow-prototype.html?screen=source-ipfs) · existing route/context: `/scraper?tab=sources` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1732,15 +1904,15 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 
 **Save timing:** explicit action. **Action:** Save source only / Solo guardar fuente. **Boundary:** `scraperService createURL / updateURL`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Source saved; no streams imported yet. / Fuente guardada; todavía no se han importado emisiones.
+**Consequence:** Save only keeps the source. Save and find channels saves it, then queues an import separately. / Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
 | `source.name` · text | Source name (optional) / Nombre de fuente (opcional)<br>Up to 255 characters. This original name appears in source filters. / Hasta 255 caracteres. Aparece en los filtros con su nombre original. | Load current saved/server value; illustrative fixture: Family channels | maxlength=255 |
-| `source.url` · text | Source address / Dirección de fuente<br>Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True |
-| `source.url_type` · select | Source type / Tipo de fuente<br>Uses the configured IPFS gateway. Preserve content identity; show bounded-fetch failures without deleting saved channels. / Usa la pasarela IPFS. Conserva la identidad; muestra fallos limitados sin borrar canales. | Load current saved/server value; illustrative fixture: ipfs | auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
+| `source.url` · text | Source address / Dirección de fuente<br>Paste the complete address. Save only keeps it for later; finding channels starts an import. / Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True; Adapter/contract note: Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. |
+| `source.url_type` · select | Source type / Tipo de fuente<br>Use the normal website option unless your provider asks for a specific type. / Usa la opción web normal salvo que tu proveedor indique otro tipo. | Load current saved/server value; illustrative fixture: ipfs | Adapter/contract note: Uses the configured IPFS gateway. Preserve content identity; show bounded-fetch failures without deleting saved channels. / Usa la pasarela IPFS. Conserva la identidad; muestra fallos limitados sin borrar canales.; auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
 | `source.enabled` · checkbox | Update this source / Actualizar esta fuente<br>Enabled by default. Disabled retains saved channels. / Activada por defecto. Desactivar conserva los canales. | Load current saved/server value; illustrative fixture: True | No additional prototype constraint; preserve current source validation. |
-| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Load current saved/server value; illustrative fixture: False | Advanced disclosure |
+| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Repository default: False | Advanced disclosure |
 
 **Save and find channels / Guardar y buscar canales:** Save this source, then queue one import? These are separate operations. / ¿Guardar la fuente y poner una importación en cola? Son operaciones distintas.
 
@@ -1749,6 +1921,9 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 **Contextual exits:** [Custom extraction recipe / Receta de extracción](workflow-prototype.html?screen=helper-installed); [Remove source / Eliminar fuente](workflow-prototype.html?screen=source-remove); [Review orphaned streams / Revisar emisiones huérfanas](workflow-prototype.html?screen=sources-orphans).
 
 <a id="source-provider"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `source-provider`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Built-in broadcaster / Proveedor integrado
 
 [Open composition](workflow-prototype.html?screen=source-provider) · existing route/context: `/scraper?tab=sources` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1769,16 +1944,16 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 
 **Save timing:** explicit action. **Action:** Save source only / Solo guardar fuente. **Boundary:** `scraperService createURL / updateURL`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Source saved; no streams imported yet. / Fuente guardada; todavía no se han importado emisiones.
+**Consequence:** Save only keeps the source. Save and find channels saves it, then queues an import separately. / Solo guardar conserva la fuente. Guardar y buscar canales la guarda y después pone una importación en cola por separado.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
 | `source.provider` · select | Built-in provider / Proveedor integrado<br>Choose from the installed registry; unavailable registry has Retry. Existing custom names are preserved. / Elige del registro instalado; si falla, reintenta. Se conservan nombres propios. | Load current saved/server value; illustrative fixture: demo | demo → Synthetic adapter · not a real provider / Adaptador ficticio · no es real |
 | `source.name` · text | Source name (optional) / Nombre de fuente (opcional)<br>Up to 255 characters. This original name appears in source filters. / Hasta 255 caracteres. Aparece en los filtros con su nombre original. | Load current saved/server value; illustrative fixture: Family channels | maxlength=255 |
-| `source.url_type` · select | Source type / Tipo de fuente<br>Registry-backed adapters provide their own fixed address. Saving still does not import channels. / Los adaptadores del registro proporcionan su dirección fija. Guardar no importa canales. | Load current saved/server value; illustrative fixture: broadcaster | auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
-| `source.url` · text | Source address / Dirección de fuente<br>Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True; readonly=True |
+| `source.url_type` · select | Source type / Tipo de fuente<br>Use the normal website option unless your provider asks for a specific type. / Usa la opción web normal salvo que tu proveedor indique otro tipo. | Load current saved/server value; illustrative fixture: broadcaster | Adapter/contract note: Registry-backed adapters provide their own fixed address. Saving still does not import channels. / Los adaptadores del registro proporcionan su dirección fija. Guardar no importa canales.; auto → Auto-detect / Detección automática; regular → Regular HTTP / HTTP común; zeronet → ZeroNet / ZeroNet; ipfs → IPFS / IPFS; broadcaster → Built-in broadcaster / Proveedor integrado |
+| `source.url` · text | Source address / Dirección de fuente<br>Paste the complete address. Save only keeps it for later; finding channels starts an import. / Pega la dirección completa. Solo guardar la conserva para más tarde; buscar canales inicia una importación. | Load current saved/server value; illustrative fixture: https://source.example.invalid/channels | required=True; readonly=True; Adapter/contract note: Required. Saving does not fetch or import. Preview and imports use guarded, bounded fetches. / Obligatoria. Guardar no obtiene ni importa contenido. Las consultas son protegidas y limitadas. |
 | `source.enabled` · checkbox | Update this source / Actualizar esta fuente<br>Enabled by default. Disabled retains saved channels. / Activada por defecto. Desactivar conserva los canales. | Load current saved/server value; illustrative fixture: True | No additional prototype constraint; preserve current source validation. |
-| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Load current saved/server value; illustrative fixture: False | disabled=True; Advanced disclosure |
+| `source.scrape_bare_ids` · checkbox | Recognize bare content IDs / Reconocer IDs sin enlace<br>Off by default for ordinary sources. Broadcaster adapters disable this option. / Desactivado por defecto en fuentes comunes. Los proveedores integrados deshabilitan esta opción. | Repository default: False | disabled=True; Advanced disclosure |
 
 **Save and find channels / Guardar y buscar canales:** Save this source, then queue one import? These are separate operations. / ¿Guardar la fuente y poner una importación en cola? Son operaciones distintas.
 
@@ -1787,6 +1962,9 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 **Contextual exits:** [Custom extraction recipe / Receta de extracción](workflow-prototype.html?screen=helper-installed); [Remove source / Eliminar fuente](workflow-prototype.html?screen=source-remove); [Review orphaned streams / Revisar emisiones huérfanas](workflow-prototype.html?screen=sources-orphans).
 
 <a id="source-results"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `source-results`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Import result / Resultado de importación
 
 [Open composition](workflow-prototype.html?screen=source-results) · existing route/context: `/scraper` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1815,7 +1993,12 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 
 **Contextual exits:** [Review imported streams / Revisar emisiones](workflow-prototype.html?screen=streams); [Assign TV channels / Asignar canales](workflow-prototype.html?screen=channel-assign); [Schedule updates / Programar actualizaciones](workflow-prototype.html?screen=automation).
 
+**Contextual exits:** [Next: add a programme guide / Siguiente: añadir una guía](workflow-prototype.html?screen=setup-guide); [Review imported channels / Revisar canales importados](workflow-prototype.html?screen=channels).
+
 <a id="source-remove"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `source-remove`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Remove Family channels? / ¿Eliminar Family channels?
 
 [Open composition](workflow-prototype.html?screen=source-remove) · existing route/context: `/scraper` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1842,6 +2025,9 @@ Result copy: Source saved. Import waiting; if queueing fails, retry import witho
 | `source.delete_streams` · checkbox | Also delete this source’s streams / Eliminar también sus emisiones<br>Current default is on. Example: 8 source-owned streams, 3 linked to TV channels. TV channels remain. / El valor actual por defecto está activado. Ejemplo: 8 emisiones, 3 vinculadas a canales. Se conservan canales de TV. | Load current saved/server value; illustrative fixture: True | No additional prototype constraint; preserve current source validation. |
 
 <a id="sources-orphans"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `sources-orphans`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Streams without a saved source / Emisiones sin fuente guardada
 
 [Open composition](workflow-prototype.html?screen=sources-orphans) · existing route/context: `/scraper` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1862,6 +2048,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 **Explanation:** Nothing is selected initially. Previewing groups deletes nothing. / Nada está seleccionado inicialmente. Consultar los grupos no elimina nada.
 
 <a id="w3u"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `w3u`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Review W3U catalogue / Revisar catálogo W3U
 
 [Open composition](workflow-prototype.html?screen=w3u) · existing route/context: `/scraper?tab=w3u` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1899,6 +2088,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 **Contextual exits:** [Import settings / Ajustes de importación](workflow-prototype.html?screen=w3u-save); [Assign folder streams / Asignar emisiones de carpeta](workflow-prototype.html?screen=w3u-folder).
 
 <a id="w3u-save"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `w3u-save`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Save reviewed catalogue / Guardar catálogo revisado
 
 [Open composition](workflow-prototype.html?screen=w3u-save) · existing route/context: `/scraper?tab=w3u` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1932,6 +2124,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 Result copy: Catalogue removed; imported streams retained. / Catálogo eliminado; emisiones conservadas.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="w3u-detail"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `w3u-detail`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Catalogue entry details / Detalles de entrada
 
 [Open composition](workflow-prototype.html?screen=w3u-detail) · existing route/context: `/scraper?tab=w3u` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -1968,6 +2163,9 @@ Result copy: Catalogue removed; imported streams retained. / Catálogo eliminado
 | `catalogue.artwork` · checkbox | Load publisher artwork / Cargar imágenes del editor<br>Explicit opt-in; failing artwork leaves original names visible. / Activación explícita; si falla la imagen el nombre sigue visible. | Load current saved/server value; illustrative fixture: False | No additional prototype constraint; preserve current source validation. |
 
 <a id="w3u-folder"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `w3u-folder`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Assign a catalogue folder / Asignar una carpeta del catálogo
 
 [Open composition](workflow-prototype.html?screen=w3u-folder) · existing route/context: `/scraper?tab=w3u` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -1996,6 +2194,9 @@ Result copy: Catalogue removed; imported streams retained. / Catálogo eliminado
 **Contextual exits:** [Review destination channel / Revisar canal de destino](workflow-prototype.html?screen=channel-assign).
 
 <a id="saved-search"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `saved-search`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Saved search / Búsqueda guardada
 
 [Open composition](workflow-prototype.html?screen=saved-search) · existing route/context: `/scraper?tab=searches` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2025,6 +2226,9 @@ Result copy: Catalogue removed; imported streams retained. / Catálogo eliminado
 **Contextual exits:** [Preview and run / Consultar y ejecutar](workflow-prototype.html?screen=saved-search-preview); [Review import exclusions / Revisar exclusiones](workflow-prototype.html?screen=exclusion).
 
 <a id="saved-search-preview"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `saved-search-preview`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Preview a saved search / Consultar búsqueda guardada
 
 [Open composition](workflow-prototype.html?screen=saved-search-preview) · existing route/context: `/scraper?tab=searches` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2055,6 +2259,9 @@ Result copy: Waiting in maintenance queue. A second request cannot duplicate thi
 - 6 Nov 16:00 · interrupted / 6 nov 16:00 · interrumpida: Restart interrupted the old run; existing channels retained / El reinicio interrumpió la ejecución; canales conservados
 
 <a id="exclusion"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `exclusion`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Import exclusion rule / Regla de exclusión de importación
 
 [Open composition](workflow-prototype.html?screen=exclusion) · existing route/context: `/scraper?tab=exclusions` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2090,6 +2297,9 @@ Result copy: 3 of 200 sampled candidates match. Partial sample is not a catalogu
 Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="search"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `search`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Find new streams / Buscar emisiones nuevas
 
 [Open composition](workflow-prototype.html?screen=search) · existing route/context: `/search` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2123,6 +2333,9 @@ Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at 
 **Contextual exits:** [Save this search / Guardar búsqueda](workflow-prototype.html?screen=saved-search); [Add a known content ID / Añadir un ID conocido](workflow-prototype.html?screen=stream-edit).
 
 <a id="search-add-link"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `search-add-link`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Add and link Northlight HD / Añadir y vincular Northlight HD
 
 [Open composition](workflow-prototype.html?screen=search-add-link) · existing route/context: `/search` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2159,6 +2372,9 @@ Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at 
 **Contextual exits:** [Create a TV channel first / Crear primero un canal](workflow-prototype.html?screen=channel-edit).
 
 <a id="helper-installed"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-installed`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Test a source recipe / Probar una receta de fuente
 
 [Open composition](workflow-prototype.html?screen=helper-installed) · existing route/context: `/scraper/builder` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2186,6 +2402,9 @@ Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at 
 **Contextual exits:** [HTML / visual picker / HTML / selector visual](workflow-prototype.html?screen=helper-html); [JSON paths / Rutas JSON](workflow-prototype.html?screen=helper-json); [Text / regular expressions / Texto / expresiones regulares](workflow-prototype.html?screen=helper-regex); [Raw and manual fields / Texto y campos manuales](workflow-prototype.html?screen=helper-manual); [Test and save to source / Probar y guardar en fuente](workflow-prototype.html?screen=helper-results).
 
 <a id="helper-standalone"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-standalone`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Build a recipe offline / Crear una receta sin conexión
 
 [Open composition](workflow-prototype.html?screen=helper-standalone) · existing route/context: `standalone helper` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2217,6 +2436,9 @@ Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at 
 **Contextual exits:** [Choose JSON fields / Elegir campos JSON](workflow-prototype.html?screen=helper-json); [Choose HTML fields / Elegir campos HTML](workflow-prototype.html?screen=helper-html); [Choose regex fields / Elegir campos regex](workflow-prototype.html?screen=helper-regex); [Large sample path / Muestras grandes](workflow-prototype.html?screen=helper-large).
 
 <a id="helper-html"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-html`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Pick fields in HTML / Elegir campos en HTML
 
 [Open composition](workflow-prototype.html?screen=helper-html) · existing route/context: `/scraper/builder` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2272,6 +2494,9 @@ Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at 
 **Contextual exits:** [Manual selection / Selección manual](workflow-prototype.html?screen=helper-manual); [Independent helper / Asistente independiente](workflow-prototype.html?screen=helper-standalone).
 
 <a id="helper-json"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-json`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Read fields from JSON / Leer campos de JSON
 
 [Open composition](workflow-prototype.html?screen=helper-json) · existing route/context: `/scraper/builder` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2322,6 +2547,9 @@ Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at 
 **Contextual exits:** [Manual selection / Selección manual](workflow-prototype.html?screen=helper-manual); [Independent helper / Asistente independiente](workflow-prototype.html?screen=helper-standalone).
 
 <a id="helper-regex"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-regex`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Read paired text records / Leer registros de texto emparejados
 
 [Open composition](workflow-prototype.html?screen=helper-regex) · existing route/context: `/scraper/builder` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2367,6 +2595,9 @@ Result copy: Rule deleted. / Regla eliminada.. Recheck eligibility/ownership at 
 **Contextual exits:** [Manual selection / Selección manual](workflow-prototype.html?screen=helper-manual); [Independent helper / Asistente independiente](workflow-prototype.html?screen=helper-standalone).
 
 <a id="helper-manual"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-manual`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Select fields manually / Seleccionar campos manualmente
 
 [Open composition](workflow-prototype.html?screen=helper-manual) · existing route/context: `/scraper/builder` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2401,6 +2632,9 @@ Northlight HD
 **Contextual exits:** [Review generated field rules / Revisar reglas generadas](workflow-prototype.html?screen=helper-regex).
 
 <a id="helper-large"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-large`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## This sample is too large to draw safely / La muestra es demasiado grande para dibujarla
 
 [Open composition](workflow-prototype.html?screen=helper-large) · existing route/context: `/scraper/builder` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2442,6 +2676,9 @@ Northlight HD
 **Contextual exits:** [Choose a different sample / Elegir otra muestra](workflow-prototype.html?screen=helper-standalone); [Read the manual-field workflow / Ver flujo de campos manuales](workflow-prototype.html?screen=helper-manual).
 
 <a id="helper-results"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `helper-results`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Review extraction results / Revisar resultados de extracción
 
 [Open composition](workflow-prototype.html?screen=helper-results) · existing route/context: `/scraper/builder` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
@@ -2477,40 +2714,32 @@ Result copy: Recipe saved; source not imported. Standalone instead copies or exp
 **Contextual exits:** [Return to source / Volver a fuente](workflow-prototype.html?screen=source-web).
 
 <a id="dashboard"></a>
-## Ready when you are / Todo preparado
+
+**Simplified location:** Watch → Watch. **Composition:** primary destination. **Canonical editor:** `dashboard`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
+## Watch / Ver
 
 [Open composition](workflow-prototype.html?screen=dashboard) · existing route/context: `/` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
 
-**Purpose:** Watch, find your recordings or see what is coming up. / Ve la TV, encuentra tus grabaciones o consulta lo próximo.
+**Purpose:** Your channels. Something worth watching. / Tus canales. Algo que apetece ver.
 
 **Evidence:** [TVDashboard.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/TVDashboard.tsx)
 
 **Permission:** administrator. Preserve current server enforcement; view availability does not grant action authority.
 
-**Rendered states:** ready, loading, error, permission, empty, filtered, partial, first-use. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
+**Rendered states:** ready, loading, error, permission, first-use, partial, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 - **first-use:** Start by adding a channel source. A guide is optional, and HTTP channels can work without an AceStream engine. / Empieza añadiendo una fuente. La guía es opcional y los canales HTTP pueden funcionar sin motor AceStream. Page title: Welcome to AceStream / Te damos la bienvenida.
 - **partial:** Upcoming events could not load. Channels and recordings remain usable. Retry events only. / No se cargaron eventos próximos. Canales y grabaciones siguen disponibles. Reintenta solo eventos.
+- **art-absent:** No artwork is available. Names and actions are ready. / No hay imagen disponible. Los nombres y acciones siguen listos.
+- **art-slow:** Artwork is taking longer. Continue without it. / La imagen tarda. Puedes continuar sin ella.
+- **art-blocked:** Artwork could not be loaded from this address. Use the text details. / No se pudo cargar la imagen de esta dirección. Consulta los datos.
+- **art-rejected:** This image type is not supported. Use the text details. / El tipo de imagen no es compatible. Consulta los datos.
+- **art-oversized:** The image exceeds the safe size limit. It has not been opened. / La imagen supera el límite seguro. No se ha abierto.
+- **art-decode-failed:** This image could not be displayed. Try loading it again. / No se pudo mostrar la imagen. Prueba a cargarla de nuevo.
+- **art-changed:** The artwork changed. Load the new image when you are ready. / La imagen cambió. Carga la nueva cuando quieras.
 
-**Featured item:** Coastlines: the Atlantic · Northlight · documentary · synthetic programme artwork / Northlight · documental · ilustración ficticia. [Open context](workflow-prototype.html?screen=live).
-
-**Your television / Tu televisión**
-
-- Browse 3 channels / Explorar 3 canales: 2 have a recent verified signal; this is not a promise of present playback. / 2 tienen señal verificada reciente; no garantiza reproducción actual. [Open related workflow](workflow-prototype.html?screen=live).
-- Saved recordings / Grabaciones guardadas: Coastlines: the Atlantic · ready / Coastlines: the Atlantic · lista [Open related workflow](workflow-prototype.html?screen=recording-parts).
-- Northlight Cup / Northlight Cup: Tomorrow · kickoff not confirmed / Mañana · hora sin confirmar [Open related workflow](workflow-prototype.html?screen=event-detail).
-
-**Read-only context: Next content updates / Próximas actualizaciones**
-
-| Label · EN / ES | Synthetic value or state · EN / ES |
-|---|---|
-| Sources / Fuentes | In 25 min / En 25 min |
-| Guide / Guía | Waiting behind source update / Esperando actualización de fuentes |
-| Signal checks / Comprobaciones | Unknown · schedule unavailable / Desconocido · horario no disponible |
-
-**Contextual exits:** [Open playlist dialog / Abrir diálogo de lista](workflow-prototype.html?screen=playlist); [System status / Estado del sistema](workflow-prototype.html?screen=system).
-
-**Contextual exits:** [Home event preferences / Preferencias de eventos](workflow-prototype.html?screen=dashboard-events).
+**Contextual exits:** [Upcoming event preferences / Preferencias de próximos eventos](workflow-prototype.html?screen=dashboard-events).
 
 ### Authored composition for `first-use`
 
@@ -2527,23 +2756,33 @@ Result copy: Recipe saved; source not imported. Standalone instead copies or exp
 **Contextual exits:** [Start setup / Empezar configuración](workflow-prototype.html?screen=setup).
 
 <a id="live"></a>
-## Live TV / TV en directo
+
+**Simplified location:** Watch → Watch. **Composition:** contextual editor or detail. **Canonical editor:** `live`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
+## Watch / Ver
 
 [Open composition](workflow-prototype.html?screen=live) · existing route/context: `/live-tv` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
 
-**Purpose:** Browse without interrupting the channel already playing. / Explora sin interrumpir el canal en reproducción.
+**Purpose:** Choose a channel and keep browsing while you watch. / Elige un canal y sigue explorando mientras lo ves.
 
 **Evidence:** [LiveTV.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/LiveTV.tsx)
 
 **Permission:** live permission / public viewing policy. Preserve current server enforcement; view availability does not grant action authority.
 
-**Rendered states:** ready, loading, error, permission, dirty, pending, success, conflict, empty, filtered, partial, refreshing, failed, stalled. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
+**Rendered states:** ready, loading, error, permission, dirty, pending, success, conflict, empty, filtered, partial, refreshing, failed, stalled, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 - **filtered:** No channels match Online only. Show all channels to include unknown or offline observations. Current playback continues. / Ningún canal cumple Solo con señal. Ver todos incluye estados desconocidos o sin señal. La reproducción continúa.
 - **refreshing:** Updating the channel list. Your selected channel keeps playing. / Actualizando la lista. El canal elegido sigue reproduciéndose.
 - **failed:** This source could not start. Retry or choose another available source. / No se pudo iniciar esta emisión. Reintenta o elige otra disponible.
 - **stalled:** Video has stopped arriving. Wait a moment, retry or choose another source. / Ha dejado de llegar vídeo. Espera un momento, reintenta o elige otra emisión.
 - **empty:** No channels yet. Open setup if you can manage this installation; viewers should ask its owner. / Aún no hay canales. Abre configuración si puedes administrarla; los espectadores deben pedir ayuda al propietario.
+- **art-absent:** No artwork is available. Names and actions are ready. / No hay imagen disponible. Los nombres y acciones siguen listos.
+- **art-slow:** Artwork is taking longer. Continue without it. / La imagen tarda. Puedes continuar sin ella.
+- **art-blocked:** Artwork could not be loaded from this address. Use the text details. / No se pudo cargar la imagen de esta dirección. Consulta los datos.
+- **art-rejected:** This image type is not supported. Use the text details. / El tipo de imagen no es compatible. Consulta los datos.
+- **art-oversized:** The image exceeds the safe size limit. It has not been opened. / La imagen supera el límite seguro. No se ha abierto.
+- **art-decode-failed:** This image could not be displayed. Try loading it again. / No se pudo mostrar la imagen. Prueba a cargarla de nuevo.
+- **art-changed:** The artwork changed. Load the new image when you are ready. / La imagen cambió. Carga la nueva cuando quieras.
 
 **Implementation constraint for `refreshing`:** Updating catalogue in the background. Keep the player and selected channel in place. / Actualizando el catálogo en segundo plano. Conserva reproductor y canal seleccionado.
 
@@ -2569,8 +2808,8 @@ Result copy: Recipe saved; source not imported. Standalone instead copies or exp
 
 **Channels and now/next / Canales y ahora/después**
 
-- Northlight / Northlight: Now Coastlines: the Atlantic · next Inside the studio / Ahora Coastlines: the Atlantic · después Inside the studio [Open related workflow](workflow-prototype.html?screen=channel-detail).
-- World 24 / World 24: No guide data · watching does not require a guide / Sin guía · no es necesaria para ver [Open related workflow](workflow-prototype.html?screen=channel-detail).
+- Northlight / Northlight: Now Coastlines: the Atlantic · next Inside the studio / Ahora Coastlines: the Atlantic · después Inside the studio [Open related workflow](workflow-prototype.html?screen=live).
+- World 24 / World 24: No guide data · watching does not require a guide / Sin guía · no es necesaria para ver [Open related workflow](workflow-prototype.html?screen=live).
 
 **Stop watching / Dejar de ver:** Release this browser’s viewer? Other viewers keep their own leases. / ¿Liberar este espectador? Los demás conservan sus sesiones.
 
@@ -2579,6 +2818,9 @@ Result copy: Viewer released. Catalogue stays available. / Espectador liberado. 
 **Contextual exits:** [Switch channel / Cambiar canal](workflow-prototype.html?screen=player-picker).
 
 <a id="player-tracks"></a>
+
+**Simplified location:** Watch → Watch. **Composition:** contextual editor or detail. **Canonical editor:** `player-tracks`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Playback options / Opciones de reproducción
 
 [Open composition](workflow-prototype.html?screen=player-tracks) · existing route/context: `player dialog` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2610,6 +2852,9 @@ Result copy: Viewer released. Catalogue stays available. / Espectador liberado. 
 **Contextual exits:** [Back to player / Volver al reproductor](workflow-prototype.html?screen=live); [Open in another player / Abrir en otro reproductor](workflow-prototype.html?screen=remote-control).
 
 <a id="viewer"></a>
+
+**Simplified location:** Watch → Watch. **Composition:** contextual editor or detail. **Canonical editor:** `viewer`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Your viewing access / Tu acceso de visualización
 
 [Open composition](workflow-prototype.html?screen=viewer) · existing route/context: `/watch` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -2633,6 +2878,9 @@ Result copy: Viewer released. Catalogue stays available. / Espectador liberado. 
 **Contextual exits:** [Sign in with another account / Entrar con otra cuenta](workflow-prototype.html?screen=access-login); [Change your password / Cambiar contraseña](workflow-prototype.html?screen=access-password).
 
 <a id="events"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** primary destination. **Canonical editor:** `events`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Event agenda / Agenda de eventos
 
 [Open composition](workflow-prototype.html?screen=events) · existing route/context: `/events` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2677,6 +2925,9 @@ Result copy: Viewer released. Catalogue stays available. / Espectador liberado. 
 **Contextual exits:** [Broadcaster links / Vínculos de emisoras](workflow-prototype.html?screen=event-broadcasters).
 
 <a id="event-detail"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-detail`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Northlight Cup / Northlight Cup
 
 [Open composition](workflow-prototype.html?screen=event-detail) · existing route/context: `/events?event=demo&zone=Europe/Madrid` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2687,9 +2938,16 @@ Result copy: Viewer released. Catalogue stays available. / Espectador liberado. 
 
 **Permission:** administrator. Preserve current server enforcement; view availability does not grant action authority.
 
-**Rendered states:** ready, loading, error, permission, empty, filtered, partial, pending, success, conflict, unknown. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
+**Rendered states:** ready, loading, error, permission, empty, filtered, partial, pending, success, conflict, unknown, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 - **unknown:** This event has a date but no confirmed start time. A timed recording needs a confirmed time. / Este evento tiene fecha, pero aún no tiene hora de inicio confirmada. Para programar una grabación hace falta una hora. Page title: World Friendly / World Friendly.
+- **art-absent:** No artwork is available. Names and actions are ready. / No hay imagen disponible. Los nombres y acciones siguen listos.
+- **art-slow:** Artwork is taking longer. Continue without it. / La imagen tarda. Puedes continuar sin ella.
+- **art-blocked:** Artwork could not be loaded from this address. Use the text details. / No se pudo cargar la imagen de esta dirección. Consulta los datos.
+- **art-rejected:** This image type is not supported. Use the text details. / El tipo de imagen no es compatible. Consulta los datos.
+- **art-oversized:** The image exceeds the safe size limit. It has not been opened. / La imagen supera el límite seguro. No se ha abierto.
+- **art-decode-failed:** This image could not be displayed. Try loading it again. / No se pudo mostrar la imagen. Prueba a cargarla de nuevo.
+- **art-changed:** The artwork changed. Load the new image when you are ready. / La imagen cambió. Carga la nueva cuando quieras.
 
 **Read-only context: Event details / Detalles**
 
@@ -2732,6 +2990,9 @@ Result copy: Archived. Unarchive is available. / Archivado. Se puede recuperar..
 **Contextual exits:** [Review event information / Revisar información](workflow-prototype.html?screen=event-correct); [Review provider scope / Revisar ámbito del proveedor](workflow-prototype.html?screen=event-provider); [Back to agenda / Volver a agenda](workflow-prototype.html?screen=events).
 
 <a id="event-provider"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-provider`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Add provider events / Añadir eventos de proveedor
 
 [Open composition](workflow-prototype.html?screen=event-provider) · existing route/context: `/events` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2765,6 +3026,9 @@ Result copy: Archived. Unarchive is available. / Archivado. Se puede recuperar..
 | `provider.interests.teams` · text | Interested teams / Equipos de interés<br>Up to 100 original values. / Hasta 100 valores originales. | Load current saved/server value; illustrative fixture:  | Advanced disclosure |
 
 <a id="event-import"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-import`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Add events / Añadir eventos
 
 [Open composition](workflow-prototype.html?screen=event-import) · existing route/context: `/events` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2800,6 +3064,9 @@ Result copy: Archived. Unarchive is available. / Archivado. Se puede recuperar..
 | `event.timeout_seconds` · number | Request timeout (seconds) / Tiempo de espera (segundos)<br>5–300; saved for URL previews and refreshes. / 5–300; se guarda para consultas y actualizaciones. | Repository default: 15 | min=5; max=300; Advanced disclosure; enabled when event.input=url |
 
 <a id="event-review"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-review`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Review new events / Revisar eventos nuevos
 
 [Open composition](workflow-prototype.html?screen=event-review) · existing route/context: `/events` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2829,6 +3096,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 | `event.refresh_source` · checkbox | Refresh reviewed events automatically / Actualizar automáticamente eventos revisados<br>Opt-in for eligible URL/provider sources. W3U event schedules do not auto-refresh. / Opcional en URL/proveedores aptos. Las agendas de eventos W3U no se actualizan solas. | Load current saved/server value; illustrative fixture: False | No additional prototype constraint; preserve current source validation. |
 
 <a id="event-correct"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-correct`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Correct Northlight Cup / Corregir Northlight Cup
 
 [Open composition](workflow-prototype.html?screen=event-correct) · existing route/context: `/events?event=demo` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2861,6 +3131,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 | `event.state` · select | Reported state / Estado comunicado<br>Provider/manual observation, never inferred from clock alone. / Dato de proveedor/manual, nunca deducido solo del reloj. | Load current saved/server value; illustrative fixture: unknown | unknown → Unknown / Desconocido; scheduled → Scheduled / Programado; live → Reported live / Directo comunicado; finished → Finished / Finalizado; cancelled → Cancelled / Cancelado; postponed → Postponed / Aplazado |
 
 <a id="event-mapping"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-mapping`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Link the broadcaster Atelier / Vincular la emisora Atelier
 
 [Open composition](workflow-prototype.html?screen=event-mapping) · existing route/context: `/events?event=demo` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2891,6 +3164,9 @@ No automatic selection. Select explicit rows. Show row-specific result; expire s
 Result copy: Event uses its source broadcast. Other events keep the alias. / El evento usa su emisión original. Otros conservan el alias.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="event-overlay"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-overlay`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Review XMLTV overlay / Revisar superposición XMLTV
 
 [Open composition](workflow-prototype.html?screen=event-overlay) · existing route/context: `/events?event=demo` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2925,6 +3201,9 @@ Result copy: Event uses its source broadcast. Other events keep the alias. / El 
 Result copy: Overlay applied to export. Original guide rows remain. / Superposición aplicada a exportación. Se conservan programas originales.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="event-sources"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-sources`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Event sources and retention / Fuentes de eventos y conservación
 
 [Open composition](workflow-prototype.html?screen=event-sources) · existing route/context: `/events` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -2960,6 +3239,9 @@ Result copy: Source removed; imported events retained. / Fuente eliminada; event
 **Contextual exits:** [Manage source broadcaster aliases / Gestionar alias de emisoras](workflow-prototype.html?screen=event-mapping).
 
 <a id="connections"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** primary destination. **Canonical editor:** `connections`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Where would you like to watch? / ¿Dónde quieres ver la TV?
 
 [Open composition](workflow-prototype.html?screen=connections) · existing route/context: `proposed orientation layer` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -2973,16 +3255,20 @@ Result copy: Source removed; imported events retained. / Fuente eliminada; event
 **Rendered states:** ready, loading, error, permission, empty, filtered, partial. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 
-**Choose a destination / Elige un destino**
+**Where would you like to watch? / ¿Dónde quieres ver la TV?**
 
-- Browser / Navegador: Availability and sessions / Disponibilidad y sesiones [Open related workflow](workflow-prototype.html?screen=browser-player).
-- Google Cast TV / Google Cast TV: Home receivers and original-video compatibility / Receptores y compatibilidad [Open related workflow](workflow-prototype.html?screen=casting).
-- VLC / Kodi / VLC / Kodi: Manual entry and remote opt-in / Alta manual y activación remota [Open related workflow](workflow-prototype.html?screen=remote-player).
-- Plex / Jellyfin / Plex / Jellyfin: Tuner, playlists and guide / Sintonizador, listas y guía [Open related workflow](workflow-prototype.html?screen=media-server).
+- This browser / Este navegador: Playback setup and current sessions. / Configuración de reproducción y sesiones. [Open related workflow](workflow-prototype.html?screen=browser-player).
+- TVs and players / TV y reproductores: Send to a TV, or open VLC and Kodi. / Envía a una TV o abre VLC y Kodi. [Open related workflow](workflow-prototype.html?screen=casting).
+- Media servers / Servidores multimedia: Plex, Jellyfin and tuner settings. / Plex, Jellyfin y sintonizador. [Open related workflow](workflow-prototype.html?screen=media-server).
+- Playlists / Listas: Export channels with the right address and format. / Exporta canales con dirección y formato adecuados. [Open related workflow](workflow-prototype.html?screen=playlist).
+- Notifications / Notificaciones: Choose where useful alerts are sent. / Elige dónde recibir avisos útiles. [Open related workflow](workflow-prototype.html?screen=notifications).
 
-**Contextual exits:** [Address for players / Dirección para reproductores](workflow-prototype.html?screen=public-address); [Telegram sources / Fuentes Telegram](workflow-prototype.html?screen=telegram-auth); [Notifications / Notificaciones](workflow-prototype.html?screen=notifications).
+**Contextual exits:** [Address used by other devices / Dirección para otros dispositivos](workflow-prototype.html?screen=public-address).
 
 <a id="browser-player"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** section. **Canonical editor:** `browser-player`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Browser player / Reproductor web
 
 [Open composition](workflow-prototype.html?screen=browser-player) · existing route/context: `/integrations/web-player` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -2999,6 +3285,8 @@ Result copy: Source removed; imported events retained. / Fuente eliminada; event
 - **partial:** Session query failed. Viewer count is unknown, not zero. / Falló la consulta de sesiones. Cantidad desconocida, no cero.
 
 **Implementation constraint for `unavailable`:** Show the reported missing capability; HTTP media can work without AceStream. / Muestra la capacidad que falta; HTTP puede funcionar sin AceStream.
+
+**Contextual exits:** [Playback setup / Configurar reproducción](workflow-prototype.html?screen=playback-settings); [Current sessions / Sesiones actuales](workflow-prototype.html?screen=player-sessions).
 
 **Read-only context: Synthetic capabilities / Capacidades ficticias**
 
@@ -3017,6 +3305,9 @@ Result copy: Source removed; imported events retained. / Fuente eliminada; event
 **Contextual exits:** [Session ownership / Propiedad de sesiones](workflow-prototype.html?screen=player-sessions).
 
 <a id="public-address"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `public-address`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Address for players / Dirección para reproductores
 
 [Open composition](workflow-prototype.html?screen=public-address) · existing route/context: `/integrations/public-address` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3051,6 +3342,9 @@ Result copy: Source removed; imported events retained. / Fuente eliminada; event
 **Contextual exits:** [Playlist context / Contexto de lista](workflow-prototype.html?screen=playlist); [TV-specific override / Dirección específica para TV](workflow-prototype.html?screen=casting-settings); [Runtime precedence / Prioridad de ejecución](workflow-prototype.html?screen=runtime-network).
 
 <a id="casting"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `casting`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## TV casting / Enviar a TV
 
 [Open composition](workflow-prototype.html?screen=casting) · existing route/context: `/integrations/tv-casting` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3067,6 +3361,8 @@ Result copy: Source removed; imported events retained. / Fuente eliminada; event
 - **denied:** This connection or account cannot control TVs. Review the access requirements or ask the owner for permission. / Esta conexión o cuenta no puede controlar televisores. Revisa los requisitos o pide permiso al propietario.
 
 **Implementation constraint for `denied`:** This connection or account cannot control server TVs. Show the capability reason; retry is not permission. / Esta conexión o cuenta no puede controlar TVs. Muestra el motivo; reintentar no concede permiso.
+
+**Contextual exits:** [Send to a TV / Enviar a una TV](workflow-prototype.html?screen=casting); [VLC, Kodi and other players / VLC, Kodi y otros reproductores](workflow-prototype.html?screen=remote-player).
 
 **Read-only context: Synthetic access / Acceso ficticio**
 
@@ -3087,6 +3383,9 @@ Result copy: Fixture discovery found Living room DEMO. / La búsqueda ficticia e
 **Contextual exits:** [Casting settings / Ajustes de TV](workflow-prototype.html?screen=casting-settings); [Public HTTPS at home / HTTPS público desde casa](workflow-prototype.html?screen=casting-trust); [Choose a channel / Elegir canal](workflow-prototype.html?screen=live).
 
 <a id="casting-settings"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `casting-settings`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Casting settings / Ajustes de TV
 
 [Open composition](workflow-prototype.html?screen=casting-settings) · existing route/context: `/integrations/tv-casting` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3114,6 +3413,9 @@ Result copy: Fixture discovery found Living room DEMO. / La búsqueda ficticia e
 | `cast.remote_casting` · checkbox | Allow permitted accounts away from home / Permitir cuentas autorizadas fuera de casa<br>Requires accounts and explicit opt-in. Never enables public HTTP accounts. / Requiere cuentas y activación explícita. Nunca permite cuentas por HTTP público. | Load current saved/server value; illustrative fixture: False | Advanced disclosure |
 
 <a id="casting-trust"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `casting-trust`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Public HTTPS at home / HTTPS público desde casa
 
 [Open composition](workflow-prototype.html?screen=casting-trust) · existing route/context: `/integrations/tv-casting` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3140,6 +3442,9 @@ Result copy: Fixture discovery found Living room DEMO. / La búsqueda ficticia e
 | `cast.trust_home` · checkbox | I am on my home network now / Estoy en mi red doméstica<br>Admin only; not needed for a verified private-IP connection. / Solo administrador; innecesario en conexión privada verificada. | Load current saved/server value; illustrative fixture: False | required=True |
 
 <a id="casting-control"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `casting-control`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Living room DEMO / Living room DEMO
 
 [Open composition](workflow-prototype.html?screen=casting-control) · existing route/context: `player casting options` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3187,6 +3492,9 @@ Result copy: Owned cast stopped. Browser ownership remains separate. / Envío pr
 Result copy: Replacement requested with replace=true. / Sustitución solicitada con replace=true.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="remote-player"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `remote-player`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Set up VLC or Kodi / Configurar VLC o Kodi
 
 [Open composition](workflow-prototype.html?screen=remote-player) · existing route/context: `/integrations/remote-players` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3223,6 +3531,9 @@ Result copy: Fixture reachable; authentication and control capabilities are sepa
 **Contextual exits:** [VLC Android pairing / Vincular VLC Android](workflow-prototype.html?screen=remote-android); [Find players / Buscar reproductores](workflow-prototype.html?screen=remote-discovery); [Playback and controls / Reproducción y controles](workflow-prototype.html?screen=remote-control).
 
 <a id="remote-android"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `remote-android`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Pair VLC Android / Vincular VLC Android
 
 [Open composition](workflow-prototype.html?screen=remote-android) · existing route/context: `/integrations/remote-players` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3259,6 +3570,9 @@ Result copy: Fixture reachable; authentication and control capabilities are sepa
 **Contextual exits:** [Save paired player / Guardar reproductor](workflow-prototype.html?screen=remote-player).
 
 <a id="remote-discovery"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `remote-discovery`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Find remote players / Buscar reproductores remotos
 
 [Open composition](workflow-prototype.html?screen=remote-discovery) · existing route/context: `/integrations/remote-players` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3289,6 +3603,9 @@ Result copy: Fixture reachable; authentication and control capabilities are sepa
 - Study DEMO / Study DEMO: Possible VLC; inspect credentials / Posible VLC; revisa credenciales [Open related workflow](workflow-prototype.html?screen=remote-player).
 
 <a id="remote-control"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `remote-control`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Send to a player / Enviar a reproductor
 
 [Open composition](workflow-prototype.html?screen=remote-control) · existing route/context: `PlayOnMenu` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3323,6 +3640,9 @@ Result copy: Fixture reachable; authentication and control capabilities are sepa
 | `remote.volume` · number | Volume (%) / Volumen (%)<br>0–200%, where supported by this player. Changes apply immediately. / 0–200 %, si el reproductor lo permite. Los cambios se aplican al momento. | Load current saved/server value; illustrative fixture: 50 | min=0; max=200; Adapter/contract note: API 0–200; respect actual driver capability. / API 0–200; respeta capacidades del controlador. |
 
 <a id="media-server"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `media-server`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Connect a media server / Conectar servidor multimedia
 
 [Open composition](workflow-prototype.html?screen=media-server) · existing route/context: `/integrations/media-servers` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3367,6 +3687,9 @@ Result copy: Disconnected; definition retained. / Desconectado; definición cons
 **Contextual exits:** [Tuner limits and output / Límites y salida](workflow-prototype.html?screen=tuner).
 
 <a id="tuner"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `tuner`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Tuner settings / Ajustes de sintonizador
 
 [Open composition](workflow-prototype.html?screen=tuner) · existing route/context: `/integrations/media-servers` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3409,6 +3732,9 @@ Result copy: Disconnected; definition retained. / Desconectado; definición cons
 **Contextual exits:** [Tuner networks / Redes de sintonizador](workflow-prototype.html?screen=network); [Playlist overrides / Opciones de lista](workflow-prototype.html?screen=playlist).
 
 <a id="telegram-auth"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `telegram-auth`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Authorize Telegram sources / Autorizar fuentes Telegram
 
 [Open composition](workflow-prototype.html?screen=telegram-auth) · existing route/context: `/integrations/telegram` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3444,6 +3770,9 @@ Result copy: Disconnected; definition retained. / Desconectado; definición cons
 **Contextual exits:** [Source editor after authorization / Editor tras autorización](workflow-prototype.html?screen=telegram-source).
 
 <a id="telegram-code"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `telegram-code`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Complete Telegram sign-in / Completar inicio Telegram
 
 [Open composition](workflow-prototype.html?screen=telegram-code) · existing route/context: `/integrations/telegram` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3478,6 +3807,9 @@ Result copy: Disconnected; definition retained. / Desconectado; definición cons
 | `telegram.password` · password | Telegram two-step password / Contraseña de dos pasos Telegram<br>Only shown when required by the authorization response; up to 256 characters. / Solo si la respuesta la requiere; hasta 256 caracteres. | Never read back a saved secret. Empty input; omit/clear/replace semantics follow this resource. | required=True; maxlength=256 |
 
 <a id="telegram-source"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `telegram-source`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Telegram source / Fuente Telegram
 
 [Open composition](workflow-prototype.html?screen=telegram-source) · existing route/context: `/integrations/telegram` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3521,6 +3853,9 @@ Result copy: Example: 2 extracted, 1 excluded; raw private message text is not p
 **Contextual exits:** [Optional shared recipe editor / Editor de receta compartido](workflow-prototype.html?screen=helper-installed).
 
 <a id="notifications"></a>
+
+**Simplified location:** Where would you like to watch? → Where would you like to watch?. **Composition:** contextual editor or detail. **Canonical editor:** `notifications`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Notifications / Notificaciones
 
 [Open composition](workflow-prototype.html?screen=notifications) · existing route/context: `/settings?tab=automation` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3554,6 +3889,9 @@ Result copy: Synthetic test acknowledged; show delivery failure separately from 
 **Contextual exits:** [Telegram ingestion is separate / Importación Telegram independiente](workflow-prototype.html?screen=telegram-auth).
 
 <a id="warp"></a>
+
+**Simplified location:** System status → WARP. **Composition:** section. **Canonical editor:** `warp`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## WARP / WARP
 
 [Open composition](workflow-prototype.html?screen=warp) · existing route/context: `/warp` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3606,6 +3944,9 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 **Contextual exits:** [Excluded hosts / Hosts excluidos](workflow-prototype.html?screen=warp-exclusions); [Saved startup behavior / Inicio guardado](workflow-prototype.html?screen=warp-startup).
 
 <a id="warp-exclusions"></a>
+
+**Simplified location:** System status → WARP. **Composition:** contextual editor or detail. **Canonical editor:** `warp-exclusions`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## WARP excluded hosts / Hosts excluidos de WARP
 
 [Open composition](workflow-prototype.html?screen=warp-exclusions) · existing route/context: `/warp` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3642,6 +3983,9 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 | Result / Resultado | Partially applied; removal pending / Aplicación parcial; retirada pendiente |
 
 <a id="warp-startup"></a>
+
+**Simplified location:** System status → WARP. **Composition:** contextual editor or detail. **Canonical editor:** `warp-startup`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## WARP at startup / WARP al iniciar
 
 [Open composition](workflow-prototype.html?screen=warp-startup) · existing route/context: `/warp` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3678,6 +4022,9 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 **Contextual exits:** [Image capabilities and startup / Capacidades de imagen e inicio](workflow-prototype.html?screen=runtime-services).
 
 <a id="settings"></a>
+
+**Simplified location:** Settings → Settings. **Composition:** primary destination. **Canonical editor:** `settings`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Settings / Ajustes
 
 [Open composition](workflow-prototype.html?screen=settings) · existing route/context: `/settings` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -3691,17 +4038,23 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 **Rendered states:** ready, loading, error, permission, empty, filtered, partial. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 
-**Settings sections / Secciones**
+**Make it yours / A tu gusto**
 
-- Playback / Reproducción: Engine address and saved route / Dirección de motor y ruta guardada [Open related workflow](workflow-prototype.html?screen=playback-settings).
-- Automation / Automatización: Independent schedules and cleanup policies / Horarios y políticas independientes [Open related workflow](workflow-prototype.html?screen=automation).
-- Stream links / Enlaces: Shared formats and PID/AppID / Formatos compartidos y PID/AppID [Open related workflow](workflow-prototype.html?screen=formats).
-- Access / Acceso: Accounts, public viewing and credentials / Cuentas, acceso público y credenciales [Open related workflow](workflow-prototype.html?screen=access-account).
-- Network / Red: Runtime, proxies and tuner networks / Ejecución, proxies y redes IPTV [Open related workflow](workflow-prototype.html?screen=network).
+- Accounts and access / Cuentas y acceso: Give people the access they need. / Da a cada persona el acceso que necesita. [Open related workflow](workflow-prototype.html?screen=access-account).
+- Appearance and language / Apariencia e idioma: One app, three ways to see it. / Una aplicación, tres formas de verla. [Open related workflow](workflow-prototype.html?screen=preferences).
+- Background updates / Actualizaciones en segundo plano: When to update sources, guides and signal checks. / Cuándo actualizar fuentes, guías y señal. [Open related workflow](workflow-prototype.html?screen=automation).
 
-**Contextual exits:** [Recording settings / Ajustes de grabación](workflow-prototype.html?screen=recording-settings); [Exact guide matching / Coincidencias exactas](workflow-prototype.html?screen=guide-auto); [Notifications / Notificaciones](workflow-prototype.html?screen=notifications); [Language and appearance / Idioma y apariencia](workflow-prototype.html?screen=preferences).
+**Settings beside their task / Ajustes junto a su tarea**
+
+- Recording settings / Ajustes de grabación: Storage, capacity and retention. / Almacenamiento, capacidad y conservación. [Open related workflow](workflow-prototype.html?screen=recording-settings).
+- Playback and devices / Reproducción y dispositivos: This browser, TVs, players and playlists. / Este navegador, TV, reproductores y listas. [Open related workflow](workflow-prototype.html?screen=connections).
+- Guide matching / Vinculación de guía: Review matches and optional exact automation. / Revisa coincidencias y automatización exacta opcional. [Open related workflow](workflow-prototype.html?screen=guide-match).
+- Advanced setup / Configuración avanzada: Runtime options, network and restart requirements. / Opciones de ejecución, red y reinicios. [Open related workflow](workflow-prototype.html?screen=runtime-playback).
 
 <a id="playback-settings"></a>
+
+**Simplified location:** Where would you like to watch? → Browser player. **Composition:** contextual editor or detail. **Canonical editor:** `playback-settings`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Playback settings / Ajustes de reproducción
 
 [Open composition](workflow-prototype.html?screen=playback-settings) · existing route/context: `/settings?tab=playback` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -3739,6 +4092,9 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 **Contextual exits:** [Browser capabilities / Capacidades del navegador](workflow-prototype.html?screen=browser-player); [Runtime limits / Límites de ejecución](workflow-prototype.html?screen=runtime-playback).
 
 <a id="automation"></a>
+
+**Simplified location:** Settings → Background updates. **Composition:** section. **Canonical editor:** `automation`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Background updates / Actualizaciones en segundo plano
 
 [Open composition](workflow-prototype.html?screen=automation) · existing route/context: `/settings?tab=automation` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -3795,9 +4151,9 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 
 ### Streams to check / Emisiones que comprobar
 
-**Save timing:** explicit action. **Action:** Apply scope / Aplicar ámbito. **Boundary:** `configService stream-check-scope`. Submit this resource only; other sections retain independent state.
+**Save timing:** immediate. **Action:** Apply scope / Aplicar ámbito. **Boundary:** `configService stream-check-scope`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Scope saved independently; this button is a proposed explicit-save treatment. / Ámbito guardado por separado; el botón es una propuesta de guardado explícito.
+**Consequence:** Check scope saved. / Ámbito de comprobación guardado.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
@@ -3806,6 +4162,9 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 **Contextual exits:** [Clock start times / Horas de inicio](workflow-prototype.html?screen=schedule-anchors); [Offline stream cleanup / Limpieza de emisiones sin señal](workflow-prototype.html?screen=offline-cleanup); [Recordings / Grabaciones](workflow-prototype.html?screen=recording-settings); [Exact guide matching / Vinculación exacta](workflow-prototype.html?screen=guide-auto); [Notifications / Notificaciones](workflow-prototype.html?screen=notifications).
 
 <a id="schedule-anchors"></a>
+
+**Simplified location:** Settings → Background updates. **Composition:** contextual editor or detail. **Canonical editor:** `schedule-anchors`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Schedule start times / Horas de inicio
 
 [Open composition](workflow-prototype.html?screen=schedule-anchors) · existing route/context: `/settings?tab=automation` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -3841,6 +4200,9 @@ Result copy: Disconnection requested; confirm observed status. / Desconexión so
 | Actual launch / Inicio real | May wait for an earlier queued job / Puede esperar a una tarea previa |
 
 <a id="offline-cleanup"></a>
+
+**Simplified location:** Settings → Background updates. **Composition:** contextual editor or detail. **Canonical editor:** `offline-cleanup`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Offline stream cleanup / Limpieza de emisiones sin señal
 
 [Open composition](workflow-prototype.html?screen=offline-cleanup) · existing route/context: `/settings?tab=automation` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -3881,6 +4243,9 @@ Result copy: Up to 500 streams qualify in this batch. The job rechecks at execut
 **Contextual exits:** [Save cleanup start time separately / Guardar hora por separado](workflow-prototype.html?screen=schedule-anchors); [Cleanup history / Historial de limpieza](workflow-prototype.html?screen=jobs).
 
 <a id="network"></a>
+
+**Simplified location:** System status → Playback runtime. **Composition:** contextual editor or detail. **Canonical editor:** `network`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Network settings / Ajustes de red
 
 [Open composition](workflow-prototype.html?screen=network) · existing route/context: `/settings?tab=network` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -3905,6 +4270,9 @@ Result copy: Up to 500 streams qualify in this batch. The job rechecks at execut
 **Contextual exits:** [Edit shared runtime network fields / Editar campos de red compartidos](workflow-prototype.html?screen=runtime-network); [Viewing and IPTV policy / Política de acceso e IPTV](workflow-prototype.html?screen=access-policy); [Edit effective player address / Editar dirección efectiva](workflow-prototype.html?screen=public-address); [Cast home networks / Redes domésticas Cast](workflow-prototype.html?screen=casting-settings).
 
 <a id="system"></a>
+
+**Simplified location:** System status → System status. **Composition:** primary destination. **Canonical editor:** `system`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## System status / Estado del sistema
 
 [Open composition](workflow-prototype.html?screen=system) · existing route/context: `/system` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3929,7 +4297,12 @@ Result copy: Up to 500 streams qualify in this batch. The job rechecks at execut
 
 **Contextual exits:** [WARP / WARP](workflow-prototype.html?screen=warp); [Startup status / Estado de inicio](workflow-prototype.html?screen=startup).
 
+**Contextual exits:** [Advanced setup / Configuración avanzada](workflow-prototype.html?screen=runtime-playback); [Catalogue recovery / Recuperar catálogo](workflow-prototype.html?screen=recovery); [What changed / Qué cambió](workflow-prototype.html?screen=changelog).
+
 <a id="services"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `services`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Service controls / Controles de servicios
 
 [Open composition](workflow-prototype.html?screen=services) · existing route/context: `/system` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3970,6 +4343,9 @@ Result copy: Checker restart requested independently. / Reinicio del comprobador
 - WARP / WARP: Routing controls remain on WARP / Controles permanecen en WARP [Open related workflow](workflow-prototype.html?screen=warp).
 
 <a id="jobs"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `jobs`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Scheduled job history / Historial de tareas
 
 [Open composition](workflow-prototype.html?screen=jobs) · existing route/context: `/system` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -3998,6 +4374,9 @@ Result copy: Checker restart requested independently. / Reinicio del comprobador
 **Contextual exits:** [Schedule settings / Ajustes de tareas](workflow-prototype.html?screen=automation).
 
 <a id="job-detail"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `job-detail`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Job run details / Detalles de ejecución
 
 [Open composition](workflow-prototype.html?screen=job-detail) · existing route/context: `/system` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -4027,6 +4406,9 @@ Result copy: Checker restart requested independently. / Reinicio del comprobador
 **Contextual exits:** [Diagnostics for failures / Diagnóstico de fallos](workflow-prototype.html?screen=diagnostics).
 
 <a id="storage"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `storage`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Storage details / Detalles de almacenamiento
 
 [Open composition](workflow-prototype.html?screen=storage) · existing route/context: `/system` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -4060,6 +4442,9 @@ Result copy: Checker restart requested independently. / Reinicio del comprobador
 Result copy: Report refreshed in fixture; preserve timestamp and partial coverage labels. / Informe ficticio actualizado; conserva fecha y etiquetas parciales.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="diagnostics"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `diagnostics`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Logs and diagnostics / Registros y diagnóstico
 
 [Open composition](workflow-prototype.html?screen=diagnostics) · existing route/context: `/system` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -4096,6 +4481,9 @@ DEMO 16:02 source refresh interrupted
 Result copy: Synthetic export prepared; no private files accessed. / Exportación ficticia preparada; sin acceder a archivos privados.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="setup"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `setup`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Start with channels / Empieza por los canales
 
 [Open composition](workflow-prototype.html?screen=setup) · existing route/context: `/setup` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4132,6 +4520,9 @@ Result copy: Setup completed. Open Live TV or return to sources while import wai
 **Contextual exits:** [Optional guide / Guía opcional](workflow-prototype.html?screen=setup-guide).
 
 <a id="startup"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `startup`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Starting AceStream Scraper / Iniciando AceStream Scraper
 
 [Open composition](workflow-prototype.html?screen=startup) · existing route/context: `outer startup gate` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4161,6 +4552,9 @@ Result copy: Setup completed. Open Live TV or return to sources while import wai
 **Contextual exits:** [Download authenticated diagnostics / Descargar diagnóstico autenticado](workflow-prototype.html?screen=diagnostics); [Startup failure options / Opciones ante fallo de inicio](workflow-prototype.html?screen=recovery).
 
 <a id="recovery"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `recovery`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Startup needs attention / El inicio necesita atención
 
 [Open composition](workflow-prototype.html?screen=recovery) · existing route/context: `startup failure gate` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4194,6 +4588,9 @@ Result copy: Startup retry requested; watch actual progress. / Reintento solicit
 - Start a fresh catalogue / Empezar catálogo nuevo: Back up and replace catalogue configuration / Copia y sustituye configuración del catálogo [Open related workflow](workflow-prototype.html?screen=recovery-fresh).
 
 <a id="recovery-readable"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `recovery-readable`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Recover readable catalogue / Recuperar catálogo legible
 
 [Open composition](workflow-prototype.html?screen=recovery-readable) · existing route/context: `startup recovery` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4207,23 +4604,26 @@ Result copy: Startup retry requested; watch actual progress. / Reintento solicit
 **Rendered states:** ready, loading, error, permission, dirty, pending, success, conflict. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 
-**Explanation:** Back up database and migration files first. Copy readable source/configuration rows in supported order; damaged rows may be skipped. Listings and activity are not copied. Accounts are independent. / Copia primero BD y archivos de migración. Copia fuentes/configuración legibles en orden; pueden omitirse filas dañadas. No se copian programación ni actividad. Cuentas independientes.
+**Explanation:** Back up the catalogue first. Restore the source and settings data that can still be read. Damaged entries may be skipped; channel listings and activity must be rebuilt. Accounts stay unchanged. / Haz una copia del catálogo primero. Recupera las fuentes y ajustes que aún se puedan leer. Se pueden omitir datos dañados; los canales y la actividad deberán reconstruirse. Las cuentas se conservan.
 
 ### Confirmation / Confirmación
 
 **Save timing:** explicit action. **Action:** Recover readable catalogue / Recuperar catálogo legible. **Boundary:** `startupService recovery`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Back up database and migration files first. Copy readable source/configuration rows in supported order; damaged rows may be skipped. Listings and activity are not copied. Accounts are independent. / Copia primero BD y archivos de migración. Copia fuentes/configuración legibles en orden; pueden omitirse filas dañadas. No se copian programación ni actividad. Cuentas independientes.
+**Consequence:** Back up the catalogue first. Restore the source and settings data that can still be read. Damaged entries may be skipped; channel listings and activity must be rebuilt. Accounts stay unchanged. / Haz una copia del catálogo primero. Recupera las fuentes y ajustes que aún se puedan leer. Se pueden omitir datos dañados; los canales y la actividad deberán reconstruirse. Las cuentas se conservan.
 
-**Confirmation:** Back up database and migration files first. Copy readable source/configuration rows in supported order; damaged rows may be skipped. Listings and activity are not copied. Accounts are independent. / Copia primero BD y archivos de migración. Copia fuentes/configuración legibles en orden; pueden omitirse filas dañadas. No se copian programación ni actividad. Cuentas independientes.. Cancel initially focused; Escape cancels; return focus to invoker.
+**Confirmation:** Back up the catalogue first. Restore the source and settings data that can still be read. Damaged entries may be skipped; channel listings and activity must be rebuilt. Accounts stay unchanged. / Haz una copia del catálogo primero. Recupera las fuentes y ajustes que aún se puedan leer. Se pueden omitir datos dañados; los canales y la actividad deberán reconstruirse. Las cuentas se conservan.. Cancel initially focused; Escape cancels; return focus to invoker.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
-| `recovery.confirm` · checkbox | I understand this recovery action / Entiendo esta recuperación<br>Required; current recovery token is revalidated on submission. No automatic destructive retries. / Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos. | Load current saved/server value; illustrative fixture: False | required=True |
+| `recovery.confirm` · checkbox | I understand this recovery action / Entiendo esta recuperación<br>Required. Check the consequence above before continuing. If recovery fails, review the result before trying again. / Obligatorio. Revisa las consecuencias antes de continuar. Si la recuperación falla, revisa el resultado antes de reintentar. | Load current saved/server value; illustrative fixture: False | required=True; Adapter/contract note: Required; current recovery token is revalidated on submission. No automatic destructive retries. / Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos. |
 
 **Contextual exits:** [Go back without changes / Volver sin cambios](workflow-prototype.html?screen=recovery).
 
 <a id="recovery-fresh"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `recovery-fresh`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Start a fresh catalogue / Empezar catálogo nuevo
 
 [Open composition](workflow-prototype.html?screen=recovery-fresh) · existing route/context: `startup recovery` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4237,23 +4637,26 @@ Result copy: Startup retry requested; watch actual progress. / Reintento solicit
 **Rendered states:** ready, loading, error, permission, dirty, pending, success, conflict. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
 
-**Explanation:** Back up database and migration files first, then replace catalogue data and reconfigure catalogue settings. Accounts and their fail-closed marker remain separate; this is not a password reset. / Copia primero BD y migración; después sustituye catálogo y reconfigura ajustes. Cuentas y marca de protección son independientes; no restablece contraseñas.
+**Explanation:** Back up the catalogue first. Replace its data and set up your sources and catalogue settings again. Accounts, access restrictions and passwords stay unchanged. / Haz una copia del catálogo primero. Sustituye sus datos y vuelve a configurar las fuentes y los ajustes del catálogo. Las cuentas, restricciones de acceso y contraseñas se conservan.
 
 ### Confirmation / Confirmación
 
 **Save timing:** explicit action. **Action:** Start a fresh catalogue / Empezar catálogo nuevo. **Boundary:** `startupService recovery`. Submit this resource only; other sections retain independent state.
 
-**Consequence:** Back up database and migration files first, then replace catalogue data and reconfigure catalogue settings. Accounts and their fail-closed marker remain separate; this is not a password reset. / Copia primero BD y migración; después sustituye catálogo y reconfigura ajustes. Cuentas y marca de protección son independientes; no restablece contraseñas.
+**Consequence:** Back up the catalogue first. Replace its data and set up your sources and catalogue settings again. Accounts, access restrictions and passwords stay unchanged. / Haz una copia del catálogo primero. Sustituye sus datos y vuelve a configurar las fuentes y los ajustes del catálogo. Las cuentas, restricciones de acceso y contraseñas se conservan.
 
-**Confirmation:** Back up database and migration files first, then replace catalogue data and reconfigure catalogue settings. Accounts and their fail-closed marker remain separate; this is not a password reset. / Copia primero BD y migración; después sustituye catálogo y reconfigura ajustes. Cuentas y marca de protección son independientes; no restablece contraseñas.. Cancel initially focused; Escape cancels; return focus to invoker.
+**Confirmation:** Back up the catalogue first. Replace its data and set up your sources and catalogue settings again. Accounts, access restrictions and passwords stay unchanged. / Haz una copia del catálogo primero. Sustituye sus datos y vuelve a configurar las fuentes y los ajustes del catálogo. Las cuentas, restricciones de acceso y contraseñas se conservan.. Cancel initially focused; Escape cancels; return focus to invoker.
 
 | Field and control | EN / ES label and help | Default / fixture | Constraints and dependencies |
 |---|---|---|---|
-| `recovery.confirm` · checkbox | I understand this recovery action / Entiendo esta recuperación<br>Required; current recovery token is revalidated on submission. No automatic destructive retries. / Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos. | Load current saved/server value; illustrative fixture: False | required=True |
+| `recovery.confirm` · checkbox | I understand this recovery action / Entiendo esta recuperación<br>Required. Check the consequence above before continuing. If recovery fails, review the result before trying again. / Obligatorio. Revisa las consecuencias antes de continuar. Si la recuperación falla, revisa el resultado antes de reintentar. | Load current saved/server value; illustrative fixture: False | required=True; Adapter/contract note: Required; current recovery token is revalidated on submission. No automatic destructive retries. / Obligatorio; se revalida token actual al enviar. Sin reintentos destructivos automáticos. |
 
 **Contextual exits:** [Go back without changes / Volver sin cambios](workflow-prototype.html?screen=recovery).
 
 <a id="recovery-result"></a>
+
+**Simplified location:** System status → System status. **Composition:** contextual editor or detail. **Canonical editor:** `recovery-result`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Recovery result / Resultado de recuperación
 
 [Open composition](workflow-prototype.html?screen=recovery-result) · existing route/context: `startup recovery` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4280,6 +4683,9 @@ Result copy: Startup retry requested; watch actual progress. / Reintento solicit
 **Contextual exits:** [Follow startup progress / Seguir inicio](workflow-prototype.html?screen=startup); [Review catalogue setup / Revisar configuración](workflow-prototype.html?screen=setup); [Download recovery diagnostics / Descargar diagnóstico](workflow-prototype.html?screen=diagnostics).
 
 <a id="preferences"></a>
+
+**Simplified location:** Settings → Language and appearance. **Composition:** section. **Canonical editor:** `preferences`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Language and appearance / Idioma y apariencia
 
 [Open composition](workflow-prototype.html?screen=preferences) · existing route/context: `shared shell preferences` · implementation [#317](https://github.com/Pipepito/acestream-scraper/issues/317)
@@ -4310,6 +4716,9 @@ Result copy: Startup retry requested; watch actual progress. / Reintento solicit
 **Explanation:** All palette/font directions in review controls remain proposals. Existing application IBM Plex/teal standards remain authoritative. / Todas las direcciones de color/tipo siguen propuestas. Los estándares IBM Plex/teal actuales siguen vigentes.
 
 <a id="notices"></a>
+
+**Simplified location:** System status → Settings. **Composition:** contextual editor or detail. **Canonical editor:** `notices`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Notices and session feedback / Avisos y mensajes
 
 [Open composition](workflow-prototype.html?screen=notices) · existing route/context: `shared shell` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4344,6 +4753,9 @@ Result copy: Startup retry requested; watch actual progress. / Reintento solicit
 Result copy: Dismissed locally; changelog remains available. / Oculto localmente; historial sigue disponible.. Recheck eligibility/ownership at execution; do not treat acceptance as completed work.
 
 <a id="not-found"></a>
+
+**Simplified location:** Watch → Settings. **Composition:** contextual editor or detail. **Canonical editor:** `not-found`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## This page is not available / Esta página no está disponible
 
 [Open composition](workflow-prototype.html?screen=not-found) · existing route/context: `*` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4371,6 +4783,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 | /health / /health | /system / /system |
 
 <a id="changelog"></a>
+
+**Simplified location:** System status → Settings. **Composition:** contextual editor or detail. **Canonical editor:** `changelog`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## What changed / Qué cambió
 
 [Open composition](workflow-prototype.html?screen=changelog) · existing route/context: `/changelog` · implementation [#322](https://github.com/Pipepito/acestream-scraper/issues/322)
@@ -4392,6 +4807,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Back to dashboard / Volver al inicio](workflow-prototype.html?screen=dashboard).
 
 <a id="unsaved"></a>
+
+**Simplified location:** Settings → Settings. **Composition:** contextual editor or detail. **Canonical editor:** `unsaved`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Leave with unsaved changes? / ¿Salir sin guardar?
 
 [Open composition](workflow-prototype.html?screen=unsaved) · existing route/context: `shared dirty guard` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4420,6 +4838,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Explanation:** Locale/theme changes retain dirty values, row selection, current route, focus and scroll. Page unload uses native browser protection; no crash-recovery promise. / Idioma/tema conservan valores, selección, ruta, foco y posición. Al cerrar usa protección del navegador; sin prometer recuperación tras fallo.
 
 <a id="runtime-playback"></a>
+
+**Simplified location:** System status → Playback runtime. **Composition:** section. **Canonical editor:** `runtime-playback`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Playback runtime / Ejecución de reproducción
 
 [Open composition](workflow-prototype.html?screen=runtime-playback) · existing route/context: `/setup · Connection settings (advanced)` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4463,6 +4884,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Return to Settings / Volver a Ajustes](workflow-prototype.html?screen=settings); [Return to setup / Volver a configuración](workflow-prototype.html?screen=setup).
 
 <a id="runtime-network"></a>
+
+**Simplified location:** System status → Playback runtime. **Composition:** contextual editor or detail. **Canonical editor:** `runtime-network`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Network runtime / Ejecución de red
 
 [Open composition](workflow-prototype.html?screen=runtime-network) · existing route/context: `/setup · Connection settings (advanced)` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4507,6 +4931,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Return to Settings / Volver a Ajustes](workflow-prototype.html?screen=settings); [Return to setup / Volver a configuración](workflow-prototype.html?screen=setup).
 
 <a id="runtime-services"></a>
+
+**Simplified location:** System status → Playback runtime. **Composition:** contextual editor or detail. **Canonical editor:** `runtime-services`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Installed services / Servicios instalados
 
 [Open composition](workflow-prototype.html?screen=runtime-services) · existing route/context: `/setup · Connection settings (advanced)` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4557,6 +4984,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Return to Settings / Volver a Ajustes](workflow-prototype.html?screen=settings); [Return to setup / Volver a configuración](workflow-prototype.html?screen=setup).
 
 <a id="runtime-advanced"></a>
+
+**Simplified location:** System status → Playback runtime. **Composition:** contextual editor or detail. **Canonical editor:** `runtime-advanced`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Advanced source runtime / Ejecución avanzada de fuentes
 
 [Open composition](workflow-prototype.html?screen=runtime-advanced) · existing route/context: `/setup · Connection settings (advanced)` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4609,6 +5039,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Return to Settings / Volver a Ajustes](workflow-prototype.html?screen=settings); [Return to setup / Volver a configuración](workflow-prototype.html?screen=setup).
 
 <a id="runtime-engine-ports"></a>
+
+**Simplified location:** System status → Playback runtime. **Composition:** contextual editor or detail. **Canonical editor:** `runtime-engine-ports`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Engine and Acexy connections / Conexiones de motor y Acexy
 
 [Open composition](workflow-prototype.html?screen=runtime-engine-ports) · existing route/context: `/setup · Connection settings (advanced)` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4655,6 +5088,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Return to Settings / Volver a Ajustes](workflow-prototype.html?screen=settings); [Return to setup / Volver a configuración](workflow-prototype.html?screen=setup).
 
 <a id="runtime-gateway-ports"></a>
+
+**Simplified location:** System status → Playback runtime. **Composition:** contextual editor or detail. **Canonical editor:** `runtime-gateway-ports`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## ZeroNet and IPFS connections / Conexiones ZeroNet e IPFS
 
 [Open composition](workflow-prototype.html?screen=runtime-gateway-ports) · existing route/context: `/setup · Connection settings (advanced)` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4701,6 +5137,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Return to Settings / Volver a Ajustes](workflow-prototype.html?screen=settings); [Return to setup / Volver a configuración](workflow-prototype.html?screen=setup).
 
 <a id="recordings"></a>
+
+**Simplified location:** Your recordings → Your recordings. **Composition:** primary destination. **Canonical editor:** `recordings`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Your recordings / Tus grabaciones
 
 [Open composition](workflow-prototype.html?screen=recordings) · existing route/context: `/recordings` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -4713,6 +5152,8 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 
 **Rendered states:** ready, loading, error, permission, dirty, pending, success, conflict, empty, filtered, partial. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
 
+
+**Contextual exits:** [Schedule recording / Programar grabación](workflow-prototype.html?screen=recording-schedule); [Recording settings / Ajustes de grabación](workflow-prototype.html?screen=recording-settings).
 
 ### Find a recording / Buscar grabación
 
@@ -4735,6 +5176,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Schedule a programme / Programar programa](workflow-prototype.html?screen=recording-schedule); [Recording settings / Ajustes de grabación](workflow-prototype.html?screen=recording-settings); [Deletion review / Revisar eliminación](workflow-prototype.html?screen=recording-delete).
 
 <a id="channel-activity"></a>
+
+**Simplified location:** TV channels → Streams. **Composition:** contextual editor or detail. **Canonical editor:** `channel-activity`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Stream activity / Actividad de emisión
 
 [Open composition](workflow-prototype.html?screen=channel-activity) · existing route/context: `/acestream-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -4764,6 +5208,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Edit metadata / Editar datos](workflow-prototype.html?screen=stream-edit).
 
 <a id="stream-bulk-fields"></a>
+
+**Simplified location:** TV channels → Streams. **Composition:** contextual editor or detail. **Canonical editor:** `stream-bulk-fields`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Bulk metadata changes / Cambios de datos en lote
 
 [Open composition](workflow-prototype.html?screen=stream-bulk-fields) · existing route/context: `/acestream-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -4819,6 +5266,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 | `bulk.language` · text | Language / Idioma<br>Preserve original saved code and change once for the selected TV channel. / Conserva código guardado y cambia una vez para canal TV elegido. | Load current saved/server value; illustrative fixture: es | readonly=True |
 
 <a id="guide-inventory"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** contextual editor or detail. **Canonical editor:** `guide-inventory`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Browse guide channels / Consultar canales de guía
 
 [Open composition](workflow-prototype.html?screen=guide-inventory) · existing route/context: `/epg?tab=channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -4852,6 +5302,9 @@ Result copy: Dismissed locally; changelog remains available. / Oculto localmente
 **Contextual exits:** [Review matching / Revisar coincidencias](workflow-prototype.html?screen=guide-match); [Matching rules / Reglas de coincidencia](workflow-prototype.html?screen=guide-rule).
 
 <a id="player-picker"></a>
+
+**Simplified location:** Watch → Watch. **Composition:** contextual editor or detail. **Canonical editor:** `player-picker`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Choose what to play / Elegir qué reproducir
 
 [Open composition](workflow-prototype.html?screen=player-picker) · existing route/context: `shared player dialog` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -4883,6 +5336,9 @@ No automatic selection. Exactly one choice. Show row-specific result; expire sel
 **Contextual exits:** [Return to Live TV / Volver a TV en directo](workflow-prototype.html?screen=live).
 
 <a id="player-sessions"></a>
+
+**Simplified location:** Watch → Watch. **Composition:** contextual editor or detail. **Canonical editor:** `player-sessions`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Playback sessions / Sesiones de reproducción
 
 [Open composition](workflow-prototype.html?screen=player-sessions) · existing route/context: `shared player controls` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -4908,6 +5364,9 @@ Result copy: Viewer released once. Final stop waits for ownership and the applic
 **Contextual exits:** [Choose a channel / Elegir canal](workflow-prototype.html?screen=player-picker).
 
 <a id="dashboard-events"></a>
+
+**Simplified location:** Watch → Watch. **Composition:** contextual editor or detail. **Canonical editor:** `dashboard-events`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Events on your home page / Eventos en tu inicio
 
 [Open composition](workflow-prototype.html?screen=dashboard-events) · existing route/context: `/` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -4943,6 +5402,9 @@ Result copy: Viewer released once. Final stop waits for ownership and the applic
 **Contextual exits:** [Full agenda / Agenda completa](workflow-prototype.html?screen=events).
 
 <a id="event-broadcasters"></a>
+
+**Simplified location:** Event agenda → Event agenda. **Composition:** contextual editor or detail. **Canonical editor:** `event-broadcasters`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Broadcaster links / Vínculos de emisoras
 
 [Open composition](workflow-prototype.html?screen=event-broadcasters) · existing route/context: `/events` · implementation [#319](https://github.com/Pipepito/acestream-scraper/issues/319)
@@ -4966,6 +5428,9 @@ Result copy: Viewer released once. Final stop waits for ownership and the applic
 **Contextual exits:** [Programme overlay / Superposición de programa](workflow-prototype.html?screen=event-overlay).
 
 <a id="setup-source"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** reuse canonical editor. **Canonical editor:** `source-web`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Add your first channel source / Añadir tu primera fuente
 
 [Open composition](workflow-prototype.html?screen=setup-source) · existing route/context: `/setup` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -4993,6 +5458,9 @@ Result copy: Viewer released once. Final stop waits for ownership and the applic
 **Contextual exits:** [Built-in broadcaster editor / Editor de proveedor integrado](workflow-prototype.html?screen=source-provider); [Skip for now / Posponer](workflow-prototype.html?screen=setup).
 
 <a id="setup-guide"></a>
+
+**Simplified location:** TV channels → Programme guides. **Composition:** reuse canonical editor. **Canonical editor:** `guide-source`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Optional programme guide / Guía de programación opcional
 
 [Open composition](workflow-prototype.html?screen=setup-guide) · existing route/context: `/setup` · implementation [#318](https://github.com/Pipepito/acestream-scraper/issues/318)
@@ -5021,6 +5489,9 @@ Result copy: Viewer released once. Final stop waits for ownership and the applic
 **Contextual exits:** [Continue without a guide / Continuar sin guía](workflow-prototype.html?screen=setup); [Review channel matching / Revisar vinculación](workflow-prototype.html?screen=guide-match).
 
 <a id="channel-inline"></a>
+
+**Simplified location:** TV channels → TV channels. **Composition:** contextual editor or detail. **Canonical editor:** `channel-inline`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
 ## Number and favorite / Número y favorito
 
 [Open composition](workflow-prototype.html?screen=channel-inline) · existing route/context: `/tv-channels` · implementation [#320](https://github.com/Pipepito/acestream-scraper/issues/320)
@@ -5062,3 +5533,59 @@ Result copy: Viewer released once. Final stop waits for ownership and the applic
 | `inline.favorite` · checkbox | Favorite Northlight / Marcar Northlight favorito<br>Saves immediately. Failure restores last saved value and offers retry. / Guarda inmediatamente. Fallo restaura valor guardado y ofrece reintento. | Load current saved/server value; illustrative fixture: False | No additional prototype constraint; preserve current source validation. |
 
 **Contextual exits:** [Channel details / Detalles del canal](workflow-prototype.html?screen=channel-detail); [Edit / Editar](workflow-prototype.html?screen=channel-edit); [Reorder complete catalogue / Reordenar catálogo completo](workflow-prototype.html?screen=channel-reorder); [Delete channel / Eliminar canal](workflow-prototype.html?screen=channel-delete).
+
+<a id="sources"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** section. **Canonical editor:** `sources`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
+## Channel sources / Fuentes de canales
+
+[Open composition](workflow-prototype.html?screen=sources) · existing route/context: `/sources` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
+
+**Purpose:** Keep your channels up to date. / Mantén tus canales al día.
+
+**Evidence:** [Scraper.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx)
+
+**Permission:** administrator. Preserve current server enforcement; view availability does not grant action authority.
+
+**Rendered states:** ready, loading, error, permission, empty, filtered, partial. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
+
+
+**Contextual exits:** [Add channels / Añadir canales](workflow-prototype.html?screen=add-channels).
+
+**Your sources / Tus fuentes**
+
+- Family channels / Family channels: Updated 16:00 · 3 streams · next update tomorrow / Actualizada 16:00 · 3 emisiones · próxima mañana [Open related workflow](workflow-prototype.html?screen=source-web).
+- Local playlist / Local playlist: Saved · import not started / Guardada · importación sin iniciar [Open related workflow](workflow-prototype.html?screen=w3u-detail).
+
+**Contextual exits:** [Import results / Resultados de importación](workflow-prototype.html?screen=source-results); [Saved searches / Búsquedas guardadas](workflow-prototype.html?screen=saved-search); [Excluded results / Resultados excluidos](workflow-prototype.html?screen=exclusion); [Unlinked streams / Emisiones sin fuente](workflow-prototype.html?screen=sources-orphans); [Background updates / Actualizaciones en segundo plano](workflow-prototype.html?screen=automation).
+
+<a id="add-channels"></a>
+
+**Simplified location:** TV channels → Channel sources. **Composition:** contextual editor or detail. **Canonical editor:** `add-channels`. The same fields/actions are used by lime, coral/navy and immersive cyan.
+
+## Add channels / Añadir canales
+
+[Open composition](workflow-prototype.html?screen=add-channels) · existing route/context: `/sources` · implementation [#321](https://github.com/Pipepito/acestream-scraper/issues/321)
+
+**Purpose:** Choose where your channels come from. A programme guide can be added afterwards. / Elige de dónde vienen tus canales. Puedes añadir una guía después.
+
+**Evidence:** [Scraper.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx)
+
+**Permission:** administrator. Preserve current server enforcement; view availability does not grant action authority.
+
+**Rendered states:** ready, loading, error, permission, empty, filtered, partial. Use the prototype state selector. Error/conflict states preserve a draft, but never grant permission to replay a stale operation.
+
+
+**Choose a source / Elige una fuente**
+
+- Website or playlist address / Dirección de web o lista: Paste a link you already have. / Pega un enlace que ya tengas. [Open related workflow](workflow-prototype.html?screen=source-web).
+- Supported provider / Proveedor compatible: Use the provider’s guided form. / Usa el formulario del proveedor. [Open related workflow](workflow-prototype.html?screen=source-provider).
+- W3U playlist file / Archivo de lista W3U: Review folders before importing channels. / Revisa carpetas antes de importar. [Open related workflow](workflow-prototype.html?screen=w3u).
+- Find a stream / Buscar una emisión: Search, resolve and add it to a TV channel. / Busca, identifica y añade a un canal. [Open related workflow](workflow-prototype.html?screen=search).
+
+**Contextual exits:** [Add one stream manually / Añadir una emisión a mano](workflow-prototype.html?screen=stream-edit); [Use Telegram as a source / Usar Telegram como fuente](workflow-prototype.html?screen=telegram-auth).
+
+## Presentation-only blocks
+
+The Watch featured area, programme cards, category navigation, recording continuation card, event category illustration and interface selector are composed by `workflow-engine.js` and styled by `presentation-presets.css`. They introduce no endpoint or permission. Watch actions enter the existing viewer lifecycle; programme details open the canonical recording/guide context. Generic art is labelled and distinct from real artwork. See [shared foundations](shared-foundations-06.md) and [resource selection](asset-selection-06.md).

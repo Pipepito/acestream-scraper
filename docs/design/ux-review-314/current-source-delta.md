@@ -1,5 +1,9 @@
 # Current-source reconciliation — review 03
 
+> Review 06 is the current design-only continuation: [package](README.md), [simplified ownership](before-after-map.md), [shared presets](shared-foundations-06.md), [graphics](asset-selection-06.md) and [new evidence](verification-review-06.md). Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+
+Review 06 final recheck (7 November 2026): `develop` remains `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`. `main` advanced independently to `180f544c140f2f0361c386ebd395dcf366ae343d`, merging that develop revision; `git diff` reports no `backend/` or `frontend/` differences between them. The design branch retains its older application base. No application changes were merged into it. The live-installation observations below are historical, not a new live validation.
+
 > Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
 
 The final publication check found that develop advanced during this audit to [cf952afc6b4489c02b7a675ff3d634cc13d98e0b](https://github.com/Pipepito/acestream-scraper/commit/cf952afc6b4489c02b7a675ff3d634cc13d98e0b), merging PR #313. The local application/design base remains 7ccf16d. The design branch is intentionally not rebased or merged with implementation work. Source changes were inspected with git diff/show; no new application build or runtime was started.

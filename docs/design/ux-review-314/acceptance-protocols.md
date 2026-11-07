@@ -1,31 +1,12 @@
-# Remaining acceptance protocols · review 04
+# Remaining acceptance protocols · review 06
 
 The design package can be reviewed now. It is not proof of implementation, whole-app accessibility conformance, usability, media reliability or measured performance. The following work stays in the existing issues; no participant results or equipment checks are invented.
 
-## Confirmed implementation direction · #316 with #314
+## Current design-only scope
 
-The owner has confirmed implementation of all three referenced designs—lime, coral/navy and cyan—with a user-facing interface selector. Use the [implementation scope](task-refinements-04.md#implementation-scope-confirmed-by-the-owner). Choosing one winning direction is no longer a prerequisite. Complete and refine their foundations during #316, retain the application identity and licensing requirements, and verify equal workflow coverage. The current prototypes cover coral/lime comparison variables; they do not already implement or validate cyan or the production selector.
+All three presets, the selector and simplified structure are now composed in the disposable prototype. Application implementation is not authorized by this session. See [review 06 task owners](task-refinements-06.md), [shared foundations](shared-foundations-06.md), [OpenAPI acceptance](openapi-contracts-06.md) and [actual current evidence](verification-review-06.md). Native checks below are pending unless the current report explicitly records an observed result. Historical counts never substitute for new runs.
 
-The owner later confirmed making the third interface more immersive while keeping three. Apply the [visual-resource brief](visual-resources-05.md): selected artwork and provenance, real metadata/fallback behavior, richer viewing composition, calm administration, readable theme/phone crops, existing explicit event-artwork loading and measured asset delivery. Validate the produced artwork in actual screens; generic placeholders and previous preview results do not meet this added visual requirement.
-
-Review the proposed Watch grouping for Events, outcome links under Integrations, all existing Settings deep links, and the shared editor ownership during implementation. Confirm consequential staged Save changes where source currently saves immediately. Independent API transactions remain separate. Remaining design refinement and research stay inside the existing implementation/acceptance tasks; no further standalone audit is required before starting.
-
-## Implementation and regression ownership
-
-| Existing task | Remaining work and observable exit evidence |
-|---|---|
-| #315 | Fix the private-HTTP recording opener, actual status contrast, Network/pagination phone clipping and guide-slider names. Investigate the new bulk-edit schema/repeated-batch source finding. Reproduce each at the implementation SHA; no claim from replacement screenshots. |
-| #316 | Implement three coherent interface foundations and shared component variants; complete cyan coverage and define selector presets with #318. Refine IA and explicit-save proposals without removing capabilities. |
-| #317 | Typed EN/ES resources, native error mapping, fluent Spanish review, plural/zero/unknown formatting, pseudo-locale expansion, unchanged original content and stable real-player/draft/selection state across preference changes. |
-| #318 | Implement the three-interface selector and remembered preference, shell, deep links, shared settings/access/setup/recovery. Verify switching/persistence/fallback, permissions, transports, last-admin cases, stale runtime revisions and explicit proxy overrides. |
-| #319 | Implement dashboard/Live TV/events/recordings. Use controlled media fixtures for DST, source changes, parts/gaps, cancellation, protection, recording priority, session leases and event fingerprint conflicts. |
-| #320 | Implement channels/streams/guides/playlists; validate complete-catalogue and stream ordering, atomic Add and Link, optional reviewed similar names, source-qualified guides, exports, format/token/address dependencies and bulk contract correction. |
-| #321 | Implement source/provider/W3U/search/exclusion/orphan/helper workflows; preserve guarded fetches, reviewed imports and installed/standalone isolation. Exercise real bounded workers with adversarial synthetic samples. |
-| #322 | Implement integrations/system/WARP; validate capabilities and real owned device/media actions, jobs, diagnostics, storage bounds and saved/applied/startup distinctions. |
-| #323 | Establish measured browser/network/media baselines and budgets at a known application SHA. Profile before choosing virtualization, memoization or lazy-loading changes. No performance regression was proved by this design audit. |
-| #324 | Integrate all surfaces across three interfaces × EN/ES × light/dark × responsive layouts; verify switching/state continuity, supporting backend fixes and the normal application/Docker/browser matrix plus manual/participant evidence below. |
-
-Every feature owner (#319–#322) delivers all three interfaces and the backend or incomplete-feature corrections needed for its workflows. #315/#320 retain the source-only F15 reproduction. #323 measures each interface and switching cost; a general slowdown remains unproven. Backend/API/schema changes require the normal contract, generated-client, migration and integration checks.
+Future application work must run the full repository completion gate after separate authorization. The source-only F15 reproduction, observed app defects, security/media/transport behavior and unproven performance remain open. Detailed palette/typography/asset approval and nontechnical participant validation remain with #316/#317/#324.
 
 ## Manual assistive technology protocol · #315/#317/#324
 

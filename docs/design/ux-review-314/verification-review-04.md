@@ -1,5 +1,6 @@
 # Design verification · review 04
 
+> Review 06 is the current design-only continuation: [package](README.md), [simplified ownership](before-after-map.md), [shared presets](shared-foundations-06.md), [graphics](asset-selection-06.md) and [new evidence](verification-review-06.md). Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
 Final design-only evidence recorded 2026-11-07 18:30 UTC. Worktree: `/tmp/acestream-ux-review-314`, branch `design/ux-review-314`, starting design commit `c545de3b58ccac03686add849289ccf944a9b6cc`. The commit containing this report records the tested final design files; hashes below identify the browser inputs without a circular self-reference.
 
 Application evidence remains pinned to develop `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`. Remote develop/main/design were rechecked during this pass: `cf952af` / `7fe2a4c` / starting `c545de3`. No newer application delta was found. The design branch retains its earlier application tree; no implementation was merged into it. The main checkout remains at `7ccf16d383758aeeb78845e20e3716ddf97df10d`, with no user/app changes made by this work.

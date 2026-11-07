@@ -1,29 +1,12 @@
 # Ten existing tasks · review 04 refinements
 
-7 November 2026. This supplements the existing bodies of #315–#324 without creating issues or marking implementation complete. [Coverage](coverage-review-04.md), [gallery](workflow-gallery.html), [fields](workflow-specification.md), [contracts](interaction-contracts.md), [verification](verification-review-04.md) and [acceptance protocols](acceptance-protocols.md) form the reviewable package. The owner has confirmed the implementation scope below; detailed mockups are references, not completed production acceptance.
+7 November 2026. This supplements the existing bodies of #315–#324 without creating issues or marking implementation complete. [Coverage](coverage-review-04.md), [gallery](workflow-gallery.html), [fields](workflow-specification.md), [contracts](interaction-contracts.md), [verification](verification-review-04.md) and [acceptance protocols](acceptance-protocols.md) form the reviewable package. This is historical background; review 06 is the current design-only scope.
 
 ## Implementation scope confirmed by the owner
 
-The design-only phase is closed. The next run starts implementing epic #314 and its existing ten tasks, including **all three referenced interface designs with a user-facing selector**, plus backend and incomplete-feature fixes needed to support the experience. Remaining design refinement, research and validation belong within implementation and acceptance; another standalone design-audit round is not a prerequisite.
+**Historical scope note, superseded by review 06.** The owner retained three interface directions but explicitly continued design-only work. Implementation is not authorized in this session. The earlier closed-design/implementation-next statements are withdrawn. See [current scope and owners](task-refinements-06.md), [shared architecture](shared-foundations-06.md) and [OpenAPI testing](openapi-contracts-06.md).
 
-The three references are the original **lime** direction, **coral/navy “Open Interval”**, and **cyan “Signal Pitch”**, as documented in the [supplier assessment](designer-frontend-assessment.md#three-different-visual-directions-are-present). These are working reference names, not a product rebrand. The older instruction to choose one winning direction is superseded. Calm/expressive and coral/lime prototype controls are comparison tools, not the finished production selector. Cyan currently has a reference proposal; completing and validating its production treatment across the app belongs to #316 and the feature rollout. Existing exports do not establish cyan coverage.
-
-**Later owner confirmation, 7 November 2026:** keep three and make the third more immersive, using the cyan reference as its starting point. Deliver meaningful artwork and distinct composition, including photographic/illustrative banners, category art and richer programme cards, while keeping administration calm and complete. The [visual-resource brief](visual-resources-05.md) specifies the initial assets, fallback/security contracts, current backend support and ownership. Final assets and their rendered use still need production and review during implementation.
-
-### Selector and parity contract
-
-- Offer three coherent, recognizable interface choices on the shared appearance/preferences surface, with an accessible **Interface / Interfaz** selector and preview/description. Develop each design's appropriate layout, typography, spacing and color treatment; changing only an accent swatch does not complete this scope.
-- All three expose the same existing capabilities, fields, permissions, states, deep links and operational consequences across the whole application, in EN/ES, light/dark and phone/desktop layouts. Keep interface choice independent of language, light/dark/system appearance and reduced-motion preferences.
-- Share application state, services, canonical editors and business rules. Interface switching must preserve playback and recording ownership, in-flight operations, drafts, selections, route/query context and focus; it must not reload the app or duplicate requests.
-- Remember the user's choice with a documented default, safe handling of missing/unknown values and migration of existing preferences. A storage failure keeps the current choice usable for the tab and offers a retry. Browser-local preference works without accounts; any justified account synchronization must have separate user-scoped persistence, not a server-wide setting or new global atomic Save.
-
-### Backend and incomplete-feature scope
-
-Backend work is explicitly in scope when a feature is incomplete, incorrectly implemented or needs support for these interfaces. Reproduce source-only findings with isolated data, then fix the actual behavior across frontend/backend boundaries within the owning existing task. Do not hide a broken capability behind a redesigned screen or treat a synthetic success as completion. Start with the confirmed #315 defects and [F15](source-findings-04.md) in #315/#320; inspect other affected workflows as they are implemented. Keep observed defects, source inferences and new hypotheses distinct.
-
-API changes include schemas, generated client, services and integration tests; schema changes include Alembic and upgrade-path coverage. Preserve security, media ownership, recovery isolation and independent transaction contracts. The design-only validation waiver ends at application implementation: use the full repository completion gate for product changes. This amendment changes scope and task acceptance only; application code/runtime remain unchanged in this run.
-
-Start implementation from freshly checked `develop` in an appropriate feature branch/worktree, using this design branch as the reference. Its earlier application base is not the implementation starting point. Work in reviewable increments targeting `develop`, with #315 and shared foundations/selector first, feature migrations and supporting backend fixes next, and integrated acceptance across all three interfaces. Deployment, merging and release remain separate actions.
+The checklists below record earlier future implementation acceptance. Cyan, the selector and whole-app compositions are now demonstrated in the current disposable prototype; they remain unimplemented in the application. Immediate saves were retained for guide automation and stream-check scope. No staged replacement is approved.
 
 ## #315 — Reliability and accessibility
 

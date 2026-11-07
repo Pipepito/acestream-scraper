@@ -32,19 +32,19 @@ with sync_playwright() as p:
   result=page.evaluate("async()=>{document.querySelectorAll('img').forEach(i=>i.loading='eager');await Promise.all([...document.images].map(i=>i.decode().catch(()=>null)));return {images:document.images.length,broken:[...document.images].filter(i=>!i.naturalWidth).length,overflow:document.documentElement.scrollWidth>innerWidth+1}}")
   report['gallery'].append(dict(width=width,**result))
  for sid,state in critical:
-  for lang,theme,width in [('en','light',1440),('es','dark',390)]:
-   page.set_viewport_size(dict(width=width,height=900));page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen=sid,state=state,lang=lang,theme=theme)));page.evaluate('document.fonts.ready')
+  for lang,theme,width,preset in [(l,t,w,p) for l,t,w in [('en','light',1440),('es','dark',390)] for p in ['lime','coral','cyan']]:
+   page.set_viewport_size(dict(width=width,height=900));page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen=sid,state=state,lang=lang,theme=theme,preset=preset)));page.evaluate('document.fonts.ready')
    r=page.evaluate("async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa','best-practice']}});return {violations:r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),incomplete:r.incomplete.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))}}")
-   report['states'].append(dict(screen=sid,state=state,lang=lang,theme=theme,**r))
+   report['states'].append(dict(screen=sid,state=state,lang=lang,theme=theme,preset=preset,**r))
  for theme in ['light','dark']:
-  for palette in ['coral','lime']:
-   page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen='casting-control',theme=theme,palette=palette)));page.evaluate('document.fonts.ready')
+  for palette in ['coral','lime','cyan']:
+   page.goto('http://design.invalid/workflow-prototype.html?'+urlencode(dict(screen='casting-control',theme=theme,preset=palette)));page.evaluate('document.fonts.ready')
    tokens=page.evaluate("()=>Object.fromEntries(['bg','surface','subtle','text','muted','accent','ink','selected','selected-text','good','good-bg','warn','warn-bg','bad','bad-bg','focus','control'].map(k=>[k,getComputedStyle(document.body).getPropertyValue('--'+k).trim()]))")
    for a,b,required in [('text','bg',4.5),('text','surface',4.5),('muted','bg',4.5),('muted','surface',4.5),('muted','subtle',4.5),('ink','accent',4.5),('selected-text','selected',4.5),('good','good-bg',4.5),('warn','warn-bg',4.5),('bad','bad-bg',4.5),('focus','bg',3),('focus','surface',3),('control','surface',3)]:
-    measured=ratio(tokens[a],tokens[b]);report['contrast'].append(dict(theme=theme,palette=palette,pair=a+'/'+b,ratio=round(measured,3),required=required,passed=measured>=required))
+    measured=ratio(tokens[a],tokens[b]);report['contrast'].append(dict(theme=theme,preset=palette,pair=a+'/'+b,ratio=round(measured,3),required=required,passed=measured>=required))
  report['axe_version']=page.evaluate('axe.version')
  browser.close()
-bad_gallery=[x for x in report['gallery'] if x['images']!=288 or x['broken'] or x['overflow']]
-report['summary']=dict(gallery_widths=len(report['gallery']),gallery_images=288,gallery_failures=len(bad_gallery),critical_state_axe_cases=len(report['states']),axe_violating_cases=sum(bool(x['violations']) for x in report['states']),contrast_pairs=len(report['contrast']),contrast_failures=sum(not x['passed'] for x in report['contrast']),minimum_text_ratio=min(x['ratio'] for x in report['contrast'] if x['required']==4.5),minimum_ui_ratio=min(x['ratio'] for x in report['contrast'] if x['required']==3),errors=len(report['errors']),console=len(report['console']),blocked=len(report['blocked']))
+bad_gallery=[x for x in report['gallery'] if x['images']!=146 or x['broken'] or x['overflow']]
+report['summary']=dict(gallery_widths=len(report['gallery']),gallery_images=146,gallery_failures=len(bad_gallery),critical_state_axe_cases=len(report['states']),axe_violating_cases=sum(bool(x['violations']) for x in report['states']),contrast_pairs=len(report['contrast']),contrast_failures=sum(not x['passed'] for x in report['contrast']),minimum_text_ratio=min(x['ratio'] for x in report['contrast'] if x['required']==4.5),minimum_ui_ratio=min(x['ratio'] for x in report['contrast'] if x['required']==3),errors=len(report['errors']),console=len(report['console']),blocked=len(report['blocked']))
 (OUT/'gallery-checks.json').write_text(json.dumps(report,indent=2));print(json.dumps(report['summary'],indent=2))
 raise SystemExit(bool(bad_gallery or any(x['violations'] for x in report['states']) or any(not x['passed'] for x in report['contrast']) or report['errors'] or report['console'] or report['blocked']))

@@ -5,7 +5,14 @@ export interface TunerSettings {
   tuner_count: number;
   max_channels: number;
   only_online: boolean;
+  plex_compatible_audio?: boolean;
   experimental_transcoding?: boolean;
+  /** Seconds a source gets to deliver its first byte before the next is tried. */
+  source_start_seconds?: number;
+  /** Seconds for the whole start across sources; keep it under the player's own timeout. */
+  startup_budget_seconds?: number;
+  /** Leave out sources and channels with no useful prospect (off by default). */
+  hide_unusable?: boolean;
 }
 
 export type TunerSettingsUpdate = Partial<TunerSettings>;

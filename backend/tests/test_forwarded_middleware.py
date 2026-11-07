@@ -39,6 +39,23 @@ FORWARDED = {
 }
 
 
+@pytest.mark.parametrize('peer,forwarded', [('172.17.0.16', True), ('172.17.0.1', False), ('192.168.1.245', False)])
+def test_automatic_docker_trust_does_not_accept_gateway_or_lan_spoofing(monkeypatch, peer, forwarded):
+    from network_defaults import bridge_peers, LOOPBACK
+    peers = LOOPBACK + bridge_peers(
+        [{'ifname': 'eth0', 'linkinfo': {'info_kind': 'veth'},
+          'addr_info': [{'local': '172.17.0.2', 'prefixlen': 16, 'scope': 'global'}]}],
+        [{'dev': 'eth0', 'dst': 'default', 'gateway': '172.17.0.1'}])
+    monkeypatch.setattr('app.middleware.forwarded.automatic_proxy_peers', lambda: peers)
+    app = _probe_app()
+    app.add_middleware(ForwardedHeadersMiddleware, trusted=parse_trusted('auto'))
+    with TestClient(app, client=(peer, 1234)) as client:
+        body = client.get('/probe', headers=FORWARDED).json()
+    assert body['forwarded'] is forwarded
+    assert body['scheme'] == ('https' if forwarded else 'http')
+    assert body['client'] == ('203.0.113.7' if forwarded else peer)
+
+
 def test_trusted_peer_headers_rewrite_scheme_host_and_client():
     body = _app("testclient").get("/probe", headers=FORWARDED).json()
     assert body["scheme"] == "https"
@@ -119,7 +136,7 @@ def test_main_registers_the_middleware_as_the_outermost_user_middleware():
     """
     registered = [middleware.cls for middleware in main.app.user_middleware]
     assert registered[0] is ForwardedHeadersMiddleware, registered
-    assert CORSMiddleware in registered[1:], registered
+    assert any(issubclass(cls, CORSMiddleware) for cls in registered[1:]), registered
     assert main.app.user_middleware[0].kwargs["trusted"] == parse_trusted(
         get_settings().FORWARDED_ALLOW_IPS
     )
@@ -130,15 +147,15 @@ def test_main_middleware_stack_corrects_the_request_for_a_trusted_proxy_peer():
 
     Rebuilding the stack around a probe endpoint proves the kwargs main.py
     passes actually rewrite the request for a peer inside the default
-    FORWARDED_ALLOW_IPS (10.0.0.0/8) and record the raw peer.
+    FORWARDED_ALLOW_IPS (loopback) and record the raw peer.
     """
     stack = _probe_app()
     for middleware in reversed(main.app.user_middleware):
         stack = middleware.cls(stack, *middleware.args, **middleware.kwargs)
 
-    body = TestClient(stack, client=("10.1.2.3", 4321)).get("/probe", headers=FORWARDED).json()
+    body = TestClient(stack, client=("127.0.0.1", 4321)).get("/probe", headers=FORWARDED).json()
     assert body["scheme"] == "https"
     assert body["host"] == "scraper.example.com"
     assert body["client"] == "203.0.113.7"
-    assert body["peer"] == ["10.1.2.3", 4321]
+    assert body["peer"] == ["127.0.0.1", 4321]
     assert body["forwarded"] is True

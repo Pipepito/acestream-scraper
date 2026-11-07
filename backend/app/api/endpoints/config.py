@@ -8,6 +8,9 @@ from app.config.database import get_db
 from app.services.task_service import task_service
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import (
+    OfflineCleanupConfig,
+    OfflineCleanupPreview,
+    NotificationWebhookUpdate,
     AceEngineUrlUpdate,
     AddPidUpdate,
     AppIdUpdate,
@@ -18,13 +21,17 @@ from app.schemas.config import (
     DashboardConfigUpdate,
     PublicBaseUrlUpdate,
     PlaybackRouting,
+    EPGMatchingConfig,
+    EPGMatchingRun,
     RescrapeIntervalUpdate,
     ScheduleAnchors,
+    StreamCheckScope,
     SettingResponse,
     SettingsResponse,
 )
 from app.services.config_service import ConfigService
 from app.services.dashboard_config_service import DashboardConfigService
+from app.services.epg_matching_automation import EPGMatchingAutomation
 from app.services.schedule_config_service import ScheduleConfigService
 
 from app.schemas.config import CheckEngineConfig, CheckEngineConfigResponse
@@ -43,6 +50,44 @@ def _validate_boolean_string(value: str, setting_name: str) -> None:
     valid_values = {"true", "false", "True", "False", "1", "0"}
     if value not in valid_values:
         raise HTTPException(status_code=422, detail=f"Invalid boolean value for {setting_name}")
+
+
+@router.get('/offline-cleanup', response_model=OfflineCleanupConfig)
+def get_offline_cleanup(db: Session = Depends(get_db)):
+    from app.services.offline_cleanup_service import OfflineCleanupService
+    return OfflineCleanupService(db).get()
+
+
+@router.put('/offline-cleanup', response_model=OfflineCleanupConfig)
+def update_offline_cleanup(config: OfflineCleanupConfig, db: Session = Depends(get_db)):
+    from app.services.offline_cleanup_service import OfflineCleanupService, configure_offline_cleanup
+    if not OfflineCleanupService(db).save(config):
+        raise HTTPException(status_code=500, detail='Could not save offline cleanup settings')
+    configure_offline_cleanup(task_service)
+    return config
+
+
+@router.post('/offline-cleanup/preview', response_model=OfflineCleanupPreview)
+def preview_offline_cleanup(config: OfflineCleanupConfig, db: Session = Depends(get_db)):
+    from app.services.offline_cleanup_service import OfflineCleanupService
+    return OfflineCleanupService(db).preview(config)
+
+
+@router.get("/epg-matching", response_model=EPGMatchingConfig)
+def get_epg_matching(db: Session = Depends(get_db)):
+    return EPGMatchingAutomation(db).get()
+
+
+@router.put("/epg-matching", response_model=EPGMatchingConfig)
+def update_epg_matching(config: EPGMatchingConfig, db: Session = Depends(get_db)):
+    if not EPGMatchingAutomation(db).save(config):
+        raise HTTPException(status_code=500, detail="Could not save guide matching settings")
+    return config
+
+
+@router.get("/epg-matching/last-run", response_model=EPGMatchingRun)
+def epg_matching_last_run(db: Session = Depends(get_db)):
+    return EPGMatchingAutomation(db).last_run()
 
 
 @router.get("/schedule-anchors", response_model=ScheduleAnchors)
@@ -230,6 +275,37 @@ def update_public_base_url(
     return {"message": "Setting updated successfully", "value": config_service.get_public_base_url()}
 
 
+@router.get("/notification_webhook_url", response_model=SettingResponse)
+def get_notification_webhook_url(config_service: ConfigService = Depends(get_config_service)):
+    """Get the webhook that receives task notifications (empty = off), as
+    scheme and host only: webhooks keep their secret in the query or path.
+    An invalid previously saved URL returns only '•••' so it can be replaced or cleared."""
+    return {"key": "notification_webhook_url", "value": config_service.get_masked_notification_webhook_url()}
+
+
+@router.put("/notification_webhook_url", response_model=ConfigUpdateResponse)
+def update_notification_webhook_url(
+    update: NotificationWebhookUpdate,
+    config_service: ConfigService = Depends(get_config_service),
+):
+    """Set the webhook that receives task notifications; empty turns them off (#41)."""
+    success = config_service.set_notification_webhook_url(update.value)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update notification_webhook_url")
+    return {"message": "Setting updated successfully", "value": config_service.get_masked_notification_webhook_url()}
+
+
+@router.post("/notification_webhook_url/test", response_model=ConfigUpdateResponse)
+def test_notification_webhook():
+    """Send a test notification to the saved webhook."""
+    from app.services import notification_service
+    if not notification_service.webhook_url():
+        raise HTTPException(status_code=422, detail="No notification webhook is set")
+    if not notification_service.notify("test", "Acestream Scraper", "Test notification"):
+        raise HTTPException(status_code=502, detail="The webhook did not accept the notification")
+    return {"message": "Test notification sent", "value": "ok"}
+
+
 @router.get("/all", response_model=SettingsResponse)
 def get_all_settings(config_service: ConfigService = Depends(get_config_service)):
     """Get all settings."""
@@ -278,6 +354,16 @@ def update_check_engine(config: CheckEngineConfig, db: Session = Depends(get_db)
     return CheckEngineConfigService(SettingsRepository(db)).save(config)
 
 
+@router.get("/stream-check-scope", response_model=StreamCheckScope)
+def get_stream_check_scope(config: ConfigService = Depends(get_config_service)):
+    return config.get_stream_check_scope()
+
+
+@router.put("/stream-check-scope", response_model=StreamCheckScope)
+def set_stream_check_scope(update: StreamCheckScope, config: ConfigService = Depends(get_config_service)):
+    return config.set_stream_check_scope(update)
+
+
 @router.get("/{key}", response_model=SettingResponse)
 def get_config_key(key: str, config_service: ConfigService = Depends(get_config_service)):
     """Generic GET for config keys."""
@@ -295,6 +381,8 @@ def get_config_key(key: str, config_service: ConfigService = Depends(get_config_
         value = config_service.get_addpid()
     elif key == "public_base_url":
         value = config_service.get_public_base_url()
+    elif key == "notification_webhook_url":
+        value = config_service.get_masked_notification_webhook_url()
     else:
         raise HTTPException(status_code=404, detail=f"Unknown config key: {key}")
     return {"key": key, "value": value}

@@ -23,7 +23,7 @@ from app.services.public_url_service import host_warnings
 from app.services.tuner_network import TunerNetworkGate
 from app.utils.url_guard import BlockedURLError, validate_lan_target
 
-from .base import PlayerDriver, PlayerProbe, PlayerStatus, make_driver, new_client
+from .base import PlayerCommandError, PlayerDriver, PlayerProbe, PlayerStatus, make_driver, new_client
 
 COMMANDS = ("pause", "resume", "stop", "volume")
 # Characters that would turn a bare host into a URL with a scheme, userinfo,

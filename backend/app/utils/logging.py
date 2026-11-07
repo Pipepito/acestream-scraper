@@ -5,7 +5,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from .path import log_dir
 
-_TOKEN_RE = re.compile(r'([?&]token=)[^&\s"]*')
+_TOKEN_RE = re.compile(r'([?&](?:token|cap)=)[^&\s"\']*', re.IGNORECASE)
 
 
 class RedactTokenFilter(logging.Filter):
@@ -13,11 +13,16 @@ class RedactTokenFilter(logging.Filter):
     and copied links carry the API token in the query string."""
 
     def filter(self, record: logging.LogRecord) -> bool:
-        if isinstance(record.args, tuple):
-            record.args = tuple(
-                _TOKEN_RE.sub(r"\1[redacted]", arg) if isinstance(arg, str) else arg for arg in record.args
-            )
-        elif isinstance(record.msg, str):
+        if record.name == 'uvicorn.access' and isinstance(record.args, tuple):
+            # Uvicorn's AccessFormatter unpacks the five original arguments.
+            record.args = tuple(_TOKEN_RE.sub(r"\1[redacted]", arg) if isinstance(arg, str) else arg for arg in record.args)
+            return True
+        # Render nested library arguments before masking (Cast messages contain
+        # media URLs inside dictionaries, not only plain string arguments).
+        if record.args:
+            record.msg = record.getMessage()
+            record.args = ()
+        if isinstance(record.msg, str):
             record.msg = _TOKEN_RE.sub(r"\1[redacted]", record.msg)
         return True
 
@@ -32,6 +37,7 @@ def setup_logging():
     console = logging.StreamHandler(sys.stdout)
     console.setFormatter(logging.Formatter(log_format))
     console.setLevel(logging.INFO)
+    console.addFilter(RedactTokenFilter())
     root_logger.addHandler(console)
 
     # File handler for important logs. Rotate: the unbounded FileHandler grew
@@ -42,6 +48,7 @@ def setup_logging():
     file_handler = RotatingFileHandler(log_path, maxBytes=max_bytes, backupCount=backup_count)
     file_handler.setFormatter(logging.Formatter(log_format))
     file_handler.setLevel(logging.INFO)
+    file_handler.addFilter(RedactTokenFilter())
     root_logger.addHandler(file_handler)
 
     # Set third-party loggers to WARNING to reduce noise

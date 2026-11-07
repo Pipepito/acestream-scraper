@@ -4,7 +4,7 @@ import { SearchPage } from '../src/pages/search';
 test.describe.configure({ mode: 'serial' });
 
 test.describe('engine search', () => {
-  test('search results come from the live engine and can be added one by one', async ({ page, api, scenario }, testInfo) => {
+  test('search results come from the configured engine and can be added one by one', async ({ page, api, scenario }, testInfo) => {
     const search = new SearchPage(page);
     await search.open();
     let addedThisSession = 0;
@@ -22,12 +22,13 @@ test.describe('engine search', () => {
 
       const toAdd = apiResults.results.slice(0, q.addFirst).filter((r) => r.id);
       for (const r of toAdd) {
-        await api.deleteChannel(r.id);
+        const { content_id: contentId } = await api.resolveSearchResult(r.id);
+        await api.deleteChannel(contentId);
         await search.addRow(r.name);
-        await search.expectAlert(`Added ${r.name} to your channels.`);
+        await search.expectAlert(`${r.name}: added.`);
         await expect(search.addedChip(r.name)).toBeVisible();
         await expect
-          .poll(async () => (await api.getChannel(r.id))?.name, { timeout: 15_000, message: `channel ${r.id} added from search` })
+          .poll(async () => (await api.getChannel(contentId))?.name, { timeout: 15_000, message: `channel ${contentId} added from search` })
           .toBe(r.name);
       }
       addedThisSession += toAdd.length;
@@ -43,15 +44,19 @@ test.describe('engine search', () => {
     await expect(search.resultRows().first()).toBeVisible();
     const apiResults = await api.search(q.query);
     const batch = apiResults.results.slice(0, Math.min(3, apiResults.results.length)).filter((r) => r.id);
+    const contentIds = new Map<string, string>();
     for (const r of batch) {
-      await api.deleteChannel(r.id);
+      const { content_id: contentId } = await api.resolveSearchResult(r.id);
+      contentIds.set(r.id, contentId);
+      await api.deleteChannel(contentId);
       await search.selectRow(r.name);
     }
     await expect(search.summary()).toContainText(new RegExp(`Selected\\s*${batch.length}`));
     await search.addSelected();
-    await search.expectAlert(`Added ${batch.length} channels.`);
+    await search.expectAlert(`${batch.length} added, 0 existing, 0 excluded, 0 unresolved, 0 deferred.`);
     for (const r of batch) {
-      await expect.poll(async () => (await api.getChannel(r.id))?.id, { timeout: 15_000 }).toBe(r.id);
+      const contentId = contentIds.get(r.id)!;
+      await expect.poll(async () => (await api.getChannel(contentId))?.id, { timeout: 15_000 }).toBe(contentId);
     }
   });
 
@@ -60,5 +65,29 @@ test.describe('engine search', () => {
     await search.open();
     await search.search('zzqqxxe2enomatch');
     await expect(search.results()).toContainText('No channels found matching your search criteria.');
+  });
+
+  test('Add and Link assigns an existing search result directly to a TV channel', async ({ page, api, scenario }) => {
+    const query = scenario.search.queries[0].query;
+    const result = (await api.search(query)).results[0];
+    const { content_id: contentId } = await api.resolveSearchResult(result.id);
+    const original = await api.getChannel(contentId);
+    expect(original?.tv_channel_id).toBeNull();
+    const tv = await api.createTvChannel({ name: 'E2E search link target' });
+    try {
+      const search = new SearchPage(page);
+      await search.open();
+      await search.search(query);
+      await search.resultRow(result.name).getByRole('button', { name: `Add and Link ${result.name}`, exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Add and Link', exact: true });
+      await dialog.getByRole('combobox', { name: /^TV channel/ }).fill(tv.name);
+      await page.getByRole('option', { name: tv.name, exact: true }).click();
+      await dialog.getByRole('button', { name: 'Add and Link', exact: true }).click();
+      await expect(dialog).toBeHidden();
+      expect((await api.getChannel(contentId))?.tv_channel_id).toBe(tv.id);
+      expect((await api.getChannel(contentId))?.name).toBe(original?.name);
+    } finally {
+      await api.deleteTvChannel(tv.id);
+    }
   });
 });

@@ -1,10 +1,7 @@
-import pytest
-from fastapi.testclient import TestClient
-from main import app
+"""Statistics endpoints use the shared client and its isolated test database."""
 
-client = TestClient(app)
 
-def test_stats_endpoint():
+def test_stats_endpoint(client):
     response = client.get("/api/v1/stats/")
     assert response.status_code == 200
     data = response.json()
@@ -16,7 +13,7 @@ def test_stats_endpoint():
         assert field in data
     assert isinstance(data["urls"], list)
 
-def test_tv_channel_stats_endpoint():
+def test_tv_channel_stats_endpoint(client):
     response = client.get("/api/v1/stats/tv-channels/")
     assert response.status_code == 200
     data = response.json()

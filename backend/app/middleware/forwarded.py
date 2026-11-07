@@ -11,6 +11,7 @@ import ipaddress
 import logging
 from dataclasses import dataclass, field
 from typing import List, Optional, Set
+from network_defaults import automatic_proxy_peers
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,9 @@ def parse_trusted(spec: str) -> TrustedPeers:
     for raw in (spec or "").split(","):
         token = raw.strip()
         if not token:
+            continue
+        if token == 'auto':
+            trusted.networks.extend(ipaddress.ip_network(value) for value in automatic_proxy_peers())
             continue
         if token == "*":
             trusted.everyone = True

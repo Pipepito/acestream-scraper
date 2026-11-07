@@ -1,16 +1,16 @@
 import type { Locator } from '@playwright/test';
 import { AppShell } from './app-shell';
 
-export class OverviewPage extends AppShell {
+export class SystemPage extends AppShell {
   async open(): Promise<void> {
-    await this.goto('/');
-    await this.expectHeading('Overview');
+    await this.goto('/system');
+    await this.expectHeading('System status');
   }
   statusChip(): Locator {
-    return this.page.getByTestId('page-header-actions').getByText(/^(HEALTHY|ATTENTION)$/);
+    return this.page.getByTestId('page-header-actions').getByText(/^(Services healthy|Services need attention|Status unavailable)$/);
   }
   summary(): Locator {
-    return this.statusLine('Overview summary');
+    return this.statusLine('System status summary');
   }
   async refresh(): Promise<void> {
     await this.page.getByRole('button', { name: 'Refresh', exact: true }).first().click();
@@ -27,12 +27,6 @@ export class OverviewPage extends AppShell {
   async restart(label: string): Promise<void> {
     await this.restartButton(label).click();
     await this.confirmDialog(`Restart ${label}?`, 'Restart service');
-  }
-  inventory(): Locator {
-    return this.region('Inventory');
-  }
-  inventoryGroup(title: 'Streams' | 'TV channels' | 'Sources and guide'): Locator {
-    return this.inventory().getByRole('region', { name: title });
   }
   scheduledJobs(): Locator {
     return this.region('Scheduled jobs').getByRole('table', { name: 'Scheduled jobs' });

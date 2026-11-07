@@ -54,3 +54,13 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage('boom')).toBe('Something went wrong. Try again.');
   });
 });
+
+ it('preserves explicit storage errors but masks unexpected server failures', () => {
+  const message = 'Recording storage is unavailable. Check the configured directory and mount.';
+  const error = (code?: string) => ({ isAxiosError: true, message: 'Request failed', response: {
+    status: 503, data: { error: { code, message } },
+  } });
+  expect(getErrorMessage(error('RECORDING_STORAGE_UNAVAILABLE'))).toBe(message);
+  expect(getErrorMessage(error('INTERNAL_ERROR'))).toBe('The server could not complete the request. Try again shortly.');
+  expect(getErrorMessage(error())).toBe('The server could not complete the request. Try again shortly.');
+});

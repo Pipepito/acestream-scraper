@@ -63,3 +63,14 @@ test('raw source authoring generalizes both fields across different IDs', () => 
   expect(result.channels.map(row => row.name)).toEqual(['First channel', 'Other channel']);
   expect(result.channels.map(row => row.channel_id)).toEqual(['a'.repeat(40), 'b'.repeat(40)]);
 });
+
+import telegramFixture from './telegram.fixture.json';
+test.each(['\n', '\r\n'])('Telegram repeating records preserve six pairs with %j line endings', newline => {
+  const sample = `Promotional text\n\n${telegramFixture.sample}\n\nMore promotion`.replace(/\n/g, newline);
+  const result = extractPrepared(validateRecipe(telegramFixture.recipe), sample);
+  expect(result.channels).toHaveLength(6);
+  expect(new Set(result.channels.map(channel => channel.channel_id)).size).toBe(6);
+  expect(result.channels.filter(channel => channel.name === '🇪🇸 Campeones 🇻4️⃣')).toHaveLength(3);
+  expect(result.channels[0].name).toBe('🇷🇺 Eurosport 2 HD');
+  expect(result.invalid_count).toBe(0);
+});

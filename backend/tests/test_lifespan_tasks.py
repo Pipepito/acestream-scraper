@@ -6,18 +6,38 @@ sweeping instead of dying silently and leaking finished relay records.
 """
 import asyncio
 from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock
 
 import pytest
 
 import main
 
 
+@pytest.fixture(autouse=True)
+def isolate_background_io(monkeypatch, tmp_path):
+    """These wiring tests provision no schema and must not open real services."""
+    from app.services import schedule_config_service
+    from app.services.recording_coordinator import recording_coordinator
+    from app.services.telegram.manager import manager as telegram_manager
+
+    monkeypatch.setattr(main, "database_path", lambda: tmp_path / "lifespan.db")
+    monkeypatch.setattr(main.task_service, "restore_states", lambda: None)
+    monkeypatch.setattr(schedule_config_service, "load_schedule_anchors", schedule_config_service.ScheduleAnchors)
+    monkeypatch.setattr(main.task_service, "catch_up_missed_runs", lambda **kwargs: None)
+    monkeypatch.setattr(main.task_service, "catch_up_later", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.task_service, "register_maintenance_targets", lambda *args, **kwargs: None)
+    for service in (recording_coordinator, telegram_manager):
+        monkeypatch.setattr(service, "start", AsyncMock())
+        monkeypatch.setattr(service, "stop", AsyncMock())
+    monkeypatch.setattr(main.tuner_probe_service, "stop", AsyncMock())
+
+
 @asynccontextmanager
 async def _lifespan_without_io(monkeypatch, registered=None, intervals=(24, 6, 60)):
     """Run the real ``main.lifespan`` with its heavy startup work stubbed out.
 
-    Only the database provisioning, the APScheduler wiring and the player
-    service are replaced; the relay reaper is left exactly as production
+    Database-backed and external services are replaced alongside provisioning
+    and APScheduler wiring; the relay reaper is left exactly as production
     creates it. Pass ``registered`` to collect the ``(job_id, seconds, func)``
     of every interval job the lifespan hands the scheduler, and ``intervals``
     to stand in for the ``(rescrape_hours, epg_refresh_hours)`` settings.
@@ -43,6 +63,7 @@ async def _lifespan_without_io(monkeypatch, registered=None, intervals=(24, 6, 6
     async with asyncio.timeout(10):
         async with main.lifespan(main.app):
             await main.app.state.startup_task
+            assert main.startup_service.status == "ready"
             yield
 
 
@@ -74,11 +95,13 @@ async def test_a_failing_player_start_still_stops_the_scheduler(monkeypatch):
     APScheduler (started just before it) running for the life of the process.
     """
     shutdowns = []
+    player_starts = []
 
     async def _noop_async():
         return None
 
     async def refuse_to_start():
+        player_starts.append(True)
         raise PermissionError(13, "Permission denied: /tmp/acestream-player")
 
     monkeypatch.setattr(main, "initialize_database", lambda: None)
@@ -96,6 +119,7 @@ async def test_a_failing_player_start_still_stops_the_scheduler(monkeypatch):
             assert main.startup_service.status == "failed"
             assert not main.startup_service.recovery_available
 
+    assert player_starts == [True], "startup failed before reaching the player"
     assert shutdowns == [True], "the scheduler kept running after the player failed to start"
 
 

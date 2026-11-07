@@ -8,6 +8,37 @@ import pytest
 from fastapi import status
 
 
+@pytest.mark.parametrize('link', [
+    'https://player.test/live.m3u8?next=/tuner/channel/1.ts',
+    'https://player.test/tuner/stream/channel.m3u8',
+    'acestream://channel?label=/tuner/stream/channel.ts',
+])
+def test_custom_formats_do_not_get_a_false_mpeg_ts_hint(link):
+    from app.services.playlist_service import PlaylistService
+
+    # _link_lines also marks /live/ links, so it needs the service's
+    # live_base_url: an instance without one.
+    service = PlaylistService.__new__(PlaylistService)
+    service.live_base_url = None
+    assert service._link_lines(link) == [link]
+
+
+def test_per_source_respects_stream_filters_and_proxy_prefix(client, seed_tv_channels, db_session):
+    tv = seed_tv_channels[0]
+    included = _make_stream(db_session, 'Included', tv_channel_id=tv.id, group='Sports')
+    offline = _make_stream(db_session, 'Offline', tv_channel_id=tv.id, group='Sports', is_online=False)
+    excluded = _make_stream(db_session, 'Excluded', tv_channel_id=tv.id, group='News')
+    response = client.get('/api/v1/playlists/m3u', params={
+        'base_url': 'https://scraper.test/prefix/tuner/channel/{tv_channel_id}.ts?token=example',
+        'per_source': 'true', 'only_online': 'true', 'include_groups': 'Sports',
+    })
+    assert response.status_code == 200
+    assert f'https://scraper.test/prefix/tuner/channel/{tv.id}.ts?token=example' in response.text
+    assert f'https://scraper.test/prefix/tuner/stream/{included.id}.ts?token=example' in response.text
+    assert offline.id not in response.text
+    assert excluded.id not in response.text
+
+
 def _make_stream(db_session, name, tv_channel_id=None, is_online=True,
                  logo=None, tvg_id=None, tvg_name=None, group=None):
     from app.models.models import AcestreamChannel
@@ -36,7 +67,8 @@ class TestTVChannelsPlaylist:
         """TV channels without assigned streams are skipped entirely."""
         response = client.get("/api/v1/playlists/tv-channels/m3u")
         assert response.status_code == status.HTTP_200_OK
-        assert response.text.strip() == "#EXTM3U"
+        assert response.text.strip().startswith("#EXTM3U")
+        assert "\n" not in response.text.strip(), "header only, no entries"
 
     def test_one_entry_per_assigned_stream(self, client, seed_tv_channels, db_session):
         tv = seed_tv_channels[0]
@@ -268,3 +300,50 @@ def test_unassigned_option_in_compatibility_urls(client, db_session, path):
         response = client.get(path, params={'include_unassigned': include})
         assert response.status_code == 200
         assert (loose.id in response.text) == (include == 'true')
+
+
+@pytest.mark.parametrize('path', ['/api/v1/playlists/m3u', '/api/v1/playlists/tv-channels/m3u', '/api/v1/playlists/all-streams/m3u'])
+def test_relay_links_tell_kodi_they_are_mpeg_ts(client, seed_tv_channels, db_session, path):
+    """Without the line Kodi probes the type in its interface thread: through
+    the relay a dead acestream left the remote unresponsive for 13 s, 0 s with
+    it. A user's own link format may be anything, so it is left alone."""
+    tv = seed_tv_channels[0]
+    _make_stream(db_session, 'A', tv_channel_id=tv.id, is_online=True)
+    _make_stream(db_session, 'Loose', is_online=True)
+    relay = client.get(path, params={'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts',
+                                     'only_online': 'false', 'include_unassigned': 'true'}).text.splitlines()
+    links = [i for i, line in enumerate(relay) if '/tuner/' in line and not line.startswith('#')]
+    assert links and all(relay[i - 1] == '#KODIPROP:mimetype=video/mp2t' for i in links)
+    own = client.get(path, params={'base_url': 'acestream://{channel_id}', 'only_online': 'false'}).text
+    assert '#KODIPROP' not in own
+
+
+@pytest.mark.parametrize('path', ['/playlists/m3u', '/playlist.m3u', '/api/playlists/m3u', '/api/v1/playlists/m3u', '/api/v1/playlists/playlists/m3u'])
+def test_per_source_lists_each_source_under_its_relayed_channel(client, seed_tv_channels, db_session, path):
+    """Under each relayed channel, one entry per source, to switch by hand
+    when the automatic choice fails: named as the playlist publishes it plus
+    the start of the acestream id, numbered N.1, N.2..., with the channel's
+    guide and group, opening that source alone through the raw relay."""
+    tv, other = seed_tv_channels[0], seed_tv_channels[1]
+    first = _make_stream(db_session, 'Channel 1080p --> SOURCE', tv_channel_id=tv.id)
+    second = _make_stream(db_session, 'Channel 720p', tv_channel_id=tv.id)
+    _make_stream(db_session, 'Other source', tv_channel_id=other.id)
+    params = {'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts', 'only_online': 'false',
+              'include_unassigned': 'false', 'per_source': 'true'}
+    lines = client.get(path, params=params).text.splitlines()
+    links = [line for line in lines if line and not line.startswith('#')]
+    start = links.index(f'http://scraper.test/tuner/channel/{tv.id}.ts')
+    assert set(links[start + 1:start + 3]) == {f'http://scraper.test/tuner/stream/{first.id}.ts',
+                                               f'http://scraper.test/tuner/stream/{second.id}.ts'}
+    assert links.count(f'http://scraper.test/tuner/channel/{other.id}.ts') == 1
+    at = lines.index(f'http://scraper.test/tuner/stream/{first.id}.ts')
+    assert lines[at - 1] == '#KODIPROP:mimetype=video/mp2t'
+    extinf = lines[at - 2]
+    assert extinf.endswith(f',Channel 1080p --> SOURCE [{first.id[:8]}]')
+    assert f'tvg-chno="{tv.channel_number}.' in extinf
+    assert f'tvg-id="{tv.epg_id}"' in extinf
+    assert f'group-title="{tv.category}"' in extinf
+    # Off by default, and meaningless for a format that already lists sources.
+    assert first.id not in client.get(path, params={**params, 'per_source': 'false'}).text
+    own = client.get(path, params={**params, 'base_url': 'acestream://{channel_id}'}).text
+    assert own.count(f'acestream://{first.id}') == 1

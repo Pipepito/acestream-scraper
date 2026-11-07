@@ -11,6 +11,26 @@ class AcestreamChannelService:
     def __init__(self, db: Session):
         self.repository = ChannelRepository(db)
 
+    def get_source_filters(self):
+        from app.models.url_types import create_url_object
+        from app.services.live_providers import for_source_url
+        values, sources, catalogues = self.repository.source_filter_inventory()
+        labels = {}
+        for url, kind, name in sources:
+            entry = {'label': name or url, 'kind': 'broadcaster' if for_source_url(url) else 'scrape'}
+            labels[url] = entry
+            try:
+                labels[create_url_object(url, kind).get_normalized_url()] = entry
+            except ValueError:
+                pass
+        for ident, name in catalogues:
+            key = f'catalogue:{ident}'
+            labels[key] = {'label': name, 'kind': 'catalogue'}
+            if key not in values:
+                values.append(key)
+        result = [dict(value=value, **labels.get(value, {'label': value, 'kind': 'import'})) for value in values]
+        return sorted(result, key=lambda item: (item['label'].casefold(), item['value']))
+
     def get_all_channels(self, skip: int = 0, limit: int = 100, active_only: bool = True, search: Optional[str] = None) -> List[AcestreamChannel]:
         return self.repository.get_channels(skip=skip, limit=limit, active_only=active_only, search=search)
 

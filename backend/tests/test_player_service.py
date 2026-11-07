@@ -634,12 +634,14 @@ def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_ac
     from app.services.player_service import NO_VIEWERS_SECONDS
 
     stopped = set()
+    starts = []
     stops = []
 
     def handler(request):
         if request.url.path == '/ace/getstream':
             cid = request.url.params['id']
             pid = request.url.params['pid']
+            starts.append((cid, pid))
             return httpx.Response(200, json={'response': {
                 'playback_url': f'http://engine:6878/content/{cid}',
                 'stat_url': f'http://engine:6878/ace/stat/{cid}/{pid}',
@@ -649,7 +651,7 @@ def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_ac
         if '/ace/cmd/' in request.url.path:
             cid = request.url.path.split('/')[-2]
             stopped.add(cid)  # Model native engines: stop affects the entire source.
-            stops.append(cid)
+            stops.append((cid, request.url.path.split('/')[-1]))
         return httpx.Response(200)
 
     class Media(httpx.AsyncByteStream):
@@ -681,6 +683,159 @@ def test_stop_watching_preserves_active_plex_relay(make_service, plex_id, use_ac
             await relay.aclose()
             await svc.stop()
             engine.close()
-        assert stops.count(plex_id) == (0 if use_acexy else 1)
+        # Browser and Plex may have distinct engine sessions for the same
+        # source. Neither stops while Plex plays, and both stop exactly once
+        # after the final viewer leaves. Acexy sends no JSON start/stop calls.
+        assert sorted(stops) == sorted(starts)
+        assert len(stops) == len(set(stops))
+        assert len(starts) == (0 if use_acexy else 2)
 
+    asyncio.run(run())
+
+
+def test_engine_json_start_uses_remaining_player_budget(make_service):
+    seen = []
+
+    def handler(request):
+        if request.url.path == '/ace/getstream':
+            seen.append(request.extensions['timeout'])
+            return httpx.Response(200, json=_STREAM_OK)
+        return httpx.Response(200, json=_STAT_OK)
+
+    svc = make_service(handler=handler, start_timeout=60)
+    original_launch = svc._launch
+
+    async def delayed_launch(session):
+        svc._clock['now'] += 10
+        await original_launch(session)
+
+    svc._launch = delayed_launch
+
+    async def run():
+        try:
+            session = await svc.open_session(IH)
+            assert session.process is not None
+            assert 49 <= seen[0]['read'] <= 50
+            assert seen[0]['connect'] == 5
+        finally:
+            await svc.stop()
+
+    asyncio.run(run())
+
+
+def test_cancelled_player_start_reaps_late_engine_and_frees_slot(make_service):
+    gate, entered = threading.Event(), threading.Event()
+    stops = []
+
+    def handler(request):
+        if request.url.path == '/ace/getstream':
+            entered.set()
+            gate.wait(2)
+            return httpx.Response(200, json=_STREAM_OK)
+        if request.url.path.startswith('/ace/cmd/'):
+            stops.append(request.url)
+        return httpx.Response(200, json=_STAT_OK)
+
+    svc = make_service(handler=handler)
+
+    async def run():
+        opening = asyncio.create_task(svc.open_session(IH))
+        try:
+            assert await _wait(entered.is_set)
+            session = next(iter(svc.sessions.values()))
+            opening.cancel()
+            gate.set()
+            with pytest.raises(asyncio.CancelledError):
+                await opening
+            assert len(stops) == 1
+            assert not svc.sessions
+            assert session.process is None
+            assert not session.dir.exists()
+        finally:
+            gate.set()
+            await svc.stop()
+
+    asyncio.run(run())
+
+
+def test_http_failure_logs_masked_exit_details_without_exposing_them_in_api(make_service, monkeypatch, caplog):
+    from app.services import player_http_source
+    monkeypatch.setattr(player_http_source, 'stored_http_source', lambda _: player_http_source.HTTPStreamSource(
+        'https://media.example/live.m3u8?private=secret', {}))
+    monkeypatch.setenv('FAKE_FFMPEG_PRIVATE_ERROR', '1')
+    svc = make_service(mode='exit_early')
+    async def run():
+        try:
+            session = await svc.open_session('url:' + 'a' * 40)
+            assert await _wait(lambda: session.state == 'error')
+            assert 'ffmpeg exited with 1' in caplog.text
+            assert 'HTTP error 503' in caplog.text
+            assert 'Connection refused' in caplog.text
+            for private in ('signed-value', 'partial-signature', 'private-header', 'cdn.example', str(session.dir)):
+                assert private not in caplog.text
+                assert private not in ' '.join(session.stderr_tail)
+            assert session.error_message == 'The HTTP stream ended or returned unsupported media'
+        finally:
+            await svc.stop()
+    asyncio.run(run())
+
+
+def test_http_startup_timeout_releases_proxy_and_process(make_service, monkeypatch):
+    from app.services import player_http_source
+    monkeypatch.setattr(player_http_source, 'stored_http_source', lambda _: player_http_source.HTTPStreamSource(
+        'https://media.example/live.m3u8?private=secret', {}))
+    svc = make_service(mode='never_ready', start_timeout=5)
+    async def run():
+        try:
+            session = await svc.open_session('url:' + 'a' * 40)
+            source, process = session.http_source, session.process
+            svc._clock['now'] += 6
+            await svc.tick()
+            assert session.error == 'source_unavailable'
+            assert 'secret' not in session.error_message
+            assert source._runner is None and not source._tasks
+            assert process.returncode is not None
+            assert session.engine_session is None
+        finally:
+            await svc.stop()
+    asyncio.run(run())
+
+
+def test_cancelled_http_resolution_frees_session_slot(make_service, monkeypatch):
+    from app.services.player_http_source import PlayerHTTPSource
+    svc = make_service()
+    async def run():
+        entered = asyncio.Event()
+        async def opening(*args, **kwargs):
+            entered.set()
+            await asyncio.Future()
+        monkeypatch.setattr(PlayerHTTPSource, 'open', opening)
+        task = asyncio.create_task(svc.open_session('url:' + 'a' * 40))
+        await entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert not svc.sessions
+    asyncio.run(run())
+
+
+def test_subtitle_selection_preserves_other_viewers_and_discovers_supported_tracks(make_service, monkeypatch):
+    monkeypatch.setenv('FAKE_FFMPEG_SUBTITLES', '1')
+    svc = make_service()
+    async def run():
+        try:
+            plain = await svc.open_session(IH)
+            selected = await svc.open_session(IH, subtitle_index=0)
+            joined = await svc.open_session(IH, subtitle_index=0)
+            assert joined is selected and selected is not plain
+            assert plain.viewers == 1 and selected.viewers == 2
+            assert await _wait(lambda: len(selected.subtitle_tracks) == 2)
+            assert [(t.index, t.language, t.supported) for t in selected.subtitle_tracks] == [(0, 'es', True), (1, 'eng', False)]
+            argv = svc.ffmpeg_argv('http://engine/media', Path('/tmp/hls'), audio_index=1, subtitle_index=0)
+            assert '0:a:1' in argv and '0:s:0' in argv
+            assert argv[argv.index('-c:s') + 1] == 'webvtt'
+            svc.leave(selected.id)
+            assert plain.viewers == selected.viewers == 1
+        finally:
+            await svc.stop()
     asyncio.run(run())

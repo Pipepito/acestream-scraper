@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field
 
 class WarpModeEnum(str, Enum):
     """Available WARP modes for API use"""
+    DOH = "doh"
+    WARP_DOH = "warp+doh"
+    WARP_DOT = "warp+dot"
+    TUNNEL_ONLY = "tunnel_only"
     WARP = "warp"
     DOT = "dot"
     PROXY = "proxy"
@@ -64,3 +68,17 @@ class WarpResponse(BaseModel):
     status: str = Field(default="success", description="Operation status (success/error)")
     message: str
     details: Optional[Dict[str, Any]] = None
+
+
+class WarpExclusionsUpdate(BaseModel):
+    """Replace only app-managed exclusions, with optimistic concurrency."""
+    hosts: list[str] = Field(max_length=64)
+    expected_revision: str = Field(min_length=64, max_length=64)
+
+
+class WarpExclusionsState(BaseModel):
+    hosts: list[str]
+    revision: str
+    active_hosts: list[str] | None
+    applied: bool
+    error: str | None = None

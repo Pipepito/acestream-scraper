@@ -8,6 +8,8 @@ import * as warpHooks from '../hooks/useWarp';
 import { WarpMode } from '../types/warpTypes';
 
 jest.mock('../hooks/useWarp');
+jest.mock('../components/WarpExclusionsSection', () => () => null);
+jest.mock('../components/WarpStartupSection', () => () => null);
 
 const connectedStatus = {
   running: true,
@@ -56,7 +58,7 @@ describe('WARP page', () => {
     expect(status).toHaveTextContent('Connected');
     expect(status).toHaveTextContent('Connected · mode warp · free account · exit GB via LHR');
     expect(screen.queryByText('Tunnel pulse')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Back to Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to System status' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeEnabled();
 

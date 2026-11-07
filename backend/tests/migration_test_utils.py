@@ -2,10 +2,21 @@ import os
 import subprocess
 from pathlib import Path
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def current_head_revision() -> str:
+    """Resolve the single repository head; fail on missing or divergent heads."""
+    config = Config(str(REPO_ROOT / 'backend/migrations/alembic.ini'))
+    config.set_main_option('script_location', str(REPO_ROOT / 'backend/migrations'))
+    head = ScriptDirectory.from_config(config).get_current_head()
+    assert head is not None, 'The migration history must have a head'
+    return head
 
 
 def database_url_for(db_path: Path) -> str:

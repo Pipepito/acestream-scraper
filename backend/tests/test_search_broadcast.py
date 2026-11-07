@@ -34,13 +34,15 @@ def test_search_probe_uses_infohash_without_adding_or_updating_inventory(client,
 
 
 @pytest.mark.parametrize('grouped', [True, False])
-def test_catalogue_status_passes_through_endpoint(client, monkeypatch, grouped):
+def test_catalogue_status_passes_through_endpoint(client, db_session, monkeypatch, grouped):
+    from app.repositories.settings_repository import SettingsRepository
+    SettingsRepository(db_session).set_setting("ace_engine_url", "http://engine")
     item = {'name': 'Example', 'infohash': 'a' * 40, 'status': 1,
             'availability': 1, 'availability_updated_at': 1788614461}
     results = [{'name': 'Example', 'items': [item]}] if grouped else [item]
     response = Mock(status_code=200, text='{}')
     response.json.return_value = {'result': {'results': results, 'total': 1}}
-    monkeypatch.setattr('app.services.search_service.requests.get', Mock(return_value=response))
+    monkeypatch.setattr('app.services.search_catalogue_client.SearchCatalogueClient.get', Mock(return_value=response.json.return_value))
     data = client.get('/api/v1/search?query=Example').json()['results'][0]
     assert data['status'] == 1
     assert data['availability_updated_at'] == 1788614461

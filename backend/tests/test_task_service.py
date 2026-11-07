@@ -167,7 +167,8 @@ async def _manual_overlap_scenario(monkeypatch):
     await first
     state = service.get_task_state('manual_url_scraping')
     assert state['status'] == 'idle'
-    assert state['last_result'] == {'processed': 1, 'failures': 0, 'channels': 2}
+    assert state['last_result'] == {'processed': 1, 'failures': 0, 'channels': 2,
+                                    'import_exclusions': {'excluded_candidates': 0}}
     assert state['next_run'] is None
 
 

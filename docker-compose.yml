@@ -37,12 +37,18 @@ services:
       # - ./acestream_state:/var/lib/acestream
       # All platforms; match PLAYER_HLS_DIR if customized. Omit for /dev/shm.
       # - ./player_data:/tmp/acestream-player
+      # DVR: create the host folder first, set RECORDINGS_DIR and enable in Settings.
+      # - ./recordings:/recordings
       # Embedded ZeroNet node state (ENABLE_ZERONET=true):
       # - ./zeronet_app_data:/data/zeronet
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # On develop, migrated runtime options below seed runtime-config.json once.
+    # Later changes use Settings → Setup wizard and require a restart.
+    # Ports, paths and credentials remain deployment configuration.
     environment:
       - DATABASE_URL=sqlite:///./config/scraper.db
+      # - RECORDINGS_DIR=/recordings
       - LEGACY_DATABASE_URL=sqlite:///./config/acestream.db
       # zero:// sources are fetched through ZERONET_URL. This default targets
       # an external node on the Docker host (e.g. the optional `zeronet`
@@ -55,6 +61,9 @@ services:
       - ENABLE_WARP=false
       - ENABLE_ACESTREAM_ENGINE=false
       - ENABLE_ACEXY=false
+      # Without accounts, TV casting is open to every visitor of the app. Set
+      # true to limit listing and controlling TVs to home networks.
+      # - CAST_REQUIRE_HOME_NETWORK=true
       # Set ENABLE_IPFS=true to run the embedded Kubo daemon (amd64/arm64
       # images only). ipfs:// sources are fetched through IPFS_GATEWAY_URL,
       # which defaults to the embedded gateway (http://127.0.0.1:8081); point

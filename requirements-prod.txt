@@ -1,3 +1,3 @@
--r requirements.txt
-gunicorn==20.1.0
-uvicorn[standard]==0.27.1
+# Compatibility entry point for the canonical v2 FastAPI environment.
+# The retired Flask application and its dependency pins are no longer supported.
+-r backend/requirements.txt

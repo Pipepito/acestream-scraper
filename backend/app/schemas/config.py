@@ -1,6 +1,11 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
+from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+class StreamCheckScope(BaseModel):
+    scope: Literal["all", "assigned", "favorites"]
 
 
 class PlaybackRouting(BaseModel):
@@ -59,6 +64,11 @@ class AppIdUpdate(BaseModel):
 class PublicBaseUrlUpdate(BaseModel):
     """Schema for updating the externally reachable origin (spec 4.3)."""
     value: str = Field("", description="http(s)://host[:port]; empty clears the override")
+
+
+class NotificationWebhookUpdate(BaseModel):
+    """Schema for updating the notification webhook (#41)."""
+    value: str = Field("", description="HTTP(S) webhook URL with a valid host and port, without whitespace or fragments; empty turns notifications off")
 
 
 class DashboardConfigUpdate(BaseModel):
@@ -149,6 +159,7 @@ class ScheduleAnchors(BaseModel):
     url_scraping: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$", description="HH:MM anchor; null retains startup-relative scheduling")
     epg_refresh: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     channel_status: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    offline_stream_cleanup: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
     @field_validator("timezone")
     @classmethod
@@ -159,3 +170,29 @@ class ScheduleAnchors(BaseModel):
         except (ZoneInfoNotFoundError, ValueError) as exc:
             raise ValueError("Use an IANA timezone such as Europe/Madrid or UTC") from exc
         return value
+
+
+class EPGMatchingConfig(BaseModel):
+    enabled: bool = Field(False, description='Automatically apply unambiguous exact guide matches after successful scraping or EPG refresh')
+
+
+class OfflineCleanupConfig(BaseModel):
+    enabled: bool = False
+    offline_days: int = Field(14, ge=1, le=365)
+    interval_days: int = Field(7, ge=1, le=90)
+    remove_linked: bool = False
+    rescrape: bool = True
+
+
+class OfflineCleanupPreview(BaseModel):
+    eligible_streams: int
+    sources: int
+    limit: int = 500
+
+
+class EPGMatchingRun(BaseModel):
+    status: str = 'never'
+    finished_at: Optional[datetime] = None
+    created: int = 0
+    assigned: int = 0
+    review_needed: int = 0

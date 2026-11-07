@@ -37,6 +37,18 @@ def repo(tmp_path):
 
 @pytest.mark.parametrize("path, expected", [
     ("README.md", set()),
+    (".github/ISSUE_TEMPLATE/bug.yml", {"METADATA"}),
+    (".github/ISSUE_TEMPLATE/config.yaml", {"METADATA"}),
+    (".github/rulesets/reviews.json", {"METADATA"}),
+    (".github/workflows/assign-pull-requests.yml", {"METADATA"}),
+    (".github/ISSUE_TEMPLATE/run.py", {"APPLICATION"}),
+    (".github/ISSUE_TEMPLATE/nested/bug.yml", {"APPLICATION"}),
+    (".github/rulesets/run.js", {"APPLICATION"}),
+    (".github/workflows/release.yml", {"APPLICATION"}),
+    (".github/workflows/unknown.yml", {"APPLICATION"}),
+    ("scripts/ci/metadata-tools/validate.cjs", set(selection.KEYS)),
+    ("scripts/ci/metadata-tools/package-lock.json", set(selection.KEYS)),
+    ("scripts/ci/validate_repository_metadata.sh", set(selection.KEYS)),
     ("docs/ops/jenkins-ci.md", set()),
     ("wiki/Home.md", {"WIKI"}),
     ("wiki/phone screenshot.png", {"WIKI"}),
@@ -113,7 +125,7 @@ def test_deleted_wiki_page_still_needs_publication(repo):
     base = commit(repo, "wiki/Removed.md")
     git(repo, "rm", "wiki/Removed.md")
     git(repo, "commit", "-qm", "delete")
-    assert selection.classify(repo, base) == dict(APPLICATION=False, WIKI=True, PAGES=False, DOCKERHUB=False)
+    assert selection.classify(repo, base) == dict(APPLICATION=False, WIKI=True, PAGES=False, DOCKERHUB=False, METADATA=False)
 
 
 @pytest.mark.parametrize("kind", ["symlink", "executable"])
@@ -133,3 +145,29 @@ def test_non_regular_docs_never_run_on_host(repo, kind):
 
 def test_unchanged_successful_revision_has_no_publication(repo):
     assert not any(selection.classify(repo, "HEAD").values())
+
+
+def test_contribution_setup_does_not_build_application_images(repo):
+    base = git(repo, "rev-parse", "HEAD")
+    for path in (".github/ISSUE_TEMPLATE/bug.yml", ".github/rulesets/reviews.json",
+                 ".github/workflows/assign-pull-requests.yml", "docs/ops/repository-governance.md"):
+        commit(repo, path)
+    assert selection.classify(repo, base) == dict(
+        APPLICATION=False, WIKI=False, PAGES=False, DOCKERHUB=False, METADATA=True)
+    commit(repo, "Dockerfile")
+    assert selection.classify(repo, base)["APPLICATION"]
+
+
+@pytest.mark.parametrize("kind", ["symlink", "executable"])
+def test_metadata_mode_changes_keep_full_validation(repo, kind):
+    base = commit(repo, ".github/ISSUE_TEMPLATE/bug.yml")
+    target = repo / ".github/ISSUE_TEMPLATE/bug.yml"
+    if kind == "symlink":
+        target.unlink()
+        target.symlink_to("/etc/passwd")
+    else:
+        target.chmod(0o755)
+        git(repo, "config", "core.filemode", "true")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "mode change")
+    assert selection.classify(repo, base)["APPLICATION"]

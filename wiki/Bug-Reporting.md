@@ -38,27 +38,17 @@ Record CPU architecture, host OS, browser/version and enabled services. Say whet
 
 For startup failures, follow [recovery guidance](Troubleshooting.md#startup-or-upgrade-does-not-finish) before attempting a database reset. Do not delete migration markers or backups to silence an error.
 
-## Issue template
+## Open an issue
 
-Copy this into a [new GitHub issue](https://github.com/Pipepito/acestream-scraper/issues/new):
+Use the [issue chooser](https://github.com/Pipepito/acestream-scraper/issues/new/choose)
+and select **Bug report**. The form asks for reproduction steps, expected and actual
+behavior, version/image identity, environment, and reviewed diagnostic evidence.
+If a requested detail is unavailable, explain why in the field.
 
-```text
-Summary:
-Image tag and image ID/digest:
-Architecture / host OS:
-Browser or media player:
-Enabled services; playback and checker routing:
+Use **Feature request** for new behavior, **Documentation improvement** for guide
+corrections, or **Help or question** when you need setup or usage advice. Search
+existing issues before submitting. A proposed fix belongs in the bug report or a
+linked PR against `develop`; it does not need a separate issue type.
 
-Steps to reproduce:
-1.
-2.
-3.
-
-Expected behavior:
-Actual behavior and exact error:
-When it happened (include timezone):
-Always or intermittent:
-What else I tried:
-
-Attachments: reviewed diagnostics, redacted configuration, screenshots
-```
+The new forms appear once the contribution setup reaches `main`. Until then,
+include the same details in the issue body.

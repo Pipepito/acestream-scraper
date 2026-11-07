@@ -1,0 +1,20 @@
+import apiClient from '../services/apiClient';
+import { catalogueService } from '../services/catalogueService';
+jest.mock('../services/apiClient');
+const api = jest.mocked(apiClient);
+it('uses the versioned catalogue API for preview, save and browsing', async () => {
+  api.get.mockResolvedValue({ data: [] });
+  api.post.mockResolvedValue({ data: { name: 'Preview' } });
+  api.delete.mockResolvedValue({});
+  await catalogueService.list();
+  expect(api.get).toHaveBeenCalledWith('/v1/catalogues');
+  await catalogueService.get(7);
+  expect(api.get).toHaveBeenCalledWith('/v1/catalogues/7');
+  await catalogueService.preview({ url: 'https://example.test/root' });
+  expect(api.post).toHaveBeenCalledWith('/v1/catalogues/preview', { url: 'https://example.test/root' }, { timeout: 60000 });
+  const request = { preview_token: 'reviewed', name: 'Mine', selected_branches: ['root'] };
+  await catalogueService.save(request);
+  expect(api.post).toHaveBeenCalledWith('/v1/catalogues', request);
+  await catalogueService.remove(7);
+  expect(api.delete).toHaveBeenCalledWith('/v1/catalogues/7');
+});

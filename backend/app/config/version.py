@@ -12,15 +12,20 @@ from pathlib import Path
 from packaging.version import Version, parse
 
 
-# version.txt sits two levels above this file: backend/app/config/version.py
-# -> repo_root/version.txt
-_VERSION_FILE = Path(__file__).resolve().parents[3] / "version.txt"
+# The checkout keeps backend/; the runtime image flattens it into /app.
+_VERSION_FILES = (
+    Path(__file__).resolve().parents[3] / "version.txt",
+    Path(__file__).resolve().parents[2] / "version.txt",
+)
 
 
 @lru_cache(maxsize=1)
 def get_app_version() -> str:
     """Return the raw version string from ``version.txt``."""
-    return _VERSION_FILE.read_text(encoding="utf-8").strip()
+    for path in _VERSION_FILES:
+        if path.is_file():
+            return path.read_text(encoding="utf-8").strip()
+    raise FileNotFoundError("Application version.txt is missing")
 
 
 @lru_cache(maxsize=1)

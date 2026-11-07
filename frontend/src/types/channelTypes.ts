@@ -43,6 +43,7 @@ export interface AcestreamChannel extends ChannelBase {
   check_error?: string;
   epg_update_protected?: boolean;
   tv_channel_id?: number;
+  stream_order?: number | null;
   added_at?: string;
   status?: string;
 }

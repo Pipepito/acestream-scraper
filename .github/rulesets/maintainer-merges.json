@@ -1,0 +1,19 @@
+{
+  "name": "Maintainer-controlled integration and release",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [
+    {
+      "actor_id": 1348529,
+      "actor_type": "User",
+      "bypass_mode": "exempt"
+    }
+  ],
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/main", "refs/heads/develop"],
+      "exclude": []
+    }
+  },
+  "rules": [{"type": "update"}]
+}

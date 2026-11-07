@@ -22,13 +22,29 @@ class ChannelResult(BaseModel):
 
 
 class ScraperResult(BaseModel):
+    excluded_count: int = 0
     """Result model for scraper response"""
     message: str
     channels: List[ChannelResult]
     url: str
 
 
-class URLResponse(BaseModel):
+class SourceName(BaseModel):
+    name: Optional[str] = Field(None, max_length=255)
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def clean_name(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+
+class BuiltinProvider(BaseModel):
+    id: str
+    name: str
+    url: str
+
+
+class URLResponse(SourceName):
     """Schema for scraped URL information"""
     id: int
     url: str
@@ -46,6 +62,7 @@ class URLResponse(BaseModel):
 
 
     channels_found: int = 0  # Number of acestream channels found for this URL
+    assigned_count: int = 0  # How many of those streams are linked to a TV channel
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,7 +75,26 @@ class URLResponse(BaseModel):
         return False if value is None else value
 
 
-class URLCreate(BaseModel):
+class URLDeleteResult(BaseModel):
+    deleted_streams: int = 0
+
+
+class OrphanedSource(BaseModel):
+    """Streams whose source URL is no longer configured as a scraper source."""
+    source_url: str
+    count: int
+    assigned_count: int
+
+
+class OrphanCleanupRequest(BaseModel):
+    source_urls: List[str] = Field(min_length=1, max_length=200)
+
+
+class OrphanCleanupResult(BaseModel):
+    deleted: Dict[str, int]
+
+
+class URLCreate(SourceName):
     """Schema for creating a scraped URL"""
     url: str
     url_type: str = "regular"
@@ -68,7 +104,7 @@ class URLCreate(BaseModel):
     scrape_bare_ids: bool = False
 
 
-class URLUpdate(BaseModel):
+class URLUpdate(SourceName):
     """Schema for updating a scraped URL"""
     url: Optional[str] = None
     url_type: Optional[str] = None

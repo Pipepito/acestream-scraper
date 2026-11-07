@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
+import { Autocomplete, Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
-import type { AcestreamChannelFilters } from '../../services/channelService';
+import type { AcestreamChannelFilters, ChannelSourceFilter } from '../../services/channelService';
 
 export interface ChannelFilterBarProps {
   filters: AcestreamChannelFilters;
   groups: string[];
+  sources?: ChannelSourceFilter[];
   onChange: (filters: AcestreamChannelFilters) => void;
 }
 
@@ -16,8 +17,8 @@ type TriState = '' | 'true' | 'false';
 const toTriState = (value: boolean | undefined): TriState => (value === undefined ? '' : value ? 'true' : 'false');
 const fromTriState = (value: TriState): boolean | undefined => (value === '' ? undefined : value === 'true');
 
-/** Filters honoured by the channel list API: text search, group, online state and playlist visibility. */
-const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, onChange }) => {
+/** Filters honoured by the channel list API: text search, group, online state, playlist visibility and TV channel linkage. */
+const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, sources = [], onChange }) => {
   const [search, setSearch] = useState(filters.search ?? '');
 
   useEffect(() => {
@@ -33,7 +34,7 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, on
     return () => window.clearTimeout(timer);
   }, [search, filters, onChange]);
 
-  const hasFilters = Boolean(filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined);
+  const hasFilters = Boolean(filters.source_url || filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined || filters.assigned !== undefined);
 
   const handleGroup = (event: SelectChangeEvent<string>) => {
     onChange({ ...filters, group: event.target.value || undefined });
@@ -43,6 +44,9 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, on
   };
   const handleVisibility = (event: SelectChangeEvent<TriState>) => {
     onChange({ ...filters, is_active: fromTriState(event.target.value as TriState) });
+  };
+  const handleAssigned = (event: SelectChangeEvent<TriState>) => {
+    onChange({ ...filters, assigned: fromTriState(event.target.value as TriState) });
   };
 
   return (
@@ -58,6 +62,16 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, on
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         sx={{ minWidth: { xs: '100%', sm: 220 }, flex: { sm: 1 }, maxWidth: 360 }}
+      />
+      <Autocomplete
+        size="small"
+        options={sources}
+        value={sources.find(source => source.value === filters.source_url) ?? null}
+        getOptionLabel={source => source.label === source.value ? source.value : `${source.label} · ${source.kind === 'catalogue' ? 'W3U catalogue · ' : source.kind === 'broadcaster' ? 'Broadcaster · ' : ''}${source.value}`}
+        isOptionEqualToValue={(option, value) => option.value === value.value}
+        onChange={(_, source) => onChange({ ...filters, source_url: source?.value })}
+        renderInput={params => <TextField {...params} label="Source" placeholder="Name or source URL" />}
+        sx={{ width: { xs: '100%', sm: 280 } }}
       />
       <FormControl size="small" sx={{ minWidth: 150 }}>
         <InputLabel id="channel-filter-group">Group</InputLabel>
@@ -84,6 +98,14 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, on
           <MenuItem value="">All channels</MenuItem>
           <MenuItem value="true">In playlist</MenuItem>
           <MenuItem value="false">Hidden</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="channel-filter-linked">Linked</InputLabel>
+        <Select labelId="channel-filter-linked" label="Linked" value={toTriState(filters.assigned)} onChange={handleAssigned}>
+          <MenuItem value="">Any</MenuItem>
+          <MenuItem value="true">Linked</MenuItem>
+          <MenuItem value="false">Not linked</MenuItem>
         </Select>
       </FormControl>
       {hasFilters ? (

@@ -1,9 +1,10 @@
+from contextlib import closing
 import sqlite3
 import os
 
 db_path = './config/acestream.db'
 if os.path.exists(db_path):
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = cursor.fetchall()

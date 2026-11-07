@@ -17,9 +17,11 @@ import {
 import type { AcestreamChannel } from '../services/channelService';
 import { getErrorMessage } from '../utils/errorUtils';
 import { ApiError } from '../services/apiErrors';
+import TVChannelLinkField from './TVChannelLinkField';
 import { formatRelativeTime } from '../utils/format';
 
 export interface QuickEditValues {
+  tv_channel_id?: number;
   id: string;
   name: string;
   group: string;
@@ -92,7 +94,7 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
     : null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth fullScreen={fullScreen ?? isMobile} aria-labelledby="quick-edit-title">
+    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="xs" fullWidth fullScreen={fullScreen ?? isMobile} aria-labelledby="quick-edit-title">
       <DialogTitle id="quick-edit-title">{creating ? 'Add channel' : 'Edit channel'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
@@ -107,6 +109,7 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
             InputProps={{ readOnly: !creating, sx: { fontFamily: 'monospace' } }}
             helperText={creating ? '40-character hash from the source or the engine search.' : 'The ID cannot be changed after creation.'}
           />
+          {creating ? <TVChannelLinkField value={values.tv_channel_id ?? null} onChange={value => setValues(previous => ({ ...previous, tv_channel_id: value ?? undefined }))} disabled={saving} /> : null}
           <TextField label="Group" value={values.group} onChange={setField('group')} fullWidth />
           <TextField label="Logo URL" value={values.logo} onChange={setField('logo')} fullWidth />
           <TextField label="TVG ID" value={values.tvg_id} onChange={setField('tvg_id')} fullWidth helperText="EPG channel id written to the playlist." />

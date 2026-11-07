@@ -1,4 +1,5 @@
 """Recovery must preserve source files and fail closed before installation."""
+from contextlib import closing
 import json
 import sqlite3
 import threading
@@ -29,7 +30,7 @@ def isolated(tmp_path, monkeypatch):
 
 
 def seed(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.execute('CREATE TABLE settings (id INTEGER PRIMARY KEY, key TEXT, value TEXT)')
         conn.executemany('INSERT INTO settings VALUES (?, ?, ?)', [(1, 'one', 'secret-value'), (2, 'one', 'duplicate'), (3, 'two', 'kept')])
 
@@ -40,7 +41,7 @@ def test_salvage_preserves_readable_rows_and_reports_skips(isolated):
     original = path.read_bytes()
     events = []
     recovery.recover_database('salvage', lambda message, *args: events.append(message))
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         assert conn.execute('SELECT key, value FROM settings ORDER BY id').fetchall() == [('one', 'secret-value'), ('two', 'kept')]
         assert conn.execute('PRAGMA integrity_check').fetchone() == ('ok',)
         assert conn.execute('SELECT version_num FROM alembic_version').fetchone()
@@ -60,7 +61,7 @@ def test_fresh_can_preserve_and_replace_an_unreadable_database(isolated):
     backup = next((isolated / 'backups').glob('recovery-*'))
     assert (backup / 'current' / 'current.db').read_bytes() == b'broken database'
     assert (backup / 'legacy' / 'legacy.db').read_bytes() == b'original legacy'
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         assert conn.execute('SELECT COUNT(*) FROM settings').fetchone() == (0,)
     assert recovery.legacy_disabled()
 
@@ -103,10 +104,10 @@ def test_wal_rows_are_in_the_backup_and_salvaged(isolated):
         conn.execute("INSERT INTO settings VALUES (1, 'wal', 'preserved')")
         conn.commit()
         recovery.recover_database('salvage', lambda *args: None)
-        with sqlite3.connect(path) as rebuilt:
+        with closing(sqlite3.connect(path)) as rebuilt, rebuilt:
             assert rebuilt.execute('SELECT value FROM settings').fetchone() == ('preserved',)
         backup = next((isolated / 'backups').glob('recovery-*'))
-        with sqlite3.connect(backup / 'current' / 'current.db') as saved:
+        with closing(sqlite3.connect(backup / 'current' / 'current.db')) as saved, saved:
             assert saved.execute('SELECT value FROM settings').fetchone() == ('preserved',)
     finally:
         conn.close()
@@ -161,6 +162,39 @@ def test_diagnostics_are_bounded():
     assert startup_service.snapshot().events[0].message == 'Event 100'
 
 
+@pytest.mark.parametrize('failure,dns_only', [('prerequisites', False), ('prerequisites', True), ('setup', False)])
+def test_warp_failure_preserves_authenticated_diagnostics_and_blocks_work(isolated, monkeypatch, failure, dns_only):
+    monkeypatch.setenv('SCRAPER_WARP_STARTUP_ERROR', failure)
+    monkeypatch.setenv('WARP_DNS_ONLY', str(dns_only).lower())
+    monkeypatch.setenv('API_TOKEN', 'test-token')
+    def must_not_start(*args, **kwargs):
+        pytest.fail('WARP failure must block database changes and background services')
+    monkeypatch.setattr(main, 'initialize_database', must_not_start)
+    monkeypatch.setattr(main.task_service, 'start', must_not_start)
+    headers = {'X-Api-Token': 'test-token'}
+    with TestClient(main.app) as client:
+        wait_finished()
+        assert client.get('/api/v1/startup').status_code == 401
+        status = client.get('/api/v1/startup', headers=headers).json()
+        assert status['status'] == 'failed'
+        assert not status['recovery_available']
+        assert 'WARP' in status['guidance']
+        if failure == 'prerequisites':
+            assert 'NET_ADMIN' in status['guidance']
+            if dns_only:
+                assert 'DNS-only mode does not need SYS_ADMIN' in status['guidance']
+        assert client.get('/api/v1/startup/diagnostics', headers=headers).status_code == 200
+        assert client.get('/api/v1/health').status_code == 503
+        assert client.get('/api/v1/settings', headers=headers).status_code == 503
+        assert client.get('/tuner/stream/test').status_code == 503
+        payload = {'action': 'fresh', 'recovery_token': status['recovery_token'], 'confirm': True}
+        assert client.post('/api/v1/startup/recover', json=payload, headers=headers).status_code == 409
+        payload['action'] = 'retry'
+        assert client.post('/api/v1/startup/recover', json=payload, headers=headers).status_code == 202
+        wait_finished()
+        assert client.get('/api/v1/startup', headers=headers).json()['status'] == 'failed'
+
+
 def test_empty_salvage_does_not_install_an_empty_database(isolated):
     path = isolated / 'current.db'
     path.write_bytes(b'no readable tables')
@@ -185,7 +219,7 @@ def test_interrupted_install_salvages_the_preserved_backup(isolated, monkeypatch
     path.write_bytes(b'partial replacement')
     monkeypatch.setattr(recovery.os, 'replace', replace)
     recovery.recover_database('salvage', lambda *args: None)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         assert conn.execute('SELECT COUNT(*) FROM settings').fetchone() == (2,)
 
 
@@ -220,7 +254,7 @@ def test_sources_are_recovered_first_despite_missing_metadata(isolated):
     from app.schemas.epg import EPGSourceResponse
 
     path = isolated / 'current.db'
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.executescript('''
             CREATE TABLE scraped_urls (id INTEGER, url TEXT, enabled INTEGER,
                 url_type TEXT, scrape_bare_ids INTEGER, last_processed TEXT, error_count TEXT);

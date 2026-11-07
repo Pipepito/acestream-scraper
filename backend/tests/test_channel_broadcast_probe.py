@@ -312,3 +312,20 @@ def test_probe_endpoint_uses_explicit_route_or_saved_engine(db_session, monkeypa
     assert service._get_engine_url() == 'http://checker.test:6879'
     monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', '')
     assert service._get_engine_url() == 'http://playback.test:6878'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('verified', [True, False])
+async def test_outpace_idle_lease_reads_media_and_releases(probe, monkeypatch, verified):
+    start = session_response()
+    start['response']['playback_session_id'] = 'session'
+    idle = {'status': 'idle', 'downloaded': 0, 'client_session_id': -1, 'playback_session_id': 'session'}
+    probe._fetch_engine_response = AsyncMock(side_effect=[
+        (200, start, None), (200, {'response': idle}, None), (200, {'response': 'ok'}, None),
+    ])
+    sample = AsyncMock(return_value={'signal_verified': verified})
+    monkeypatch.setattr('app.services.channel_status_service.probe_media', sample)
+    result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Test'), persist=False)
+    assert result['is_online'] is verified
+    sample.assert_awaited_once_with('http://engine.test:6878', 'http://engine.test:6878/ace/r/hash/session', timeout=0.015)
+    assert probe._fetch_engine_response.call_args.args[:2] == ('http://engine.test:6878/ace/cmd/hash/session', {'method': 'stop'})

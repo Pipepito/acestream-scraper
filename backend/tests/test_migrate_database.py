@@ -7,6 +7,7 @@ records the EPG programs as deferred work that runs as a background task.
 """
 from __future__ import annotations
 
+from contextlib import closing
 import json
 import sqlite3
 import threading
@@ -159,9 +160,10 @@ def test_deferred_migration_does_not_duplicate_programs_already_in_v2(legacy_run
 
     # Simulate the hourly EPG refresh having inserted one of the programs
     # before the deferred copy ran (same channel/start/end/title).
-    v1_rows = sqlite3.connect(migrator.v1_migrated_path).execute(
-        "SELECT start_time, end_time, title FROM epg_programs ORDER BY id LIMIT 1"
-    ).fetchone()
+    with closing(sqlite3.connect(migrator.v1_migrated_path)) as source:
+        v1_rows = source.execute(
+            "SELECT start_time, end_time, title FROM epg_programs ORDER BY id LIMIT 1"
+        ).fetchone()
     conn = sqlite3.connect(str(legacy_runtime["v2"]))
     try:
         v2_channel = conn.execute("SELECT id FROM epg_channels").fetchone()[0]
@@ -268,7 +270,7 @@ def _strip_scrape_bare_ids_default(v2_path: Path) -> None:
     """Recreate the column the way the pre-2026-08-29 image's create_all left it: nullable, no default."""
     if sqlite3.sqlite_version_info < (3, 35):
         pytest.skip("ALTER TABLE ... DROP COLUMN needs SQLite 3.35+")
-    with sqlite3.connect(v2_path) as conn:
+    with closing(sqlite3.connect(v2_path)) as conn, conn:
         conn.execute("ALTER TABLE scraped_urls DROP COLUMN scrape_bare_ids")
         conn.execute("ALTER TABLE scraped_urls ADD COLUMN scrape_bare_ids BOOLEAN")
 
@@ -294,7 +296,7 @@ def test_foreground_migration_writes_scrape_bare_ids_without_a_server_default(le
 
     assert _migrator().run_migration() is True
 
-    with sqlite3.connect(legacy_runtime["v2"]) as conn:
+    with closing(sqlite3.connect(legacy_runtime["v2"])) as conn, conn:
         flags = [row[0] for row in conn.execute("SELECT scrape_bare_ids FROM scraped_urls")]
     assert flags == [0]
 
@@ -305,7 +307,7 @@ def test_startup_backfills_null_scrape_bare_ids_on_an_existing_database(legacy_r
     repair the rows itself."""
     v2 = legacy_runtime["v2"]
     _create_all_v2(v2)
-    with sqlite3.connect(v2) as conn:
+    with closing(sqlite3.connect(v2)) as conn, conn:
         conn.execute(
             "INSERT INTO scraped_urls "
             "(url, url_type, status, error_count, enabled, added_at, scrape_bare_ids) "
@@ -316,5 +318,5 @@ def test_startup_backfills_null_scrape_bare_ids_on_an_existing_database(legacy_r
 
     initialize_database()
 
-    with sqlite3.connect(v2) as conn:
+    with closing(sqlite3.connect(v2)) as conn, conn:
         assert conn.execute("SELECT scrape_bare_ids FROM scraped_urls").fetchall() == [(0,)]

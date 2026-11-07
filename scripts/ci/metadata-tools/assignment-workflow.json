@@ -1,0 +1,33 @@
+{
+  "name": "Assign pull requests",
+  "on": {
+    "pull_request_target": {
+      "types": [
+        "opened",
+        "reopened",
+        "ready_for_review"
+      ]
+    }
+  },
+  "permissions": {},
+  "jobs": {
+    "assign": {
+      "if": "github.repository == 'Pipepito/acestream-scraper' && github.event.pull_request.user.login != 'Pipepito' && !contains(github.event.pull_request.assignees.*.login, 'Pipepito')",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 2,
+      "permissions": {
+        "pull-requests": "write"
+      },
+      "steps": [
+        {
+          "name": "Assign to Pipepito",
+          "env": {
+            "GH_TOKEN": "${{ github.token }}",
+            "PR_NUMBER": "${{ github.event.pull_request.number }}"
+          },
+          "run": "gh api --method POST \\\n  \"repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/assignees\" \\\n  --raw-field 'assignees[]=Pipepito' \\\n  --silent\n"
+        }
+      ]
+    }
+  }
+}

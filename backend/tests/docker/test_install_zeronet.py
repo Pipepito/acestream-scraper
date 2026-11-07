@@ -217,3 +217,28 @@ else:
                 assert (state / "users.json").read_text() == '{"stale": true}'
     finally:
         subprocess.run(["docker", "rmi", "-f", tag], capture_output=True)
+
+
+@pytest.mark.skipif(not _docker_available(), reason="docker not available on this runner")
+def test_zeronet_source_bootstraps_through_prefixed_gateway(tmp_path):
+    """Run the application scraper against the real bundled node, without peers."""
+    tag = f"acestream-zeronet-source-test:{uuid.uuid4().hex[:8]}"
+    state = tmp_path / 'source-state'
+    state.mkdir()
+    script = '/review/backend/tests/docker/zeronet_source_smoke.py'
+    subprocess.run(['docker', 'buildx', 'build', '--platform', _native_platform(),
+                    '--load', '--target', 'scraper', '--tag', tag, str(REPO_ROOT)], check=True)
+    try:
+        common = ['docker', 'run', '--rm', '--network', 'none',
+                  '-v', f'{state}:/data/zeronet', '-v', f'{REPO_ROOT}:/review:ro']
+        seeded = subprocess.run(common + ['--entrypoint', '/opt/zeronet/python/bin/python3.11',
+            '-e', 'LD_LIBRARY_PATH=/opt/zeronet/python/lib', tag, script, '--seed'],
+            capture_output=True, text=True, timeout=30)
+        assert seeded.returncode == 0, seeded.stdout + seeded.stderr
+        result = subprocess.run(common + ['-e', 'ENABLE_ZERONET=true', '-e', 'LOG_DIR=/tmp/logs',
+            '-e', 'ZERONET_EXTRA_ARGS=--no-bootstrap --offline', '-e', 'PYTHONPATH=/app',
+            tag, 'python', script], capture_output=True, text=True, timeout=45)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert 'PASS: fresh real ZeroNet node' in result.stdout
+    finally:
+        subprocess.run(['docker', 'rmi', '-f', tag], capture_output=True)

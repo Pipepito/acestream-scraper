@@ -1,4 +1,6 @@
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+jest.mock('../services/guideSetupService', () => ({ guideSetupService: { coverage: jest.fn().mockResolvedValue({ streams: 48, linked_streams: 12, guide_channels: 24 }) } }));
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import Playlist from '../pages/Playlist';
@@ -19,7 +21,7 @@ describe('Playlist page', () => {
     render(
       <ThemeProvider theme={createAppTheme('light')}>
         <TestMemoryRouter>
-          <Playlist />
+          <QueryClientProvider client={new QueryClient()}><Playlist /></QueryClientProvider>
         </TestMemoryRouter>
       </ThemeProvider>
     );
@@ -94,6 +96,21 @@ describe('Playlist page', () => {
     expect(url.searchParams.get('base_url')).toContain('/tuner/channel/{tv_channel_id}.ts');
     expect(url.searchParams.has('base_url_id')).toBe(false);
     expect(screen.getByText(/One entry per TV channel/)).toBeVisible();
+  });
+
+  it('lists each source only for relay formats', () => {
+    renderPage();
+    const option = screen.getByRole('checkbox', { name: 'List each source under its channel' });
+    expect(option).toBeDisabled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Stream link format' }));
+    fireEvent.click(screen.getByRole('option', { name: 'TV channel relay (automatic failover)' }));
+    expect(new URL(urlField().value).searchParams.has('per_source')).toBe(false);
+    fireEvent.click(option);
+    expect(new URL(urlField().value).searchParams.get('per_source')).toBe('true');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Stream link format' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Local HLS' }));
+    expect(option).toBeDisabled();
+    expect(new URL(urlField().value).searchParams.has('per_source')).toBe(false);
   });
 
   it('appends base_url_id when a named link format is selected', () => {

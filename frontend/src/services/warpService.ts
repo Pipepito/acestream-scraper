@@ -54,3 +54,10 @@ export const registerWarpLicense = async (licenseKey: string): Promise<WarpRespo
   const response = await apiClient.post<WarpResponse>(`${API_PATH}/license`, request);
   return response.data;
 };
+
+export type WarpExclusions = import('../types/api-generated').components['schemas']['WarpExclusionsState'];
+export type WarpExclusionsUpdate = import('../types/api-generated').components['schemas']['WarpExclusionsUpdate'];
+export const getWarpExclusions = async (): Promise<WarpExclusions> =>
+  (await apiClient.get<WarpExclusions>(`${API_PATH}/exclusions`)).data;
+export const saveWarpExclusions = async (request: WarpExclusionsUpdate): Promise<WarpExclusions> =>
+  (await apiClient.put<WarpExclusions>(`${API_PATH}/exclusions`, request)).data;

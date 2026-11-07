@@ -1,4 +1,4 @@
-// Scheduler status used by the Overview page
+// Scheduler status used by the TV and system dashboards
 import apiClient from './apiClient';
 import type { components } from '../types/api-generated';
 

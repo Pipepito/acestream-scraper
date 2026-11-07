@@ -205,13 +205,14 @@ describe('EPG page', () => {
     fireEvent.click(screen.getByLabelText('Go to next page'));
 
     expect(lastCallOfListQuery()).toEqual([undefined, 2, 100]);
+    expect(screen.getByText('Loading channels…')).toBeInTheDocument();
   });
 
   it('shows the matching controls only on the Matching tab', () => {
     renderPage('/epg?tab=matching');
     expect(screen.getByRole('combobox', { name: 'Match Strictness' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Analyze Matches' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Create Matched TV Channels' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply reviewed matches' })).toBeDisabled();
     expect(screen.queryByRole('table', { name: 'Guide channels' })).not.toBeInTheDocument();
   });
 });

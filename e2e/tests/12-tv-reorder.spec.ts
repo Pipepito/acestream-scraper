@@ -1,10 +1,15 @@
 import { test, expect } from '../src/fixtures';
 
 test('drag order previews numbers, saves and survives reload', async ({ page, api }) => {
-  const before = (await api.listTvChannels()).items;
-  test.skip(before.length < 2, 'Needs at least two channels in the local journey inventory.');
-  const first = before[0], last = before[before.length - 1];
+  let before = (await api.listTvChannels()).items;
+  const created: number[] = [];
   try {
+    while (before.length < 2) {
+      const added = await api.createTvChannel({ name: `E2E reorder ${Date.now()}-${created.length}` });
+      created.push(added.id);
+      before = (await api.listTvChannels()).items;
+    }
+    const first = before[0], last = before[before.length - 1];
     await page.goto('/tv-channels');
     await page.getByRole('button', { name: 'Reorder channels', exact: true }).click();
     const list = page.getByRole('list', { name: 'Channel order' });
@@ -26,5 +31,6 @@ test('drag order previews numbers, saves and survives reload', async ({ page, ap
       const result = await api.raw('put', `/api/v1/tv-channels/${channel.id}`, { channel_number: channel.channel_number ?? null });
       expect(result.ok()).toBe(true);
     }
+    for (const id of created) await api.deleteTvChannel(id);
   }
 });

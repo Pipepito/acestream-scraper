@@ -1,0 +1,69 @@
+{
+  "name": "example",
+  "description": "Template for operator-owned fixtures. Replace reserved example.invalid URLs and synthetic channel names before selecting this scenario explicitly.",
+  "stack": {
+    "engineUrl": "http://127.0.0.1:6878",
+    "acexyUrl": "http://127.0.0.1:8081",
+    "ipfsGateway": "http://127.0.0.1:8080"
+  },
+  "scrape": {
+    "sources": [
+      {
+        "id": "fixture",
+        "label": "Operator test playlist",
+        "url": "https://example.invalid/fixture.m3u",
+        "urlType": "auto",
+        "expectMinChannels": 1,
+        "scrapeTimeoutMs": 30000
+      }
+    ]
+  },
+  "search": {
+    "queries": [
+      {
+        "query": "Test channel",
+        "expectMinResults": 1,
+        "addFirst": 1
+      }
+    ]
+  },
+  "epg": {
+    "sources": [
+      {
+        "name": "Operator test guide",
+        "url": "https://example.invalid/guide.xml",
+        "expectMinChannels": 1,
+        "refreshTimeoutMs": 30000
+      }
+    ],
+    "targetChannel": {
+      "xmlId": "test-channel",
+      "displayNameContains": "Test channel"
+    }
+  },
+  "tv": {
+    "channels": [
+      {
+        "name": "E2E Test channel",
+        "category": "Test",
+        "streamSearchQuery": "Test channel",
+        "epgXmlId": "test-channel"
+      }
+    ]
+  },
+  "playlist": {
+    "baseUrlName": "E2E Acexy",
+    "baseUrlPattern": "http://127.0.0.1:8081/ace/getstream?id={channel_id}"
+  },
+  "integrations": {
+    "playbackChannelName": "Test channel",
+    "playbackTimeoutMs": 60000
+  },
+  "errors": {
+    "allowedApiErrorPatterns": [],
+    "allowedConsolePatterns": [
+      "React Router Future Flag Warning",
+      "Download the React DevTools"
+    ]
+  }
+}

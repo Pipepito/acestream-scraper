@@ -9,6 +9,8 @@ import * as configHooks from '../hooks/useConfig';
 import * as baseUrlHooks from '../hooks/useBaseUrls';
 import { ApiError } from '../services/apiErrors';
 import { configService } from '../services/configService';
+import { setupService } from '../services/setupService';
+jest.mock('../services/setupService', () => ({ setupQueryKey: ['installation-setup'], setupService: { get: jest.fn(), save: jest.fn() } }));
 
 jest.mock('../hooks/useSystemServices', () => ({
   usePublicUrl: () => ({ data: { url: 'http://192.168.1.10:8000', source: 'setting', warnings: [] } }),
@@ -17,11 +19,15 @@ jest.mock('../hooks/useSystemServices', () => ({
 }));
 jest.mock('../hooks/useTuner', () => ({ useTunerStatus: () => ({ data: undefined }) }));
 jest.mock('../hooks/useConfig');
+jest.mock('../services/guideSetupService', () => ({ guideSetupService: { config: jest.fn().mockResolvedValue({ enabled: false }), lastRun: jest.fn().mockResolvedValue({ status: 'never' }) } }));
 jest.mock('../hooks/useBaseUrls');
+jest.mock('../components/recordings/RecordingSettingsFields', () => ({ __esModule: true, default: () => <div>Recording settings</div> }));
 jest.mock('../services/configService', () => ({
-  configService: { getAppId: jest.fn(), updateAppId: jest.fn() },
+  configService: { getStreamCheckScope: jest.fn().mockResolvedValue({ scope: 'all' }), updateStreamCheckScope: jest.fn(), getAppId: jest.fn(), updateAppId: jest.fn(), getNotificationWebhookUrl: jest.fn().mockResolvedValue('') },
   getScheduleAnchors: jest.fn().mockResolvedValue({ timezone: 'UTC', url_scraping: null, epg_refresh: null, channel_status: null }),
   saveScheduleAnchors: jest.fn(),
+  getOfflineCleanup: jest.fn().mockResolvedValue({ enabled: false, offline_days: 14, interval_days: 7, remove_linked: false, rescrape: true }),
+  saveOfflineCleanup: jest.fn(), previewOfflineCleanup: jest.fn(),
 }));
 
 type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
@@ -75,6 +81,25 @@ describe('Settings page', () => {
     (baseUrlHooks.useCreateBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (baseUrlHooks.usePatchBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
     (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
+  });
+
+  it.each(['assigned', 'favorites'] as const)('saves the %s stream check scope from Automation', async scope => {
+    jest.mocked(configService.updateStreamCheckScope).mockResolvedValue({ scope });
+    renderPage('automation');
+    const selector = await screen.findByRole('combobox', { name: 'Streams to check' });
+    expect(selector).toHaveValue('all');
+    fireEvent.change(selector, { target: { value: scope } });
+    await waitFor(() => expect(selector).toHaveValue(scope));
+    expect(jest.mocked(configService.updateStreamCheckScope).mock.calls[0][0]).toEqual({ scope });
+  });
+
+  it('opens network controls directly from their Settings tab without the wizard', async () => {
+    jest.mocked(setupService.get).mockResolvedValue({ version: 1, setup_complete: true, revision: 'a'.repeat(64), restart_required: false, api_protected: false, unavailable: {},
+      runtime: { FORWARDED_ALLOW_IPS: '127.0.0.1' }, options: [{ name: 'FORWARDED_ALLOW_IPS', label: 'Trusted reverse proxies', default: '127.0.0.1', kind: 'networks', group: 'network', help: '' }] });
+    renderPage('network');
+    expect(await screen.findByRole('textbox', { name: 'Trusted reverse proxies' })).toHaveValue('127.0.0.1');
+    expect(screen.getByRole('tab', { name: 'Network' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('prefills an editable Acexy format using the external host', async () => {

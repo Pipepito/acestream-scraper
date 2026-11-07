@@ -2,12 +2,15 @@
  * Scraper API service
  */
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
+export type BuiltinProvider = components['schemas']['BuiltinProvider'];
 import type { ExtractionRecipe } from '../recipes/types';
 
 /**
  * Scraper URL model interface
  */
 export interface ScrapedURL {
+  name?: string | null;
   id: number;
   url: string;
   url_type: string;
@@ -19,14 +22,21 @@ export interface ScrapedURL {
   last_error?: string | null;
   added_at: string;
   channels_found?: number;
+  /** How many of this source's streams are linked to a TV channel. */
+  assigned_count?: number;
   scrape_bare_ids?: boolean;
   extraction_recipe?: ExtractionRecipe | null;
 }
+
+export type URLDeleteResult = components['schemas']['URLDeleteResult'];
+export type OrphanedSource = components['schemas']['OrphanedSource'];
+export type OrphanCleanupResult = components['schemas']['OrphanCleanupResult'];
 
 /**
  * URL creation DTO
  */
 export interface CreateURLDTO {
+  name?: string | null;
   url: string;
   url_type: string;
   enabled?: boolean;
@@ -38,6 +48,7 @@ export interface CreateURLDTO {
  * URL update DTO
  */
 export interface UpdateURLDTO {
+  name?: string | null;
   url?: string;
   url_type?: string;
   enabled?: boolean;
@@ -73,6 +84,10 @@ export interface ScrapeResult {
  * Scraper API service
  */
 export const scraperService = {
+  getProviders: async (): Promise<BuiltinProvider[]> => {
+    const { data } = await apiClient.get('/v1/scrapers/providers');
+    return data;
+  },
   /**
    * Get all URLs
    */
@@ -106,10 +121,23 @@ export const scraperService = {
   },
 
   /**
-   * Delete a URL
+   * Delete a URL, optionally with every stream it owns.
    */
-  deleteURL: async (id: number): Promise<void> => {
-    await apiClient.delete(`/v1/scrapers/urls/${id}`);
+  deleteURL: async (id: number, deleteStreams = false): Promise<URLDeleteResult> => {
+    const { data } = await apiClient.delete(`/v1/scrapers/urls/${id}`, { params: { delete_streams: deleteStreams } });
+    return data;
+  },
+
+  /** Streams whose source URL is no longer configured. */
+  orphanedSources: async (): Promise<OrphanedSource[]> => {
+    const { data } = await apiClient.get('/v1/scrapers/orphaned-sources');
+    return data;
+  },
+
+  /** Delete the streams of the chosen removed sources. */
+  cleanupOrphanedSources: async (sourceUrls: string[]): Promise<OrphanCleanupResult> => {
+    const { data } = await apiClient.post('/v1/scrapers/orphaned-sources/cleanup', { source_urls: sourceUrls });
+    return data;
   },
 
   /**

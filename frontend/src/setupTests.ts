@@ -1,3 +1,8 @@
+// React Router 7 uses the browser Encoding API; jsdom needs Node's implementation.
+import { TextDecoder, TextEncoder } from 'node:util';
+
+Object.assign(globalThis, { TextDecoder, TextEncoder });
+
 // jest-dom adds custom jest matchers for asserting on DOM nodes.
 // allows you to do things like:
 // expect(element).toHaveTextContent(/react/i)

@@ -208,45 +208,25 @@ manual procedure.
 
 ## How to verify in CI
 
-Jenkins is the only CI (`docs/ops/jenkins-ci.md`). A PR that touches
-`docker/manifests/acestream.json` or `docker/vendor/` runs the multibranch PR
-job `acestream-scraper-pr` (`Jenkinsfile`), which:
+Jenkins is the only application CI; see [the public CI contract](jenkins-ci.md).
+Its pipeline definitions and host tooling live in the private infrastructure
+repository. Public Jenkinsfiles cannot select CI policy.
 
-- dry-runs the four-flavor multi-arch matrix and verifies each result file
-  (`Required Cutover Checks` and `Multi-Arch Quick Profile` stages; the
-  latter also runs `phase5_gate_runner.py --profile quick`);
-- in the `Acestream Engine Runtime Smoke` stage builds `scraper-acestream`
-  pinned to `--platforms linux/amd64 --load` (the flavor now resolves to
-  three platforms and `--load` needs exactly one), runs
-  `backend/tests/docker/test_acestream_runtime_smoke.py` (the amd64 engine
-  boots and answers on `:6878`), `test_acexy_runtime_smoke.py`, and
-  `test_install_acestream.py -k "arm_oci_image_install_layout"` (builds of
-  the ARM installer stages, asserting the engine payload and
-  bionic layout — no engine execution).
+PRs run application checks in network-disabled containers and architecture runtime
+contracts in amd64, arm64 and arm/v7 userlands. Both forks and origin branches
+require owner approval for proposed dependency installation and host image builds.
+Approved image validation covers every supported flavor/platform without publishing.
+Runtime tests and local build commands remain in this application repository.
 
-The runner `dorat-nuc-ci` is amd64, so the arm64 runtime smoke never runs in
-CI; the same pytest parametrizes `linux/arm64` only when the host is arm64.
+Trusted develop and manual main releases retain full application validation and
+Docker/runtime smoke checks. An amd64 runner cannot establish native ARM engine
+runtime behavior: run the hardware checks above before claiming ARM readiness.
+The public `phase5_gate_runner.py --profile full` remains available for manual
+multi-architecture evidence. Record the application commit, build result and native
+hardware evidence separately; a successful build alone is not a runtime proof.
 
-The manual release job `acestream-scraper-release`
-(`jenkins/release.Jenkinsfile` -> `scripts/ci/run_jenkins_release.sh`) runs
-`run_cutover_required_checks.sh --profile full`, the same four-flavor dry-run
-preflight, and — on publish runs (`DRY_RUN=false`) — the same amd64 engine
-smoke plus the ARM installer-layout test before logging into Docker Hub. The
-pushed `scraper-acestream`, `scraper-acestream-acexy`, `latest`, and version
-tags include `linux/arm64` and `linux/arm/v7`, and
-`verify_multiarch_manifest.sh --image <tag> --flavor <flavor>` checks every
-remote manifest after the push. The job archives
-`phase5-build-result-release-*.json` and
-`phase5-build-result-release-metadata.json`; link that build from
-`docs/release/phase5-multiarch-evidence.md`. The heavier
-`phase5_gate_runner.py --profile full` is not wired into either job — run it
-manually (step 7 above) before merging risky multi-arch changes.
-
-> Superseded on 2026-08-27: earlier revisions of this section pointed at the
-> GitHub Actions `Release Pipeline` (`workflow_dispatch`) and a
-> `multiarch-runtime-smoke` job that uploaded `phase5-gate-report-full.json`.
-> All GitHub Actions workflows are retired; the Jenkins jobs above are the
-> only CI path.
+Publication, release tag checks and latest promotion are controlled by the private
+pipeline. Use its operational runbook for maintainer-only release commands.
 
 ## Rollback
 
@@ -282,7 +262,7 @@ platform has an installable entry and prints the
 single-platform experiments, and `scripts/ci/derive_acestream_build_args.py
 <acestream.json> <flavor> [<platform>]` prints them for inspection. The CI
 runtime smoke (`backend/tests/docker/test_acestream_runtime_smoke.py`, run by
-`Jenkinsfile` and `scripts/ci/run_jenkins_release.sh`) verifies the engine
+the private develop and release pipelines) verifies the engine
 actually starts and responds on port 6878 in the resulting image.
 
 > Superseded on 2026-08-27: the description above replaces the earlier

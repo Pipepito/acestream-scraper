@@ -1,15 +1,26 @@
 import React from 'react';
+import Hls from 'hls.js';
 import { ThemeProvider } from '@mui/material/styles';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
 import { describePlayerError } from '../components/player/playerCopy';
 import { createAppTheme } from '../theme';
+import { accessSession } from '../services/accessSession';
+import { setApiToken } from '../services/apiToken';
+
+// jsdom has no decoder; model the lifecycle operations the player calls.
+beforeAll(() => {
+  jest.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+  jest.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
+});
+afterAll(() => jest.restoreAllMocks());
 
 const mockStart = jest.fn();
 const mockStatus = jest.fn();
 const mockPublicUrl = jest.fn();
 const mockLeave = jest.fn();
 interface MockHlsInstance {
+  options: { xhrSetup: (xhr: XMLHttpRequest) => void };
   loadSource: jest.Mock;
   attachMedia: jest.Mock;
   destroy: jest.Mock;
@@ -24,7 +35,7 @@ const hlsInstances: MockHlsInstance[] = [];
 jest.mock('hls.js', () => {
   class MockHls {
     static isSupported = () => true;
-    static Events = { ERROR: 'hlsError' };
+    static Events = { ERROR: 'hlsError', SUBTITLE_TRACKS_UPDATED: 'subtitleTracksUpdated' };
     static ErrorTypes = { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError', OTHER_ERROR: 'otherError' };
     static ErrorDetails = {
       BUFFER_INCOMPATIBLE_CODECS_ERROR: 'bufferIncompatibleCodecsError',
@@ -36,7 +47,7 @@ jest.mock('hls.js', () => {
     startLoad = jest.fn();
     recoverMediaError = jest.fn();
     on = jest.fn();
-    constructor() { hlsInstances.push(this); }
+    constructor(public options: { xhrSetup: (xhr: XMLHttpRequest) => void }) { hlsInstances.push(this); }
   }
   return { __esModule: true, default: MockHls };
 });
@@ -67,6 +78,33 @@ describe('StreamPlayerDialog', () => {
     hlsInstances.length = 0;
     mockPublicUrl.mockReturnValue({ data: { url: 'http://scraper.lan:8000', source: 'setting', warnings: [] } });
     mockStart.mockResolvedValue({ id: 's1' });
+  });
+
+  it.each([true, false])('keeps legacy credentials out of account media (hls.js: %s)', async (supported) => {
+    const support = jest.spyOn(Hls, 'isSupported').mockReturnValue(supported);
+    const playlist = '/api/v1/viewers/viewer/media/index.m3u8?cap=viewer-media';
+    accessSession.update('csrf', true);
+    setApiToken('legacy-catalogue-token');
+    try {
+      mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
+      const view = await renderDialog();
+      mockStatus.mockReturnValue({ data: { ...readySession.data, playlist_url: playlist } });
+      view.rerender(<ThemeProvider theme={createAppTheme('light')}>
+        <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} />
+      </ThemeProvider>);
+      if (supported) {
+        expect(hlsInstances[0].loadSource).toHaveBeenCalledWith(playlist);
+        const setRequestHeader = jest.fn();
+        hlsInstances[0].options.xhrSetup({ setRequestHeader } as unknown as XMLHttpRequest);
+        expect(setRequestHeader).not.toHaveBeenCalled();
+      } else {
+        expect(screen.getByLabelText('Video player for Arena TV')).toHaveAttribute('src', playlist);
+      }
+    } finally {
+      support.mockRestore();
+      accessSession.update('', false);
+      setApiToken('');
+    }
   });
 
   it('keeps the inline schedule open and resizes without restarting playback', async () => {
@@ -100,6 +138,21 @@ describe('StreamPlayerDialog', () => {
     );
     expect(hlsInstances).toHaveLength(1);
     expect(hlsInstances[0].loadSource).toHaveBeenCalledWith('/api/v1/player/sessions/s1/index.m3u8');
+  });
+
+  it('opens imported HTTP streams with HTTP status copy and no engine-only link', async () => {
+    mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
+    await renderDialog({ contentId: 'url:' + 'a'.repeat(40), title: 'laSexta' });
+    expect(mockStart).toHaveBeenCalledWith('url:' + 'a'.repeat(40));
+    expect(screen.getByRole('status')).toHaveTextContent('opening the HTTP stream');
+    expect(screen.queryByRole('button', { name: 'Copy stream link' })).not.toBeInTheDocument();
+  });
+
+  it('explains HTTP source failures without suggesting engine settings', async () => {
+    mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'error', error: 'source_unavailable' } });
+    await renderDialog({ contentId: 'url:' + 'a'.repeat(40) });
+    expect(screen.getByRole('alert')).toHaveTextContent('The HTTP stream could not be opened');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
   it('reports actual browser playback and waiting instead of server readiness', async () => {
@@ -169,6 +222,47 @@ describe('StreamPlayerDialog', () => {
     act(() => { handler('hlsError', data); });
   };
 
+  it.each(['error', 'stopped', 'gone'])('stops fetching stale HLS after the session is %s', async (state) => {
+    const view = await renderPlaying();
+    const terminal = state === 'gone' ? { error: { status: 404 } } : {
+      data: { ...readySession.data, state, error: state === 'error' ? 'ffmpeg_failed' : null },
+    };
+    mockStatus.mockReturnValue(terminal);
+    const dialog = () => <ThemeProvider theme={createAppTheme('light')}>
+      <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} />
+    </ThemeProvider>;
+    view.rerender(dialog());
+    expect(hlsInstances[0].destroy).toHaveBeenCalledTimes(1);
+    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+    expect(screen.getByLabelText('Video player for Arena TV')).not.toHaveAttribute('src');
+    // The old playlist still exists on disk, but must never be reattached.
+    mockStatus.mockReturnValue({ ...terminal, data: terminal.data && { ...terminal.data } });
+    view.rerender(dialog());
+    expect(hlsInstances).toHaveLength(1);
+  });
+
+  it('also detaches native HLS when the backend fails', async () => {
+    const supported = jest.spyOn(Hls, 'isSupported').mockReturnValue(false);
+    try {
+      mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'starting', hls_ready: false } });
+      const view = await renderDialog();
+      const dialog = () => <ThemeProvider theme={createAppTheme('light')}>
+        <StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} />
+      </ThemeProvider>;
+      mockStatus.mockReturnValue(readySession);
+      view.rerender(dialog());
+      const video = screen.getByLabelText('Video player for Arena TV');
+      expect(video).toHaveAttribute('src', '/p');
+      mockStatus.mockReturnValue({ data: { ...readySession.data, state: 'error', error: 'ffmpeg_failed' } });
+      view.rerender(dialog());
+      expect(video).not.toHaveAttribute('src');
+      expect(HTMLMediaElement.prototype.load).toHaveBeenCalled();
+      expect(hlsInstances).toHaveLength(0);
+    } finally {
+      supported.mockRestore();
+    }
+  });
+
   it('recovers from fatal hls.js network and media errors instead of freezing', async () => {
     await renderPlaying();
     emitHlsError({ fatal: false, type: 'networkError', details: 'fragLoadError' });
@@ -186,6 +280,7 @@ describe('StreamPlayerDialog', () => {
     expect(hlsInstances[0].destroy).toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/Playback stopped/);
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await act(async () => { await Promise.resolve(); });
     expect(mockStart).toHaveBeenCalledTimes(2);
   });
 
@@ -252,4 +347,29 @@ it('offers discovered audio languages and restarts only this viewer with the sel
   expect(mockStart).toHaveBeenLastCalledWith({ contentId: 'a'.repeat(40), audioIndex: 1 });
   expect(mockLeave).toHaveBeenCalledWith('s1');
   expect(screen.getByText(/Other viewers keep their selected track/)).toBeInTheDocument();
+});
+
+
+test('selects subtitles independently and preserves the selected audio track', async () => {
+  jest.clearAllMocks();
+  mockPublicUrl.mockReturnValue({ data: { url: 'http://scraper.lan:8000' } });
+  mockStart.mockResolvedValue({ id: 'subs-session' });
+  mockStatus.mockReturnValue({ data: { ...readySession.data,
+    audio_tracks: [{ index: 0, language: 'es', codec: 'aac' }, { index: 1, language: 'en', codec: 'aac' }],
+    subtitle_tracks: [{ index: 0, language: 'es', codec: 'webvtt', supported: true },
+      { index: 1, language: 'en', codec: 'dvb_subtitle', supported: false }] } });
+  await renderDialog();
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Audio track' }));
+  fireEvent.click(screen.getByRole('option', { name: /Track 2.*en.*AAC/ }));
+  await act(async () => { await Promise.resolve(); });
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Subtitles' }));
+  expect(screen.getByRole('option', { name: /not supported in the browser/ })).toHaveAttribute('aria-disabled', 'true');
+  fireEvent.click(screen.getByRole('option', { name: /Track 1.*es.*WEBVTT/ }));
+  await act(async () => { await Promise.resolve(); });
+  expect(mockStart).toHaveBeenLastCalledWith({ contentId: 'a'.repeat(40), audioIndex: 1, subtitleIndex: 0 });
+  expect(mockLeave).toHaveBeenCalledWith('subs-session');
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Subtitles' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Off' }));
+  await act(async () => { await Promise.resolve(); });
+  expect(mockStart).toHaveBeenLastCalledWith({ contentId: 'a'.repeat(40), audioIndex: 1 });
 });

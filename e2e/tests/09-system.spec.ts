@@ -1,19 +1,21 @@
 import { test, expect } from '../src/fixtures';
-import { OverviewPage, WarpPage } from '../src/pages/system';
+import { SystemPage, WarpPage } from '../src/pages/system';
 
-test.describe('overview and WARP', () => {
-  test('overview reports the engine, real totals and the scheduler', async ({ page, api }) => {
-    const overview = new OverviewPage(page);
-    await overview.open();
-    await expect(overview.statusChip()).toHaveText('HEALTHY');
-    await expect(overview.summary()).toContainText(/Engine/);
-    await expect(overview.summary()).not.toContainText(/not reachable/);
+test.describe('system and WARP', () => {
+  test('system reports the engine, real totals and the scheduler', async ({ page, api }) => {
+    const system = new SystemPage(page);
+    await system.open();
+    await expect(system.statusChip()).toHaveText('Services healthy');
+    await expect(system.summary()).toContainText(/Engine/);
+    await expect(system.summary()).not.toContainText(/not reachable/);
 
+    await page.goto('/');
+    const inventoryGroup = (name: string) => page.getByRole('region', { name: 'Channels and streams' }).getByRole('region', { name, exact: true });
     const channels = (await api.listChannels({ page_size: 1 })).total;
     const urls = (await api.listUrls()).length;
     const sources = (await api.listEpgSources()).length;
     const summary = await api.raw('get', '/api/v1/acestream-channels/status_summary').then((r) => r.json() as Promise<{ online: number; offline: number; unknown: number }>);
-    const streams = overview.inventoryGroup('Streams');
+    const streams = inventoryGroup('Streams');
     await expect(streams.getByRole('definition')).toHaveCount(4);
     const renderedCounts = (await streams.getByRole('definition').allTextContents()).map(Number);
     const [renderedTotal, renderedOnline, renderedOffline, renderedUnknown] = renderedCounts;
@@ -22,54 +24,55 @@ test.describe('overview and WARP', () => {
     // Status checks keep running while this page is open, so the API and UI may
     // represent adjacent snapshots. Each snapshot must still account for every stream.
     expect(summary.online + summary.offline + summary.unknown).toBe(channels);
-    const guide = overview.inventoryGroup('Sources and guide');
+    const guide = inventoryGroup('Sources and guide');
     await expect(guide.getByText('Source URLs').locator('..')).toContainText(String(urls));
     await expect(guide.getByText('EPG sources').locator('..')).toContainText(String(sources));
 
-    await expect(overview.scheduledJobs()).toContainText('Scrape sources');
-    await expect(overview.scheduledJobs()).toContainText('Refresh EPG');
-    await expect(overview.scheduledJobs()).toContainText('Check stream status');
+    await system.open();
+    await expect(system.scheduledJobs()).toContainText('Scrape sources');
+    await expect(system.scheduledJobs()).toContainText('Refresh EPG');
+    await expect(system.scheduledJobs()).toContainText('Check stream status');
     // Every job row shows a next run; none shows raw job ids or the old vocabulary.
-    await expect(overview.scheduledJobs()).not.toContainText('url_scraping');
+    await expect(system.scheduledJobs()).not.toContainText('url_scraping');
     await expect(page.getByText(/follow-through|momentum|downstream/i)).toHaveCount(0);
   });
 
   test('the services panel reports every sidecar and lets the operator restart supervised ones', async ({ page, api, scenario }, testInfo) => {
     test.setTimeout(240_000);
-    const overview = new OverviewPage(page);
-    await overview.open();
+    const system = new SystemPage(page);
+    await system.open();
     const status = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ supervised: boolean; services: { name: string; label: string; state: string; managed: boolean; pid: number | null }[] }>);
     testInfo.annotations.push({ type: 'services', description: status.services.map((s) => `${s.name}=${s.state}${s.managed ? '(managed)' : ''}`).join(' ') });
 
     for (const service of status.services) {
-      const card = overview.serviceCard(service.label);
+      const card = system.serviceCard(service.label);
       await expect(card).toBeVisible();
       await expect(card.locator('[data-state]')).toHaveAttribute('data-state', service.state);
-      if (service.managed) await expect(overview.restartButton(service.label)).toBeEnabled();
-      else await expect(overview.restartButton(service.label)).toBeDisabled();
+      if (service.managed) await expect(system.restartButton(service.label)).toBeEnabled();
+      else await expect(system.restartButton(service.label)).toBeDisabled();
     }
     // The in-container engine may be switched off (services-off flavour) while the app uses an external one.
     const engine = status.services.find((s) => s.name === 'acestream')!;
     expect(['running', 'external', 'disabled']).toContain(engine.state);
-    await expect(overview.serviceCard(engine.label)).toContainText(/Running|External|turned off/);
+    await expect(system.serviceCard(engine.label)).toContainText(/Running|External|turned off/);
     expect((await api.health()).acestream.status, 'the engine the app talks to answers').toBe('online');
 
     const managedNames = ['acestream', 'warp'];
     const managed = status.services.filter((s) => managedNames.includes(s.name) && s.managed);
     if (!status.supervised || managed.length === 0) {
-      await expect(overview.services()).toContainText(/not running under the container entrypoint|Managed outside this container|Turned off; enable it with its ENABLE_\* variable/);
+      await expect(system.services()).toContainText(/not running under the container entrypoint|Managed outside this container|Turned off; enable it with its ENABLE_\* variable/);
       return;
     }
     for (const target of managed) {
-      await overview.restart(target.label);
-      await overview.expectAlert(/restart requested|is back:/i);
+      await system.restart(target.label);
+      await system.expectAlert(/restart requested|is back:/i);
       let restarted: { name: string; pid: number | null; state: string; message: string } | undefined;
       await expect.poll(async () => {
         const after = await api.raw('get', '/api/v1/system/services').then((r) => r.json() as Promise<{ services: { name: string; pid: number | null; state: string; message: string }[] }>);
         restarted = after.services.find((s) => s.name === target.name);
         return restarted?.state === 'running' && restarted.pid !== null && restarted.pid !== target.pid;
       }, { timeout: 120_000 }).toBe(true);
-      await expect(overview.serviceCard(target.label)).toContainText('Running', { timeout: 120_000 });
+      await expect(system.serviceCard(target.label)).toContainText('Running', { timeout: 120_000 });
       if (!restarted) throw new Error(`${target.name} disappeared after restart`);
       expect(restarted.state, `${target.name} after restart`).toBe('running');
       expect(restarted.pid, `${target.name} relaunched with a new pid`).not.toBe(target.pid);

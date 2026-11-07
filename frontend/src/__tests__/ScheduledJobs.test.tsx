@@ -50,3 +50,23 @@ it('shows a queued run as waiting instead of displaying its previous error', () 
   expect(screen.getByText('Waiting')).toBeInTheDocument();
   expect(screen.queryByText('Previous failure')).not.toBeInTheDocument();
 });
+
+
+it.each([
+  ['viewing', 'playback active'],
+  ['shutdown', 'application stopping'],
+])('shows unfinished stream checks after %s', (reason, message) => {
+  render(<ScheduledJobs tasks={[{ ...statusTask, last_result: {
+    checked: 1, online: 1, offline: 0, skipped: 0, failed: 0, deferred: 2, stop_reason: reason,
+  } }]} />);
+  expect(screen.getByText(`1 checked, 1 online, 0 offline, 0 skipped, 0 errors, 2 deferred (${message})`)).toBeInTheDocument();
+  expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+});
+
+
+it('reports event refresh failures and pending reviews separately from channel scraping', () => {
+  render(<ScheduledJobs tasks={[task({ task_name: 'url_scraping', last_result: {
+    processed: 2, failures: 0, events: { updated: 3, pending: 4, failures: 1, deferred: 2 },
+  } })]} />);
+  expect(screen.getByText(/events: 3 updated, 4 need review, 1 source errors, 2 deferred/)).toBeVisible();
+});

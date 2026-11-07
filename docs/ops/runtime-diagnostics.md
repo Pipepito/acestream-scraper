@@ -1,6 +1,6 @@
 # Runtime diagnostics
 
-From **Overview → Services → Download diagnostics**, save `acestream-diagnostics.zip`
+From **System status → Services → Download diagnostics**, save `acestream-diagnostics.zip`
 and attach it when reporting a failure. The same download is available at
 `GET /api/v1/system/diagnostics`. It uses the normal optional API-token authentication
 and remains available during database startup/recovery failures. Downloads are not

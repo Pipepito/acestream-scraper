@@ -32,7 +32,7 @@ for (const mode of ['light', 'dark']) {
       else if (path === '/tuner/settings') data = { tuner_allowed_networks: 'private', tuner_stream_buffer_mb: 8 };
       await route.fulfill({ json: data });
     });
-    await page.goto('/integrations');
+    await page.goto('/integrations/remote-players');
     await page.getByRole('button', { name: 'Add player', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('Android TV');

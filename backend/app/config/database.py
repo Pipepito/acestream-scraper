@@ -10,8 +10,7 @@ from typing import List, Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config.settings import get_settings
 
@@ -26,12 +25,19 @@ _engine: Optional[Engine] = None
 _session_factory: Optional[sessionmaker] = None
 
 
+# How long a SQLite connection waits for a lock before «database is locked».
+# Python's default is 5 s, and a guide refresh writes for longer: on a box
+# (18-10) the tuner could not read a channel's sources while it ran, and two
+# channel opens failed with a 500.
+SQLITE_BUSY_SECONDS = 30
+
+
 def _build_engine() -> Engine:
     settings = get_settings()
-    return create_engine(
-        settings.DATABASE_URL,
-        connect_args={"check_same_thread": False},
-    )
+    connect_args = {"check_same_thread": False}
+    if settings.DATABASE_URL.startswith("sqlite"):
+        connect_args["timeout"] = SQLITE_BUSY_SECONDS
+    return create_engine(settings.DATABASE_URL, connect_args=connect_args)
 
 
 def get_engine() -> Engine:

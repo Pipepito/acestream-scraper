@@ -46,7 +46,7 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('tab', { name: 'Stream links', exact: true }).click();
     await expect(page.getByRole('checkbox', { name: 'Append PID to stream links' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Public address', exact: true })).toHaveCount(0);
-    await page.getByRole('tab', { name: 'API access', exact: true }).click();
+    await page.getByRole('tab', { name: 'Access', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'API token', exact: true })).toBeVisible();
     if (await page.getByRole('button', { name: 'open drawer' }).isVisible()) await page.getByRole('button', { name: 'open drawer' }).click();
     await expect(page.getByRole('link', { name: 'WARP', exact: true })).toBeVisible();

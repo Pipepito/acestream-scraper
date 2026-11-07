@@ -13,6 +13,8 @@ export interface PlaylistFilters {
   search?: string;
   only_online?: boolean;
   include_unassigned?: boolean;
+  /** Relay formats: list each source under its TV channel */
+  per_source?: boolean;
   favorites_only?: boolean;
   include_groups?: string[];
   exclude_groups?: string[];
@@ -43,6 +45,7 @@ export const playlistService = {
     const params = new URLSearchParams();
     if (filters) {
       if (filters.include_unassigned !== undefined) params.append('include_unassigned', String(filters.include_unassigned));
+      if (filters.per_source) params.append('per_source', 'true');
       if (filters.group) params.append('group', filters.group);
       if (filters.search) params.append('search', filters.search);
       if (filters.only_online !== undefined) params.append('only_online', String(filters.only_online));

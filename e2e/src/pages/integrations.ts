@@ -9,15 +9,16 @@ export interface RemotePlayerFields {
   password?: string;
 }
 
-/** The Integrations page: public address, web player, remote players and media servers. */
+/** Dedicated pages under the Integrations navigation group. */
+const INTEGRATION_TITLES = { 'public-address': 'Public address', 'web-player': 'Web player', 'remote-players': 'Remote players', 'media-servers': 'Media servers', telegram: 'Telegram' } as const;
 export class IntegrationsPage extends AppShell {
-  async open(): Promise<void> {
-    await this.goto('/integrations');
-    await this.expectHeading('Integrations');
+  async open(section: keyof typeof INTEGRATION_TITLES = 'public-address'): Promise<void> {
+    await this.goto(`/integrations/${section}`);
+    await this.expectHeading(INTEGRATION_TITLES[section]);
   }
 
   summary(): Locator {
-    return this.statusLine('Integration summary');
+    return this.statusLine('Public address summary');
   }
 
   /** Exact match: an empty section renders its own nested region ("No media servers yet"). */

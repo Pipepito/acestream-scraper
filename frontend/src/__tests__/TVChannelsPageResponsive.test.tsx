@@ -1,5 +1,5 @@
-import React, { act } from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
@@ -157,9 +157,7 @@ const click = async (element: Element) => {
 
   if (typeof legacyUserEvent.setup === 'function') {
     const user = legacyUserEvent.setup();
-    await act(async () => {
-      await user.click(element);
-    });
+    await user.click(element);
     return;
   }
 

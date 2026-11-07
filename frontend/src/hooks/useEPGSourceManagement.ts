@@ -231,6 +231,7 @@ export const useEPGSourceManagement = (
     handleEditSourceClick,
     handleCloseSourceDialog,
     handleSourceFormChange,
+    selectSourceProvider: (provider: { name: string; url: string }) => setSourceFormData({ name: provider.name, url: provider.url, enabled: true }),
     handleSourceFormSubmit,
     handleDeleteSourceClick,
     handleRefreshSourceClick,

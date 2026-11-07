@@ -34,7 +34,8 @@ class TestPlaylistEndpoints:
 
         # Check M3U format
         lines = content.split('\n')
-        assert lines[0] == "#EXTM3U"
+        # The header now advertises the guide; see url-tvg below.
+        assert lines[0].startswith("#EXTM3U")
 
         # Should have EXTINF entries for each channel
         extinf_count = sum(1 for line in lines if line.startswith("#EXTINF:"))
@@ -69,6 +70,20 @@ class TestPlaylistEndpoints:
         assert "Alpha Channel" in content
         assert "Beta Channel" in content
         assert "Gamma Channel" not in content
+
+    def test_include_groups_repeated_params_and_comma_names(self, client, seed_channels, db_session):
+        """Repeated params and comma lists select the same groups; a group name with a comma stays whole."""
+        from app.models.models import AcestreamChannel
+        db_session.add(AcestreamChannel(id='d' * 40, name='Comma Channel', group='Sports, Live', is_active=True, is_online=True))
+        db_session.commit()
+        repeated = client.get('/api/v1/playlists/m3u', params=[('include_groups', 'Group 1'), ('include_groups', 'Group 2'), ('only_online', 'false')]).text
+        comma = client.get('/api/v1/playlists/m3u?include_groups=Group 1,Group 2&only_online=false').text
+        assert repeated == comma
+        assert 'Alpha Channel' in repeated and 'Beta Channel' in repeated and 'Gamma Channel' not in repeated
+        single = client.get('/api/v1/playlists/m3u', params=[('include_groups', 'Sports, Live'), ('only_online', 'false')]).text
+        assert 'Comma Channel' in single and 'Alpha Channel' not in single
+        excluded = client.get('/api/v1/playlists/m3u', params=[('exclude_groups', 'Group 1'), ('exclude_groups', 'Sports, Live'), ('only_online', 'false')]).text
+        assert 'Alpha Channel' not in excluded and 'Comma Channel' not in excluded and 'Gamma Channel' in excluded
 
     def test_get_m3u_playlist_with_exclude_groups(self, client, seed_channels):
         """Test getting M3U playlist with exclude groups filter."""

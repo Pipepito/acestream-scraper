@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from _thread import RLock
 from dataclasses import dataclass, field
-from threading import Lock
+from threading import Lock, Timer
+from typing import Optional
 from weakref import WeakSet, WeakValueDictionary
 
 import httpx
@@ -18,6 +19,13 @@ import httpx
 class SourceOwnership:
     lock: RLock = field(default_factory=RLock)
     leases: WeakSet[PlaybackLease] = field(default_factory=WeakSet)
+    # A final stop the TV relay deferred (EngineClient.stop linger_seconds);
+    # a new start of the same source cancels it.
+    pending_stop: Optional[Timer] = None
+    # Sessions whose deferred stop a new start cancelled. Stopped with the
+    # source's final stop, never before: a stop with any PID could end the
+    # session being watched. Kept so none is left running on the engine.
+    parked: list = field(default_factory=list)
 
 
 @dataclass(eq=False)

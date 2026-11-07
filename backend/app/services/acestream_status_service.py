@@ -29,7 +29,8 @@ class AcestreamStatusService:
 
     def _get_timeout(self) -> float:
         """Status probe timeout in seconds (env ACESTREAM_STATUS_TIMEOUT, default 10)."""
-        raw = os.environ.get('ACESTREAM_STATUS_TIMEOUT', '10')
+        from runtime_config import active_value
+        raw = active_value('ACESTREAM_STATUS_TIMEOUT', '10')
         try:
             value = float(raw)
         except (TypeError, ValueError):
@@ -58,8 +59,15 @@ class AcestreamStatusService:
             if status_response.status_code == 200 and network_response.status_code == 200:
                 status_data = status_response.json()
                 network_data = network_response.json()
-                engine_version = status_data.get('result', {}).get('version', {}).get('version', 'Unknown')
-                platform = status_data.get('result', {}).get('version', {}).get('platform', 'Unknown')
+                status = status_data.get('result') or {}
+                version = status.get('version') or {}
+                if not version and isinstance(status.get('active_sessions'), int):
+                    # Outpace exposes version information separately from session counts.
+                    info = self._probe(f"{self.engine_url}/webui/api/service?method=get_version", timeout)
+                    if info.ok:
+                        version = info.json().get('result') or {}
+                engine_version = version.get('version', 'Unknown')
+                platform = version.get('platform', 'Unknown')
                 playlist_loaded = status_data.get('result', {}).get('playlist_loaded', False)
                 connected = network_data.get('result', {}).get('connected', False)
                 message = f"Acestream Engine v{engine_version} is online"

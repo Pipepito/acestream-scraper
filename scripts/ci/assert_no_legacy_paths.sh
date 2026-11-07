@@ -7,12 +7,8 @@ if [[ "${1:-}" == "--strict" ]]; then
 fi
 
 TARGETS=(
-  "Jenkinsfile"
   "Dockerfile"
   "docker-compose.yml"
-  "jenkins/release.Jenkinsfile"
-  "scripts/ci/run_jenkins_validation.sh"
-  "scripts/ci/run_jenkins_release.sh"
   "scripts/ci/run_cutover_required_checks.sh"
 )
 

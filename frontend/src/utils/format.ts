@@ -37,6 +37,7 @@ export const JOB_NAMES: Record<string, string> = {
   epg_program_cleanup: 'Purge old programmes',
   channel_status: 'Check stream status',
   channel_cleanup: 'Remove stale channels',
+  offline_stream_cleanup: 'Remove long-offline streams',
   activity_log_cleanup: 'Clean activity log',
   media_server_sync: 'Sync media servers',
   v1_epg_programs_migration: 'Migrate v1 EPG programmes',
@@ -57,7 +58,18 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
     case 'url_scraping': {
       const processed = field(result, 'processed');
       const failures = field(result, 'failures') ?? 0;
-      return processed === null ? null : `${plural(processed, 'source', 'sources')}, ${plural(failures, 'error', 'errors')}`;
+      if (processed === null) return null;
+      const events = result && typeof result === 'object' ? (result as Record<string, unknown>).events : null;
+      const updated = field(events, 'updated') ?? 0;
+      const pending = field(events, 'pending') ?? 0;
+      const failed = field(events, 'failures') ?? 0;
+      const deferred = field(events, 'deferred') ?? 0;
+      const summary = updated || pending || failed || deferred ? `; events: ${updated} updated, ${pending} need review, ${failed} source errors, ${deferred} deferred` : '';
+      const nested = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+      const searches = nested.saved_searches;
+      const searchSummary = searches ? `; saved searches: ${field(searches, 'added') ?? 0} added, ${field(searches, 'existing') ?? 0} existing, ${field(searches, 'excluded_candidates') ?? 0} excluded, ${field(searches, 'unresolved_candidates') ?? 0} unresolved, ${field(searches, 'partial') ?? 0} partial, ${field(searches, 'failed') ?? 0} failed, ${field(searches, 'skipped') ?? 0} skipped, ${field(searches, 'interrupted') ?? 0} interrupted, ${field(searches, 'deferred_candidates') ?? 0} candidates deferred, ${field(searches, 'deferred_searches') ?? 0} searches deferred` : '';
+      const excluded = field(nested.import_exclusions, 'excluded_candidates') ?? 0;
+      return `${plural(processed, 'source', 'sources')}, ${plural(failures, 'error', 'errors')}${summary}${searchSummary}${excluded ? `; ${excluded} source candidates excluded` : ''}`;
     }
     case 'channel_status': {
       const checked = field(result, 'checked');
@@ -70,7 +82,11 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
       const offline = field(result, 'offline');
       const skipped = field(result, 'skipped') ?? 0;
       const counts = online !== null && offline !== null ? `, ${online} online, ${offline} offline` : '';
-      return `${checked} checked${counts}, ${skipped} skipped, ${plural(failed, 'error', 'errors')}`;
+      const deferred = field(result, 'deferred') ?? 0;
+      const reason = result && typeof result === 'object' && (result as Record<string, unknown>).stop_reason === 'viewing'
+        ? 'playback active' : 'application stopping';
+      const incomplete = deferred > 0 ? `, ${deferred} deferred (${reason})` : '';
+      return `${checked} checked${counts}, ${skipped} skipped, ${plural(failed, 'error', 'errors')}${incomplete}`;
     }
     case 'epg_refresh': {
       const sources = field(result, 'sources');
@@ -85,9 +101,19 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
       const deleted = field(result, 'deleted');
       return deleted === null ? null : `${deleted} programmes removed`;
     }
+    case 'offline_stream_cleanup': {
+      const status = result && typeof result === 'object' ? (result as Record<string, unknown>).status : null;
+      if (status === 'deferred') return 'Deferred while watching or recording';
+      if (status === 'disabled') return 'Cleanup disabled';
+      const deleted = field(result, 'deleted');
+      const failures = field(result, 'rescrape_failures') ?? 0;
+      return deleted === null ? null : `${deleted} streams removed, ${field(result, 'rescraped') ?? 0} sources refreshed${failures ? `, ${failures} refreshes failed` : ''}`;
+    }
     case 'channel_cleanup': {
       const deleted = field(result, 'deleted');
-      return deleted === null ? null : `${deleted} channels removed`;
+      const events = result && typeof result === 'object' ? (result as Record<string, unknown>).events : null;
+      const eventCount = field(events, 'deleted') ?? 0;
+      return deleted === null ? null : `${deleted} channels removed${eventCount ? `; ${eventCount} events removed` : ''}`;
     }
     case 'activity_log_cleanup': {
       const n = num(result) ?? field(result, 'deleted');

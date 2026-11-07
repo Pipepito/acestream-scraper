@@ -70,14 +70,18 @@ class ZeronetURL(BaseURL):
             
         return self.original_url
     
-    def get_internal_url(self, host: str = '127.0.0.1') -> str:
+    def get_internal_url(self, host: str = '127.0.0.1', *, gateway_url: Optional[str] = None) -> str:
         """Get internal HTTP URL for ZeroNet service"""
+        # zero:// always maps to the node: nothing can fetch that scheme as is,
+        # and a source saved as type "zeronet" (skip_validation) used to keep
+        # it and be refused by the outbound guard.
+        if self.original_url.startswith('zero://'):
+            return (gateway_url or f'http://{host}:43110').rstrip('/') + '/' + self.original_url[7:]
+
         # If validation was skipped, we don't attempt to transform the URL
         if self.skip_validation:
             return self.original_url
-            
-        if self.original_url.startswith('zero://'):
-            return f"http://{host}:43110/{self.original_url[7:]}"
+
         elif ':43110/' in self.original_url:
             # For URLs that already contain a host and port 43110, 
             # we should preserve the original host
@@ -244,6 +248,11 @@ def create_url_object(url: str, url_type: str = 'auto') -> BaseURL:
         raise ValueError("URL cannot be empty")
     
     # Handle explicit URL types
+    if url_type == 'broadcaster':
+        from app.services.live_providers import for_source_url
+        if not RegularURL.is_valid_url(url) or for_source_url(url) is None:
+            raise ValueError('Select a supported built-in broadcaster URL')
+        return RegularURL(url)
     if url_type == 'regular':
         # For explicit regular URLs, skip validation to allow non-standard URLs
         return RegularURL(url, skip_validation=True)

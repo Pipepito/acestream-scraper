@@ -1,0 +1,10 @@
+[run]
+branch = True
+relative_files = True
+source = backend
+omit =
+    backend/tests/*
+    backend/venv/*
+    backend/frontend_build/*
+[report]
+show_missing = False

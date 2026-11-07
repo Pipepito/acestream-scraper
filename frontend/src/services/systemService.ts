@@ -48,6 +48,10 @@ export interface PublicUrlResponse {
 const BASE_URL = '/v1/system';
 
 export const systemService = {
+  getUpdates: async (): Promise<components['schemas']['UpdateStatus']> => {
+    const { data } = await apiClient.get<components['schemas']['UpdateStatus']>(`${BASE_URL}/updates`, { timeout: 15000 });
+    return data;
+  },
   getStorage: async (): Promise<components['schemas']['StorageReport']> => {
     const { data } = await apiClient.get<components['schemas']['StorageReport']>(`${BASE_URL}/storage`);
     return data;

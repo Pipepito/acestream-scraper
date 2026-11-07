@@ -24,6 +24,8 @@
     "src/**/*.ts",
     "tests/**/*.ts",
     "playwright.mobile.config.ts",
-    "mobile/**/*.ts"
+    "mobile/**/*.ts",
+    "playwright.monitor.config.ts",
+    "monitor/**/*.ts"
   ]
 }

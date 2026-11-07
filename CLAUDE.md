@@ -51,7 +51,7 @@ Cutover / CI:
 - Same target via the cutover wrapper: `bash scripts/ci/run_cutover_required_checks.sh --profile quick`
 - Strict legacy-path guard: `bash scripts/ci/assert_no_legacy_paths.sh --strict`
 - Pre-deploy DB safety check (creates timestamped backup under `config/backups/`): `bash scripts/ops/preflight_v2_deploy.sh`
-- User docs: GitHub Pages serves `main/docs`; Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; the private infrastructure repository owns wiki preview and publication tooling. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
+- User docs: `main/docs` remains the release-site source; the owner-approved `gh-pages:/` preview snapshot is currently published (see the Pages note below). Jenkins does not push a Pages branch. Prepare the shared extraction helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/`. `bash scripts/ci/validate_command_builder.sh` checks runtime options against container defaults. The manual release job mirrors `wiki/` after successful non-dry-run latest promotion; the private infrastructure repository owns wiki preview and publication tooling. Docker Hub overview text in `docs/dockerhub/` is published manually. Edit `runtime-options.json` when ports/env/flavors change; `app.js` only when a rule changes.
 
 Docker:
 
@@ -383,7 +383,12 @@ A configured dedicated checker never falls back on failure. Bundled checker
 configuration remains supervisor-owned and read-only in Settings. New scraper-only
 installs default to an empty playback URL; existing saved endpoints are preserved.
 
-GitHub Pages serves `main` at `/docs` (repository settings verified 2026-09-15).
+GitHub Pages normally uses `main:/docs`. On 2026-11-07 the owner approved
+`gh-pages:/` for the interactive UX previews, preserving the release-site snapshot.
+While that source is selected, refresh it explicitly from current `main/docs` plus
+the reviewed design assets; a push to `main` alone does not update the site. See
+[preview publication and rollback](docs/design/ux-review-314/pages-preview.md).
+Recheck with `gh api repos/Pipepito/acestream-scraper/pages` before publishing.
 Jenkins must not publish Pages or Docker Hub descriptions. Prepare the standalone
 helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/` alongside
 its source changes; full CI checks the built payload for drift. The manual release

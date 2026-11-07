@@ -71,8 +71,14 @@ no access to them. Only the owner's Jenkins account may administer or approve ho
 builds. Operational deployment, rollback and publication commands are documented in
 the private repository; secrets remain in Jenkins and local ignored configuration.
 
-GitHub Pages serves committed `main/docs`; Jenkins does not publish Pages or Docker
-Hub descriptions. Prepare Pages assets with `bash scripts/ci/prepare_pages.sh`.
+The release-site source is committed `main/docs`. On 2026-11-07 the owner approved
+Pages publishing from `gh-pages:/` to include the interactive UX previews while
+preserving that release snapshot. Future `main/docs` updates require an explicit
+snapshot refresh while this source is selected; see the [publication record and
+rollback](../design/ux-review-314/pages-preview.md). Recheck the live source with
+`gh api repos/Pipepito/acestream-scraper/pages`. Jenkins does not publish Pages or
+Docker Hub descriptions. Prepare the shared extraction helper with
+`bash scripts/ci/prepare_pages.sh`.
 Docker Hub text is copied manually. Public wiki and release notes remain here.
 
 ## Verification

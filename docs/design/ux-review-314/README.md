@@ -4,9 +4,9 @@
 
 The remaining design coverage for [epic #314](https://github.com/Pipepito/acestream-scraper/issues/314) is composed in **144 workflow screens, 473 field occurrences and 288 synthetic exports**, with EN/ES, both themes, phone/desktop, named states and comparable calm/expressive × coral/lime alternatives. **Design only: not user-approved or implemented.** Existing IBM Plex/teal standards remain authoritative.
 
-Start with the [expanded visual gallery](workflow-gallery.html) and [interactive workflow prototype](workflow-prototype.html?screen=dashboard). GitHub displays HTML source: check out this branch and open the gallery locally. The prototype uses local scripts/data, blocks installation connections and contains no media or real credentials.
+Start with the [live preview home](https://pipepito.github.io/acestream-scraper/design/ux-review-314/), [hosted gallery](https://pipepito.github.io/acestream-scraper/design/ux-review-314/workflow-gallery.html) and [interactive prototype](https://pipepito.github.io/acestream-scraper/design/ux-review-314/workflow-prototype.html?screen=dashboard). The [local gallery](workflow-gallery.html) and [local prototype](workflow-prototype.html?screen=dashboard) remain available offline. The prototype uses local scripts/data, blocks installation connections and contains no media or real credentials.
 
-For the next run, use the [complete Plan mode implementation prompt](implementation-prompt.md). [GitHub Pages preview preparation and publishing status](pages-preview.md) are tracked separately from application delivery.
+For the next run, use the [complete Plan mode implementation prompt](implementation-prompt.md). [Verified GitHub Pages publication and maintenance](pages-preview.md) are tracked separately from application delivery.
 
 - [Completed coverage and important corrections](coverage-review-04.md)
 - [Field-level workflow specification](workflow-specification.md) and [interaction contracts](interaction-contracts.md)

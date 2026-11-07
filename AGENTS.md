@@ -349,7 +349,12 @@ configuration/private state within `ZERONET_DATA_DIR`. Legacy `sites.json` and
 `users.json` are copied into `.node/private` only when absent; never overwrite
 migrated state or delete the originals during startup.
 
-GitHub Pages serves `main` at `/docs` (repository settings verified 2026-09-15).
+GitHub Pages normally uses `main:/docs`. On 2026-11-07 the owner approved
+`gh-pages:/` for the interactive UX previews, preserving the release-site snapshot.
+While that source is selected, refresh it explicitly from current `main/docs` plus
+the reviewed design assets; a push to `main` alone does not update the site. See
+[preview publication and rollback](docs/design/ux-review-314/pages-preview.md).
+Recheck with `gh api repos/Pipepito/acestream-scraper/pages` before publishing.
 Jenkins must not publish Pages or Docker Hub descriptions. Prepare the standalone
 helper with `bash scripts/ci/prepare_pages.sh` and commit `docs/recipes/` alongside
 its source changes; full CI checks the built payload for drift. The manual release
@@ -410,7 +415,7 @@ documentation validation for known docs-only changes. PRs use private-policy
 selection/validators; develop compares the last successful build. Missing or
 rewritten baselines, symlinks/mode changes, and unknown paths require the full gate.
 Develop validates documentation without publishing it. Wiki publication belongs
-to release promotion; Pages serves main/docs and Docker Hub text is manual.
+to release promotion; Pages follows the owner-approved source above and Docker Hub text is manual.
 Keep manual releases fully validated and preserve the FIFO Docker lock and fork
 isolation. See `docs/ops/jenkins-ci.md` for exact paths and retry behavior.
 

@@ -40,12 +40,13 @@ export const useTVChannelCatalog = (filters?: TVChannelListFilters, refetchInter
 /**
  * Hook for fetching a single TV channel by ID
  */
-export const useTVChannel = (id: number) => {
+export const useTVChannel = (id: number, refetchInterval?: number) => {
   return useQuery({
     queryKey: [QUERY_KEYS.TV_CHANNEL_DETAIL, id],
     queryFn: () => tvChannelService.getById(id),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!id,
+    refetchInterval,
   });
 };
 

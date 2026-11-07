@@ -50,12 +50,15 @@ def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(d
     stream('1', network_status='unknown')
     stream('2', last_checked=now + timedelta(days=1))
     stream('3', offline_since=now - timedelta(days=1))
+    stream('4')
+    from app.models.stream_attempts import StreamAttempt
+    db_session.add(StreamAttempt(content_id='4' * 40, outcome='ok', seconds=120, created_at=now - timedelta(hours=2)))
     db_session.commit()
     service = OfflineCleanupService(db_session)
     assert service.run()['status'] == 'disabled'
     config = OfflineCleanupConfig(enabled=True, rescrape=True)
     assert service.preview(config).eligible_streams == 1
-    assert db_session.query(AcestreamChannel).count() == 9
+    assert db_session.query(AcestreamChannel).count() == 10
     service.save(config)
     monkeypatch.setattr('app.services.viewing.watching', lambda: 'web player')
     assert service.run()['status'] == 'deferred'
@@ -84,6 +87,29 @@ def test_cleanup_schema_upgrade_keeps_unknown_age(tmp_path):
             assert connection.execute(text("SELECT offline_since FROM acestream_channels WHERE id='old'")).scalar() is None
     finally:
         engine.dispose()
+
+
+def test_cleanup_recognizes_normalized_sources_and_protects_disabled_sources(db_session, monkeypatch):
+    now = datetime.now(timezone.utc)
+    source = ScrapedURL(url='http://127.0.0.1:43110/example/playlist', url_type='auto', enabled=True)
+    row = AcestreamChannel(id='9' * 40, name='Normalized source', source_url='zero://example/playlist',
+                           is_online=False, network_status='not_found',
+                           offline_since=now - timedelta(days=20), last_checked=now - timedelta(hours=1))
+    db_session.add_all([source, row]); db_session.commit()
+    service = OfflineCleanupService(db_session)
+    config = OfflineCleanupConfig(enabled=True, rescrape=True)
+    assert service.preview(config).eligible_streams == 1
+    source.enabled = False; db_session.commit()
+    assert service.preview(config).eligible_streams == 0
+    source.enabled = True; db_session.commit()
+    service.save(config)
+    monkeypatch.setattr('app.services.viewing.watching', lambda: None)
+    scrape = AsyncMock(return_value=([], 'OK'))
+    monkeypatch.setattr('app.services.scraper_service.ScraperService.scrape_url', scrape)
+    from app.services.task_service import task_service
+    monkeypatch.setattr(task_service.shutdown_event, 'is_set', lambda: False)
+    assert service.run()['deleted'] == 1
+    scrape.assert_awaited_once_with(source.url, 'auto')
 
 
 def test_manual_add_and_link_is_atomic_and_preserves_existing_assignment(client, db_session):

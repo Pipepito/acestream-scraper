@@ -17,6 +17,8 @@ test('Live TV schedules a guide programme without starting playback', async ({ p
     const enabled = await request.put('/api/v1/config/recordings', { data: { ...original, enabled: true } });
     expect(enabled.ok(), await enabled.text()).toBe(true);
     await page.goto('/live-tv');
+    await page.getByRole('checkbox', { name: 'Online only' }).click();
+    await expect(page.getByRole('checkbox', { name: 'Online only' })).not.toBeChecked();
     await page.getByRole('button', { name: `TV guide for ${tv!.name}`, exact: true }).click();
     const schedule = page.getByRole('region', { name: `TV guide for ${tv!.name}`, exact: true });
     await expect(schedule.getByRole('tab', { name: 'Tomorrow', exact: true })).toBeVisible();

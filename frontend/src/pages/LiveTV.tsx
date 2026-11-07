@@ -30,7 +30,7 @@ const LiveTV: React.FC = () => {
   const mode = parseBrowseMode(params.get('list'));
   const search = params.get('q') ?? '';
   const selectedId = Number(params.get('channel')) || 0;
-  const selected = useTVChannel(selectedId);
+  const selected = useTVChannel(selectedId, 30_000);
   const now = useNow();
   const updateParams = (changes: Record<string, string | null>, replace = false) => {
     const next = new URLSearchParams(params);

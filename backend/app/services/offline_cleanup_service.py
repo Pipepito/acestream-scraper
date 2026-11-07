@@ -23,9 +23,21 @@ class OfflineCleanupService:
     def save(self, config: OfflineCleanupConfig) -> bool:
         return self.settings.set_setting(KEY, config.model_dump_json())
 
+    def _sources(self) -> dict[str, tuple[str, str]]:
+        from app.models.url_types import create_url_object
+        sources = {}
+        for url, kind in self.repository.enabled_sources():
+            sources.setdefault(url, (url, kind))
+            try:
+                sources.setdefault(create_url_object(url, kind).get_normalized_url(), (url, kind))
+            except ValueError:
+                pass
+        return sources
+
     def preview(self, config: OfflineCleanupConfig) -> OfflineCleanupPreview:
-        rows = self.repository.candidates(config, datetime.now(timezone.utc))
-        return OfflineCleanupPreview(eligible_streams=len(rows), sources=len({row.source_url for row, _ in rows}))
+        sources = self._sources()
+        rows = self.repository.candidates(config, datetime.now(timezone.utc), list(sources))
+        return OfflineCleanupPreview(eligible_streams=len(rows), sources=len({sources[row.source_url] for row in rows}))
 
     def run(self) -> dict[str, int | str]:
         config = self.get()
@@ -37,9 +49,10 @@ class OfflineCleanupService:
         # Serialize with imports and re-evaluate eligibility under the write claim.
         from app.services.import_exclusion_service import ImportExclusionService
         ImportExclusionService(self.db).snapshot(claim=True)
-        rows = self.repository.candidates(config, datetime.now(timezone.utc))
-        sources = {(row.source_url, kind) for row, kind in rows}
-        self.repository.delete([row for row, _ in rows])
+        configured_sources = self._sources()
+        rows = self.repository.candidates(config, datetime.now(timezone.utc), list(configured_sources))
+        sources = {configured_sources[row.source_url] for row in rows}
+        self.repository.delete(rows)
         result = {'deleted': len(rows), 'rescraped': 0, 'rescrape_failures': 0}
         if config.rescrape:
             from app.services.scraper_service import ScraperService

@@ -329,7 +329,7 @@ job rechecks eligibility and appears in System status with its run result.
 
 Only AceStreams from enabled configured scraper sources qualify. They must have
 an observed offline streak, at least two confirmed checks and a latest confirmed
-offline check within 24 hours. An online result clears the streak; an inconclusive
+offline check within 24 hours. Recent successful tuner playback also protects a stream. An online result clears the streak; an inconclusive
 lookup clears it too. Imports, unknown status, checker outages and skipped probes
 do not establish an offline age. Existing streams begin tracking after upgrading;
 no historical age is inferred. Background checks retain their playback/recording

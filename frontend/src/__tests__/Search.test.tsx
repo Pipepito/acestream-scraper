@@ -359,7 +359,7 @@ describe('Search page', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add and Link Arena Premium' }));
     fireEvent.change(screen.getByRole('combobox', { name: /TV channel/ }), { target: { value: 'Sports' } });
     fireEvent.click(await screen.findByRole('option', { name: 'Sports TV' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add and Link', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add and Link' }));
     await waitFor(() => expect(searchService.importResults).toHaveBeenCalledWith([defaultResults.results[0]], 1));
     expect(await screen.findByText('Arena Premium added and linked.')).toBeInTheDocument();
   });

@@ -14,7 +14,8 @@ The maintainer explicitly approved design/docs checks for this branch in place o
 | Expanded gallery | 4 widths passed; all 13 images decoded at each width; 0 horizontal overflows or script errors. Coral prototype link opened the correct variant. |
 | Visual review | All 13 committed images inspected, including source form and player dialog. |
 | Repository documentation validator | Passed. This validator covers existing user-guide/wiki/Docker Hub rules; the new directory has a separate reference check. |
-| Local reference check | 73 Markdown, HTML and CSS local references checked; 0 missing or out-of-directory files. |
+| Local reference check | 78 Markdown, HTML and CSS local references checked; 0 missing or out-of-directory files. |
+| Whole-app scope reconciliation | All 25 explicit route patterns (including catch-all) and nine compatibility redirects from `App.tsx` are present in the coverage contract. Tabs, gates and dialog families were also inspected. This verifies inventory coverage, not design completion. |
 | `git diff --check` | Passed. |
 
 The prototype matrix covers three views × two languages × two palettes × two themes × four widths (320/390/768/1440). Its SHA-256 is `a6f2e90814d974947fdf01211684a3547643e59c5c5bc9f26fb1ed4ebbbe0563`.

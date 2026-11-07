@@ -2,6 +2,8 @@
 
 Reviewed 7 November 2026 for [epic #314](https://github.com/Pipepito/acestream-scraper/issues/314). This assessment adds evidence to the existing ten tasks; it does not add another implementation backlog or approve a rebrand.
 
+The owner explicitly requires the design to cover **the entire app, including all administration**. The [whole-app coverage and handoff contract](whole-app-coverage.md) is the scope authority; missing supplier screens remain required design work.
+
 ## Recommendation
 
 Reuse the visual system, selected viewing/discovery patterns and the simple source-add flow. Implement them as components in the existing React/TypeScript/MUI application, using its current services, permissions and media lifecycle. The bundle is a useful working design reference, but it is not a complete replacement for this application's frontend.

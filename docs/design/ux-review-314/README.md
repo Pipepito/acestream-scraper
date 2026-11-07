@@ -4,6 +4,10 @@ Visual references for [epic #314](https://github.com/Pipepito/acestream-scraper/
 
 These are proposals for refinement. They do not change the application, establish final brand approval, or represent completed implementation tasks. The mockups use synthetic channels, programmes and settings. The illustrated player artwork is a placeholder, not live footage.
 
+## Whole-app design requirement
+
+The design must cover **everything**, including administration. The [whole-app coverage matrix and handoff contract](whole-app-coverage.md) maps every current route, settings/source/guide tab, embedded helper, gate and dialog family to an owner and required design deliverables. The current gallery is a set of concepts and references; it is not the complete design package. Task #316 must deliver that full package, and #324 must verify every surface.
+
 ## Designer bundle and reuse decision
 
 Read the [coverage and reuse assessment](designer-frontend-assessment.md) for the native screens, missing capabilities, API differences, assets and verification. The supplied frontend is a useful viewing/discovery reference; its code is not a complete application replacement.

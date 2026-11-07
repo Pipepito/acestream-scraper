@@ -6,6 +6,8 @@ The design package can be reviewed now. It is not proof of implementation, whole
 
 The owner has confirmed implementation of all three referenced designs—lime, coral/navy and cyan—with a user-facing interface selector. Use the [implementation scope](task-refinements-04.md#implementation-scope-confirmed-by-the-owner). Choosing one winning direction is no longer a prerequisite. Complete and refine their foundations during #316, retain the application identity and licensing requirements, and verify equal workflow coverage. The current prototypes cover coral/lime comparison variables; they do not already implement or validate cyan or the production selector.
 
+The owner later confirmed making the third interface more immersive while keeping three. Apply the [visual-resource brief](visual-resources-05.md): selected artwork and provenance, real metadata/fallback behavior, richer viewing composition, calm administration, readable theme/phone crops, existing explicit event-artwork loading and measured asset delivery. Validate the produced artwork in actual screens; generic placeholders and previous preview results do not meet this added visual requirement.
+
 Review the proposed Watch grouping for Events, outcome links under Integrations, all existing Settings deep links, and the shared editor ownership during implementation. Confirm consequential staged Save changes where source currently saves immediately. Independent API transactions remain separate. Remaining design refinement and research stay inside the existing implementation/acceptance tasks; no further standalone audit is required before starting.
 
 ## Implementation and regression ownership

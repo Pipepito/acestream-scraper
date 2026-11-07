@@ -8,6 +8,8 @@ The design-only phase is closed. The next run starts implementing epic #314 and 
 
 The three references are the original **lime** direction, **coral/navy “Open Interval”**, and **cyan “Signal Pitch”**, as documented in the [supplier assessment](designer-frontend-assessment.md#three-different-visual-directions-are-present). These are working reference names, not a product rebrand. The older instruction to choose one winning direction is superseded. Calm/expressive and coral/lime prototype controls are comparison tools, not the finished production selector. Cyan currently has a reference proposal; completing and validating its production treatment across the app belongs to #316 and the feature rollout. Existing exports do not establish cyan coverage.
 
+**Later owner confirmation, 7 November 2026:** keep three and make the third more immersive, using the cyan reference as its starting point. Deliver meaningful artwork and distinct composition, including photographic/illustrative banners, category art and richer programme cards, while keeping administration calm and complete. The [visual-resource brief](visual-resources-05.md) specifies the initial assets, fallback/security contracts, current backend support and ownership. Final assets and their rendered use still need production and review during implementation.
+
 ### Selector and parity contract
 
 - Offer three coherent, recognizable interface choices on the shared appearance/preferences surface, with an accessible **Interface / Interfaz** selector and preview/description. Develop each design's appropriate layout, typography, spacing and color treatment; changing only an accent swatch does not complete this scope.
@@ -32,6 +34,8 @@ Start implementation from freshly checked `develop` in an appropriate feature br
 
 ## #316 — Three interface foundations
 
+- [ ] Produce the selected visual-resource library and provenance manifest, and compose the immersive third interface using the [resource brief](visual-resources-05.md). Show representative viewing and management screens with real selected artwork and missing-art states; palette changes or placeholders alone do not complete this requirement.
+
 - [ ] Review the [144 composed workflows](workflow-gallery.html) and [traceability](traceability-matrix.md). This replaces the prior composition backlog; it does not remove design review.
 - [ ] Implement coherent lime, coral/navy and cyan foundations and shared component variants. Complete cyan's app-wide treatment as part of this task. Do not reduce the owner decision to a single selected palette or three accent swatches.
 - [ ] Define three selectable interface presets, their preview/description, stable identifiers, default/fallback and preference migration with #318. Keep application branding and shared workflow semantics intact.
@@ -54,6 +58,8 @@ Start implementation from freshly checked `develop` in an appropriate feature br
 - [ ] Implement the user-facing three-interface selector and persisted preference, independently of language and light/dark/system appearance. Test reload/default/fallback/storage failure and switching during playback, dirty forms and pending work. Any needed preference API is user-scoped and separately saved.
 
 ## #319 — Viewing, events and recordings
+
+- [ ] Deliver the richer viewing compositions and trustworthy artwork fallbacks in [the visual brief](visual-resources-05.md). Connect current logo/programme/event metadata, preserve explicit event-artwork loading, and keep artwork changes independent of media ownership.
 
 - [ ] Implement the [recording family](workflow-gallery.html#recordings), [viewing family](workflow-gallery.html#viewing) and [event family](workflow-gallery.html#events), including all composed adverse states and original media contracts.
 - [ ] Test exact programme instants, repeated/nonexistent DST time, stable retry key, active time locks, multipart gaps, original/copy/protection/storage states and distinct stop/cancel/delete/disable consequences.
@@ -87,11 +93,15 @@ Start implementation from freshly checked `develop` in an appropriate feature br
 
 ## #323 — Evidence-driven performance
 
+- [ ] Measure actual hero/card image transfer, decode, layout shift and lazy-loading behavior across all three interfaces, including failed/slow artwork and switching without duplicate downloads. Do not bundle the supplier's full image/video library.
+
 - [ ] Run the [performance protocol](acceptance-protocols.md#performance-protocol--323) at a known app SHA and target devices. Synthetic design rendering is not a performance benchmark.
 - [ ] Investigate repeated bulk work as a specific source finding; do not generalize it to unmeasured whole-app slowdown. Record baselines before selecting optimizations.
 - [ ] Measure loading and switching cost for all three interfaces. Avoid duplicated app bundles, request work or media sessions; correct demonstrated frontend/backend bottlenecks with measured before/after evidence.
 
 ## #324 — Integrated acceptance
+
+- [ ] Verify the selected asset set, provenance, readable crops/overlays and missing/blocked/oversized/decode-failed artwork across all three interfaces. The previous static preview passes do not validate the newly requested immersive composition or resources.
 
 - [ ] Consume the [surface → field → state → evidence matrix](traceability-matrix.md); verify final implementation rather than counting design artifacts as passes.
 - [ ] Complete actual AT/native zoom/physical-device and participant protocols, fluent Spanish review and cross-feature media/security integration. Native desktop checks in this pass were blocked by a locked Mac; no AT or device result is claimed.

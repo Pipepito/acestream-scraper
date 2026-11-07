@@ -862,3 +862,16 @@ source. Migration `20261102_1200` follows `20261103_1200`. The opt-in tuner
 setting `hide_unusable` (off by default; playlist URLs may override it) leaves
 the stale and clearly bad ones out of the lineup and M3U playlists, never for
 a mostly offline list alone. See `docs/ops/stream-history.md`.
+
+
+## Live TV availability and offline retention
+
+Live TV defaults to online enabled streams and refreshes its catalogue every
+30 seconds without remounting the selected TV player. Hiding does not alter probe
+scope or stored activity. Similar TV-name hints are explicit review only; exact
+identity matching used by automation remains unchanged. Manual/Search Add and Link
+must commit import and association together and preserve conflicting assignments.
+Offline cleanup is opt-in, FIFO-scheduled and bounded to 500 recoverable AceStreams
+per run. Track `offline_since` only from confirmed lookups, with no migration
+backfill; require a recent repeat check, preserve linked streams by default and
+defer while viewing/recording. See `wiki/Usage.md#remove-long-offline-streams`.

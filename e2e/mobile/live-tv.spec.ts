@@ -83,6 +83,9 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Playback options', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: /^Stream/ })).toHaveCount(0);
+    await expect(page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Arena backup/ })).toHaveCount(0);
+    await page.getByRole('checkbox', { name: 'Online only' }).uncheck();
+    await expect.poll(() => starts.length).toBe(1);
     await page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Source 2: Arena backup/ }).click();
     await expect(page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Source 2: Arena backup/ })).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id]);

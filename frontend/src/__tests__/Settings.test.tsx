@@ -26,6 +26,8 @@ jest.mock('../services/configService', () => ({
   configService: { getStreamCheckScope: jest.fn().mockResolvedValue({ scope: 'all' }), updateStreamCheckScope: jest.fn(), getAppId: jest.fn(), updateAppId: jest.fn(), getNotificationWebhookUrl: jest.fn().mockResolvedValue('') },
   getScheduleAnchors: jest.fn().mockResolvedValue({ timezone: 'UTC', url_scraping: null, epg_refresh: null, channel_status: null }),
   saveScheduleAnchors: jest.fn(),
+  getOfflineCleanup: jest.fn().mockResolvedValue({ enabled: false, offline_days: 14, interval_days: 7, remove_linked: false, rescrape: true }),
+  saveOfflineCleanup: jest.fn(), previewOfflineCleanup: jest.fn(),
 }));
 
 type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };

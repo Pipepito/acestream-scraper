@@ -25,11 +25,12 @@ export const useAllTVChannels = (skip = 0, limit = 100) => {
   });
 };
 
-export const useTVChannelCatalog = (filters?: TVChannelListFilters) => {
+export const useTVChannelCatalog = (filters?: TVChannelListFilters, refetchInterval?: number) => {
   return useQuery<TVChannel[]>({
     queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog', { favorites: filters?.favorites ?? false, search: filters?.search ?? '' }],
     queryFn: () => tvChannelService.getCatalog(undefined, filters),
     staleTime: 1000 * 60 * 5,
+    refetchInterval,
     // Keep the previous list rendered while a filter change refetches, so
     // toggling the favorites switch doesn't unmount the whole page.
     placeholderData: keepPreviousData,

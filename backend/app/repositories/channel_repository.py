@@ -578,6 +578,13 @@ class ChannelRepository:
         channel.is_online = is_online
         channel.network_status = network_status
         channel.last_checked = datetime.now(timezone.utc)
+        # Only a confirmed source lookup can start/continue an offline streak.
+        # Imports, timeouts and checker outages cannot age a stream into deletion.
+        if is_online is False and network_status in ('found', 'not_found'):
+            if channel.offline_since is None or channel.offline_since > channel.last_checked:
+                channel.offline_since = channel.last_checked
+        else:
+            channel.offline_since = None
         channel.check_error = error
         if stream_stats is not None:
             channel.stream_stats = stream_stats

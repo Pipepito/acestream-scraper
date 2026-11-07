@@ -62,6 +62,8 @@ class SearchImportService:
         self.db = db
 
     def import_items(self, request):
+        from app.services.manual_stream_service import validate_link_target, link_imported_stream
+        validate_link_target(self.db, request.tv_channel_id)
         from app.services.config_service import ConfigService
         from app.repositories.settings_repository import SettingsRepository
         url = ConfigService(SettingsRepository(self.db)).get_ace_engine_url()
@@ -75,6 +77,9 @@ class SearchImportService:
         try:
             policy = ImportExclusionService(self.db).snapshot(claim=True)
             result = apply_candidates(self.db, candidates, policy)
+            for item in result.items:
+                if item.outcome in ('added', 'existing'):
+                    link_imported_stream(self.db, item.content_id, request.tv_channel_id)
             self.db.commit()
             return result
         except Exception:

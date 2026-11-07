@@ -26,6 +26,7 @@ class AcestreamChannelBase(BaseModel):
 class AcestreamChannelCreate(AcestreamChannelBase):
     """Schema for Acestream channel creation"""
     allow_excluded: bool = False
+    tv_channel_id: Optional[int] = Field(None, gt=0, description='Optionally link the stream to an existing TV channel in the same transaction.')
     source_url: Optional[str] = None
     group: Optional[str] = None
     logo: Optional[str] = None
@@ -63,6 +64,7 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     network_status: Optional[Literal["found", "not_found", "unknown"]] = Field(None, description="Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence")
     id_kind: Optional[Literal["id", "infohash"]] = Field(None, description="Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet")
     last_checked: Optional[datetime] = None
+    offline_since: Optional[datetime] = None
     check_error: Optional[str] = None
     stream_stats: Optional[StreamStats] = None
     audio_tracks: Optional[List[AudioTrack]] = Field(None, description="Audio tracks found at the last successful media probe; null means unknown")

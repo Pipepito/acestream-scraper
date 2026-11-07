@@ -159,6 +159,7 @@ class ScheduleAnchors(BaseModel):
     url_scraping: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$", description="HH:MM anchor; null retains startup-relative scheduling")
     epg_refresh: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     channel_status: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    offline_stream_cleanup: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
     @field_validator("timezone")
     @classmethod
@@ -173,6 +174,20 @@ class ScheduleAnchors(BaseModel):
 
 class EPGMatchingConfig(BaseModel):
     enabled: bool = Field(False, description='Automatically apply unambiguous exact guide matches after successful scraping or EPG refresh')
+
+
+class OfflineCleanupConfig(BaseModel):
+    enabled: bool = False
+    offline_days: int = Field(14, ge=1, le=365)
+    interval_days: int = Field(7, ge=1, le=90)
+    remove_linked: bool = False
+    rescrape: bool = True
+
+
+class OfflineCleanupPreview(BaseModel):
+    eligible_streams: int
+    sources: int
+    limit: int = 500
 
 
 class EPGMatchingRun(BaseModel):

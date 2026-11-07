@@ -136,7 +136,7 @@ class TaskService:
     def configure_schedule(self, schedule: ScheduleAnchors) -> None:
         self._schedule_anchors = {
             name: getattr(schedule, name)
-            for name in ("url_scraping", "epg_refresh", "channel_status")
+            for name in ("url_scraping", "epg_refresh", "channel_status", "offline_stream_cleanup")
         }
         self._schedule_timezone = schedule.timezone
         for name in self._schedule_anchors:

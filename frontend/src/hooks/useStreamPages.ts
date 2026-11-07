@@ -12,7 +12,7 @@ export interface StreamPageFilters {
 export const useStreamPages = ({ search, onlineOnly }: StreamPageFilters) => useInfiniteQuery<PaginatedAcestreamChannels, Error, { pages: PaginatedAcestreamChannels[]; pageParams: unknown[] }, unknown[], number>({
   queryKey: ['acestream-channels', 'browse', { search, onlineOnly }],
   queryFn: ({ pageParam }) => channelService.getAcestreamChannels({
-    search: search || undefined, page: pageParam, page_size: STREAM_PAGE_SIZE, ...(onlineOnly ? { is_online: true } : {}),
+    search: search || undefined, page: pageParam, page_size: STREAM_PAGE_SIZE, is_active: true, ...(onlineOnly ? { is_online: true } : {}),
   }),
   initialPageParam: 1,
   getNextPageParam: (last, all) => all.reduce((count, page) => count + page.items.length, 0) < last.total ? all.length + 1 : undefined,

@@ -39,9 +39,11 @@ import { searchService, SearchResultItem } from '../services/searchService';
 import { formatBitrate } from '../utils/format';
 import SavedSearchDialog from '../components/imports/SavedSearchDialog';
 import { Link as RouterLink } from 'react-router-dom';
+import AddAndLinkDialog from '../components/search/AddAndLinkDialog';
 import SearchBroadcastStatus from '../components/SearchBroadcastStatus';
 
 const Search: React.FC = () => {
+  const [linkStream, setLinkStream] = useState<SearchResultItem | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [importMessage, setImportMessage] = useState('');
   const [importRuleId, setImportRuleId] = useState<number>();
@@ -295,7 +297,7 @@ const Search: React.FC = () => {
                             <SearchBroadcastStatus channel={channel} />
                           </TableCell>
                           <TableCell>
-                            <Stack direction="row" spacing={1} alignItems="center">
+                            <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
                               <Button
                                 size="small"
                                 startIcon={<PlayArrowRounded />}
@@ -305,6 +307,7 @@ const Search: React.FC = () => {
                               >
                                 {playMutation.isPending && playMutation.variables?.id === channel.id ? 'Resolving…' : 'Play'}
                               </Button>
+                              <Button size="small" variant="outlined" onClick={() => setLinkStream(channel)} disabled={addChannelMutation.isPending || bulkBusy} aria-label={`Add and Link ${channel.name}`}>Add and Link</Button>
                               {added ? (
                                 <Chip size="small" color="success" icon={<CheckIcon />} label="Added" aria-label={`Added ${channel.name}`} />
                               ) : (
@@ -330,6 +333,7 @@ const Search: React.FC = () => {
         </ContentSection>
       ) : null}
 
+      {linkStream ? <AddAndLinkDialog stream={linkStream} onClose={() => setLinkStream(null)} onAdded={() => { markAdded([linkStream.id]); showSnackbar(`${linkStream.name} added and linked.`, 'success'); setLinkStream(null); }} /> : null}
       <ChannelPlayerDialog
         open={Boolean(playerTarget)}
         contentId={playerTarget?.contentId ?? null}

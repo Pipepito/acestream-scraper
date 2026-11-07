@@ -122,6 +122,7 @@ class AcestreamChannel(Base):
     # after the engine has confirmed it. NULL means "not probed yet".
     id_kind = Column(String(16), nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
+    offline_since = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
     audio_tracks = Column(JSON, nullable=True)
     bitrate_bps = Column(Integer, nullable=True)

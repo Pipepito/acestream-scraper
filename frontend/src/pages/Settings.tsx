@@ -1,3 +1,4 @@
+import OfflineCleanupFields from '../components/settings/OfflineCleanupFields';
 import RecordingSettingsFields from '../components/recordings/RecordingSettingsFields';
 import GuideMatchingFields from '../components/GuideMatchingFields';
 import StreamCheckScopeField from '../components/StreamCheckScopeField';
@@ -313,6 +314,7 @@ const Settings: React.FC = () => {
       <Box {...panelProps('automation')}>
 
       {section === 'automation' ? <ContentSection title="Recordings"><RecordingSettingsFields /></ContentSection> : null}
+      {section === 'automation' ? <ContentSection title="Offline stream cleanup"><OfflineCleanupFields /></ContentSection> : null}
       {section === 'automation' ? <ContentSection title="Guide matching"><GuideMatchingFields /></ContentSection> : null}
       <ContentSection title="Stream status checks"><CheckEngineFields /></ContentSection>
 

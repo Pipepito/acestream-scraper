@@ -264,6 +264,7 @@ interface TunerFormState {
   tuner_count: string;
   max_channels: string;
   only_online: boolean;
+  hide_unusable: boolean;
   plex_compatible_audio: boolean;
   experimental_transcoding: boolean;
   source_start_seconds: string;
@@ -281,6 +282,7 @@ const toForm = (settings: TunerSettings): TunerFormState => ({
   tuner_count: String(settings.tuner_count),
   max_channels: String(settings.max_channels),
   only_online: settings.only_online,
+  hide_unusable: settings.hide_unusable ?? false,
   plex_compatible_audio: settings.plex_compatible_audio ?? false,
   experimental_transcoding: settings.experimental_transcoding ?? false,
   source_start_seconds: String(settings.source_start_seconds ?? 15),
@@ -312,6 +314,7 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
         tuner_count: Number(form.tuner_count),
         max_channels: Number(form.max_channels),
         only_online: form.only_online,
+        hide_unusable: form.hide_unusable,
         plex_compatible_audio: form.plex_compatible_audio,
         experimental_transcoding: form.experimental_transcoding,
         source_start_seconds: Number(form.source_start_seconds),
@@ -398,6 +401,12 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
             }
             label="Publish only channels that are online"
           />
+          <FormControlLabel
+            control={<Switch checked={form?.hide_unusable ?? false} disabled={!form || update.isPending}
+              onChange={(event) => setForm(prev => prev ? { ...prev, hide_unusable: event.target.checked } : prev)} />}
+            label="Hide stale or repeatedly failing sources"
+          />
+          <Typography variant="body2" color="text.secondary">Leaves sources unseen by lists for 14 days or with repeated playback failures out of tuner lineups and playlists. Nothing is deleted; sources can return after fresh evidence.</Typography>
           <FormControlLabel
             control={<Switch checked={form?.plex_compatible_audio ?? false} disabled={!form || update.isPending}
               onChange={(event) => setForm(prev => prev ? { ...prev, plex_compatible_audio: event.target.checked } : prev)} />}

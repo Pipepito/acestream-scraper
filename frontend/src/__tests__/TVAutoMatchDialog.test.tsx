@@ -24,16 +24,17 @@ test('groups exact stations, starts unselected and submits only selected streams
   setup();
   expect(preview).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
-  const checks = await screen.findAllByRole('checkbox');
+  await screen.findByRole('button', { name: 'Review streams for DAZN 1' });
+  const checks = screen.getAllByRole('checkbox');
   expect(checks[0]).not.toBeChecked();
   expect(screen.getByRole('button', { name: 'Assign selected (0)' })).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: 'Review streams for DAZN 1' }));
   fireEvent.click(await screen.findByRole('checkbox', { name: /DAZN 1 HD/ }));
-  expect(checks[1]).not.toBeChecked();
+  expect(checks[2]).not.toBeChecked();
   fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
-  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, assignments: [{ acestream_channel_id: 'a', tv_channel_id: 1 }] }, expect.anything()));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, include_similar: false, assignments: [{ acestream_channel_id: 'a', tv_channel_id: 1 }] }, expect.anything()));
   expect(await screen.findByText(/1 streams assigned/)).toBeInTheDocument();
-  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.getAllByRole('checkbox')).toHaveLength(1);
 });
 
 test('shows empty analysis and supports retry after errors', async () => {
@@ -54,13 +55,13 @@ test('selects a station’s backup IDs together and allows excluding an individu
   apply.mockResolvedValue({ assigned_count: 1, skipped_count: 0 });
   setup();
   fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
-  expect(await screen.findByRole('status')).toHaveTextContent('1 TV channels with 2 matching stream IDs');
+  expect(await screen.findByRole('status')).toHaveTextContent('1 TV channels with 2 suggestions');
   fireEvent.click(screen.getByRole('checkbox', { name: 'DAZN F1 · 2 stream IDs' }));
   expect(screen.getByRole('button', { name: 'Assign selected (2)' })).toBeEnabled();
   fireEvent.click(screen.getByRole('button', { name: 'Review streams for DAZN F1' }));
   fireEvent.click(await screen.findByRole('checkbox', { name: /DAZN F1 SD/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
-  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, assignments: [{ acestream_channel_id: 'f1-a', tv_channel_id: 1 }] }, expect.anything()));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, include_similar: false, assignments: [{ acestream_channel_id: 'f1-a', tv_channel_id: 1 }] }, expect.anything()));
 });
 
 test('changing assumed country clears the old preview and sends the same country when applying', async () => {
@@ -74,11 +75,31 @@ test('changing assumed country clears the old preview and sends the same country
   expect(screen.getByRole('button', { name: 'Assign selected (1)' })).toBeEnabled();
   fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Assume country for unlabelled channels' }));
   fireEvent.click(await screen.findByRole('option', { name: 'Spain' }));
-  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.getAllByRole('checkbox')).toHaveLength(1);
   expect(screen.getByRole('button', { name: 'Assign selected (0)' })).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
-  await waitFor(() => expect(preview).toHaveBeenLastCalledWith({ assumed_country: 'ES' }, expect.anything()));
+  await waitFor(() => expect(preview).toHaveBeenLastCalledWith({ assumed_country: 'ES', include_similar: false }, expect.anything()));
   fireEvent.click(await screen.findByRole('checkbox', { name: 'DAZN 1 · 1 stream ID' }));
   fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
-  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: 'ES', assignments: [{ acestream_channel_id: 'es-stream', tv_channel_id: 1 }] }, expect.anything()));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: 'ES', include_similar: false, assignments: [{ acestream_channel_id: 'es-stream', tv_channel_id: 1 }] }, expect.anything()));
+});
+
+
+test('similar suggestions need individual review and allow only one target per stream', async () => {
+  preview.mockResolvedValue({ tv_channels: 2, unassigned_streams: 1, ambiguous_streams: 1, unmatched_streams: 0, candidates: [
+    { acestream_channel_id: 'same', acestream_name: 'Sportz HD', tv_channel_id: 1, tv_channel_name: 'Sports', score: .9, reason: 'Similar name', recommended: false },
+    { acestream_channel_id: 'same', acestream_name: 'Sportz HD', tv_channel_id: 2, tv_channel_name: 'Sport', score: .8, reason: 'Similar name', recommended: false },
+  ] });
+  apply.mockResolvedValue({ assigned_count: 1, skipped_count: 0 });
+  setup();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Include similar names for review' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
+  const suggestions = await screen.findAllByRole('checkbox', { name: /Sportz HD/ });
+  expect(screen.getByRole('button', { name: 'Select exact matches' })).toBeDisabled();
+  fireEvent.click(suggestions[0]);
+  fireEvent.click(suggestions[1]);
+  expect(suggestions[0]).not.toBeChecked();
+  expect(suggestions[1]).toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, include_similar: true, assignments: [{ acestream_channel_id: 'same', tv_channel_id: 2 }] }, expect.anything()));
 });

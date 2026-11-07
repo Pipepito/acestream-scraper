@@ -29,16 +29,18 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const queryClient = useQueryClient();
   const [assumedCountry, setAssumedCountry] = useState<NonNullable<TVMatchOptions['assumed_country']> | ''>('');
+  const [includeSimilar, setIncludeSimilar] = useState(false);
+  const [search, setSearch] = useState('');
   const [preview, setPreview] = useState<TVMatchPreview | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Map<string, number>>(new Map());
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const analyze = useMutation({
     mutationFn: tvChannelService.previewAutoMatch,
     onSuccess: (result) => {
       setPreview(result);
-      setSelected(new Set());
-      setExpanded(new Set());
+      setSelected(new Map());
+      setExpanded(new Set(result.candidates.filter(item => !item.recommended).map(item => item.tv_channel_id)));
       setPage(0);
       apply.reset();
     },
@@ -47,7 +49,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
     mutationFn: tvChannelService.applyAutoMatch,
     onSuccess: () => {
       setPreview(null);
-      setSelected(new Set());
+      setSelected(new Map());
       void queryClient.invalidateQueries({ queryKey: ['tvChannels'] });
       for (const key of ['tvChannel', 'tvChannelAcestreams', 'acestream-channels', 'acestream-channel']) {
         void queryClient.invalidateQueries({ queryKey: [key] });
@@ -61,13 +63,14 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
       group.streams.push(item);
       groups.set(group.id, group);
     }
-    return Array.from(groups.values());
-  }, [preview]);
+    const query = search.trim().toLocaleLowerCase();
+    return Array.from(groups.values()).filter(station => !query || `${station.name} ${station.streams.map(item => item.acestream_name).join(' ')}`.toLocaleLowerCase().includes(query));
+  }, [preview, search]);
   const rows = stations.slice(page * 10, (page + 1) * 10);
-  const toggleStreams = (ids: string[], checked: boolean) => setSelected((current) => {
-    const next = new Set(current);
+  const toggleStreams = (ids: string[], tvId: number, checked: boolean) => setSelected((current) => {
+    const next = new Map(current);
     for (const id of ids) {
-      if (checked) next.add(id); else next.delete(id);
+      if (checked) next.set(id, tvId); else if (next.get(id) === tvId) next.delete(id);
     }
     return next;
   });
@@ -83,7 +86,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
             const country = COUNTRY_OPTIONS.find((option) => option.value === event.target.value)?.value ?? '';
             setAssumedCountry(country);
             setPreview(null);
-            setSelected(new Set());
+            setSelected(new Map());
             setExpanded(new Set());
             setPage(0);
             analyze.reset();
@@ -92,20 +95,23 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
             <MenuItem value="">No assumption</MenuItem>
             {COUNTRY_OPTIONS.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
           </TextField>
-          <Button variant="outlined" disabled={busy} onClick={() => analyze.mutate({ assumed_country: assumedCountry || null })}>{preview ? 'Analyze again' : 'Find matches'}</Button>
+          <FormControlLabel control={<Checkbox checked={includeSimilar} disabled={busy} onChange={(_, checked) => { setIncludeSimilar(checked); setPreview(null); setSelected(new Map()); analyze.reset(); apply.reset(); }} />} label="Include similar names for review" />
+          <Button variant="outlined" disabled={busy} onClick={() => analyze.mutate({ assumed_country: assumedCountry || null, include_similar: includeSimilar })}>{preview ? 'Analyze again' : 'Find matches'}</Button>
           {busy ? <CircularProgress size={24} aria-label={analyze.isPending ? 'Finding matches' : 'Assigning streams'} /> : null}
           {error ? <Alert severity="error">{normalizeApiError(error).message}</Alert> : null}
           {apply.data ? <Alert severity="success">{apply.data.assigned_count} streams assigned. {apply.data.skipped_count} skipped because they changed or were already assigned.</Alert> : null}
           {preview ? <>
-            <Typography role="status">{stations.length} TV channels with {preview.candidates.length} matching stream IDs. Checked {preview.tv_channels} TV channels and {preview.unassigned_streams} unassigned streams. {preview.ambiguous_streams} ambiguous; {preview.unmatched_streams} without a match.</Typography>
-            <Alert severity="info">Only exact station identities are shown. Uncertain names, editions and conflicting metadata are discarded. Select the stations or individual streams to assign.</Alert>
+            <Typography role="status">{stations.length} TV channels with {preview.candidates.length} suggestions. Checked {preview.tv_channels} TV channels and {preview.unassigned_streams} unassigned streams. {preview.ambiguous_streams} ambiguous; {preview.unmatched_streams} without a match.</Typography>
+            <Alert severity="info">Exact matches can be selected together. Similar names need your review; select only one TV channel for each stream. Existing assignments stay unchanged.</Alert>
             {preview.candidates.length === 0 ? <Alert severity="info">No matches found. You can assign streams from a TV channel’s detail page.</Alert> : <>
-              <Button disabled={busy || !selected.size} onClick={() => setSelected(new Set())}>Clear selection</Button>
+              <TextField label="Filter matches" type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} />
+              <Button disabled={busy || !preview.candidates.some(item => item.recommended)} onClick={() => setSelected(new Map(preview.candidates.filter(item => item.recommended).map(item => [item.acestream_channel_id, item.tv_channel_id])))}>Select exact matches</Button>
+              <Button disabled={busy || !selected.size} onClick={() => setSelected(new Map())}>Clear selection</Button>
               {rows.map((station) => {
-                const selectedCount = station.streams.filter((item) => selected.has(item.acestream_channel_id)).length;
+                const selectedCount = station.streams.filter((item) => selected.get(item.acestream_channel_id) === item.tv_channel_id).length;
                 const open = expanded.has(station.id);
                 return <Box key={station.id} sx={{ borderBottom: 1, borderColor: 'divider', pb: 1, overflowWrap: 'anywhere' }}>
-                  <FormControlLabel control={<Checkbox disabled={busy} checked={selectedCount === station.streams.length} indeterminate={selectedCount > 0 && selectedCount < station.streams.length} onChange={(_, checked) => toggleStreams(station.streams.map((item) => item.acestream_channel_id), checked)} />} label={`${station.name} · ${station.streams.length} stream ${station.streams.length === 1 ? 'ID' : 'IDs'}`} />
+                  <FormControlLabel control={<Checkbox disabled={busy || !station.streams.some(item => item.recommended)} checked={selectedCount === station.streams.length} indeterminate={selectedCount > 0 && selectedCount < station.streams.length} onChange={(_, checked) => toggleStreams(station.streams.filter(item => item.recommended).map((item) => item.acestream_channel_id), station.id, checked)} />} label={`${station.name} · ${station.streams.length} stream ${station.streams.length === 1 ? 'ID' : 'IDs'}`} />
                   <Button aria-expanded={open} aria-controls={`station-streams-${station.id}`} onClick={() => setExpanded((current) => {
                     const next = new Set(current);
                     if (open) next.delete(station.id); else next.add(station.id);
@@ -113,9 +119,9 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
                   })}>{open ? 'Hide' : 'Review'} streams for {station.name}</Button>
                   <Collapse in={open} unmountOnExit id={`station-streams-${station.id}`}>
                     {station.streams.map((item) => <Box key={item.acestream_channel_id} sx={{ pl: 2 }}>
-                      <FormControlLabel sx={{ alignItems: 'flex-start', m: 0 }} control={<Checkbox disabled={busy} checked={selected.has(item.acestream_channel_id)} onChange={(_, checked) => toggleStreams([item.acestream_channel_id], checked)} />} label={<Box sx={{ pt: 1 }}>
+                      <FormControlLabel sx={{ alignItems: 'flex-start', m: 0 }} control={<Checkbox disabled={busy} checked={selected.get(item.acestream_channel_id) === item.tv_channel_id} onChange={(_, checked) => toggleStreams([item.acestream_channel_id], item.tv_channel_id, checked)} />} label={<Box sx={{ pt: 1 }}>
                         <Typography>{item.acestream_name}</Typography>
-                        <Typography variant="body2" color="text.secondary">{item.reason}</Typography>
+                        <Typography variant="body2" color="text.secondary">{item.recommended ? 'Exact match' : 'Review needed'} · {item.reason}</Typography>
                         <Typography variant="caption" color="text.secondary">{item.acestream_channel_id}</Typography>
                       </Box>} />
                     </Box>)}
@@ -129,7 +135,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
       </DialogContent>
       <DialogActions>
         <Button disabled={busy} onClick={onClose}>Close</Button>
-        <Button variant="contained" disabled={busy || !selected.size || !preview} onClick={() => apply.mutate({ assumed_country: assumedCountry || null, assignments: (preview?.candidates ?? []).filter((item) => selected.has(item.acestream_channel_id)).map((item) => ({ acestream_channel_id: item.acestream_channel_id, tv_channel_id: item.tv_channel_id })) })}>Assign selected ({selected.size})</Button>
+        <Button variant="contained" disabled={busy || !selected.size || !preview} onClick={() => apply.mutate({ assumed_country: assumedCountry || null, include_similar: includeSimilar, assignments: (preview?.candidates ?? []).filter((item) => selected.get(item.acestream_channel_id) === item.tv_channel_id).map((item) => ({ acestream_channel_id: item.acestream_channel_id, tv_channel_id: item.tv_channel_id })) })}>Assign selected ({selected.size})</Button>
       </DialogActions>
     </Dialog>
   );

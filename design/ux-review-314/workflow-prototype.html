@@ -7,6 +7,7 @@
   <title>AceStream Scraper · workflow review</title>
   <link rel="stylesheet" href="admin-prototype.css">
   <link rel="stylesheet" href="workflow-prototype.css">
+  <link rel="stylesheet" href="presentation-presets.css">
   <script src="workflow-data.js" defer></script>
   <script src="workflow-engine.js" defer></script>
 </head>
@@ -16,5 +17,6 @@
   <div id="announce" role="status" aria-live="polite" aria-atomic="true"></div>
   <dialog id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body"><h2 id="confirm-title"></h2><p id="confirm-body"></p><div class="actions"><button type="button" class="button" id="confirm-cancel">Cancel</button><button type="button" class="button danger" id="confirm-commit">Continue</button></div></dialog>
   <dialog id="drawer" aria-label="Navigation"></dialog>
+<dialog id="appearance" aria-labelledby="appearance-title"><h2 id="appearance-title">Choose your interface</h2><div id="appearance-content"></div><button class="button primary" id="appearance-close">Done</button></dialog>
 </body>
 </html>

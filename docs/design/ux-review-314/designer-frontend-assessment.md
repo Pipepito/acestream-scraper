@@ -1,5 +1,7 @@
 # Designer frontend: coverage and reuse assessment
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 Reviewed 7 November 2026 for [epic #314](https://github.com/Pipepito/acestream-scraper/issues/314). This assessment adds evidence to the existing ten tasks; it does not add another implementation backlog or approve a rebrand.
 
 The owner explicitly requires the design to cover **the entire app, including all administration**. The [whole-app coverage and handoff contract](whole-app-coverage.md) is the scope authority; missing supplier screens remain required design work.

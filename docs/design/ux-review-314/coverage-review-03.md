@@ -1,5 +1,7 @@
 # Whole-app coverage delta — review 03
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 Starting baseline: application 7ccf16d; design originally ebadaaf. Final develop cf952af was fetched and source-inspected. **24 explicit app routes + catch-all; nine redirects; 20 navigation destinations** remain unchanged. Startup is an outer gate, not an App.tsx route. Detail routes and embedded entries remain separate. The mandatory [current-source delta](current-source-delta.md) adds online-only/refresh states, similar-name matching, Add and Link, offline cleanup and tuner hiding to the rows below; their live post-merge validation remains pending.
 
 All rows are **design pending** or **in review**. None is accepted; no implementation PR is attached. “Live” means read-only normal-state inspection, not an exercised mutation or every permission/error state. S = source inspected; L = live inspected; M = new composed family. Each row inherits the full handoff/state/field contract in [whole-app-coverage.md](whole-app-coverage.md).

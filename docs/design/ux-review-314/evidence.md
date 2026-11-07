@@ -1,5 +1,7 @@
 # Sanitized audit evidence — review 03
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 Date: 7 November 2026. Initial source baseline: 7ccf16d383758aeeb78845e20e3716ddf97df10d; final remote cf952af is separately reconciled in the [current-source delta](current-source-delta.md). Live commit unknown. All live observations use English UI and reduced motion in a fresh Chromium context. Installation addresses, source identities, channel lists, account data and raw logs are intentionally omitted.
 
 ## E01 Recording opener

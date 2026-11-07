@@ -1,5 +1,7 @@
 # Current-source reconciliation — review 03
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 The final publication check found that develop advanced during this audit to [cf952afc6b4489c02b7a675ff3d634cc13d98e0b](https://github.com/Pipepito/acestream-scraper/commit/cf952afc6b4489c02b7a675ff3d634cc13d98e0b), merging PR #313. The local application/design base remains 7ccf16d. The design branch is intentionally not rebased or merged with implementation work. Source changes were inspected with git diff/show; no new application build or runtime was started.
 
 At the final read-only live check, the new online-only explanation and offline-cleanup form were absent. This distinguishes the observed installation from the new source; it does not establish its exact commit. Keep the 49-case survey attached to the installation actually inspected.

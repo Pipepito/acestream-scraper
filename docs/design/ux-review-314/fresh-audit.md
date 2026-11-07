@@ -1,5 +1,7 @@
 # Fresh UX/UI audit — review 03
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 Reviewed 7 November 2026. **Design review only; no redesign implementation or approval.**
 
 The largest problems are reliability, unclear consequences and task organization. A new palette will not fix them. The earlier assessment was useful but overvalued the supplier's visual system, treated several preferences as usability findings, and left most administration without composed examples.

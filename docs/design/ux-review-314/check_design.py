@@ -6,14 +6,20 @@ from pathlib import Path
 from urllib.parse import urlsplit, unquote
 from html.parser import HTMLParser
 from playwright.sync_api import sync_playwright
-import argparse, itertools, json, mimetypes, re
+import argparse, itertools, json, mimetypes, re, subprocess, sys
 
 ap=argparse.ArgumentParser()
 ap.add_argument('--output',required=True)
 ap.add_argument('--axe')
 ap.add_argument('--screenshots',action='store_true')
+ap.add_argument('--workflows-only',action='store_true',help='Run the expanded review-04 workflow matrix instead of the historical prototypes')
 args=ap.parse_args()
 ROOT=Path(__file__).resolve().parent
+if args.workflows_only:
+ command=[sys.executable,str(ROOT/'check_workflows.py'),'--output',args.output]
+ if args.axe:command+=['--axe',args.axe]
+ if args.screenshots:command+=['--exports']
+ raise SystemExit(subprocess.run(command).returncode)
 OUT=Path(args.output).resolve();OUT.mkdir(parents=True,exist_ok=True)
 results=[];errors=[];console=[];blocked=[];a11y=[];checks={}
 class Links(HTMLParser):

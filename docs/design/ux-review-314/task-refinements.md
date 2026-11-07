@@ -1,5 +1,7 @@
 # Ten task refinements — review 03
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 Dated 7 November 2026. These decisions and unchecked acceptance criteria refine existing issues #315–#324. No new issues; no design/implementation completion claimed. [Fresh audit](fresh-audit.md), [evidence](evidence.md), [specification](design-specification.md), [coverage](coverage-review-03.md), [current-source delta](current-source-delta.md), [fields](field-ledger.md), [mockups](admin-prototype.html), [validation](verification.md).
 
 ## 315 — Reliability and verified accessibility

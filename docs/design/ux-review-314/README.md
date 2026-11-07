@@ -1,12 +1,22 @@
-# Whole-app UX review — draft 03
+# Whole-app UX review — composed review 04
 
-Fresh critical review for [epic #314](https://github.com/Pipepito/acestream-scraper/issues/314), 7 November 2026. **Design only; application unchanged; no palette, rebrand or complete handoff approved.**
+The remaining design coverage for [epic #314](https://github.com/Pipepito/acestream-scraper/issues/314) is composed in **144 workflow screens, 473 field occurrences and 288 synthetic exports**, with EN/ES, both themes, phone/desktop, named states and comparable calm/expressive × coral/lime alternatives. **Design only: not user-approved or implemented.** Existing IBM Plex/teal standards remain authoritative.
 
-Start with the [fresh audit](fresh-audit.md), [current-source reconciliation](current-source-delta.md), [sanitized reproduction evidence](evidence.md), [design specification](design-specification.md), [coverage delta](coverage-review-03.md), [field ledger](field-ledger.md), [47 runtime fields](runtime-field-inventory.md) and [ten task refinements](task-refinements.md).
+Start with the [expanded visual gallery](workflow-gallery.html) and [interactive workflow prototype](workflow-prototype.html?screen=dashboard). GitHub displays HTML source: check out this branch and open the gallery locally. The prototype uses local scripts/data, blocks installation connections and contains no media or real credentials.
 
-Open [index.html](index.html) for the gallery or [admin-prototype.html](admin-prototype.html) for the new interactive review. GitHub displays HTML source; download/check out this branch and open locally. All files work without an installation; the prototype blocks network connections. Review controls change screen, state, EN/ES, light/dark, coral/lime and calm/expressive direction. Most product actions show illustrative feedback; draft/selection/navigation/dialog behavior is demonstrated locally.
+- [Completed coverage and important corrections](coverage-review-04.md)
+- [Field-level workflow specification](workflow-specification.md) and [interaction contracts](interaction-contracts.md)
+- [Traceability matrix](traceability-matrix.md), [current source-control map](source-control-map.md) and [schema evidence](source-contracts.md)
+- [Current rendered verification and limits](verification-review-04.md)
+- [Owner decisions and remaining acceptance protocols](acceptance-protocols.md)
+- [Refined existing tasks #315–#324](task-refinements-04.md) and [new source finding F15](source-findings-04.md)
 
-## New administration proposals
+Current source was rechecked at develop `cf952af`; it has not advanced beyond the prior reconciliation. The live installation's exact revision remains unknown. No installation requests, application edits, dependency/runtime changes or supplier-code execution occurred in review 04. The prior private-HTTP recording crash, contrast/clipping issues and unnamed export sliders remain unresolved; performance slowdown remains unproven.
+
+## Historical administration proposals · review 03
+
+The following nine families and 26 exports record the preceding review. The new workflow package supersedes their incomplete coverage. Historical `prototype.html` is a viewing concept with placeholder/state limitations. Image 18 contains an obsolete manual Cast action; current source has bounded Cast discovery, and manual setup belongs to remote VLC/Kodi. The old single-save Settings concept is not an atomic-save contract.
+
 
 Nine composed families, with desktop EN/light and phone ES/dark exports. All content is synthetic, including account/device/source names, guide identities, storage values and artwork. Original fictional channel/programme names stay unchanged between languages. These are **in review**, not finished whole-app design coverage.
 

@@ -1,5 +1,7 @@
 # Whole-app design coverage and handoff contract
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 **Latest source update:** develop advanced to cf952af during review 03. The [current-source delta](current-source-delta.md) adds availability, matching/linking, retention fields and tuner hiding without changing route counts. Read it alongside the coverage delta; post-merge live checks remain pending.
 
 **Review 03 update:** [fresh reconciliation and per-row evidence/status](coverage-review-03.md), [design specification](design-specification.md), [critical fields](field-ledger.md) and [all 47 runtime options](runtime-field-inventory.md). New administration mockups are in review; no row is accepted. The original inventory below remains the scope contract.

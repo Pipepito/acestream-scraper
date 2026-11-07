@@ -1,5 +1,7 @@
 # Design review verification — review 03
 
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
 Checked 7 November 2026 in `/tmp/acestream-ux-review-314`, branch `design/ux-review-314`. Application source baseline: `7ccf16d383758aeeb78845e20e3716ddf97df10d`; original design head: `ebadaaf17be1e4ba156db09ebf2a8c76d4ead7d8`. The final design commit is the commit containing this report. The live installation's exact revision remains unknown.
 
 **Design/docs checks replace the full application/Docker/E2E matrix for this work, under the user's explicit waiver.** No application code, runtime, dependency, deployment or CI configuration changed. This waiver does not cover subsequent implementation.

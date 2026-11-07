@@ -1,0 +1,60 @@
+# Documentation Home
+
+Technical documentation for contributors and operators. For setup and everyday use, start with the [wiki home](../wiki/Home.md).
+
+The application has two canonical roots:
+
+- `backend/` is the API/runtime source of truth.
+- `frontend/` is the web UI source of truth.
+
+## User guides
+
+- [Illustrated v2 walkthrough](../wiki/Usage.md): sources, checks, TV channels, EPG, playlists and Live TV.
+- [Extraction builder guide](../wiki/Extraction-Recipes.md): worked HTML, regex and JSON examples, limits, troubleshooting and saving recipes.
+- [Installation and upgrades](../wiki/Installation.md) and [Docker storage/platforms](../wiki/Docker.md).
+- [Configuration](../wiki/Configuration.md), [troubleshooting](../wiki/Troubleshooting.md) and [diagnostic bug reports](../wiki/Bug-Reporting.md).
+- [Docker command builder](https://pipepito.github.io/acestream-scraper/): generated commands with platform-aware services, checker isolation and storage.
+
+The manual release job mirrors `wiki/` to the GitHub wiki after successful latest promotion. Edit that source directory for durable user-doc changes. Develop validates documentation without publishing it; Pages serves `main/docs`, and Docker Hub text is published manually.
+
+## Key Docs
+
+- `AGENTS.md`: repository-wide Codex instructions, with layered backend, frontend,
+  and E2E guidance.
+- `docs/architecture/deployment.md`: production and local deployment model for `backend/` + `frontend/`.
+- `docs/ops/jenkins-ci.md`: primary Jenkins CI/CD operator guide, cutover steps, and rollback guidance.
+- `docs/ops/codex-infrastructure-access.md`: safe Codex access to the local,
+  git-ignored Jenkins connection details.
+- `docs/ops/reverse-proxy.md`: reverse-proxy/HTTPS deployment — TLS, proxy-level auth, `base_url`, and port-exposure guidance.
+- `docs/ops/acestream-arm-engine.md`: operator guide for the in-container AceStream engine on `linux/arm64` / `linux/arm/v7` (what is shipped, runtime settings, known gaps, testing on a Raspberry Pi, pin updates).
+- `docs/ops/multiarch-manifest-updates.md`: schema of `docker/manifests/acestream.json` and the procedure for updating engine/platform pins.
+- `docs/migration/migration-strategy.md`: cutover rules and migration direction.
+- `docs/migration/development-phases.md`: planned phase breakdown.
+- `docs/migration/development-progress.md`: current execution progress and completed work.
+
+## Release Docs
+
+- `docs/release/v2-release-notes.md`: user-facing v2 release notes (source for the GitHub release).
+- `docs/release/v2-release-readiness.md`: gap audit, closure record, open items before the `v2.0.0` tag, and the two-phase `:latest` publish flow.
+- `docs/release/phase5-multiarch-evidence.md`: how multi-arch evidence is produced on Jenkins and the per-release record.
+
+## Testing
+
+- [V2 documentation/browser review, 8 September 2026](testing/v2-launch-doc-review.md): scope, validation and follow-up observations.
+
+- `docs/testing/test-ownership-matrix.md`: canonical test locations and the required-check ownership policy.
+
+## Developer Entry Points
+
+Start with the [development guide](../wiki/Development.md) for local setup and proportionate checks. The [Jenkins scope table](ops/jenkins-ci.md#changes-that-select-ci-work) explains documentation-only validation and publication. Docker Hub text lives in [docs/dockerhub](dockerhub/README.md).
+
+- Backend local run: `cd backend && pip install -r requirements.txt && uvicorn main:app --reload --host 0.0.0.0 --port 8000 --no-proxy-headers`
+- Frontend local run: `cd frontend && npm install && npm start`
+- Container stack: `docker compose up --build`
+
+## Backend Alembic
+
+Run Alembic from the repo root with the backend virtualenv active:
+
+- `PYTHONPATH=backend alembic -c backend/migrations/alembic.ini history`
+- `PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head`

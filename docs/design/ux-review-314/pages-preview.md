@@ -24,3 +24,7 @@ python3 docs/design/ux-review-314/prepare_pages_preview.py \
 Markdown specification links in published HTML/engine resolve to the immutable design commit on GitHub. Fonts retain their notices. The ZIP, supplier code, original media masters, live data, private screenshots, logs and caches are excluded. Deliberately synthetic design exports are public artifacts.
 
 This procedure publishes design previews only. A page being built does not prove backend functionality, application CI, accessibility conformance, device behavior or owner approval of every visual decision. The current result and SHAs are recorded in [verification](verification-review-06.md).
+
+## Published snapshot — 7 November 2026
+
+Design source `530b366996265d351fe2ede9b29f462b1d3d6178`; Pages commit `c20548ab0dedaecdfec5a322595183c498091eaa`; previous site `ebea374d0e62da1ac7bf52c322ccad8daf1990fd`. GitHub Pages reported built at 21:19:33 UTC. All 102 non-preview files were preserved and all 1,290 hosted files matched the staged hashes. See the [public manifest](https://pipepito.github.io/acestream-scraper/design/ux-review-314/publication-manifest.json) and the verification report for hosted browser evidence and remaining manual acceptance. A later documentation-only commit records publication; rendered assets remain pinned to the design source above.

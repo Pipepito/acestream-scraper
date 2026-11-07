@@ -70,4 +70,23 @@ All requested capability families have composed contexts and a linked field/stat
 
 Observed application defects remain open in #315. F15 is a source finding requiring isolated reproduction in #315/#320; general slowdown is unproven in #323. OpenAPI security/error descriptions and programme-image adapter decisions remain future work in #318–#320/#324. Actual consumer/provider contract tests, media ownership, access/transport and independent-transaction behavior require separately authorized application work. See [source findings](source-findings-06.md) and [OpenAPI acceptance](openapi-contracts-06.md).
 
-Static publication is authorized and follows [the verified Pages procedure](pages-preview.md). The preview is built from an immutable committed design revision over the current `gh-pages` snapshot, with every non-preview file preserved. Publication SHA, hosted checks and existing-issue readback are appended after publication; until then, a local pass is not a hosted-site pass.
+## Published result
+
+The [live preview](https://pipepito.github.io/acestream-scraper/design/ux-review-314/) is built from design commit [`530b366996265d351fe2ede9b29f462b1d3d6178`](https://github.com/Pipepito/acestream-scraper/commit/530b366996265d351fe2ede9b29f462b1d3d6178). Static publication commit [`c20548ab0dedaecdfec5a322595183c498091eaa`](https://github.com/Pipepito/acestream-scraper/commit/c20548ab0dedaecdfec5a322595183c498091eaa) advances the prior `gh-pages` snapshot `ebea374d0e62da1ac7bf52c322ccad8daf1990fd` by a normal fast-forward. The GitHub-managed Pages build reported **built** at `2026-11-07T21:19:33Z`, with no build error. This is static hosting, not application CI or deployment.
+
+Preparation copied 1,187 design files and preserved **all 102 non-preview site files byte for byte**. The [public manifest](https://pipepito.github.io/acestream-scraper/design/ux-review-314/publication-manifest.json) pins the design and site sources. The candidate passed 8 static page checks and 6 long-content checks with no failures. HTTP verification then matched **all 1,290 hosted files**, including the manifest itself and the preserved site content: 87,498,385 bytes checked, zero mismatches. The initial Python attempt had no configured CA root; the final run used the already installed trusted CA bundle with TLS verification enabled. No certificate check was bypassed.
+
+Hosted Chromium smoke checks covered all three presets in EN/light desktop and ES/dark phone: **6 cases, 42 assertions, zero failures, JavaScript errors, warning/error console entries or blocked requests**. They verified the selected preset, locale, decoded hero, control reflow and recording-draft retention across an interface change, followed by Escape and focus return. The first probe read focus before the native dialog's scheduled restoration; the final probe explicitly waited for dialog closure and focus, with no prototype change. One hosted phone composition was visually inspected again. This remains synthetic preview behavior.
+
+This publication evidence is recorded in a subsequent documentation commit; the preview's HTML specification links remain pinned to its original design source. The later documentation commit changes no rendered prototype or application code. The latest evidence is also available on the [design branch](https://github.com/Pipepito/acestream-scraper/blob/design/ux-review-314/docs/design/ux-review-314/verification-review-06.md). Existing tasks #314–#324 retain future implementation and manual acceptance ownership; none should be closed for these design artifacts.
+
+Reproduce the public hash check after preparing the same staged snapshot:
+
+```sh
+python3 docs/design/ux-review-314/check_hosted06.py \
+  --staged-root /tmp/acestream-pages-review06-stage \
+  --ca-bundle /path/to/already-installed/trusted-ca-bundle.pem \
+  --output /tmp/ux314-review06/hosted-final
+```
+
+`--ca-bundle` can be omitted where Python's normal trust store is configured. This checker makes only read-only requests to the fixed public Pages origin. Reports and full hosted browser screenshots remain outside Git; their hashes and counts are in the verification summary.

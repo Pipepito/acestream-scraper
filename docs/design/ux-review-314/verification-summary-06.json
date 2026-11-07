@@ -193,11 +193,11 @@
     },
     "artifacts": {
       "file": "artifact-checks.json",
-      "sha256": "e8b1ba8d5a4e1bbacf3989bed0c94528f3e3bf8234e2baae2a21fed38d35b713",
+      "sha256": "fa04ef42acce45236bbab5c631063ffc565f864594c81a2c71588b6b5146095e",
       "summary": {
         "selected_image_files": 5,
         "selected_image_bytes": 254922,
-        "local_links": 3897,
+        "local_links": 3896,
         "local_fragments": 642,
         "generated_files": 10,
         "generated_drift": [],
@@ -207,6 +207,49 @@
         "runtime_fields": 47,
         "failures": []
       }
+    },
+    "pages-candidate": {
+      "file": "pages-checks.json",
+      "sha256": "5d75c328b0b01930ea116c34192b789939f1cf10d4a067b330c79adfa263c6ea",
+      "summary": {
+        "static_cases": 8,
+        "static_failures": 0,
+        "long_content_cases": 6,
+        "long_content_failures": 0,
+        "errors": 0,
+        "blocked": 0,
+        "console": 0
+      }
+    },
+    "hosted-final": {
+      "file": "hosted-checks.json",
+      "sha256": "f1e1fb3e8deee515ba0b7add8da7e058695932a41e930543deb8798ca887b6be",
+      "summary": {
+        "files": 1290,
+        "matching": 1290,
+        "failures": 0,
+        "preserved_site_files": 102,
+        "bytes": 87498385
+      }
+    },
+    "hosted-browser-final": {
+      "file": "hosted-browser-checks.json",
+      "sha256": "c28fc15ccff0f53e04fd9bee4ed211aa0eb262a7701fd118fe4712e96532dab0",
+      "summary": {
+        "cases": 6,
+        "assertions": 42,
+        "failures": 0,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0
+      }
     }
+  },
+  "publication": {
+    "design_source": "530b366996265d351fe2ede9b29f462b1d3d6178",
+    "site_source": "ebea374d0e62da1ac7bf52c322ccad8daf1990fd",
+    "pages_commit": "c20548ab0dedaecdfec5a322595183c498091eaa",
+    "built_at": "2026-11-07T21:19:33Z",
+    "preserved_site_files": 102
   }
 }

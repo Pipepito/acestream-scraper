@@ -6,6 +6,12 @@ Application evidence remains pinned to develop `cf952afc6b4489c02b7a675ff3d634cc
 
 The live installation's exact SHA is unknown. **No installation request or live action was made in this pass.** All current browser evidence uses synthetic local fixtures and intercepted requests. No supplier code was executed. Earlier live observations are retained as historical evidence, not re-certified at a new installation revision.
 
+## Owner scope amendment · documentation only
+
+After the completed composition delivery at `9618a6957c9fd528cd2b38aa0a62f0512145356e`, the owner closed the design-only phase and confirmed three selectable interface designs plus supporting backend/incomplete-feature fixes for the next implementation run. The [updated task scope](task-refinements-04.md#implementation-scope-confirmed-by-the-owner) supersedes the earlier single-direction decision.
+
+This amendment changes seven Markdown handoff files only. HTML/CSS/JavaScript, fixtures, exports, source-contract appendices and application/runtime files are byte-identical to the composition baseline. Current amendment checks: **2,842 local links and 501 fragments, zero failures; seven generated files, zero drift; repository documentation validation and staged whitespace passed.** Commands: `python3 docs/design/ux-review-314/check_artifacts.py --output /tmp/ux-review-314-scope-checks`, `python3 scripts/ci/validate_documentation.py`, and `git diff --cached --check`. The browser results below remain evidence for the unchanged prototypes; they were not rerun or relabelled as validation of the new selector or cyan interface. Both, and any backend fixes, require implementation and the full application completion gate in the existing tasks. No new design-audit round is required before starting.
+
 ## Final results
 
 | Check | Actual final result | Scope and limits |

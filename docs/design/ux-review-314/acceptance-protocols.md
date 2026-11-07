@@ -2,26 +2,28 @@
 
 The design package can be reviewed now. It is not proof of implementation, whole-app accessibility conformance, usability, media reliability or measured performance. The following work stays in the existing issues; no participant results or equipment checks are invented.
 
-## Owner decisions · #316 with #314
+## Confirmed implementation direction · #316 with #314
 
-Compare the same workflows using calm/expressive × coral/lime, in both themes. Approve color, typography and emphasis independently. The current IBM Plex/teal application standards remain authoritative until explicitly changed. Inter/Barlow in the disposable study does not approve font migration or rebranding.
+The owner has confirmed implementation of all three referenced designs—lime, coral/navy and cyan—with a user-facing interface selector. Use the [implementation scope](task-refinements-04.md#implementation-scope-confirmed-by-the-owner). Choosing one winning direction is no longer a prerequisite. Complete and refine their foundations during #316, retain the application identity and licensing requirements, and verify equal workflow coverage. The current prototypes cover coral/lime comparison variables; they do not already implement or validate cyan or the production selector.
 
-Review the proposed Watch grouping for Events, outcome links under Integrations, all existing Settings deep links, and the shared editor ownership. Confirm any staged Save treatment replacing immediate settings saves. Independent API transactions must remain separate regardless of presentation choice. These decisions are requested against the concrete gallery, not as prerequisites to finishing the audit.
+Review the proposed Watch grouping for Events, outcome links under Integrations, all existing Settings deep links, and the shared editor ownership during implementation. Confirm consequential staged Save changes where source currently saves immediately. Independent API transactions remain separate. Remaining design refinement and research stay inside the existing implementation/acceptance tasks; no further standalone audit is required before starting.
 
 ## Implementation and regression ownership
 
 | Existing task | Remaining work and observable exit evidence |
 |---|---|
 | #315 | Fix the private-HTTP recording opener, actual status contrast, Network/pagination phone clipping and guide-slider names. Investigate the new bulk-edit schema/repeated-batch source finding. Reproduce each at the implementation SHA; no claim from replacement screenshots. |
-| #316 | Review/approve or revise foundations, IA and explicit-save proposals. Reconcile every composed workflow with the final component system; record any rejected proposal without removing capability coverage. |
+| #316 | Implement three coherent interface foundations and shared component variants; complete cyan coverage and define selector presets with #318. Refine IA and explicit-save proposals without removing capabilities. |
 | #317 | Typed EN/ES resources, native error mapping, fluent Spanish review, plural/zero/unknown formatting, pseudo-locale expansion, unchanged original content and stable real-player/draft/selection state across preference changes. |
-| #318 | Implement shell, deep links, shared settings/access/setup/recovery; verify all permissions, transports, last-admin cases and independent persistence. Exercise stale runtime revisions and explicit proxy overrides. |
+| #318 | Implement the three-interface selector and remembered preference, shell, deep links, shared settings/access/setup/recovery. Verify switching/persistence/fallback, permissions, transports, last-admin cases, stale runtime revisions and explicit proxy overrides. |
 | #319 | Implement dashboard/Live TV/events/recordings. Use controlled media fixtures for DST, source changes, parts/gaps, cancellation, protection, recording priority, session leases and event fingerprint conflicts. |
 | #320 | Implement channels/streams/guides/playlists; validate complete-catalogue and stream ordering, atomic Add and Link, optional reviewed similar names, source-qualified guides, exports, format/token/address dependencies and bulk contract correction. |
 | #321 | Implement source/provider/W3U/search/exclusion/orphan/helper workflows; preserve guarded fetches, reviewed imports and installed/standalone isolation. Exercise real bounded workers with adversarial synthetic samples. |
 | #322 | Implement integrations/system/WARP; validate capabilities and real owned device/media actions, jobs, diagnostics, storage bounds and saved/applied/startup distinctions. |
 | #323 | Establish measured browser/network/media baselines and budgets at a known application SHA. Profile before choosing virtualization, memoization or lazy-loading changes. No performance regression was proved by this design audit. |
-| #324 | Integrate all surfaces and run the normal application/Docker/browser matrix, manual assistive technology/device acceptance and participant study below. Evidence must cover the final implementation, not this design branch. |
+| #324 | Integrate all surfaces across three interfaces × EN/ES × light/dark × responsive layouts; verify switching/state continuity, supporting backend fixes and the normal application/Docker/browser matrix plus manual/participant evidence below. |
+
+Every feature owner (#319–#322) delivers all three interfaces and the backend or incomplete-feature corrections needed for its workflows. #315/#320 retain the source-only F15 reproduction. #323 measures each interface and switching cost; a general slowdown remains unproven. Backend/API/schema changes require the normal contract, generated-client, migration and integration checks.
 
 ## Manual assistive technology protocol · #315/#317/#324
 
@@ -46,7 +48,7 @@ Use one small iPhone and one small Android device in portrait and landscape. Exe
 
 Recruit 5–6 participants who regularly watch online TV and do not administer servers; include at least two Spanish-dominant participants and one keyboard/assistive-technology user if available. Use synthetic names and an isolated installation. Obtain consent; record observations without personal data in public artifacts. No participants were recruited for this design pass.
 
-Tasks (alternate direction order between participants):
+Tasks (counterbalance the three interface choices between participants):
 
 1. Find a channel and explain whether “ID found”, “signal verified” and “not checked” mean the same thing; filter while watching and return to the selected channel.
 2. Schedule a programme over the DST repeated hour; explain what Stop, Cancel schedule, Delete files and Disable recordings each do.
@@ -55,7 +57,7 @@ Tasks (alternate direction order between participants):
 5. Resolve two identically named guide candidates; reorder all channels, handle a stale conflict, and export a filtered playlist with matching guide IDs.
 6. Identify a failed checker versus failed playback, a queued maintenance job, partially measured storage and saved-but-unapplied WARP exclusions. Explain the two recovery choices without executing either.
 
-Capture unaided completion, wrong/destructive choices, recovery from errors, hesitation points, task time and 1–7 confidence. Counterbalance calm/expressive and coral/lime; ask which information helped, not only which style is prettier. Proposed acceptance target for owner review: no consequential mistaken action; at least 80% unaided completion on the core viewing/source/recording tasks; correct explanation of all destructive consequences. Small-sample findings are qualitative, not population statistics. Revise concrete screens from observed failures and rerun affected tasks.
+Capture unaided completion, wrong/destructive choices, recovery from errors, hesitation points, task time and 1–7 confidence. Test switching interfaces with a dirty form and active playback, explain the separate language/light-dark controls, and reopen to check the remembered choice. Ask which information helped, not only which style is prettier. Proposed acceptance target for owner review: no consequential mistaken action; at least 80% unaided completion on the core viewing/source/recording tasks; correct explanation of all destructive consequences. Small-sample findings are qualitative, not population statistics. Revise implementation from observed failures and rerun affected tasks.
 
 ## Performance protocol · #323
 

@@ -1,5 +1,7 @@
 # Whole-app UX review — composed review 04
 
+**Owner follow-up: design-only review is closed.** The next run implements epic #314, including the three referenced interfaces (lime, coral/navy and cyan), a user-facing selector, and required backend/incomplete-feature fixes. See the [confirmed implementation scope and task ownership](task-refinements-04.md#implementation-scope-confirmed-by-the-owner). This supersedes earlier instructions to choose one final visual direction. The selector and cyan production coverage are implementation work; they are not demonstrated by the existing two-palette prototypes.
+
 The remaining design coverage for [epic #314](https://github.com/Pipepito/acestream-scraper/issues/314) is composed in **144 workflow screens, 473 field occurrences and 288 synthetic exports**, with EN/ES, both themes, phone/desktop, named states and comparable calm/expressive × coral/lime alternatives. **Design only: not user-approved or implemented.** Existing IBM Plex/teal standards remain authoritative.
 
 Start with the [expanded visual gallery](workflow-gallery.html) and [interactive workflow prototype](workflow-prototype.html?screen=dashboard). GitHub displays HTML source: check out this branch and open the gallery locally. The prototype uses local scripts/data, blocks installation connections and contains no media or real credentials.

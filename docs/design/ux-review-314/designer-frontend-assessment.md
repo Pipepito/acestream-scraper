@@ -58,6 +58,8 @@ The supplier's README and audit document are useful context, but their claims ar
 
 ## Three different visual directions are present
 
+**Owner follow-up, 7 November 2026:** implement all three as user-selectable interface designs, with full application coverage. This supersedes the earlier recommendation to choose one winner. See the [implementation scope](task-refinements-04.md#implementation-scope-confirmed-by-the-owner). The source/status inventory below remains historical evidence; cyan still requires production composition and validation during implementation.
+
 | Source | Direction | Status observed |
 | --- | --- | --- |
 | Original supplied PDF | Lime `#B6FF00`, near-black `#080B09`, charcoal `#171D19`, mist `#F5F7F3` | Base for our initial boards 02–06. |

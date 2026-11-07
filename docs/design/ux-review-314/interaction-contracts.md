@@ -1,5 +1,7 @@
 # Interaction contracts · review 04
 
+**Owner follow-up:** the next run implements three selectable interface designs and supporting backend/incomplete-feature fixes; the design-only phase is closed. The [confirmed scope](task-refinements-04.md#implementation-scope-confirmed-by-the-owner) supersedes the earlier single-direction decision and design-only scope below. Interface changes preserve the same workflow, permission, transaction and media-ownership contracts. Existing prototype verification is not production-selector or cyan verification.
+
 These are implementation-guiding proposals for the existing ten tasks. They do not authorize implementation, change API contracts or approve new typography, color or navigation. Current source is pinned to `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`; the design branch intentionally retains its earlier application base. Use the [field specification](workflow-specification.md), [source control map](source-control-map.md) and [traceability matrix](traceability-matrix.md) together.
 
 ## Status and fidelity

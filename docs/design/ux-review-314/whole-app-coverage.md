@@ -1,5 +1,9 @@
 # Whole-app design coverage and handoff contract
 
+**Latest source update:** develop advanced to cf952af during review 03. The [current-source delta](current-source-delta.md) adds availability, matching/linking, retention fields and tuner hiding without changing route counts. Read it alongside the coverage delta; post-merge live checks remain pending.
+
+**Review 03 update:** [fresh reconciliation and per-row evidence/status](coverage-review-03.md), [design specification](design-specification.md), [critical fields](field-ledger.md) and [all 47 runtime options](runtime-field-inventory.md). New administration mockups are in review; no row is accepted. The original inventory below remains the scope contract.
+
 The scope is **every existing application surface**, including administration. The supplier's viewing frontend is one reference, not the scope boundary. No route, setting, dialog, advanced flow or recovery state may retain an accidental legacy design because the supplier did not provide it.
 
 This inventory was reconciled on 7 November 2026 against application revision `7ccf16d383758aeeb78845e20e3716ddf97df10d`: `frontend/src/App.tsx`, rendered-navigation definitions, pages, settings/access/startup components and recipe entrypoints. There are **20 navigation destinations, 24 explicit application routes plus the catch-all, nine compatibility redirects, and additional gated/embedded surfaces**. Reconcile again before implementation and final acceptance; a newly discovered surface must receive an owner, not be excluded by this snapshot.
@@ -23,7 +27,7 @@ Every row inherits the state, responsive, language and interaction requirements 
 | R01 | `/` · TV dashboard | Viewing entry, current app-owned playback, inventory, upcoming/followed events, next updates, independently failing sections | #319 | Supplier catalogue patterns only; dashboard composition still needed |
 | R02 | `/live-tv` · Live TV | Embedded player, scrollable catalogue, browsing modes, current/next guide, search/filter/favourite, watch/stop/record/cast/remote handoff | #319 | Boards 02, 05, 12 and supplier player; concept only |
 | R03 | `/recordings` · Recordings | Upcoming/active, saved library, history, search/status, schedule/edit, playback/parts, protection, conversion, stop/cancel/delete and storage/settings entry | #319 | Needs dedicated full design |
-| R04 | `/events` · Events | Agenda/date/timezone/interests/following, detail, guide overlay, Watch/Record, provider/source administration, import and broadcaster mappings | #319 | Needs dedicated full design |
+| R04 | `/events` · Events | Currently under Manage; proposed Watch. Agenda/date/timezone/interests/following, detail, guide overlay, Watch/Record, provider/source administration, import and broadcaster mappings | #319 | Needs dedicated full design |
 | R05 | `/acestream-channels` · Streams | Raw stream inventory, filters/sort/pages, bulk controls, add/edit, verified/network states, stats/activity, TV assignment and player/playlist entry | #320 | Shared inventory pattern; dedicated stream states needed |
 | R06 | `/tv-channels` · TV channels | Core/advanced filters, table/phone cards, number/favourite, full reorder, CRUD, bulk/source assignment, guide matching, row actions | #320 | Board 04; concept only |
 | R07 | `/tv-channels/:id` · Channel detail | Channel identity/editing, associated streams, guide/schedule, actions, status/activity and missing/deleted-channel state | #320, player #319 | Needs dedicated full design |

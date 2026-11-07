@@ -6,7 +6,7 @@ The owner explicitly requires the design to cover **the entire app, including al
 
 ## Recommendation
 
-Reuse the visual system, selected viewing/discovery patterns and the simple source-add flow. Implement them as components in the existing React/TypeScript/MUI application, using its current services, permissions and media lifecycle. The bundle is a useful working design reference, but it is not a complete replacement for this application's frontend.
+Review 03 narrows this recommendation: selectively adapt viewing/discovery patterns and source entry, rather than adopt the whole visual system. Implement them as components in the existing React/TypeScript/MUI application, using its current services, permissions and media lifecycle. The bundle is a useful working design reference, but it is not a complete replacement for this application's frontend.
 
 The visual language could be extended across the app. Replacing the application with the supplied code would leave recordings, guide management, playlists, accounts, most settings and integrations unimplemented, and would introduce a second backend contract.
 
@@ -149,3 +149,20 @@ These screenshots are the supplied frontend with intercepted synthetic API respo
 5. **#324:** compare implemented screens with the chosen direction and validate existing application behavior, rather than using the supplier's six logic scripts as product-completion evidence.
 
 No additional issues are required to incorporate this reference. No runtime replacement, deployment, PR or merge has been performed as part of the review.
+
+## Review 03 critical reassessment
+
+Fresh source inspection confirms five native views, the admin redirect/hidden iframe, forced-dark overrides and DOM phrase replacement. Six supplied logic scripts and seven fully intercepted synthetic preview states were rerun successfully. This remains no evidence of a complete backend, playback lifecycle, light theme or full administration.
+
+| Pattern | Revised recommendation | Reason / required adaptation |
+| --- | --- | --- |
+| Featured hero/carousel | Optional viewing experiment, not default app shell | Real programme imagery is not reliably available. Avoid synthetic artwork that implies real footage or recommendations. Keep ordinary channel access faster than the hero. |
+| Sports category grid | Do not reuse taxonomy as the general-TV model | The fresh fixture preview still relegates news/culture/nature/family to generic treatment. Use available catalogue categories and honest no-artwork fallbacks. |
+| Source URL + primary action | Adapt task hierarchy, not coupled wording | Current app has save-only, registry providers, recipes, queues and reviewed catalogue imports. Explain save→queue→result and retain controls; one-click extract is not universal. |
+| Channel detail disclosure | Reuse anatomy selectively | Main Watch action, then technical identity/source detail. Existing player, recording and Cast ownership remains authoritative. |
+| Coral/navy, lime reference and unused cyan | Compare, do not inherit approval | Accent and typography must pass administration states as well as a catalogue hero. Review 03 supplies controlled calm/expressive alternatives. |
+| Admin theme overlay | Reject as implementation strategy | Forced dark and 215 important overrides bypass semantic tokens and provide no missing forms. |
+| Phrase translation helper | Copy research only | Text replacement cannot safely distinguish user/programme data, enum values, accessible names, dynamic errors or React state. |
+| Media library / legacy plugins | Select only needed licensed assets | Preview success does not establish provenance or delivery efficiency. Avoid background video, duplicated HLS/jQuery and original masters. |
+
+The previous recommendation to “reuse the visual system” was too broad. Existing MUI/theme/typed-service foundations are better suited to this product; supplier patterns are inputs for those components. See [fresh audit](fresh-audit.md), [design specification](design-specification.md) and [new mockups](admin-prototype.html). The archive and media masters remain outside Git.

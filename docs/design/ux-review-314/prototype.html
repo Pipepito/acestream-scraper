@@ -15,7 +15,7 @@
 body.coral{--bg:#fff9f2;--surface:#fffdfa;--subtle:#f3eae3;--text:#151626;--muted:#655e66;--line:#d4c8c5;--accent:#ff885c;--accent-text:#151626;--selected:#fce5d9;--selected-text:#8a3e20}
 body.coral.dark{--bg:#151626;--surface:#222336;--subtle:#303247;--text:#fff9f2;--muted:#bbb8c9;--line:#51536c;--selected:#3f2d31;--selected-text:#ffae8c;--success:#80d7ac;--success-bg:#253d36;--warn:#e0b25a;--warn-bg:#3b342b}
 body.coral .button.primary{border-color:#935033}body.coral.dark .button.primary{border-color:#ff885c}body.coral .favoritebtn.on{color:#8a3e20}body.coral.dark .favoritebtn.on{color:#ffae8c}
-</style></head><body>
+</style></head><body><div style="padding:12px 20px;background:#f5f3ef;color:#202232;font:14px/1.5 sans-serif">Historical concept: draft values and several actions are illustrative. <a href="admin-prototype.html" style="text-decoration:underline">Open review03 administration proposals</a>.</div>
 <div id="app"></div><div id="notice" class="notice" role="status"></div>
 <script>
 const params=new URLSearchParams(location.search);let view=params.get('view')||'live',lang=params.get('lang')||'en',theme=params.get('theme')||(view==='live'?'dark':'light');const palette=params.get('palette')||'lime';let playing=true,selected=0,favoritesOnly=false,filter='',dirty=true;

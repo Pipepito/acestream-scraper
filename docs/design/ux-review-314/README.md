@@ -6,6 +6,8 @@ The remaining design coverage for [epic #314](https://github.com/Pipepito/acestr
 
 Start with the [expanded visual gallery](workflow-gallery.html) and [interactive workflow prototype](workflow-prototype.html?screen=dashboard). GitHub displays HTML source: check out this branch and open the gallery locally. The prototype uses local scripts/data, blocks installation connections and contains no media or real credentials.
 
+For the next run, use the [complete Plan mode implementation prompt](implementation-prompt.md). [GitHub Pages preview preparation and publishing status](pages-preview.md) are tracked separately from application delivery.
+
 - [Completed coverage and important corrections](coverage-review-04.md)
 - [Field-level workflow specification](workflow-specification.md) and [interaction contracts](interaction-contracts.md)
 - [Traceability matrix](traceability-matrix.md), [current source-control map](source-control-map.md) and [schema evidence](source-contracts.md)

@@ -10,6 +10,8 @@ test('IDs remain manually copyable and assignment searches in place', async ({ p
     tvId = tv.id;
     await page.goto('/acestream-channels');
     await page.getByRole('textbox', { name: 'Search', exact: true }).fill(target.name);
+    // The debounced response replaces grid cells; open actions after it settles.
+    await expect(page.getByRole('button', { name: /^More actions for / })).toHaveCount(1);
     const input = page.getByRole('textbox', { name: `Acestream ID ${target.id}`, exact: true });
     await page.getByRole('button', { name: `copy acestream id ${target.id}`, exact: true }).click();
     await expect(input).toBeFocused();

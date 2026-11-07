@@ -21,7 +21,7 @@ export default function TVChannelLinkField({ value, onChange, disabled, required
       loading={catalog.isLoading} filterOptions={filterOptions} isOptionEqualToValue={(a, b) => a.id === b.id}
       getOptionLabel={channel => `${channel.channel_number == null ? '' : `${channel.channel_number} · `}${channel.name}`}
       noOptionsText="No matching TV channels. Create one in TV Channels."
-      renderOption={(props, channel) => <li {...props} key={channel.id}><Stack><Typography>{channel.name}</Typography><Typography variant="caption" color="text.secondary">{[channel.country, channel.category, !channel.is_active ? 'Hidden channel' : ''].filter(Boolean).join(' · ')}</Typography></Stack></li>}
+      renderOption={(props, channel) => <li {...props} key={channel.id}><Stack><Typography>{channel.channel_number == null ? '' : `${channel.channel_number} · `}{channel.name}</Typography><Typography variant="caption" color="text.secondary">{[channel.country, channel.category, !channel.is_active ? 'Hidden channel' : ''].filter(Boolean).join(' · ')}</Typography></Stack></li>}
       renderInput={params => <TextField {...params} label={required ? 'TV channel' : 'Link to TV channel (optional)'} required={required} helperText="Search by name, number, country or category." />} />
     {catalog.isError ? <Alert severity="error" action={<Button onClick={() => void catalog.refetch()}>Retry</Button>}>Could not load TV channels.</Alert> : null}
   </Stack>;

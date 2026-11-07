@@ -67,6 +67,12 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
     return Array.from(groups.values()).filter(station => !query || `${station.name} ${station.streams.map(item => item.acestream_name).join(' ')}`.toLocaleLowerCase().includes(query));
   }, [preview, search]);
   const rows = stations.slice(page * 10, (page + 1) * 10);
+  const filteredExactMatches = stations.flatMap(station => station.streams.filter(item => item.recommended));
+  const selectExactMatches = () => setSelected(current => {
+    const next = new Map(current);
+    for (const item of filteredExactMatches) next.set(item.acestream_channel_id, item.tv_channel_id);
+    return next;
+  });
   const toggleStreams = (ids: string[], tvId: number, checked: boolean) => setSelected((current) => {
     const next = new Map(current);
     for (const id of ids) {
@@ -105,7 +111,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
             <Alert severity="info">Exact matches can be selected together. Similar names need your review; select only one TV channel for each stream. Existing assignments stay unchanged.</Alert>
             {preview.candidates.length === 0 ? <Alert severity="info">No matches found. You can assign streams from a TV channel’s detail page.</Alert> : <>
               <TextField label="Filter matches" type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} />
-              <Button disabled={busy || !preview.candidates.some(item => item.recommended)} onClick={() => setSelected(new Map(preview.candidates.filter(item => item.recommended).map(item => [item.acestream_channel_id, item.tv_channel_id])))}>Select exact matches</Button>
+              <Button disabled={busy || !filteredExactMatches.length} onClick={selectExactMatches}>{search.trim() ? 'Select filtered exact matches' : 'Select all exact matches'}</Button>
               <Button disabled={busy || !selected.size} onClick={() => setSelected(new Map())}>Clear selection</Button>
               {rows.map((station) => {
                 const selectedCount = station.streams.filter((item) => selected.get(item.acestream_channel_id) === item.tv_channel_id).length;

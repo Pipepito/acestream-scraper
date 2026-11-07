@@ -95,11 +95,25 @@ test('similar suggestions need individual review and allow only one target per s
   fireEvent.click(screen.getByRole('checkbox', { name: 'Include similar names for review' }));
   fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
   const suggestions = await screen.findAllByRole('checkbox', { name: /Sportz HD/ });
-  expect(screen.getByRole('button', { name: 'Select exact matches' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Select all exact matches' })).toBeDisabled();
   fireEvent.click(suggestions[0]);
   fireEvent.click(suggestions[1]);
   expect(suggestions[0]).not.toBeChecked();
   expect(suggestions[1]).toBeChecked();
   fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
   await waitFor(() => expect(apply).toHaveBeenCalledWith({ assumed_country: null, include_similar: true, assignments: [{ acestream_channel_id: 'same', tv_channel_id: 2 }] }, expect.anything()));
+});
+
+test('bulk exact selection respects the search filter', async () => {
+  preview.mockResolvedValue({ tv_channels: 2, unassigned_streams: 2, ambiguous_streams: 0, unmatched_streams: 0, candidates: [
+    { acestream_channel_id: 'a', acestream_name: 'Sports HD', tv_channel_id: 1, tv_channel_name: 'Sports', score: .99, reason: 'Exact name', recommended: true },
+    { acestream_channel_id: 'b', acestream_name: 'News HD', tv_channel_id: 2, tv_channel_name: 'News', score: .99, reason: 'Exact name', recommended: true },
+  ] });
+  apply.mockResolvedValue({ assigned_count: 1, skipped_count: 0 });
+  setup();
+  fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
+  fireEvent.change(await screen.findByRole('searchbox', { name: 'Filter matches' }), { target: { value: 'Sports' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Select filtered exact matches' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Assign selected (1)' }));
+  await waitFor(() => expect(apply).toHaveBeenCalledWith(expect.objectContaining({ assignments: [{ acestream_channel_id: 'a', tv_channel_id: 1 }] }), expect.anything()));
 });

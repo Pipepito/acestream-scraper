@@ -107,6 +107,7 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'stream_url',
             'stream_headers',
             'last_checked',
+            'offline_since',
             'check_error',
             'bitrate_bps',
             'bitrate_checked_at',

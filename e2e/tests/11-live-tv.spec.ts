@@ -28,6 +28,8 @@ test('video keeps advancing while browsing and switches channels inline', async 
       if (request.method() === 'DELETE' && request.url().includes('/player/sessions/')) leaves.push(request.url());
     });
     await page.goto('/live-tv');
+    await page.getByRole('checkbox', { name: 'Online only' }).click();
+    await expect(page.getByRole('checkbox', { name: 'Online only' })).not.toBeChecked();
     await page.getByRole('button', { name: 'Watch E2E live TV 1', exact: true }).click();
     const player = page.getByRole('region', { name: 'Live TV player', exact: true });
     await expect(player).toBeVisible();

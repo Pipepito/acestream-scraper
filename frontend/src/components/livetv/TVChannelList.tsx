@@ -37,6 +37,8 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (selected) ref.current?.scrollIntoView?.({ block: 'nearest' }); }, [selected]);
   // A batched row proves the server resolved a guide mapping, whatever the catalogue copy carries.
+  const onlineStreams = channel.acestream_channels.filter(stream => stream.is_active !== false && stream.is_online === true);
+  const bestStream = onlineStreams[0] ?? channel.acestream_channels.find(stream => stream.is_active !== false) ?? channel.acestream_channels[0];
   const hasGuide = Boolean(row) || Boolean(channel.epg_id && channel.epg_source_id);
   return <Box component="article" ref={ref} aria-label={channel.name} aria-current={selected ? 'true' : undefined}
     sx={{ py: 2, px: 1, mx: -1, borderBottom: 1, borderColor: 'divider', contentVisibility: 'auto', containIntrinsicSize: 'auto 140px',
@@ -44,12 +46,12 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
     <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
       <Box sx={{ flex: '1 1 180px', minWidth: 0 }}>
         <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? `${channel.channel_number}. ` : ''}{channel.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{`${channel.acestream_channels.length} stream${channel.acestream_channels.length === 1 ? '' : 's'}`}{channel.category ? ` · ${channel.category}` : ''}</Typography>
+        <Typography variant="body2" color="text.secondary">{onlineStreams.length ? `${onlineStreams.length} online stream${onlineStreams.length === 1 ? '' : 's'}` : 'No stream verified online'}{channel.category ? ` · ${channel.category}` : ''}</Typography>
       </Box>
       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
         <Button variant="contained" startIcon={<PlayArrowRounded />} aria-pressed={selected} aria-label={`Watch ${channel.name}`} onClick={() => onWatch(channel)}>{selected ? 'Selected' : 'Watch'}</Button>
         <RecordButton channelId={channel.id} channelName={channel.name} disabled={!channel.acestream_channels.some(stream => stream.is_active)} />
-        <PlayOnMenu contentId={channel.acestream_channels[0].id} title={channel.name} label="Send to player" />
+        <PlayOnMenu contentId={bestStream.id} title={channel.name} label="Send to player" />
       </Stack>
     </Stack>
     {fallback ? null : <NowNextLines row={row} hasGuide={hasGuide} />}

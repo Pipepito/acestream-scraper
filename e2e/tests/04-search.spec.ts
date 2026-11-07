@@ -66,4 +66,28 @@ test.describe('engine search', () => {
     await search.search('zzqqxxe2enomatch');
     await expect(search.results()).toContainText('No channels found matching your search criteria.');
   });
+
+  test('Add and Link assigns an existing search result directly to a TV channel', async ({ page, api, scenario }) => {
+    const query = scenario.search.queries[0].query;
+    const result = (await api.search(query)).results[0];
+    const { content_id: contentId } = await api.resolveSearchResult(result.id);
+    const original = await api.getChannel(contentId);
+    expect(original?.tv_channel_id).toBeNull();
+    const tv = await api.createTvChannel({ name: 'E2E search link target' });
+    try {
+      const search = new SearchPage(page);
+      await search.open();
+      await search.search(query);
+      await search.resultRow(result.name).getByRole('button', { name: `Add and Link ${result.name}`, exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Add and Link', exact: true });
+      await dialog.getByRole('combobox', { name: /^TV channel/ }).fill(tv.name);
+      await page.getByRole('option', { name: tv.name, exact: true }).click();
+      await dialog.getByRole('button', { name: 'Add and Link', exact: true }).click();
+      await expect(dialog).toBeHidden();
+      expect((await api.getChannel(contentId))?.tv_channel_id).toBe(tv.id);
+      expect((await api.getChannel(contentId))?.name).toBe(original?.name);
+    } finally {
+      await api.deleteTvChannel(tv.id);
+    }
+  });
 });

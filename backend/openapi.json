@@ -343,6 +343,19 @@
             ],
             "title": "Source Url"
           },
+          "tv_channel_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optionally link the stream to an existing TV channel in the same transaction.",
+            "title": "Tv Channel Id"
+          },
           "tvg_id": {
             "anyOf": [
               {
@@ -557,6 +570,18 @@
             ],
             "description": "Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence",
             "title": "Network Status"
+          },
+          "offline_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offline Since"
           },
           "source_url": {
             "anyOf": [
@@ -6602,6 +6627,64 @@
         "title": "NotificationWebhookUpdate",
         "type": "object"
       },
+      "OfflineCleanupConfig": {
+        "properties": {
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "interval_days": {
+            "default": 7,
+            "maximum": 90.0,
+            "minimum": 1.0,
+            "title": "Interval Days",
+            "type": "integer"
+          },
+          "offline_days": {
+            "default": 14,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Offline Days",
+            "type": "integer"
+          },
+          "remove_linked": {
+            "default": false,
+            "title": "Remove Linked",
+            "type": "boolean"
+          },
+          "rescrape": {
+            "default": true,
+            "title": "Rescrape",
+            "type": "boolean"
+          }
+        },
+        "title": "OfflineCleanupConfig",
+        "type": "object"
+      },
+      "OfflineCleanupPreview": {
+        "properties": {
+          "eligible_streams": {
+            "title": "Eligible Streams",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 500,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "sources": {
+            "title": "Sources",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eligible_streams",
+          "sources"
+        ],
+        "title": "OfflineCleanupPreview",
+        "type": "object"
+      },
       "OrphanCleanupRequest": {
         "properties": {
           "source_urls": {
@@ -9318,6 +9401,18 @@
             ],
             "title": "Epg Refresh"
           },
+          "offline_stream_cleanup": {
+            "anyOf": [
+              {
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offline Stream Cleanup"
+          },
           "timezone": {
             "default": "UTC",
             "description": "IANA timezone used to interpret start times",
@@ -9487,6 +9582,19 @@
             "minItems": 1,
             "title": "Items",
             "type": "array"
+          },
+          "tv_channel_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Explicit Add and Link target; existing assignments are preserved.",
+            "title": "Tv Channel Id"
           }
         },
         "required": [
@@ -11599,6 +11707,12 @@
             ],
             "description": "Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.",
             "title": "Assumed Country"
+          },
+          "include_similar": {
+            "default": false,
+            "description": "Include similar names for explicit review; never automatic assignments.",
+            "title": "Include Similar",
+            "type": "boolean"
           }
         },
         "required": [
@@ -11717,6 +11831,12 @@
             ],
             "description": "Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.",
             "title": "Assumed Country"
+          },
+          "include_similar": {
+            "default": false,
+            "description": "Include similar names for explicit review; never automatic assignments.",
+            "title": "Include Similar",
+            "type": "boolean"
           }
         },
         "title": "TVMatchOptions",
@@ -17746,6 +17866,110 @@
           }
         },
         "summary": "Test Notification Webhook",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/offline-cleanup": {
+      "get": {
+        "operationId": "get_offline_cleanup_api_v1_config_offline_cleanup_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineCleanupConfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Offline Cleanup",
+        "tags": [
+          "config",
+          "config"
+        ]
+      },
+      "put": {
+        "operationId": "update_offline_cleanup_api_v1_config_offline_cleanup_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfflineCleanupConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineCleanupConfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Offline Cleanup",
+        "tags": [
+          "config",
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/offline-cleanup/preview": {
+      "post": {
+        "operationId": "preview_offline_cleanup_api_v1_config_offline_cleanup_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfflineCleanupConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineCleanupPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Offline Cleanup",
         "tags": [
           "config",
           "config"

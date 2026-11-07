@@ -62,8 +62,9 @@ export const searchService = {
     return response.data;
   },
 
-  importResults: async (channels: SearchResultItem[]): Promise<SearchImportResponse> => {
+  importResults: async (channels: SearchResultItem[], tvChannelId?: number): Promise<SearchImportResponse> => {
     const response = await apiClient.post<SearchImportResponse>(`${BASE_URL}/import`, {
+      ...(tvChannelId ? { tv_channel_id: tvChannelId } : {}),
       items: channels.map(channel => ({ infohash: channel.id, name: channel.name, category: channel.categories?.[0] || '' })),
     }, { timeout: 135000 });
     return response.data;

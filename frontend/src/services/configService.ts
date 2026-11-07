@@ -232,3 +232,8 @@ export const configService = {
 export type ScheduleAnchors = import('../types/api-generated').components['schemas']['ScheduleAnchors'];
 export const getScheduleAnchors = async (): Promise<ScheduleAnchors> => (await apiClient.get<ScheduleAnchors>(`${BASE_URL}/schedule-anchors`)).data;
 export const saveScheduleAnchors = async (schedule: ScheduleAnchors): Promise<ScheduleAnchors> => (await apiClient.put<ScheduleAnchors>(`${BASE_URL}/schedule-anchors`, schedule)).data;
+
+export type OfflineCleanupConfig = Required<components['schemas']['OfflineCleanupConfig']>;
+export const getOfflineCleanup = async (): Promise<OfflineCleanupConfig> => (await apiClient.get<OfflineCleanupConfig>('/v1/config/offline-cleanup')).data;
+export const saveOfflineCleanup = async (config: OfflineCleanupConfig): Promise<OfflineCleanupConfig> => (await apiClient.put<OfflineCleanupConfig>('/v1/config/offline-cleanup', config)).data;
+export const previewOfflineCleanup = async (config: OfflineCleanupConfig): Promise<components['schemas']['OfflineCleanupPreview']> => (await apiClient.post<components['schemas']['OfflineCleanupPreview']>('/v1/config/offline-cleanup/preview', config)).data;

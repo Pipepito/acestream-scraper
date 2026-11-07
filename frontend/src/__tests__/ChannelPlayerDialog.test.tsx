@@ -40,3 +40,16 @@ describe('channel-aware player', () => {
     expect(screen.queryByRole('group', { name: 'Sources' })).not.toBeInTheDocument();
   });
 });
+
+
+it('keeps the selected TV source when a status refresh changes source order', () => {
+  mockStream.mockReturnValue({ data: {} });
+  mockTV.mockReturnValue({ data: channel });
+  const props = { open: true, tvChannelId: 5, title: 'Arena', onClose: jest.fn(), hideUnavailableSources: true };
+  const view = render(<ChannelPlayerDialog {...props} contentId="one" />);
+  expect(screen.queryByRole('button', { name: /Backup/ })).not.toBeInTheDocument();
+  mockTV.mockReturnValue({ data: { ...channel, acestream_channels: [{ ...channel.acestream_channels[1], is_online: true }, { ...channel.acestream_channels[0], is_online: false }] } });
+  view.rerender(<ChannelPlayerDialog {...props} contentId="two" />);
+  expect(screen.getByRole('status')).toHaveTextContent('one');
+  expect(screen.getByRole('button', { name: /HD/ })).toHaveAttribute('aria-pressed', 'true');
+});

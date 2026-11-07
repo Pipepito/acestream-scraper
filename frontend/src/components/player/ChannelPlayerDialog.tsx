@@ -11,6 +11,7 @@ import SourceChips from './SourceChips';
 
 interface ChannelPlayerDialogProps extends Omit<StreamPlayerDialogProps, 'extraActions' | 'details' | 'schedule' | 'sources'> {
   tvChannelId?: number;
+  hideUnavailableSources?: boolean;
 }
 
 /** Preserve TV context when changing streams; a raw ID can discover its assigned channel. */
@@ -23,10 +24,10 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
   return <StreamPlayerDialog {...props} contentId={selectedId} title={channel?.name ?? props.title}
     extraActions={<>{channel ? <RecordButton channelId={channel.id} channelName={channel.name} disabled={!channel.is_active || !channel.acestream_channels.some(stream => stream.is_active)} /> : null}{selectedId && !selectedId.startsWith('url:') ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : null}</>}
     schedule={channel ? <ChannelGuide channel={channel} now={now} /> : undefined}
-    sources={channel ? <SourceChips streams={channel.acestream_channels} selectedId={selectedId} onSelect={setSelectedId} /> : undefined}
+    sources={channel ? <SourceChips streams={channel.acestream_channels.filter(source => !props.hideUnavailableSources || source.id === selectedId || (source.is_active !== false && source.is_online === true))} selectedId={selectedId} onSelect={setSelectedId} /> : undefined}
     details={tv.isError ? <Alert severity="warning">Channel details are unavailable. You can still play this stream.</Alert> : undefined} />;
 };
 
 const ChannelPlayerDialog: React.FC<ChannelPlayerDialogProps> = (props) => props.open
-  ? <OpenChannelPlayer key={`${props.tvChannelId ?? ''}:${props.contentId}`} {...props} /> : null;
+  ? <OpenChannelPlayer key={props.tvChannelId ? `tv:${props.tvChannelId}` : `stream:${props.contentId}`} {...props} /> : null;
 export default ChannelPlayerDialog;

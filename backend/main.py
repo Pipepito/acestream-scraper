@@ -270,6 +270,8 @@ async def lifespan(app: FastAPI):
             # 24 h interval counted from startup. See catch_up_missed_runs.
             # Not at once: the first minutes after power-on are when channels
             # are opened, and the guide refresh holds SQLite's write lock.
+            from app.services.offline_cleanup_service import configure_offline_cleanup
+            await asyncio.to_thread(configure_offline_cleanup, task_service)
             task_service.catch_up_missed_runs(start_after_seconds=300)
             # channel_status opens the engine, so not at startup: a quarter of
             # an hour later, and only if it is still overdue then.

@@ -25,7 +25,7 @@ jest.mock('../components/player/ChannelPlayerDialog', () => ({ __esModule: true,
 jest.mock('../services/eventService', () => ({ eventService: { list: jest.fn() } }));
 import { eventService } from '../services/eventService';
 
-const channels = (count: number) => Array.from({ length: count }, (_, i) => ({ id: i + 1, name: `Channel ${i + 1}`, is_active: true, acestream_channels: [{ id: `s${i + 1}`, is_active: true }] }));
+const channels = (count: number) => Array.from({ length: count }, (_, i) => ({ id: i + 1, name: `Channel ${i + 1}`, is_active: true, acestream_channels: [{ id: `s${i + 1}`, is_active: true, is_online: true }] }));
 const pages = (items: Array<Record<string, unknown>>, total: number, extra: Record<string, unknown> = {}) => ({
   data: { pages: [{ items, total }], pageParams: [1] }, fetchNextPage: jest.fn(), hasNextPage: items.length < total, isFetchingNextPage: false, isLoading: false, isError: false, refetch: jest.fn(), ...extra,
 });
@@ -38,9 +38,9 @@ beforeEach(() => {
   mockTVChannel.mockReturnValue({});
   mockNowNext.mockReturnValue({ data: new Map() });
   mockCatalog.mockReturnValue({ data: [
-    { id: 1, name: 'Watchable', is_active: true, acestream_channels: [{ id: 'one', is_active: true }] },
+    { id: 1, name: 'Watchable', is_active: true, acestream_channels: [{ id: 'one', is_active: true, is_online: true }] },
     { id: 2, name: 'Empty channel', is_active: true, acestream_channels: [] },
-    { id: 3, name: 'Inactive channel', is_active: false, acestream_channels: [{ id: 'two', is_active: true }] },
+    { id: 3, name: 'Inactive channel', is_active: false, acestream_channels: [{ id: 'two', is_active: true, is_online: true }] },
   ] });
   mockPages.mockReturnValue(pages([{ id: 'raw', name: 'Independent', is_online: true, tv_channel_id: null }], 1));
   jest.mocked(eventService.list).mockResolvedValue({ total: 1, events: [{ id: 'e1', title: 'Derby', competition: 'Liga', sport: 'Football', starts_at: new Date().toISOString(), state: 'scheduled', participants: [], followed: false, archived: false, corrected: false, revision: 1, timezone: 'UTC', ends_at: null, time_notes: '', provenance: [],
@@ -109,7 +109,7 @@ it('keeps the TV list available when streams fail, and shows loading and empty s
   renderPage('/live-tv?list=streams');
   expect(screen.getByText('No online streams.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'TV channels' }));
-  expect(screen.getByText(/No active TV channels with streams yet/)).toBeInTheDocument();
+  expect(screen.getByText(/No channels have an online stream yet/)).toBeInTheDocument();
 });
 
 it('events mode offers Watch for linked broadcasters and Link for the rest', async () => {
@@ -152,4 +152,23 @@ it('shows the batched now and next programme for a channel', () => {
   const row = screen.getByRole('article', { name: 'Watchable' });
   expect(within(row).getByText(/Now · Live match/)).toBeInTheDocument();
   expect(within(row).getByText(/Next · .* · Highlights/)).toBeInTheDocument();
+});
+
+
+it('hides offline and unchecked channels, shows returning streams, and preserves playback across filtering', () => {
+  const online = { id: 1, name: 'Playing', is_active: true, acestream_channels: [{ id: 'one', is_active: true, is_online: true }] };
+  const offline = { id: 2, name: 'Offline TV', is_active: true, acestream_channels: [{ id: 'two', is_active: true, is_online: false }] };
+  const unknown = { id: 3, name: 'Unchecked TV', is_active: true, acestream_channels: [{ id: 'three', is_active: true, is_online: null }] };
+  mockCatalog.mockReturnValue({ data: [online, offline, unknown] });
+  mockTVChannel.mockReturnValue({ data: online });
+  renderPage('/live-tv?channel=1');
+  expect(screen.queryByRole('button', { name: 'Watch Offline TV' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Watch Unchecked TV' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Online only' }));
+  expect(screen.getByRole('button', { name: 'Watch Offline TV' })).toBeEnabled();
+  expect(screen.getByRole('dialog', { name: 'Playing' })).toBeInTheDocument();
+  mockCatalog.mockReturnValue({ data: [online, { ...offline, acestream_channels: [{ id: 'two', is_active: true, is_online: true }] }, unknown] });
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Online only' }));
+  expect(screen.getByRole('button', { name: 'Watch Offline TV' })).toBeEnabled();
+  expect(screen.getByRole('dialog', { name: 'Playing' })).toBeInTheDocument();
 });

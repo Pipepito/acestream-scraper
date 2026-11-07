@@ -37,6 +37,7 @@ export const JOB_NAMES: Record<string, string> = {
   epg_program_cleanup: 'Purge old programmes',
   channel_status: 'Check stream status',
   channel_cleanup: 'Remove stale channels',
+  offline_stream_cleanup: 'Remove long-offline streams',
   activity_log_cleanup: 'Clean activity log',
   media_server_sync: 'Sync media servers',
   v1_epg_programs_migration: 'Migrate v1 EPG programmes',
@@ -99,6 +100,14 @@ export const summarizeJobResult = (id: string, result: unknown): string | null =
       if (result && typeof result === 'object' && (result as Record<string, unknown>).disabled === true) return 'retention disabled';
       const deleted = field(result, 'deleted');
       return deleted === null ? null : `${deleted} programmes removed`;
+    }
+    case 'offline_stream_cleanup': {
+      const status = result && typeof result === 'object' ? (result as Record<string, unknown>).status : null;
+      if (status === 'deferred') return 'Deferred while watching or recording';
+      if (status === 'disabled') return 'Cleanup disabled';
+      const deleted = field(result, 'deleted');
+      const failures = field(result, 'rescrape_failures') ?? 0;
+      return deleted === null ? null : `${deleted} streams removed, ${field(result, 'rescraped') ?? 0} sources refreshed${failures ? `, ${failures} refreshes failed` : ''}`;
     }
     case 'channel_cleanup': {
       const deleted = field(result, 'deleted');

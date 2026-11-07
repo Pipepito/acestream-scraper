@@ -8,6 +8,8 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Added",
         "items": [
+          "Link a manually added AceStream to a TV channel directly in the form, or use Add and Link on a search result. Additions and links save together, with existing assignments protected.",
+          "Preview and schedule optional offline AceStream cleanup in Settings → Automation. Choose an offline-age threshold and repeat interval (14 days and weekly by default), keep linked streams unless explicitly included, and re-scrape affected enabled sources. Unknown status, checker outages and old status without new observations never qualify.",
           "Link an event broadcaster once and apply it to every event from that source: the choice is saved as a broadcaster link, listed and removable under Events → Sources & retention, with a per-event override and an explicit \"keep source broadcast\" option.",
           "Assign a whole W3U catalogue folder to a TV channel from its More actions menu, including subfolders such as HD/SD variants, creating the TV channel from the folder name when needed, and match every folder of a catalogue to TV channels in one previewed pass.",
           "Open the playlist from the TV dashboard: a Playlist button shows the link with Copy, Download and QR code first, the same options as the Playlist page, and the link-formats editor, without leaving the dashboard.",
@@ -31,6 +33,9 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Improved",
         "items": [
+          "Live TV defaults to online streams for both TV channels and Streams. Offline sources stay in the library for scheduled checks, returning channels appear automatically, and browsing or status refreshes preserve the current player. Turn off Online only to try unchecked streams or reveal offline backups.",
+          "Review similar station names alongside exact TV-channel matches, search the suggestions, select exact matches together and choose one target per stream. Similar names never enter automatic matching; different numbered feeds and explicit country conflicts remain separate.",
+          "Configure the existing Hide stale or repeatedly failing sources tuner option from Integrations → Media servers, without editing the API setting directly.",
           "Browse Live TV through one list with a TV channels, Streams and Events toggle: every TV channel with its current and next programme in a single scrolling list, all streams 50 at a time with an Online only switch, today's and tomorrow's events with Watch for linked broadcasters, and the playing channel's sources as visible chips under the player.",
           "Move W3U catalogues into Scraper as the W3U catalogues tab (old links redirect) and Events into the Manage group, leaving Watch with TV dashboard, Live TV and Recordings.",
           "Let TV casting follow app access when accounts are off, so the public HTTPS address lists TVs like the LAN address; set CAST_REQUIRE_HOME_NETWORK=true on the container to keep the home-network check. Visitors outside the home never supply the receiver address through their own request.",

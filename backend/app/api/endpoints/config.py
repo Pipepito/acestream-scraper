@@ -8,6 +8,8 @@ from app.config.database import get_db
 from app.services.task_service import task_service
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import (
+    OfflineCleanupConfig,
+    OfflineCleanupPreview,
     NotificationWebhookUpdate,
     AceEngineUrlUpdate,
     AddPidUpdate,
@@ -48,6 +50,27 @@ def _validate_boolean_string(value: str, setting_name: str) -> None:
     valid_values = {"true", "false", "True", "False", "1", "0"}
     if value not in valid_values:
         raise HTTPException(status_code=422, detail=f"Invalid boolean value for {setting_name}")
+
+
+@router.get('/offline-cleanup', response_model=OfflineCleanupConfig)
+def get_offline_cleanup(db: Session = Depends(get_db)):
+    from app.services.offline_cleanup_service import OfflineCleanupService
+    return OfflineCleanupService(db).get()
+
+
+@router.put('/offline-cleanup', response_model=OfflineCleanupConfig)
+def update_offline_cleanup(config: OfflineCleanupConfig, db: Session = Depends(get_db)):
+    from app.services.offline_cleanup_service import OfflineCleanupService, configure_offline_cleanup
+    if not OfflineCleanupService(db).save(config):
+        raise HTTPException(status_code=500, detail='Could not save offline cleanup settings')
+    configure_offline_cleanup(task_service)
+    return config
+
+
+@router.post('/offline-cleanup/preview', response_model=OfflineCleanupPreview)
+def preview_offline_cleanup(config: OfflineCleanupConfig, db: Session = Depends(get_db)):
+    from app.services.offline_cleanup_service import OfflineCleanupService
+    return OfflineCleanupService(db).preview(config)
 
 
 @router.get("/epg-matching", response_model=EPGMatchingConfig)

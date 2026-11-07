@@ -4,7 +4,7 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, 
 import { Add, FileDownload, Refresh } from '@mui/icons-material';
 import type { GridSortModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import ChannelTable from '../components/ChannelTable';
 import ChannelCardList from '../components/channels/ChannelCardList';
@@ -38,6 +38,7 @@ const hasAnyFilter = (filters: AcestreamChannelFilters): boolean =>
 
 const AcestreamChannels: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
@@ -159,6 +160,9 @@ const AcestreamChannels: React.FC = () => {
         const accepted = await confirm({ title: 'Add excluded stream?', body: <Stack spacing={1}><span>This stream matches import rule {ruleIds.join(', ')}. Add anyway applies only to this manual addition.</span><Button href={`/scraper?tab=exclusions#rule-${ruleIds[0] ?? ''}`}>Review import exclusions</Button></Stack>, confirmLabel: 'Add anyway' });
         if (!accepted) return;
         await acestreamChannelService.createAcestreamChannel({ ...values, allow_excluded: true });
+      }
+      if (values.tv_channel_id) {
+        for (const key of ['tvChannels', 'tvChannel', 'tvChannelAcestreams']) void queryClient.invalidateQueries({ queryKey: [key] });
       }
       setNotice({ message: `Added ${values.name}.` });
     } else if (editorChannel?.id) {

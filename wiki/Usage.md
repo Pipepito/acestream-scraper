@@ -146,8 +146,7 @@ it does not filter out explicitly labelled foreign channels. The default is
 **No assumption**. Changing it clears the preview and selections.
 
 Nothing is selected initially. Select a station or expand its streams and select
-individual IDs, then select **Assign selected**. Only full station identities
-are shown; uncertain names, editions and conflicting metadata are discarded.
+individual IDs, then select **Assign selected**. Exact matches are shown by default. Enable **Include similar names for review** to see close spellings and uncertain editions as separate review suggestions. **Filter matches** finds a station or stream; **Select exact matches** selects only unambiguous identities. Similar suggestions need individual selection, and choosing another target replaces the previous selection for that stream. Different numbered feeds and explicit country conflicts are not suggested.
 Existing stream assignments are preserved. Ambiguous or
 unmatched streams can still be assigned from the channel detail page.
 
@@ -219,7 +218,7 @@ In VLC, choose **Media → Open Network Stream**, paste the playlist URL, and pl
 
 ## Watch in the browser
 
-Open **Live TV**. The browse list has three views: **TV channels** lists every active channel with assigned streams and its current/next programme in one scrolling list, with search and **Favorites only**; **Streams** lists every stream 50 at a time with an **Online only** switch, so you can play a specific source directly; **Events** shows today's and tomorrow's events using the TV dashboard's interests and time zone, with **Watch** for broadcasters linked to a TV channel. The view and search stay in the address (`?list=streams&q=…`). While watching, the channel's sources appear as a row of chips under the player; pick one to switch.
+Open **Live TV**. The browse list has three views: **TV channels** lists active channels with an online stream by default and its current/next programme in one scrolling list, with search and **Favorites only**; **Streams** lists every stream 50 at a time with an **Online only** switch, so you can play a specific source directly; **Events** shows today's and tomorrow's events using the TV dashboard's interests and time zone, with **Watch** for broadcasters linked to a TV channel. The view and search stay in the address (`?list=streams&q=…`). The **Online only** filter applies to both TV channels and Streams; turn it off to try unchecked streams and reveal offline backups. Hidden streams remain in the inventory and scheduled check scope. The list refreshes every 30 seconds and a returning stream becomes visible without restarting playback. While watching, eligible sources appear as chips under the player; the selected source stays mounted when filters or status change. Online means the last check passed, not a guarantee of current playback.
 
 Choose **Watch**. The player and scrollable catalogue stay on the same page. Searching and filtering do not stop playback. **Playback options → Larger player** expands the desktop video area; **Standard player** restores the split. **Schedule** shows the current and upcoming programmes in your device timezone. Select another **Stream** or **Audio track** when available. **Stop watching** releases your viewer.
 
@@ -309,3 +308,43 @@ Leave **Search Query** empty and click **Search** to browse all channels publish
 in the AceStream catalogue. Category filters and pagination still apply; each
 page is fetched separately. Whitespace-only input is treated as empty. Browsing
 starts only after clicking Search (or pressing Enter), not when opening the page.
+
+
+## Add and link a stream in one step
+
+The manual **Add channel** form includes **Link to TV channel (optional)**.
+Search by name, number, country or category, then save. Search results also offer
+**Add and Link**: choose the TV channel before importing. Search still resolves
+the catalogue infohash through the engine before saving. The addition and link
+commit together. A stream already assigned elsewhere is kept there; use the
+stream inventory to deliberately change that assignment.
+
+## Remove long-offline streams
+
+Settings → Automation → **Offline stream cleanup** is off by default. Enable it,
+choose the minimum offline age (1–365 days, default 14) and repeat interval
+(1–90 days, default 7), and optionally set a start time/timezone below. **Preview
+cleanup** shows the current eligible count without writing anything. The actual
+job rechecks eligibility and appears in System status with its run result.
+
+Only AceStreams from enabled configured scraper sources qualify. They must have
+an observed offline streak, at least two confirmed checks and a latest confirmed
+offline check within 24 hours. Recent successful tuner playback also protects a stream. An online result clears the streak; an inconclusive
+lookup clears it too. Imports, unknown status, checker outages and skipped probes
+do not establish an offline age. Existing streams begin tracking after upgrading;
+no historical age is inferred. Background checks retain their playback/recording
+protection and configured scope, even when Live TV hides a stream.
+
+Linked streams stay by default. **Also remove streams linked to TV channels**
+keeps the TV channels/guides but removes the stream associations and priority
+order. Rediscovered IDs may need matching again. The job removes at most 500
+streams per run, shares the maintenance queue, and defers while viewing or
+recording. By default it re-scrapes affected sources afterwards. Rediscovered
+streams return unchecked and remain hidden by Online only until verified.
+Source-refresh failures remain visible in the job result; scheduled scraping
+continues independently. HTTP streams, disabled sources and manual streams
+without a configured scraper source are kept.
+
+For external players, Integrations → Media servers exposes **Hide stale or
+repeatedly failing sources**. This is the existing optional tuner/playlist policy;
+it does not delete streams or change the Live TV filter.

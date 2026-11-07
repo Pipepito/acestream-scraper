@@ -1425,6 +1425,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/config/offline-cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Offline Cleanup */
+        get: operations["get_offline_cleanup_api_v1_config_offline_cleanup_get"];
+        /** Update Offline Cleanup */
+        put: operations["update_offline_cleanup_api_v1_config_offline_cleanup_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config/offline-cleanup/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Offline Cleanup */
+        post: operations["preview_offline_cleanup_api_v1_config_offline_cleanup_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/config/playback-routing": {
         parameters: {
             query?: never;
@@ -5058,6 +5093,11 @@ export interface components {
             name: string;
             /** Source Url */
             source_url?: string | null;
+            /**
+             * Tv Channel Id
+             * @description Optionally link the stream to an existing TV channel in the same transaction.
+             */
+            tv_channel_id?: number | null;
             /** Tvg Id */
             tvg_id?: string | null;
             /** Tvg Name */
@@ -5129,6 +5169,8 @@ export interface components {
              * @description Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence
              */
             network_status?: ("found" | "not_found" | "unknown") | null;
+            /** Offline Since */
+            offline_since?: string | null;
             /** Source Url */
             source_url?: string | null;
             /**
@@ -7622,6 +7664,46 @@ export interface components {
              */
             value?: string;
         };
+        /** OfflineCleanupConfig */
+        OfflineCleanupConfig: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled?: boolean;
+            /**
+             * Interval Days
+             * @default 7
+             */
+            interval_days?: number;
+            /**
+             * Offline Days
+             * @default 14
+             */
+            offline_days?: number;
+            /**
+             * Remove Linked
+             * @default false
+             */
+            remove_linked?: boolean;
+            /**
+             * Rescrape
+             * @default true
+             */
+            rescrape?: boolean;
+        };
+        /** OfflineCleanupPreview */
+        OfflineCleanupPreview: {
+            /** Eligible Streams */
+            eligible_streams: number;
+            /**
+             * Limit
+             * @default 500
+             */
+            limit?: number;
+            /** Sources */
+            sources: number;
+        };
         /** OrphanCleanupRequest */
         OrphanCleanupRequest: {
             /** Source Urls */
@@ -8658,6 +8740,8 @@ export interface components {
             channel_status?: string | null;
             /** Epg Refresh */
             epg_refresh?: string | null;
+            /** Offline Stream Cleanup */
+            offline_stream_cleanup?: string | null;
             /**
              * Timezone
              * @description IANA timezone used to interpret start times
@@ -8736,6 +8820,11 @@ export interface components {
         SearchImportRequest: {
             /** Items */
             items: components["schemas"]["SearchImportItem"][];
+            /**
+             * Tv Channel Id
+             * @description Explicit Add and Link target; existing assignments are preserved.
+             */
+            tv_channel_id?: number | null;
         };
         /** SearchImportResponse */
         SearchImportResponse: {
@@ -9576,6 +9665,12 @@ export interface components {
              * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
              */
             assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
+            /**
+             * Include Similar
+             * @description Include similar names for explicit review; never automatic assignments.
+             * @default false
+             */
+            include_similar?: boolean;
         };
         /** TVMatchApplyResponse */
         TVMatchApplyResponse: {
@@ -9615,6 +9710,12 @@ export interface components {
              * @description Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.
              */
             assumed_country?: ("ES" | "PT" | "FR" | "DE" | "IT" | "GB" | "US" | "NL" | "PL" | "TR" | "BE" | "AR" | "RU") | null;
+            /**
+             * Include Similar
+             * @description Include similar names for explicit review; never automatic assignments.
+             * @default false
+             */
+            include_similar?: boolean;
         };
         /** TVMatchPreview */
         TVMatchPreview: {
@@ -13104,6 +13205,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
+                };
+            };
+        };
+    };
+    get_offline_cleanup_api_v1_config_offline_cleanup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfflineCleanupConfig"];
+                };
+            };
+        };
+    };
+    update_offline_cleanup_api_v1_config_offline_cleanup_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfflineCleanupConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfflineCleanupConfig"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_offline_cleanup_api_v1_config_offline_cleanup_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfflineCleanupConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfflineCleanupPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

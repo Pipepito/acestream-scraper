@@ -14,7 +14,7 @@ const INFOHASH = '42832fbf9a1d3bdcca043e09951d6769fbbe04e7';
 const CONTENT_ID = 'e72d03fb9694164317260f684470be9ab781ed95';
 jest.mock('../services/searchService');
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannel: () => ({ data: undefined }) }));
-jest.mock('../hooks/useTVChannels', () => ({ useTVChannel: () => ({ data: undefined }) }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannel: () => ({ data: undefined }), useTVChannelCatalog: () => ({ data: [{ id: 1, name: 'Sports TV', is_active: true, acestream_channels: [] }] }) }));
 
 const mockUseSearch = jest.fn();
 const mockUseAddSearchResult = jest.fn();
@@ -352,4 +352,16 @@ describe('Search page', () => {
     expect(screen.getByRole('button', { name: 'Add Arena Premium' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add 1 selected channels' })).toBeInTheDocument();
   });
+  it('adds a search result directly to the selected TV channel', async () => {
+    jest.mocked(searchService.importResults).mockResolvedValueOnce({ items: [{ infohash: INFOHASH, content_id: CONTENT_ID, outcome: 'added', rule_ids: [] }], added: 1, existing: 0, excluded: 0, unresolved: 0, deferred: 0, policy_revision: 1 });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add and Link Arena Premium' }));
+    fireEvent.change(screen.getByRole('combobox', { name: /TV channel/ }), { target: { value: 'Sports' } });
+    fireEvent.click(await screen.findByRole('option', { name: 'Sports TV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add and Link' }));
+    await waitFor(() => expect(searchService.importResults).toHaveBeenCalledWith([defaultResults.results[0]], 1));
+    expect(await screen.findByText('Arena Premium added and linked.')).toBeInTheDocument();
+  });
+
 });

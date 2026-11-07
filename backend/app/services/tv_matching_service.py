@@ -2,6 +2,7 @@
 import re
 import unicodedata
 from dataclasses import dataclass, replace
+from difflib import SequenceMatcher
 
 from sqlalchemy.orm import Session
 
@@ -64,11 +65,31 @@ def name_score(target: ChannelName, candidate: ChannelName, *, allow_unknown_cou
     return None
 
 
+def similar_name_score(target: ChannelName, candidate: ChannelName) -> float | None:
+    """Review hints only. Never relax the identity rules used by automation."""
+    if not target.text or not candidate.text or target.country_conflict or candidate.country_conflict:
+        return None
+    if target.country and candidate.country and target.country != candidate.country:
+        return None
+    # A near-identical numbered feed is still a different station.
+    if re.findall(r'\d+', target.text) != re.findall(r'\d+', candidate.text):
+        return None
+    editions = {'bar', 'plus', 'extra', 'kids', 'women', 'premium'}
+    if set(target.text.split()) & editions != set(candidate.text.split()) & editions:
+        return None
+    if min(len(target.text), len(candidate.text)) < 4:
+        return None
+    score = max(SequenceMatcher(None, target.text, candidate.text, autojunk=False).ratio(),
+                SequenceMatcher(None, ' '.join(sorted(target.text.split())),
+                                ' '.join(sorted(candidate.text.split())), autojunk=False).ratio())
+    return min(score, 0.98) if score >= 0.78 else None
+
+
 class TVMatchingService:
     def __init__(self, db: Session):
         self.repository = ChannelRepository(db)
 
-    def preview(self, assumed_country: str | None = None) -> TVMatchPreview:
+    def preview(self, assumed_country: str | None = None, include_similar: bool = False) -> TVMatchPreview:
         targets, streams = self.repository.get_tv_matching_inventory()
         if len(targets) * len(streams) > 2_000_000:
             raise ValueError('Channel inventory is too large for automatch (maximum 2 million comparisons).')
@@ -115,6 +136,24 @@ class TVMatchingService:
                 ambiguous += 1
             else:
                 candidates.append(claims[0])
+            if include_similar and (len(claims) != 1 or (edition_conflict and not id_targets)):
+                suggestions = []
+                for tv in targets:
+                    if id_targets and tv.id not in id_targets:
+                        continue
+                    scores = [similar_name_score(names[tv.id], variant) for variant in variants]
+                    if not scores or any(score is None for score in scores):
+                        continue
+                    score = min(scores)
+                    reason = 'Similar name — review station and edition'
+                    if any(not variant.country for variant in variants) or not names[tv.id].country:
+                        reason += '; country not confirmed'
+                    suggestions.append(TVMatchCandidate(acestream_channel_id=stream.id,
+                        acestream_name=stream.name or stream.tvg_name or stream.id,
+                        tv_channel_id=tv.id, tv_channel_name=tv.name, score=score,
+                        reason=reason, recommended=False))
+                suggestions.sort(key=lambda item: (-item.score, item.tv_channel_name.casefold(), item.tv_channel_id))
+                candidates.extend(suggestions[:3])
         candidates.sort(key=lambda item: (item.tv_channel_name.casefold(), item.acestream_name.casefold(), item.acestream_channel_id))
         return TVMatchPreview(tv_channels=len(targets), unassigned_streams=len(streams),
                               ambiguous_streams=ambiguous, unmatched_streams=unmatched, candidates=candidates)
@@ -124,7 +163,7 @@ class TVMatchingService:
         if len({item[0] for item in selected}) != len(selected):
             raise ValueError('A stream can only be assigned to one TV channel.')
         # Recompute against current metadata, including all competing TV channels.
-        accepted = {(item.acestream_channel_id, item.tv_channel_id) for item in self.preview(assumed_country=request.assumed_country).candidates}
+        accepted = {(item.acestream_channel_id, item.tv_channel_id) for item in self.preview(assumed_country=request.assumed_country, include_similar=request.include_similar).candidates}
         from app.services.epg_link_service import EPGLinkService
         EPGLinkService(self.repository.db).repair()
         return self.repository.apply_tv_matches(selected, accepted)

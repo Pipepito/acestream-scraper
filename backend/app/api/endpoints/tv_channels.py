@@ -44,7 +44,7 @@ from fastapi import Query
 @router.post("/automatch/preview", response_model=TVMatchPreview)
 def preview_tv_matches(request: TVMatchOptions | None = None, db: Session = Depends(get_db)) -> TVMatchPreview:
     try:
-        return TVMatchingService(db).preview(assumed_country=request.assumed_country if request else None)
+        return TVMatchingService(db).preview(assumed_country=request.assumed_country if request else None, include_similar=request.include_similar if request else False)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

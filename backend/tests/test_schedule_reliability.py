@@ -67,7 +67,7 @@ def test_clock_schedule_survives_restart_and_interval_changes():
 
 
 def test_schedule_api_roundtrip_and_validation(client):
-    payload = {'timezone': 'Europe/Madrid', 'url_scraping': '03:15', 'epg_refresh': '02:00', 'channel_status': '03:30'}
+    payload = {'timezone': 'Europe/Madrid', 'url_scraping': '03:15', 'epg_refresh': '02:00', 'channel_status': '03:30', 'offline_stream_cleanup': '04:00'}
     assert client.put('/api/v1/config/schedule-anchors', json=payload).status_code == 200
     assert client.get('/api/v1/config/schedule-anchors').json() == payload
     for key, value in [('timezone', 'Invalid/Zone'), ('url_scraping', '25:00'), ('channel_status', '3:00')]:

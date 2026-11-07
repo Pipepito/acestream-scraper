@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class TVMatchOptions(BaseModel):
+    include_similar: bool = Field(False, description='Include similar names for explicit review; never automatic assignments.')
     assumed_country: Literal['ES', 'PT', 'FR', 'DE', 'IT', 'GB', 'US', 'NL', 'PL', 'TR', 'BE', 'AR', 'RU'] | None = Field(
         default=None, description='Matching-only country for unlabelled streams and TV channels; explicit countries take precedence.'
     )

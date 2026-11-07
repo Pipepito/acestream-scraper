@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import QuickEditDialog from '../components/QuickEditDialog';
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => ({ data: [{ id: 7, name: 'Sports TV', is_active: true, acestream_channels: [] }] }) }));
 
 describe('QuickEditDialog', () => {
   it('shows error alert on save failure', async () => {
@@ -59,3 +60,12 @@ describe('QuickEditDialog', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
   });
 });
+
+  it('adds the chosen TV channel to a manual stream save', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    render(<QuickEditDialog open mode="create" onClose={() => {}} channel={{ id: 'a'.repeat(40), name: 'Sports' }} onSave={onSave} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Link to TV channel (optional)' }), { target: { value: 'Sports' } });
+    fireEvent.click(await screen.findByRole('option', { name: 'Sports TV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ tv_channel_id: 7 })));
+  });

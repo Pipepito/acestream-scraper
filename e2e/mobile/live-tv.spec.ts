@@ -25,7 +25,8 @@ async function fixtures(page: Page) {
       now: { title: 'Live match', start: new Date(now - 900_000).toISOString(), end: new Date(now + 900_000).toISOString() },
       next: { title: 'Highlights', start: new Date(now + 900_000).toISOString(), end: new Date(now + 4500_000).toISOString() } }];
     else if (path === '/acestream-channels/') {
-      expect(new URL(request.url()).searchParams.get('is_online')).toBe('true');
+      expect(new URL(request.url()).searchParams.get('is_online')).toBe(new URL(page.url()).searchParams.get('availability') === 'all' ? null : 'true');
+      expect(new URL(request.url()).searchParams.get('is_active')).toBe('true');
       expect(new URL(request.url()).searchParams.get('page_size')).toBe('50');
       data = { items: [orphan], total: 1 };
     }
@@ -83,6 +84,10 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Playback options', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: /^Stream/ })).toHaveCount(0);
+    await expect(page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Arena backup/ })).toHaveCount(0);
+    await page.getByRole('checkbox', { name: 'Online only' }).click();
+    await expect(page.getByRole('checkbox', { name: 'Online only' })).not.toBeChecked();
+    await expect.poll(() => starts.length).toBe(1);
     await page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Source 2: Arena backup/ }).click();
     await expect(page.getByRole('group', { name: 'Sources' }).getByRole('button', { name: /Source 2: Arena backup/ })).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => starts).toEqual([streams[0].id, streams[1].id]);

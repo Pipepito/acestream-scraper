@@ -6,12 +6,14 @@ import LiveTV from '../pages/LiveTV';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
 import { recordingService } from '../services/recordingService';
+import ChannelGuide from '../components/player/ChannelGuide';
+import type { TVChannel } from '../types/tvChannelTypes';
 
 const now = new Date();
 const future = new Date(now.getTime() + 3600_000);
 const programme = { id: 7, epg_channel_id: 10, title: 'Evening documentary', description: 'A programme to record',
   start_time: future.toISOString(), end_time: new Date(now.getTime() + 7200_000).toISOString() };
-const channel = { id: 1, name: 'One', is_active: true, epg_source_id: 2, epg_id: 'one', acestream_channels: [{ id: 'stream', is_active: true }] };
+const channel = { id: 1, name: 'One', is_active: true, epg_source_id: 2, epg_id: 'one', acestream_channels: [{ id: 'stream', is_active: true, is_online: true }] };
 const mockCatalog = jest.fn();
 const mockPlayer = jest.fn();
 jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => mockCatalog(), useTVChannel: () => ({}) }));
@@ -23,8 +25,8 @@ jest.mock('../components/player/PlayOnMenu', () => ({ __esModule: true, default:
 jest.mock('../components/player/ChannelPlayerDialog', () => ({ __esModule: true, default: (props: { open: boolean }) => { mockPlayer(props.open); return null; } }));
 jest.mock('../services/recordingService', () => ({ recordingService: { create: jest.fn(), currentProgramme: jest.fn() } }));
 const service = jest.mocked(recordingService);
-function renderPage() {
-  return render(<ThemeProvider theme={createAppTheme('light')}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><TestMemoryRouter><LiveTV /></TestMemoryRouter></QueryClientProvider></ThemeProvider>);
+function renderPage(content: React.ReactNode = <LiveTV />) {
+  return render(<ThemeProvider theme={createAppTheme('light')}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><TestMemoryRouter>{content}</TestMemoryRouter></QueryClientProvider></ThemeProvider>);
 }
 beforeEach(() => { jest.clearAllMocks(); mockCatalog.mockReturnValue({ data: [channel] }); });
 
@@ -46,10 +48,17 @@ it('browses upcoming programmes and schedules the selected programme without pla
   expect(mockPlayer.mock.calls.every(([open]) => !open)).toBe(true);
 });
 
-it('keeps the guide readable but prevents recording when all streams are disabled', () => {
+it('hides channels from Live TV when all streams are disabled', () => {
   mockCatalog.mockReturnValue({ data: [{ ...channel, acestream_channels: [{ id: 'stream', is_active: false }] }] });
   renderPage();
-  expect(screen.getByRole('button', { name: 'Record One' })).toBeDisabled();
+  expect(screen.queryByRole('button', { name: 'Watch One' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Record One' })).not.toBeInTheDocument();
+  expect(mockPlayer.mock.calls.every(([open]) => !open)).toBe(true);
+});
+
+it('keeps the shared guide readable but prevents recording when all streams are disabled', () => {
+  const disabled = { ...channel, acestream_channels: [{ id: 'stream', is_active: false }] };
+  renderPage(<ChannelGuide channel={disabled as TVChannel} now={now} compact />);
   fireEvent.click(screen.getByRole('button', { name: 'TV guide for One' }));
   expect(screen.getByText('Enable a stream assigned to this TV channel to schedule recordings.')).toBeVisible();
   expect(screen.queryByRole('button', { name: 'Record Evening documentary' })).not.toBeInTheDocument();

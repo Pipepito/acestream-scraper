@@ -16,7 +16,8 @@ from migration_test_utils import database_url_for, upgrade_to_revision
 
 def test_offline_streak_requires_confirmed_checks_and_resets(db_session):
     channel = AcestreamChannel(id='a' * 40, name='Stream', is_online=False)
-    db_session.add(channel); db_session.commit()
+    db_session.add(channel)
+    db_session.commit()
     repository = ChannelRepository(db_session)
     repository.update_channel_status(channel.id, False, 'Request timeout')
     assert channel.offline_since is None
@@ -33,13 +34,15 @@ def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(d
     now = datetime.now(timezone.utc)
     source = ScrapedURL(url='https://example.com/playlist', enabled=True)
     tv = TVChannel(name='Keep this channel')
-    db_session.add_all([source, tv]); db_session.flush()
+    db_session.add_all([source, tv])
+    db_session.flush()
     def stream(key, **changes):
         values = dict(id=key * 40, name=key, source_url=source.url, is_online=False,
                       network_status='found', offline_since=now - timedelta(days=20),
                       last_checked=now - timedelta(hours=1))
         values.update(changes)
-        row = AcestreamChannel(**values); db_session.add(row)
+        row = AcestreamChannel(**values)
+        db_session.add(row)
         return row
     stream('a')
     stream('b', is_online=True)
@@ -95,13 +98,16 @@ def test_cleanup_recognizes_normalized_sources_and_protects_disabled_sources(db_
     row = AcestreamChannel(id='9' * 40, name='Normalized source', source_url='zero://example/playlist',
                            is_online=False, network_status='not_found',
                            offline_since=now - timedelta(days=20), last_checked=now - timedelta(hours=1))
-    db_session.add_all([source, row]); db_session.commit()
+    db_session.add_all([source, row])
+    db_session.commit()
     service = OfflineCleanupService(db_session)
     config = OfflineCleanupConfig(enabled=True, rescrape=True)
     assert service.preview(config).eligible_streams == 1
-    source.enabled = False; db_session.commit()
+    source.enabled = False
+    db_session.commit()
     assert service.preview(config).eligible_streams == 0
-    source.enabled = True; db_session.commit()
+    source.enabled = True
+    db_session.commit()
     service.save(config)
     monkeypatch.setattr('app.services.viewing.watching', lambda: None)
     scrape = AsyncMock(return_value=([], 'OK'))
@@ -114,7 +120,8 @@ def test_cleanup_recognizes_normalized_sources_and_protects_disabled_sources(db_
 
 def test_manual_add_and_link_is_atomic_and_preserves_existing_assignment(client, db_session):
     tv, other = TVChannel(name='Target'), TVChannel(name='Existing')
-    db_session.add_all([tv, other]); db_session.commit()
+    db_session.add_all([tv, other])
+    db_session.commit()
     payload = {'id': 'a' * 40, 'name': 'Stream', 'tv_channel_id': tv.id}
     response = client.post('/api/v1/acestream-channels/', json=payload)
     assert response.status_code == 201, response.text
@@ -131,7 +138,9 @@ def test_manual_add_and_link_is_atomic_and_preserves_existing_assignment(client,
 def test_search_add_and_link_resolves_then_links(client, db_session, monkeypatch):
     from app.services.search_catalogue_client import SearchCatalogueClient
     SettingsRepository(db_session).set_setting('ace_engine_url', 'http://engine')
-    tv = TVChannel(name='Target'); db_session.add(tv); db_session.commit()
+    tv = TVChannel(name='Target')
+    db_session.add(tv)
+    db_session.commit()
     monkeypatch.setattr(SearchCatalogueClient, 'resolve', lambda self, value: 'b' * 40)
     response = client.post('/api/v1/search/import', json={'items': [{'infohash': 'a' * 40, 'name': 'Found'}], 'tv_channel_id': tv.id})
     assert response.status_code == 200
@@ -147,13 +156,16 @@ def test_review_hints_keep_number_and_edition_boundaries(target, candidate):
 def test_similar_names_are_opt_in_and_apply_rechecks_metadata(client, db_session):
     tv = TVChannel(name='National Geographic')
     row = AcestreamChannel(id='c' * 40, name='National Geographik HD')
-    db_session.add_all([tv, row]); db_session.commit()
+    db_session.add_all([tv, row])
+    db_session.commit()
     endpoint = '/api/v1/tv-channels/automatch/'
     assert client.post(endpoint + 'preview', json={}).json()['candidates'] == []
     candidates = client.post(endpoint + 'preview', json={'include_similar': True}).json()['candidates']
     assert len(candidates) == 1 and candidates[0]['recommended'] is False
     request = {'include_similar': True, 'assignments': [{'acestream_channel_id': row.id, 'tv_channel_id': tv.id}]}
-    row.name = 'Different station 2'; db_session.commit()
+    row.name = 'Different station 2'
+    db_session.commit()
     assert client.post(endpoint + 'apply', json=request).json()['assigned_count'] == 0
-    row.name = 'National Geographik HD'; db_session.commit()
+    row.name = 'National Geographik HD'
+    db_session.commit()
     assert client.post(endpoint + 'apply', json=request).json()['assigned_count'] == 1

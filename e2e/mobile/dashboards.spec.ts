@@ -18,6 +18,8 @@ for (const mode of ['light', 'dark']) {
       requests.push(path);
       if (request.method() !== 'GET') mutations.push(`${request.method()} ${path}`);
       const fixtures: Record<string, unknown> = {
+        '/api/v1/tv-channels/browse': { items: [], total: 0 },
+        '/api/v1/tv-channels/now-next': [],
         '/api/v1/recordings/upcoming': { total: 0, items: [] },
         '/api/v1/recordings/capabilities': { enabled: false, storage_ready: false, message: 'Configure recordings.' },
         '/api/v1/events': { total: url.searchParams.get('followed') === 'true' ? 0 : 2, events: url.searchParams.get('followed') === 'true' ? [] : [event, { ...event, id: 'next-race', title: 'Next race', starts_at: null, scheduled_date: '2026-10-27', state: 'scheduled' }] },
@@ -41,10 +43,10 @@ for (const mode of ['light', 'dark']) {
       return route.fulfill({ json: fixtures[path] ?? { status: 'ready', phase: 'Ready to use', events: [] } });
     });
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'TV dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Watch' })).toBeVisible();
     await expect(page.getByText('International sports channel with a long programme name')).toBeVisible();
     await expect(page.getByText('In a browser · 2 viewers · 0 peers')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Watch TV' })).toHaveAttribute('href', '/live-tv');
+    await expect(page.getByRole('searchbox', { name: 'Find a channel' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Next updates' })).not.toContainText('Remove stale channels');
     await expect(page.getByRole('table', { name: 'Scheduled jobs' })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Next updates' })).toContainText('Waiting to run');
@@ -92,7 +94,7 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByText('Services healthy')).toBeVisible();
     await page.waitForLoadState('networkidle');
     await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { level: 1, name: 'TV dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Watch' })).toBeVisible();
     expect(mutations).toEqual([]);
     expect(errors).toEqual([]);
   });

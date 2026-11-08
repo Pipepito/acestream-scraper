@@ -1,6 +1,6 @@
 import { test, expect } from '../src/fixtures';
 
-test('invalid webhook updates preserve the saved setting and Settings stays usable', async ({ page, request }) => {
+test('invalid webhook updates preserve the saved setting and the canonical notification editor stays usable', async ({ page, request }) => {
   const path = '/api/v1/config/notification_webhook_url';
   const original = await (await request.get(path)).json();
   expect(original.value, 'use a disposable E2E database without a real webhook').toBe('');
@@ -13,7 +13,7 @@ test('invalid webhook updates preserve the saved setting and Settings stays usab
       expect(await rejected.text()).not.toContain('secret');
       expect(await (await request.get(path)).json()).toEqual(saved);
     }
-    await page.goto('/settings?tab=automation');
+    await page.goto('/connections/notifications');
     await expect(page.getByRole('textbox', { name: 'Webhook URL' })).toHaveValue(saved.value);
     await expect(page.getByRole('button', { name: 'Send test', exact: true })).toBeEnabled();
     const section = page.getByRole('region', { name: 'Notifications', exact: true });

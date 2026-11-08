@@ -28,7 +28,7 @@ test('manual additions can link immediately and similar names require review', a
     await expect(matching.getByRole('button', { name: 'Assign selected (0)' })).toBeDisabled();
     await suggestion.check();
     await matching.getByRole('button', { name: 'Assign selected (1)' }).click();
-    await expect(matching.getByText(/1 streams assigned/)).toBeVisible();
+    await expect(matching.getByRole('alert')).toContainText(/1\s+streams assigned/);
     expect((await api.getChannel(similarId))?.tv_channel_id).toBe(tv.id);
   } finally {
     await api.deleteTvChannel(tv.id);

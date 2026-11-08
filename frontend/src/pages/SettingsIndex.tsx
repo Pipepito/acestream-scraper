@@ -8,6 +8,7 @@ import InterfaceSelector from '../components/InterfaceSelector';
 import type { SectionLink } from '../components/layout/SectionNavigation';
 
 const editors: SectionLink[] = [
+  { label: 'playback', to: '/settings?tab=playback' }, { label: 'network', to: '/settings?tab=network' },
   { label: 'access', to: '/settings?tab=access' }, { label: 'automation', to: '/settings?tab=automation' },
   { label: 'recordings', to: '/recordings?tab=settings' }, { label: 'thisBrowser', to: '/integrations/web-player' },
   { label: 'streamLinks', to: '/settings?tab=links' }, { label: 'connections', to: '/connections' },

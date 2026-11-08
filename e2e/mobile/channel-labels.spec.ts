@@ -11,7 +11,8 @@ for (const mode of ['light', 'dark']) {
       const path = new URL(route.request().url()).pathname.replace('/api/v1', '');
       let data: unknown = {};
       if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [] };
-      else if (path === '/tv-channels') data = { items: [channel], total: 1 };
+      else if ((path === '/tv-channels' || path === '/tv-channels/browse')) data = { items: [channel], total: 1 };
+      else if (path === '/tv-channels/inventory') data = { total: 1, favorites: 0, with_streams: 0, categories: [], countries: [], languages: [], epg_sources: [] };
       else if (path === '/acestream-channels/') data = { items: [stream], total: 1 };
       else if (path === '/epg/sources' || path === '/remote-players') data = [];
       else if (path.endsWith('/groups') || path === '/acestream-channels/sources') data = [];

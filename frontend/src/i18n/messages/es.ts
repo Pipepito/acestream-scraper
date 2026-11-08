@@ -2548,5 +2548,6 @@ export const uiSpanish: Record<keyof typeof uiEnglish, string> = {
   "Review the channel mapping and finish. After channels change here, use Manage Channels > Rescan in Plex (or add a Plex token so the guide refreshes automatically).": "Revisa la asignación de canales y termina. Cuando cambien los canales aquí, usa Administrar canales > Volver a buscar en Plex (o añade un token de Plex para actualizar la guía automáticamente).",
   "Best stream: {{name}} · {{status}}": "Mejor señal: {{name}} · {{status}}",
   "No group": "Sin grupo",
-  "the player": "el reproductor"
+  "the player": "el reproductor",
+  "System tools": "Herramientas del sistema"
 };

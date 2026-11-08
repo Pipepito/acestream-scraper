@@ -41,7 +41,7 @@ for (const theme of ['light', 'dark']) {
       return route.fulfill({ json: [event] });
     });
     await page.goto('/catalogues');
-    await expect(page.getByRole('heading', { name: 'Scraper', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sources', exact: true })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'W3U catalogues', selected: true })).toBeVisible();
     await page.getByRole('button', { name: 'Add catalogue', exact: true }).click();
     await page.getByLabel('Catalogue URL').fill('https://example.test/list.w3u');

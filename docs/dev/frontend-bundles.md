@@ -54,3 +54,9 @@ supplies global facet choices and counts independently. Watch fetches 50 rows an
 one bounded guide batch at a time. Stream names retain their server-provided TV
 channel labels without fetching the complete TV catalogue. Keep the full snapshot
 read for atomic reorder, whose expected order must contain every channel.
+
+Pure EN/ES message modules and the router have separate groups. This keeps the
+entry and MUI chunks within the unchanged 500 KB warning limit as localization
+grows, without splitting MUI/Emotion/transitions or React/scheduler. Both language
+catalogues are ready synchronously so a preference change never resets an editor
+or delays a pending confirmation behind a second language fetch.

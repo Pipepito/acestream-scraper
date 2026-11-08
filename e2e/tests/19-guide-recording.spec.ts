@@ -45,9 +45,10 @@ test('Live TV schedules a guide programme without starting playback', async ({ p
     expect(playerStarts).toBe(0);
     await expect(page.getByLabel(/Video player for/)).toHaveCount(0);
     await page.goto('/recordings');
+    await page.getByRole('tab', { name: 'Upcoming and active', exact: true }).click();
     const scheduled = page.getByRole('article')
       .filter({ has: page.getByRole('heading', { name: programme!.title, exact: true }) })
-      .filter({ has: page.getByText('scheduled', { exact: true }) });
+      .filter({ has: page.getByText('Scheduled', { exact: true }) });
     await expect(scheduled).toBeVisible();
   } finally {
     if (recordingId) {

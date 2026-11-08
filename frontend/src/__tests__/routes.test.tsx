@@ -46,6 +46,8 @@ describe('routes', () => {
     expect(navItems.map(item => item.text)).toEqual(['Watch', 'Recordings', 'Events', 'Channels', 'Connections', 'Settings', 'System']);
     expect(getNavTitle('/')).toBe('Watch');
     expect(getNavTitle('/system')).toBe('System');
+    expect(getNavTitle('/system/runtime')).toBe('System');
+    expect(getNavTitle('/connections/notifications')).toBe('Connections');
     expect(getNavTitle('/events')).toBe('Events');
     expect(getNavTitle('/epg/channels/12')).toBe('Channels');
     expect(getNavTitle('/integrations/public-address')).toBe('Connections');
@@ -66,6 +68,12 @@ describe('routes', () => {
     expect(LEGACY_REDIRECTS.some((r) => r.from === from.replace(/\/abc$/, '/:id'))).toBe(true);
     renderAt(from);
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
+  });
+
+  it('keeps playback and network editors discoverable from Settings', () => {
+    renderAt('/settings');
+    expect(screen.getByRole('link', { name: /Playback/ })).toHaveAttribute('href', '/settings?tab=playback');
+    expect(screen.getByRole('link', { name: /Network/ })).toHaveAttribute('href', '/settings?tab=network');
   });
 
   it('carries the old query string into the redirect target without overriding its own keys', () => {

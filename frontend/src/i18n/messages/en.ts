@@ -2548,5 +2548,6 @@ export const uiEnglish = {
   "Review the channel mapping and finish. After channels change here, use Manage Channels > Rescan in Plex (or add a Plex token so the guide refreshes automatically).": "Review the channel mapping and finish. After channels change here, use Manage Channels > Rescan in Plex (or add a Plex token so the guide refreshes automatically).",
   "Best stream: {{name}} · {{status}}": "Best stream: {{name}} · {{status}}",
   "No group": "No group",
-  "the player": "the player"
+  "the player": "the player",
+  "System tools": "System tools"
 } as const;

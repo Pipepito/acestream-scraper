@@ -20,7 +20,11 @@ for (const mode of ['light', 'dark']) {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('response', response => { if (response.url().includes('/api/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
-    await page.route('**/api/**', route => route.fulfill({ json: { status: 'ready', phase: 'Ready to use', events: [] } }));
+    await page.route('**/api/**', route => {
+      const path = new URL(route.request().url()).pathname;
+      const fixtures: Record<string, unknown> = { '/api/v1/background-tasks/status': [], '/api/v1/system/services': { services: [] }, '/api/v1/player/streams': { streams: [] }, '/api/v1/recordings/upcoming': { items: [], total: 0 }, '/api/v1/system/storage': { directories: [], configuration_warnings: [] } };
+      return route.fulfill({ json: fixtures[path] ?? { status: 'ready', phase: 'Ready to use', events: [] } });
+    });
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
     // An unknown route needs no catalogue fixtures and still exercises the shell.
     await openShell(page, '/missing-page');
@@ -37,8 +41,9 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByRole('link', { name: 'What’s new in v2.2.0' })).toHaveCount(0);
     await openShell(page);
     await expect(page.getByRole('link', { name: 'What’s new in v2.2.0' })).toHaveCount(0);
-    const menu = page.getByRole('button', { name: 'open drawer' });
+    const menu = page.getByRole('button', { name: 'Open navigation' });
     if (await menu.isVisible()) await menu.click();
+    await page.getByRole('link', { name: 'System', exact: true }).click();
     await page.getByRole('link', { name: 'Changelog', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Changelog', exact: true })).toBeVisible();
     expect(errors).toEqual([]);
@@ -51,7 +56,11 @@ for (const deployment of ['docker', 'native']) {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('response', response => { if (response.url().includes('/api/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
-    await page.route('**/api/**', route => route.fulfill({ json: { status: 'ready', phase: 'Ready to use', events: [] } }));
+    await page.route('**/api/**', route => {
+      const path = new URL(route.request().url()).pathname;
+      const fixtures: Record<string, unknown> = { '/api/v1/background-tasks/status': [], '/api/v1/system/services': { services: [] }, '/api/v1/player/streams': { streams: [] }, '/api/v1/recordings/upcoming': { items: [], total: 0 }, '/api/v1/system/storage': { directories: [], configuration_warnings: [] } };
+      return route.fulfill({ json: fixtures[path] ?? { status: 'ready', phase: 'Ready to use', events: [] } });
+    });
     await page.route('**/api/v1/system/updates', route => route.fulfill({ json: {
       current_version: 'v2.2.0', latest_version: 'v2.10.0', update_available: true,
       status: 'checked', deployment, release_url: 'https://github.com/Pipepito/acestream-scraper/releases/tag/v2.10.0',

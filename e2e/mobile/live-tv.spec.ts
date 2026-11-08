@@ -20,6 +20,13 @@ async function fixtures(page: Page) {
     if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [], recovery_token: 'test' };
     else if (path === '/setup') data = { setup_complete: true, restart_required: false };
     else if (path === '/tv-channels') data = { items: channels, total: channels.length };
+    else if (path === '/tv-channels/browse') {
+      const params = new URL(request.url()).searchParams;
+      const filtered = channels.filter(item => item.acestream_channels.length &&
+        (params.get('is_favorite') !== 'true' || item.is_favorite) &&
+        item.name.toLowerCase().includes((params.get('search') ?? '').toLowerCase()));
+      data = { items: filtered, total: filtered.length };
+    }
     else if (/^\/tv-channels\/\d+$/.test(path)) data = channels.find((item) => item.id === Number(path.split('/').pop()));
     else if (path === '/tv-channels/now-next') data = [{ tv_channel_id: 1, epg_channel_id: 1,
       now: { title: 'Live match', start: new Date(now - 900_000).toISOString(), end: new Date(now + 900_000).toISOString() },
@@ -110,7 +117,7 @@ for (const mode of ['light', 'dark']) {
 test('direct channel URL, guide error and retry, browser Back', async ({ page }) => {
   await fixtures(page);
   // When the batched Now/Next read fails, rows fall back to their own guide queries, which carry Retry.
-  await page.route('**/tv-channels/now-next', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
+  await page.route('**/tv-channels/now-next*', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
   await page.route('**/epg/channels/1/programs*', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
   await page.goto('/live-tv');
   await expect(page.getByText('Guide unavailable.')).toBeVisible();

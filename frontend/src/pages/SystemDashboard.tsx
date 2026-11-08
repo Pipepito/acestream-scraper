@@ -63,6 +63,11 @@ const SystemDashboard: React.FC = () => {
     <Box>
       <PageHeader title={tUi("System status")} subtitle={tUi("Services, storage and scheduled maintenance.")} actions={chip} />
 
+      <Box component="nav" aria-label={tUi("System tools")} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+        <Button component={RouterLink} to="/system/runtime">{tUi("Advanced connection settings")}</Button>
+        <Button component={RouterLink} to="/changelog">{tUi("Changelog")}</Button>
+      </Box>
+
       <StatusLine
         aria-label={tUi("System status summary")}
         items={[

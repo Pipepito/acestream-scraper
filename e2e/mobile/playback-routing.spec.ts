@@ -48,7 +48,7 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByRole('heading', { name: 'Public address', exact: true })).toHaveCount(0);
     await page.getByRole('tab', { name: 'Access', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'API token', exact: true })).toBeVisible();
-    if (await page.getByRole('button', { name: 'open drawer' }).isVisible()) await page.getByRole('button', { name: 'open drawer' }).click();
+    if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) await page.getByRole('button', { name: 'Open navigation' }).click();
     await expect(page.getByRole('link', { name: 'WARP', exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   });

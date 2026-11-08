@@ -353,3 +353,27 @@ final repeated interaction/media/memory and full validation remain outstanding.
   TypeScript, zero-warning lint, production SPA and standalone helper builds pass.
 - Prepared tracked `docs/recipes/` from its shared source. No Pages publication.
   Full final gate and browser/Docker/participant acceptance remain outstanding.
+
+### Browser and packaging iteration
+
+- Commit `147a6e7` is the frozen initial Docker matrix input. All five ARM64
+  production flavours passed both build and private pinned runtime acceptance.
+  AMD64/ARMv7 builds and additional packaging/media/scanner checks continue;
+  this is not final-revision matrix acceptance.
+- First strict Firefox run: 31 passed, 13 failed, 17 dependent tests did not run.
+  Initial failures identified stale sidebar/headings/source/guide/notification
+  selectors; downstream guide/playlist/recording journeys require their seeding
+  predecessors to pass. Media playback, inline switching, reorder and optional
+  checker journeys passed. The initial process inherited conflicting color env
+  settings; subsequent runs unset NO_COLOR rather than suppress warnings.
+- Exploratory mobile run interrupted after 10 passes / 6 failures / 2 interrupted
+  tests; old navigation expectations found. Its assets were rebuilt during the
+  run, so it is not acceptance evidence. Further runs use a frozen build and
+  separate report directories to avoid interference from other validations.
+- Fixed missing Playback/Network links in Settings and System/Connections parent
+  selection for nested routes. Added durable System links to runtime settings and
+  release history, which must remain reachable after dismissing the update notice.
+  Focused navigation/System/localization checks: 5 suites, 42 tests passed.
+- Build grouping now separates pure language catalogues and router code; latest
+  entry 96.9 KB, EN 221.1 KB, ES 242.3 KB, router 93.9 KB, MUI 447.2 KB. Production
+  SPA/helper build has no chunk warning; unchanged 500 KB warning threshold.

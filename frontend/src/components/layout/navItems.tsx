@@ -23,9 +23,9 @@ export const navItems: NavItem[] = [
   { text: 'Recordings', label: 'recordings', path: '/recordings', icon: <HistoryRoundedIcon />, section: 'Watch' },
   { text: 'Events', label: 'events', path: '/events', icon: <EventNoteRoundedIcon />, section: 'Watch' },
   { text: 'Channels', label: 'channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Manage', matchPrefixes: ['/tv-channels', '/scraper', '/search', '/epg', '/acestream-channels'] },
-  { text: 'Connections', label: 'connections', path: '/connections', icon: <HubRoundedIcon />, section: 'Integrations', matchPrefixes: ['/integrations', '/playlist'] },
+  { text: 'Connections', label: 'connections', path: '/connections', icon: <HubRoundedIcon />, section: 'Integrations', matchPrefixes: ['/connections', '/integrations', '/playlist'] },
   { text: 'Settings', label: 'settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
-  { text: 'System', label: 'system', path: '/system', icon: <DashboardRoundedIcon />, section: 'System', matchPrefixes: ['/warp', '/setup', '/changelog'] },
+  { text: 'System', label: 'system', path: '/system', icon: <DashboardRoundedIcon />, section: 'System', matchPrefixes: ['/system', '/warp', '/setup', '/changelog'] },
 ];
 
 /** Routable pages that are reached from within another page rather than the nav. */

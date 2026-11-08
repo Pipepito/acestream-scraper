@@ -49,7 +49,7 @@ it('retranslates an open confirmation without replacing the dialog, focus or dec
   fireEvent.click(screen.getByRole('button', { name: 'open' }));
   const original = screen.getByRole('dialog');
   const cancel = screen.getByRole('button', { name: 'Cancel' });
-  cancel.focus();
+  act(() => { cancel.focus(); });
   try {
     await act(async () => { await i18next.changeLanguage('es'); });
     expect(screen.getByRole('dialog')).toBe(original);

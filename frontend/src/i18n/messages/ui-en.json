@@ -2596,5 +2596,9 @@
   "This service is turned off. Review its configuration before enabling it.": "This service is turned off. Review its configuration before enabling it.",
   "Stopped by you. Select Start to resume automatic recovery.": "Stopped by you. Select Start to resume automatic recovery.",
   "Technical details (original service response)": "Technical details (original service response)",
-  "Artwork unavailable": "Artwork unavailable"
+  "Artwork unavailable": "Artwork unavailable",
+  "Could not load channels. Try again.": "Could not load channels. Try again.",
+  "Previous page": "Previous page",
+  "Next page": "Next page",
+  "Page {{page}} of {{pages}}": "Page {{page}} of {{pages}}"
 }

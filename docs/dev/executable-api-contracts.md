@@ -7,9 +7,9 @@ both and rejects drift before running the complete application tests.
 `frontend/src/__tests__/ServiceContracts.test.ts` calls production services through
 an isolated HTTP listener. The captured method, URL, headers and serialized body
 are checked by `backend/scripts/validate_api_contracts.py` using maintained
-`openapi-core` OpenAPI 3.1 validation. Current coverage includes 33 requests across
+`openapi-core` OpenAPI 3.1 validation. Current coverage includes 35 requests across
 channels, recordings, setup, sources, guides, events, Telegram, media servers,
-tuner and playback/notification settings. This is an explicit coverage subset,
+tuner, saved searches and playback/notification settings. This is an explicit coverage subset,
 not a claim that every operation has consumer coverage.
 
 Consumer schemas close declared objects to catch ignored write fields while

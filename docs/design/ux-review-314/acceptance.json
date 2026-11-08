@@ -34,8 +34,11 @@
         {
           "id": "315-4",
           "requirement": "Contrast measurements include exact colors, text size, both themes and representative status states. New pairings are suitable for later semantic-token adoption.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "frontend/src/__tests__/ThemeContrast.test.ts",
+            "docs/design/ux-review-314/contrast-evidence.md"
+          ],
           "acceptance": "pending"
         },
         {
@@ -97,8 +100,11 @@
         {
           "id": "316-3",
           "requirement": "Semantic tokens cover both themes, measured contrast and all component states; application code uses the agreed typed API.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "frontend/src/__tests__/ThemeContrast.test.ts",
+            "frontend/src/__tests__/theme.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {

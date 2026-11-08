@@ -2596,5 +2596,9 @@
   "This service is turned off. Review its configuration before enabling it.": "Este servicio está desactivado. Revisa su configuración antes de activarlo.",
   "Stopped by you. Select Start to resume automatic recovery.": "Lo has detenido. Selecciona Iniciar para reanudar la recuperación automática.",
   "Technical details (original service response)": "Detalles técnicos (respuesta original del servicio)",
-  "Artwork unavailable": "Imagen no disponible"
+  "Artwork unavailable": "Imagen no disponible",
+  "Could not load channels. Try again.": "No se han podido cargar los canales. Inténtalo de nuevo.",
+  "Previous page": "Página anterior",
+  "Next page": "Página siguiente",
+  "Page {{page}} of {{pages}}": "Página {{page}} de {{pages}}"
 }

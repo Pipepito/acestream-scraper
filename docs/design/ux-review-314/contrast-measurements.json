@@ -1,0 +1,2101 @@
+{
+  "sourceBase": "884e8946",
+  "scope": "Theme semantic pairs after contrast correction; not a whole-page accessibility audit",
+  "measurement": "MUI WCAG relative-luminance contrast; normal text >=4.5, essential controls/icons >=3. Disabled controls excluded.",
+  "reports": [
+    {
+      "preset": "coral",
+      "mode": "dark",
+      "typography": {
+        "body": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "fontWeight": 400
+        },
+        "helper": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "color": "#c7c6d2"
+        }
+      },
+      "readings": [
+        {
+          "role": "primary/canvas",
+          "foreground": "#faf6ef",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 16.25
+        },
+        {
+          "role": "secondary/canvas",
+          "foreground": "#c7c6d2",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 10.366666666666665
+        },
+        {
+          "role": "muted/canvas",
+          "foreground": "#c7c6d2",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 10.366666666666665
+        },
+        {
+          "role": "link/canvas",
+          "foreground": "#ffad87",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 9.65
+        },
+        {
+          "role": "control-border/canvas",
+          "foreground": "#91a69c",
+          "background": "#151827",
+          "minimum": 3,
+          "ratio": 6.783333333333332
+        },
+        {
+          "role": "focus/canvas",
+          "foreground": "#ffad87",
+          "background": "#151827",
+          "minimum": 3,
+          "ratio": 9.65
+        },
+        {
+          "role": "success-text/canvas",
+          "foreground": "#5fd48d",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 9.4
+        },
+        {
+          "role": "warning-text/canvas",
+          "foreground": "#f0a84b",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 8.666666666666666
+        },
+        {
+          "role": "error-text/canvas",
+          "foreground": "#ff7f86",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 7.199999999999999
+        },
+        {
+          "role": "info-text/canvas",
+          "foreground": "#66a6ff",
+          "background": "#151827",
+          "minimum": 4.5,
+          "ratio": 7.049999999999999
+        },
+        {
+          "role": "primary/panel",
+          "foreground": "#faf6ef",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 14.338235294117647
+        },
+        {
+          "role": "secondary/panel",
+          "foreground": "#c7c6d2",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 9.147058823529411
+        },
+        {
+          "role": "muted/panel",
+          "foreground": "#c7c6d2",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 9.147058823529411
+        },
+        {
+          "role": "link/panel",
+          "foreground": "#ffad87",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
+        },
+        {
+          "role": "control-border/panel",
+          "foreground": "#91a69c",
+          "background": "#202435",
+          "minimum": 3,
+          "ratio": 5.985294117647058
+        },
+        {
+          "role": "focus/panel",
+          "foreground": "#ffad87",
+          "background": "#202435",
+          "minimum": 3,
+          "ratio": 8.514705882352942
+        },
+        {
+          "role": "success-text/panel",
+          "foreground": "#5fd48d",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 8.294117647058824
+        },
+        {
+          "role": "warning-text/panel",
+          "foreground": "#f0a84b",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 7.647058823529411
+        },
+        {
+          "role": "error-text/panel",
+          "foreground": "#ff7f86",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 6.352941176470588
+        },
+        {
+          "role": "info-text/panel",
+          "foreground": "#66a6ff",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 6.220588235294117
+        },
+        {
+          "role": "primary/raised",
+          "foreground": "#faf6ef",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 14.338235294117647
+        },
+        {
+          "role": "secondary/raised",
+          "foreground": "#c7c6d2",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 9.147058823529411
+        },
+        {
+          "role": "muted/raised",
+          "foreground": "#c7c6d2",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 9.147058823529411
+        },
+        {
+          "role": "link/raised",
+          "foreground": "#ffad87",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
+        },
+        {
+          "role": "control-border/raised",
+          "foreground": "#91a69c",
+          "background": "#202435",
+          "minimum": 3,
+          "ratio": 5.985294117647058
+        },
+        {
+          "role": "focus/raised",
+          "foreground": "#ffad87",
+          "background": "#202435",
+          "minimum": 3,
+          "ratio": 8.514705882352942
+        },
+        {
+          "role": "success-text/raised",
+          "foreground": "#5fd48d",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 8.294117647058824
+        },
+        {
+          "role": "warning-text/raised",
+          "foreground": "#f0a84b",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 7.647058823529411
+        },
+        {
+          "role": "error-text/raised",
+          "foreground": "#ff7f86",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 6.352941176470588
+        },
+        {
+          "role": "info-text/raised",
+          "foreground": "#66a6ff",
+          "background": "#202435",
+          "minimum": 4.5,
+          "ratio": 6.220588235294117
+        },
+        {
+          "role": "success-alert-text",
+          "foreground": "#a8e4bf",
+          "background": "#103122",
+          "minimum": 4.5,
+          "ratio": 9.81081081081081
+        },
+        {
+          "role": "success-alert-icon",
+          "foreground": "#5fd48d",
+          "background": "#103122",
+          "minimum": 3,
+          "ratio": 7.621621621621621
+        },
+        {
+          "role": "success-filled-text",
+          "foreground": "#10212f",
+          "background": "#5fd48d",
+          "minimum": 4.5,
+          "ratio": 8.8125
+        },
+        {
+          "role": "warning-alert-text",
+          "foreground": "#ffd39d",
+          "background": "#3a2610",
+          "minimum": 4.5,
+          "ratio": 10.315068493150683
+        },
+        {
+          "role": "warning-alert-icon",
+          "foreground": "#f0a84b",
+          "background": "#3a2610",
+          "minimum": 3,
+          "ratio": 7.123287671232876
+        },
+        {
+          "role": "warning-filled-text",
+          "foreground": "#10212f",
+          "background": "#f0a84b",
+          "minimum": 4.5,
+          "ratio": 8.125
+        },
+        {
+          "role": "error-alert-text",
+          "foreground": "#ffb6b6",
+          "background": "#3b1719",
+          "minimum": 4.5,
+          "ratio": 9.56060606060606
+        },
+        {
+          "role": "error-alert-icon",
+          "foreground": "#ff7f86",
+          "background": "#3b1719",
+          "minimum": 3,
+          "ratio": 6.545454545454545
+        },
+        {
+          "role": "error-filled-text",
+          "foreground": "#10212f",
+          "background": "#ff7f86",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "info-alert-text",
+          "foreground": "#afd0ff",
+          "background": "#13273f",
+          "minimum": 4.5,
+          "ratio": 9.623188405797102
+        },
+        {
+          "role": "info-alert-icon",
+          "foreground": "#66a6ff",
+          "background": "#13273f",
+          "minimum": 3,
+          "ratio": 6.130434782608695
+        },
+        {
+          "role": "info-filled-text",
+          "foreground": "#10212f",
+          "background": "#66a6ff",
+          "minimum": 4.5,
+          "ratio": 6.609375
+        },
+        {
+          "role": "primary-button",
+          "foreground": "#202336",
+          "background": "#ffad87",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
+        },
+        {
+          "role": "primary-button-hover",
+          "foreground": "#202336",
+          "background": "#f3976c",
+          "minimum": 4.5,
+          "ratio": 6.955882352941176
+        },
+        {
+          "role": "secondary-button",
+          "foreground": "#202336",
+          "background": "#ffad87",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
+        },
+        {
+          "role": "danger-button",
+          "foreground": "#2a0f10",
+          "background": "#d86363",
+          "minimum": 4.5,
+          "ratio": 4.983050847457626
+        },
+        {
+          "role": "selected-navigation",
+          "foreground": "#202336",
+          "background": "#ffad87",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
+        }
+      ]
+    },
+    {
+      "preset": "coral",
+      "mode": "light",
+      "typography": {
+        "body": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "fontWeight": 400
+        },
+        "helper": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "color": "#575969"
+        }
+      },
+      "readings": [
+        {
+          "role": "primary/canvas",
+          "foreground": "#202336",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 13.955882352941176
+        },
+        {
+          "role": "secondary/canvas",
+          "foreground": "#575969",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 6.24342105263158
+        },
+        {
+          "role": "muted/canvas",
+          "foreground": "#575969",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 6.24342105263158
+        },
+        {
+          "role": "link/canvas",
+          "foreground": "#953d1b",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 6.412162162162161
+        },
+        {
+          "role": "control-border/canvas",
+          "foreground": "#667c73",
+          "background": "#f6f3ee",
+          "minimum": 3,
+          "ratio": 4.038297872340426
+        },
+        {
+          "role": "focus/canvas",
+          "foreground": "#953d1b",
+          "background": "#f6f3ee",
+          "minimum": 3,
+          "ratio": 6.412162162162161
+        },
+        {
+          "role": "success-text/canvas",
+          "foreground": "#14532d",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 8.252173913043478
+        },
+        {
+          "role": "warning-text/canvas",
+          "foreground": "#8a4b08",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 6.122580645161291
+        },
+        {
+          "role": "error-text/canvas",
+          "foreground": "#8f1d1d",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 8.042372881355933
+        },
+        {
+          "role": "info-text/canvas",
+          "foreground": "#0f3f78",
+          "background": "#f6f3ee",
+          "minimum": 4.5,
+          "ratio": 9.49
+        },
+        {
+          "role": "primary/panel",
+          "foreground": "#202336",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 15.088235294117647
+        },
+        {
+          "role": "secondary/panel",
+          "foreground": "#575969",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "muted/panel",
+          "foreground": "#575969",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "link/panel",
+          "foreground": "#953d1b",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.932432432432432
+        },
+        {
+          "role": "control-border/panel",
+          "foreground": "#667c73",
+          "background": "#fffcf7",
+          "minimum": 3,
+          "ratio": 4.365957446808511
+        },
+        {
+          "role": "focus/panel",
+          "foreground": "#953d1b",
+          "background": "#fffcf7",
+          "minimum": 3,
+          "ratio": 6.932432432432432
+        },
+        {
+          "role": "success-text/panel",
+          "foreground": "#14532d",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 8.921739130434782
+        },
+        {
+          "role": "warning-text/panel",
+          "foreground": "#8a4b08",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.619354838709677
+        },
+        {
+          "role": "error-text/panel",
+          "foreground": "#8f1d1d",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 8.694915254237287
+        },
+        {
+          "role": "info-text/panel",
+          "foreground": "#0f3f78",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 10.26
+        },
+        {
+          "role": "primary/raised",
+          "foreground": "#202336",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 15.088235294117647
+        },
+        {
+          "role": "secondary/raised",
+          "foreground": "#575969",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "muted/raised",
+          "foreground": "#575969",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "link/raised",
+          "foreground": "#953d1b",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.932432432432432
+        },
+        {
+          "role": "control-border/raised",
+          "foreground": "#667c73",
+          "background": "#fffcf7",
+          "minimum": 3,
+          "ratio": 4.365957446808511
+        },
+        {
+          "role": "focus/raised",
+          "foreground": "#953d1b",
+          "background": "#fffcf7",
+          "minimum": 3,
+          "ratio": 6.932432432432432
+        },
+        {
+          "role": "success-text/raised",
+          "foreground": "#14532d",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 8.921739130434782
+        },
+        {
+          "role": "warning-text/raised",
+          "foreground": "#8a4b08",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 6.619354838709677
+        },
+        {
+          "role": "error-text/raised",
+          "foreground": "#8f1d1d",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 8.694915254237287
+        },
+        {
+          "role": "info-text/raised",
+          "foreground": "#0f3f78",
+          "background": "#fffcf7",
+          "minimum": 4.5,
+          "ratio": 10.26
+        },
+        {
+          "role": "success-alert-text",
+          "foreground": "#14532d",
+          "background": "#e7f7ef",
+          "minimum": 4.5,
+          "ratio": 8.234782608695653
+        },
+        {
+          "role": "success-alert-icon",
+          "foreground": "#1f8f59",
+          "background": "#e7f7ef",
+          "minimum": 3,
+          "ratio": 3.6848249027237356
+        },
+        {
+          "role": "success-filled-text",
+          "foreground": "#ffffff",
+          "background": "#14532d",
+          "minimum": 4.5,
+          "ratio": 9.130434782608695
+        },
+        {
+          "role": "warning-alert-text",
+          "foreground": "#8a4b08",
+          "background": "#fff4e5",
+          "minimum": 4.5,
+          "ratio": 6.232258064516129
+        },
+        {
+          "role": "warning-alert-icon",
+          "foreground": "#a85b04",
+          "background": "#fff4e5",
+          "minimum": 3,
+          "ratio": 4.644230769230769
+        },
+        {
+          "role": "warning-filled-text",
+          "foreground": "#ffffff",
+          "background": "#8a4b08",
+          "minimum": 4.5,
+          "ratio": 6.774193548387097
+        },
+        {
+          "role": "error-alert-text",
+          "foreground": "#8f1d1d",
+          "background": "#fdecec",
+          "minimum": 4.5,
+          "ratio": 7.788135593220339
+        },
+        {
+          "role": "error-alert-icon",
+          "foreground": "#d14343",
+          "background": "#fdecec",
+          "minimum": 3,
+          "ratio": 3.995652173913044
+        },
+        {
+          "role": "error-filled-text",
+          "foreground": "#ffffff",
+          "background": "#8f1d1d",
+          "minimum": 4.5,
+          "ratio": 8.898305084745763
+        },
+        {
+          "role": "info-alert-text",
+          "foreground": "#0f3f78",
+          "background": "#e8f2ff",
+          "minimum": 4.5,
+          "ratio": 9.29
+        },
+        {
+          "role": "info-alert-icon",
+          "foreground": "#0b5ed7",
+          "background": "#e8f2ff",
+          "minimum": 3,
+          "ratio": 5.161111111111111
+        },
+        {
+          "role": "info-filled-text",
+          "foreground": "#ffffff",
+          "background": "#0f3f78",
+          "minimum": 4.5,
+          "ratio": 10.5
+        },
+        {
+          "role": "primary-button",
+          "foreground": "#202336",
+          "background": "#ffad87",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
+        },
+        {
+          "role": "primary-button-hover",
+          "foreground": "#202336",
+          "background": "#f3976c",
+          "minimum": 4.5,
+          "ratio": 6.955882352941176
+        },
+        {
+          "role": "secondary-button",
+          "foreground": "#ffffff",
+          "background": "#953d1b",
+          "minimum": 4.5,
+          "ratio": 7.094594594594594
+        },
+        {
+          "role": "danger-button",
+          "foreground": "#fff7f7",
+          "background": "#bd3434",
+          "minimum": 4.5,
+          "ratio": 5.378378378378378
+        },
+        {
+          "role": "selected-navigation",
+          "foreground": "#202336",
+          "background": "#ffad87",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
+        }
+      ]
+    },
+    {
+      "preset": "cyan",
+      "mode": "dark",
+      "typography": {
+        "body": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "fontWeight": 400
+        },
+        "helper": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "color": "#b7ccc5"
+        }
+      },
+      "readings": [
+        {
+          "role": "primary/canvas",
+          "foreground": "#eff9f2",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 15.725806451612904
+        },
+        {
+          "role": "secondary/canvas",
+          "foreground": "#b7ccc5",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 10.048387096774194
+        },
+        {
+          "role": "muted/canvas",
+          "foreground": "#b7ccc5",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 10.048387096774194
+        },
+        {
+          "role": "link/canvas",
+          "foreground": "#55dfc4",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 10.274193548387098
+        },
+        {
+          "role": "control-border/canvas",
+          "foreground": "#91a69c",
+          "background": "#101f21",
+          "minimum": 3,
+          "ratio": 6.564516129032258
+        },
+        {
+          "role": "focus/canvas",
+          "foreground": "#55dfc4",
+          "background": "#101f21",
+          "minimum": 3,
+          "ratio": 10.274193548387098
+        },
+        {
+          "role": "success-text/canvas",
+          "foreground": "#5fd48d",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 9.096774193548388
+        },
+        {
+          "role": "warning-text/canvas",
+          "foreground": "#f0a84b",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 8.387096774193548
+        },
+        {
+          "role": "error-text/canvas",
+          "foreground": "#ff7f86",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 6.967741935483871
+        },
+        {
+          "role": "info-text/canvas",
+          "foreground": "#66a6ff",
+          "background": "#101f21",
+          "minimum": 4.5,
+          "ratio": 6.82258064516129
+        },
+        {
+          "role": "primary/panel",
+          "foreground": "#eff9f2",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 13.541666666666666
+        },
+        {
+          "role": "secondary/panel",
+          "foreground": "#b7ccc5",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 8.652777777777777
+        },
+        {
+          "role": "muted/panel",
+          "foreground": "#b7ccc5",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 8.652777777777777
+        },
+        {
+          "role": "link/panel",
+          "foreground": "#55dfc4",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
+        },
+        {
+          "role": "control-border/panel",
+          "foreground": "#91a69c",
+          "background": "#192c2e",
+          "minimum": 3,
+          "ratio": 5.652777777777777
+        },
+        {
+          "role": "focus/panel",
+          "foreground": "#55dfc4",
+          "background": "#192c2e",
+          "minimum": 3,
+          "ratio": 8.847222222222221
+        },
+        {
+          "role": "success-text/panel",
+          "foreground": "#5fd48d",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 7.833333333333333
+        },
+        {
+          "role": "warning-text/panel",
+          "foreground": "#f0a84b",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 7.222222222222221
+        },
+        {
+          "role": "error-text/panel",
+          "foreground": "#ff7f86",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 5.999999999999999
+        },
+        {
+          "role": "info-text/panel",
+          "foreground": "#66a6ff",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 5.874999999999999
+        },
+        {
+          "role": "primary/raised",
+          "foreground": "#eff9f2",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 13.541666666666666
+        },
+        {
+          "role": "secondary/raised",
+          "foreground": "#b7ccc5",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 8.652777777777777
+        },
+        {
+          "role": "muted/raised",
+          "foreground": "#b7ccc5",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 8.652777777777777
+        },
+        {
+          "role": "link/raised",
+          "foreground": "#55dfc4",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
+        },
+        {
+          "role": "control-border/raised",
+          "foreground": "#91a69c",
+          "background": "#192c2e",
+          "minimum": 3,
+          "ratio": 5.652777777777777
+        },
+        {
+          "role": "focus/raised",
+          "foreground": "#55dfc4",
+          "background": "#192c2e",
+          "minimum": 3,
+          "ratio": 8.847222222222221
+        },
+        {
+          "role": "success-text/raised",
+          "foreground": "#5fd48d",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 7.833333333333333
+        },
+        {
+          "role": "warning-text/raised",
+          "foreground": "#f0a84b",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 7.222222222222221
+        },
+        {
+          "role": "error-text/raised",
+          "foreground": "#ff7f86",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 5.999999999999999
+        },
+        {
+          "role": "info-text/raised",
+          "foreground": "#66a6ff",
+          "background": "#192c2e",
+          "minimum": 4.5,
+          "ratio": 5.874999999999999
+        },
+        {
+          "role": "success-alert-text",
+          "foreground": "#a8e4bf",
+          "background": "#103122",
+          "minimum": 4.5,
+          "ratio": 9.81081081081081
+        },
+        {
+          "role": "success-alert-icon",
+          "foreground": "#5fd48d",
+          "background": "#103122",
+          "minimum": 3,
+          "ratio": 7.621621621621621
+        },
+        {
+          "role": "success-filled-text",
+          "foreground": "#10212f",
+          "background": "#5fd48d",
+          "minimum": 4.5,
+          "ratio": 8.8125
+        },
+        {
+          "role": "warning-alert-text",
+          "foreground": "#ffd39d",
+          "background": "#3a2610",
+          "minimum": 4.5,
+          "ratio": 10.315068493150683
+        },
+        {
+          "role": "warning-alert-icon",
+          "foreground": "#f0a84b",
+          "background": "#3a2610",
+          "minimum": 3,
+          "ratio": 7.123287671232876
+        },
+        {
+          "role": "warning-filled-text",
+          "foreground": "#10212f",
+          "background": "#f0a84b",
+          "minimum": 4.5,
+          "ratio": 8.125
+        },
+        {
+          "role": "error-alert-text",
+          "foreground": "#ffb6b6",
+          "background": "#3b1719",
+          "minimum": 4.5,
+          "ratio": 9.56060606060606
+        },
+        {
+          "role": "error-alert-icon",
+          "foreground": "#ff7f86",
+          "background": "#3b1719",
+          "minimum": 3,
+          "ratio": 6.545454545454545
+        },
+        {
+          "role": "error-filled-text",
+          "foreground": "#10212f",
+          "background": "#ff7f86",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "info-alert-text",
+          "foreground": "#afd0ff",
+          "background": "#13273f",
+          "minimum": 4.5,
+          "ratio": 9.623188405797102
+        },
+        {
+          "role": "info-alert-icon",
+          "foreground": "#66a6ff",
+          "background": "#13273f",
+          "minimum": 3,
+          "ratio": 6.130434782608695
+        },
+        {
+          "role": "info-filled-text",
+          "foreground": "#10212f",
+          "background": "#66a6ff",
+          "minimum": 4.5,
+          "ratio": 6.609375
+        },
+        {
+          "role": "primary-button",
+          "foreground": "#102e29",
+          "background": "#55dfc4",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
+        },
+        {
+          "role": "primary-button-hover",
+          "foreground": "#102e29",
+          "background": "#35c8ac",
+          "minimum": 4.5,
+          "ratio": 6.944444444444444
+        },
+        {
+          "role": "secondary-button",
+          "foreground": "#102e29",
+          "background": "#55dfc4",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
+        },
+        {
+          "role": "danger-button",
+          "foreground": "#2a0f10",
+          "background": "#d86363",
+          "minimum": 4.5,
+          "ratio": 4.983050847457626
+        },
+        {
+          "role": "selected-navigation",
+          "foreground": "#102e29",
+          "background": "#55dfc4",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
+        }
+      ]
+    },
+    {
+      "preset": "cyan",
+      "mode": "light",
+      "typography": {
+        "body": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "fontWeight": 400
+        },
+        "helper": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "color": "#49605b"
+        }
+      },
+      "readings": [
+        {
+          "role": "primary/canvas",
+          "foreground": "#142b2b",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 13.408450704225352
+        },
+        {
+          "role": "secondary/canvas",
+          "foreground": "#49605b",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 6.141935483870968
+        },
+        {
+          "role": "muted/canvas",
+          "foreground": "#49605b",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 6.141935483870968
+        },
+        {
+          "role": "link/canvas",
+          "foreground": "#146352",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 6.476190476190475
+        },
+        {
+          "role": "control-border/canvas",
+          "foreground": "#667c73",
+          "background": "#f0f5f2",
+          "minimum": 3,
+          "ratio": 4.051063829787235
+        },
+        {
+          "role": "focus/canvas",
+          "foreground": "#146352",
+          "background": "#f0f5f2",
+          "minimum": 3,
+          "ratio": 6.476190476190475
+        },
+        {
+          "role": "success-text/canvas",
+          "foreground": "#14532d",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 8.278260869565218
+        },
+        {
+          "role": "warning-text/canvas",
+          "foreground": "#8a4b08",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 6.141935483870968
+        },
+        {
+          "role": "error-text/canvas",
+          "foreground": "#8f1d1d",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 8.067796610169491
+        },
+        {
+          "role": "info-text/canvas",
+          "foreground": "#0f3f78",
+          "background": "#f0f5f2",
+          "minimum": 4.5,
+          "ratio": 9.52
+        },
+        {
+          "role": "primary/panel",
+          "foreground": "#142b2b",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 14.549295774647884
+        },
+        {
+          "role": "secondary/panel",
+          "foreground": "#49605b",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 6.664516129032258
+        },
+        {
+          "role": "muted/panel",
+          "foreground": "#49605b",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 6.664516129032258
+        },
+        {
+          "role": "link/panel",
+          "foreground": "#146352",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 7.02721088435374
+        },
+        {
+          "role": "control-border/panel",
+          "foreground": "#667c73",
+          "background": "#fbfefa",
+          "minimum": 3,
+          "ratio": 4.395744680851064
+        },
+        {
+          "role": "focus/panel",
+          "foreground": "#146352",
+          "background": "#fbfefa",
+          "minimum": 3,
+          "ratio": 7.02721088435374
+        },
+        {
+          "role": "success-text/panel",
+          "foreground": "#14532d",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 8.982608695652173
+        },
+        {
+          "role": "warning-text/panel",
+          "foreground": "#8a4b08",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 6.664516129032258
+        },
+        {
+          "role": "error-text/panel",
+          "foreground": "#8f1d1d",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 8.754237288135592
+        },
+        {
+          "role": "info-text/panel",
+          "foreground": "#0f3f78",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 10.329999999999998
+        },
+        {
+          "role": "primary/raised",
+          "foreground": "#142b2b",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 14.549295774647884
+        },
+        {
+          "role": "secondary/raised",
+          "foreground": "#49605b",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 6.664516129032258
+        },
+        {
+          "role": "muted/raised",
+          "foreground": "#49605b",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 6.664516129032258
+        },
+        {
+          "role": "link/raised",
+          "foreground": "#146352",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 7.02721088435374
+        },
+        {
+          "role": "control-border/raised",
+          "foreground": "#667c73",
+          "background": "#fbfefa",
+          "minimum": 3,
+          "ratio": 4.395744680851064
+        },
+        {
+          "role": "focus/raised",
+          "foreground": "#146352",
+          "background": "#fbfefa",
+          "minimum": 3,
+          "ratio": 7.02721088435374
+        },
+        {
+          "role": "success-text/raised",
+          "foreground": "#14532d",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 8.982608695652173
+        },
+        {
+          "role": "warning-text/raised",
+          "foreground": "#8a4b08",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 6.664516129032258
+        },
+        {
+          "role": "error-text/raised",
+          "foreground": "#8f1d1d",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 8.754237288135592
+        },
+        {
+          "role": "info-text/raised",
+          "foreground": "#0f3f78",
+          "background": "#fbfefa",
+          "minimum": 4.5,
+          "ratio": 10.329999999999998
+        },
+        {
+          "role": "success-alert-text",
+          "foreground": "#14532d",
+          "background": "#e7f7ef",
+          "minimum": 4.5,
+          "ratio": 8.234782608695653
+        },
+        {
+          "role": "success-alert-icon",
+          "foreground": "#1f8f59",
+          "background": "#e7f7ef",
+          "minimum": 3,
+          "ratio": 3.6848249027237356
+        },
+        {
+          "role": "success-filled-text",
+          "foreground": "#ffffff",
+          "background": "#14532d",
+          "minimum": 4.5,
+          "ratio": 9.130434782608695
+        },
+        {
+          "role": "warning-alert-text",
+          "foreground": "#8a4b08",
+          "background": "#fff4e5",
+          "minimum": 4.5,
+          "ratio": 6.232258064516129
+        },
+        {
+          "role": "warning-alert-icon",
+          "foreground": "#a85b04",
+          "background": "#fff4e5",
+          "minimum": 3,
+          "ratio": 4.644230769230769
+        },
+        {
+          "role": "warning-filled-text",
+          "foreground": "#ffffff",
+          "background": "#8a4b08",
+          "minimum": 4.5,
+          "ratio": 6.774193548387097
+        },
+        {
+          "role": "error-alert-text",
+          "foreground": "#8f1d1d",
+          "background": "#fdecec",
+          "minimum": 4.5,
+          "ratio": 7.788135593220339
+        },
+        {
+          "role": "error-alert-icon",
+          "foreground": "#d14343",
+          "background": "#fdecec",
+          "minimum": 3,
+          "ratio": 3.995652173913044
+        },
+        {
+          "role": "error-filled-text",
+          "foreground": "#ffffff",
+          "background": "#8f1d1d",
+          "minimum": 4.5,
+          "ratio": 8.898305084745763
+        },
+        {
+          "role": "info-alert-text",
+          "foreground": "#0f3f78",
+          "background": "#e8f2ff",
+          "minimum": 4.5,
+          "ratio": 9.29
+        },
+        {
+          "role": "info-alert-icon",
+          "foreground": "#0b5ed7",
+          "background": "#e8f2ff",
+          "minimum": 3,
+          "ratio": 5.161111111111111
+        },
+        {
+          "role": "info-filled-text",
+          "foreground": "#ffffff",
+          "background": "#0f3f78",
+          "minimum": 4.5,
+          "ratio": 10.5
+        },
+        {
+          "role": "primary-button",
+          "foreground": "#102e29",
+          "background": "#55dfc4",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
+        },
+        {
+          "role": "primary-button-hover",
+          "foreground": "#102e29",
+          "background": "#35c8ac",
+          "minimum": 4.5,
+          "ratio": 6.944444444444444
+        },
+        {
+          "role": "secondary-button",
+          "foreground": "#ffffff",
+          "background": "#146352",
+          "minimum": 4.5,
+          "ratio": 7.142857142857142
+        },
+        {
+          "role": "danger-button",
+          "foreground": "#fff7f7",
+          "background": "#bd3434",
+          "minimum": 4.5,
+          "ratio": 5.378378378378378
+        },
+        {
+          "role": "selected-navigation",
+          "foreground": "#102e29",
+          "background": "#55dfc4",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
+        }
+      ]
+    },
+    {
+      "preset": "lime",
+      "mode": "dark",
+      "typography": {
+        "body": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "fontWeight": 400
+        },
+        "helper": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "color": "#c1cdb8"
+        }
+      },
+      "readings": [
+        {
+          "role": "primary/canvas",
+          "foreground": "#f5faeb",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 15.4375
+        },
+        {
+          "role": "secondary/canvas",
+          "foreground": "#c1cdb8",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 9.921875
+        },
+        {
+          "role": "muted/canvas",
+          "foreground": "#c1cdb8",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 9.921875
+        },
+        {
+          "role": "link/canvas",
+          "foreground": "#c0ef54",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 12.28125
+        },
+        {
+          "role": "control-border/canvas",
+          "foreground": "#91a69c",
+          "background": "#1a2119",
+          "minimum": 3,
+          "ratio": 6.359374999999999
+        },
+        {
+          "role": "focus/canvas",
+          "foreground": "#c0ef54",
+          "background": "#1a2119",
+          "minimum": 3,
+          "ratio": 12.28125
+        },
+        {
+          "role": "success-text/canvas",
+          "foreground": "#5fd48d",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 8.8125
+        },
+        {
+          "role": "warning-text/canvas",
+          "foreground": "#f0a84b",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 8.125
+        },
+        {
+          "role": "error-text/canvas",
+          "foreground": "#ff7f86",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "info-text/canvas",
+          "foreground": "#66a6ff",
+          "background": "#1a2119",
+          "minimum": 4.5,
+          "ratio": 6.609375
+        },
+        {
+          "role": "primary/panel",
+          "foreground": "#f5faeb",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 13.173333333333332
+        },
+        {
+          "role": "secondary/panel",
+          "foreground": "#c1cdb8",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 8.466666666666665
+        },
+        {
+          "role": "muted/panel",
+          "foreground": "#c1cdb8",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 8.466666666666665
+        },
+        {
+          "role": "link/panel",
+          "foreground": "#c0ef54",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 10.479999999999999
+        },
+        {
+          "role": "control-border/panel",
+          "foreground": "#91a69c",
+          "background": "#252e22",
+          "minimum": 3,
+          "ratio": 5.426666666666666
+        },
+        {
+          "role": "focus/panel",
+          "foreground": "#c0ef54",
+          "background": "#252e22",
+          "minimum": 3,
+          "ratio": 10.479999999999999
+        },
+        {
+          "role": "success-text/panel",
+          "foreground": "#5fd48d",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 7.52
+        },
+        {
+          "role": "warning-text/panel",
+          "foreground": "#f0a84b",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 6.933333333333333
+        },
+        {
+          "role": "error-text/panel",
+          "foreground": "#ff7f86",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 5.759999999999999
+        },
+        {
+          "role": "info-text/panel",
+          "foreground": "#66a6ff",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 5.639999999999999
+        },
+        {
+          "role": "primary/raised",
+          "foreground": "#f5faeb",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 13.173333333333332
+        },
+        {
+          "role": "secondary/raised",
+          "foreground": "#c1cdb8",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 8.466666666666665
+        },
+        {
+          "role": "muted/raised",
+          "foreground": "#c1cdb8",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 8.466666666666665
+        },
+        {
+          "role": "link/raised",
+          "foreground": "#c0ef54",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 10.479999999999999
+        },
+        {
+          "role": "control-border/raised",
+          "foreground": "#91a69c",
+          "background": "#252e22",
+          "minimum": 3,
+          "ratio": 5.426666666666666
+        },
+        {
+          "role": "focus/raised",
+          "foreground": "#c0ef54",
+          "background": "#252e22",
+          "minimum": 3,
+          "ratio": 10.479999999999999
+        },
+        {
+          "role": "success-text/raised",
+          "foreground": "#5fd48d",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 7.52
+        },
+        {
+          "role": "warning-text/raised",
+          "foreground": "#f0a84b",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 6.933333333333333
+        },
+        {
+          "role": "error-text/raised",
+          "foreground": "#ff7f86",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 5.759999999999999
+        },
+        {
+          "role": "info-text/raised",
+          "foreground": "#66a6ff",
+          "background": "#252e22",
+          "minimum": 4.5,
+          "ratio": 5.639999999999999
+        },
+        {
+          "role": "success-alert-text",
+          "foreground": "#a8e4bf",
+          "background": "#103122",
+          "minimum": 4.5,
+          "ratio": 9.81081081081081
+        },
+        {
+          "role": "success-alert-icon",
+          "foreground": "#5fd48d",
+          "background": "#103122",
+          "minimum": 3,
+          "ratio": 7.621621621621621
+        },
+        {
+          "role": "success-filled-text",
+          "foreground": "#10212f",
+          "background": "#5fd48d",
+          "minimum": 4.5,
+          "ratio": 8.8125
+        },
+        {
+          "role": "warning-alert-text",
+          "foreground": "#ffd39d",
+          "background": "#3a2610",
+          "minimum": 4.5,
+          "ratio": 10.315068493150683
+        },
+        {
+          "role": "warning-alert-icon",
+          "foreground": "#f0a84b",
+          "background": "#3a2610",
+          "minimum": 3,
+          "ratio": 7.123287671232876
+        },
+        {
+          "role": "warning-filled-text",
+          "foreground": "#10212f",
+          "background": "#f0a84b",
+          "minimum": 4.5,
+          "ratio": 8.125
+        },
+        {
+          "role": "error-alert-text",
+          "foreground": "#ffb6b6",
+          "background": "#3b1719",
+          "minimum": 4.5,
+          "ratio": 9.56060606060606
+        },
+        {
+          "role": "error-alert-icon",
+          "foreground": "#ff7f86",
+          "background": "#3b1719",
+          "minimum": 3,
+          "ratio": 6.545454545454545
+        },
+        {
+          "role": "error-filled-text",
+          "foreground": "#10212f",
+          "background": "#ff7f86",
+          "minimum": 4.5,
+          "ratio": 6.75
+        },
+        {
+          "role": "info-alert-text",
+          "foreground": "#afd0ff",
+          "background": "#13273f",
+          "minimum": 4.5,
+          "ratio": 9.623188405797102
+        },
+        {
+          "role": "info-alert-icon",
+          "foreground": "#66a6ff",
+          "background": "#13273f",
+          "minimum": 3,
+          "ratio": 6.130434782608695
+        },
+        {
+          "role": "info-filled-text",
+          "foreground": "#10212f",
+          "background": "#66a6ff",
+          "minimum": 4.5,
+          "ratio": 6.609375
+        },
+        {
+          "role": "primary-button",
+          "foreground": "#222d16",
+          "background": "#c0ef54",
+          "minimum": 4.5,
+          "ratio": 10.767123287671232
+        },
+        {
+          "role": "primary-button-hover",
+          "foreground": "#222d16",
+          "background": "#a8d63f",
+          "minimum": 4.5,
+          "ratio": 8.465753424657533
+        },
+        {
+          "role": "secondary-button",
+          "foreground": "#222d16",
+          "background": "#c0ef54",
+          "minimum": 4.5,
+          "ratio": 10.767123287671232
+        },
+        {
+          "role": "danger-button",
+          "foreground": "#2a0f10",
+          "background": "#d86363",
+          "minimum": 4.5,
+          "ratio": 4.983050847457626
+        },
+        {
+          "role": "selected-navigation",
+          "foreground": "#222d16",
+          "background": "#c0ef54",
+          "minimum": 4.5,
+          "ratio": 10.767123287671232
+        }
+      ]
+    },
+    {
+      "preset": "lime",
+      "mode": "light",
+      "typography": {
+        "body": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "fontWeight": 400
+        },
+        "helper": {
+          "fontFamily": "\"Inter\",system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif",
+          "fontSize": "0.875rem",
+          "lineHeight": 1.45,
+          "color": "#4c5948"
+        }
+      },
+      "readings": [
+        {
+          "role": "primary/canvas",
+          "foreground": "#242d22",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 12.824324324324323
+        },
+        {
+          "role": "secondary/canvas",
+          "foreground": "#4c5948",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 6.730496453900709
+        },
+        {
+          "role": "muted/canvas",
+          "foreground": "#4c5948",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 6.730496453900709
+        },
+        {
+          "role": "link/canvas",
+          "foreground": "#425b16",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 6.927007299270073
+        },
+        {
+          "role": "control-border/canvas",
+          "foreground": "#667c73",
+          "background": "#f3f4ed",
+          "minimum": 3,
+          "ratio": 4.038297872340426
+        },
+        {
+          "role": "focus/canvas",
+          "foreground": "#425b16",
+          "background": "#f3f4ed",
+          "minimum": 3,
+          "ratio": 6.927007299270073
+        },
+        {
+          "role": "success-text/canvas",
+          "foreground": "#14532d",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 8.252173913043478
+        },
+        {
+          "role": "warning-text/canvas",
+          "foreground": "#8a4b08",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 6.122580645161291
+        },
+        {
+          "role": "error-text/canvas",
+          "foreground": "#8f1d1d",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 8.042372881355933
+        },
+        {
+          "role": "info-text/canvas",
+          "foreground": "#0f3f78",
+          "background": "#f3f4ed",
+          "minimum": 4.5,
+          "ratio": 9.49
+        },
+        {
+          "role": "primary/panel",
+          "foreground": "#242d22",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 13.972972972972972
+        },
+        {
+          "role": "secondary/panel",
+          "foreground": "#4c5948",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 7.333333333333333
+        },
+        {
+          "role": "muted/panel",
+          "foreground": "#4c5948",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 7.333333333333333
+        },
+        {
+          "role": "link/panel",
+          "foreground": "#425b16",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 7.547445255474452
+        },
+        {
+          "role": "control-border/panel",
+          "foreground": "#667c73",
+          "background": "#fdfef6",
+          "minimum": 3,
+          "ratio": 4.4
+        },
+        {
+          "role": "focus/panel",
+          "foreground": "#425b16",
+          "background": "#fdfef6",
+          "minimum": 3,
+          "ratio": 7.547445255474452
+        },
+        {
+          "role": "success-text/panel",
+          "foreground": "#14532d",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 8.991304347826087
+        },
+        {
+          "role": "warning-text/panel",
+          "foreground": "#8a4b08",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 6.670967741935484
+        },
+        {
+          "role": "error-text/panel",
+          "foreground": "#8f1d1d",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 8.762711864406779
+        },
+        {
+          "role": "info-text/panel",
+          "foreground": "#0f3f78",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 10.34
+        },
+        {
+          "role": "primary/raised",
+          "foreground": "#242d22",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 13.972972972972972
+        },
+        {
+          "role": "secondary/raised",
+          "foreground": "#4c5948",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 7.333333333333333
+        },
+        {
+          "role": "muted/raised",
+          "foreground": "#4c5948",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 7.333333333333333
+        },
+        {
+          "role": "link/raised",
+          "foreground": "#425b16",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 7.547445255474452
+        },
+        {
+          "role": "control-border/raised",
+          "foreground": "#667c73",
+          "background": "#fdfef6",
+          "minimum": 3,
+          "ratio": 4.4
+        },
+        {
+          "role": "focus/raised",
+          "foreground": "#425b16",
+          "background": "#fdfef6",
+          "minimum": 3,
+          "ratio": 7.547445255474452
+        },
+        {
+          "role": "success-text/raised",
+          "foreground": "#14532d",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 8.991304347826087
+        },
+        {
+          "role": "warning-text/raised",
+          "foreground": "#8a4b08",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 6.670967741935484
+        },
+        {
+          "role": "error-text/raised",
+          "foreground": "#8f1d1d",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 8.762711864406779
+        },
+        {
+          "role": "info-text/raised",
+          "foreground": "#0f3f78",
+          "background": "#fdfef6",
+          "minimum": 4.5,
+          "ratio": 10.34
+        },
+        {
+          "role": "success-alert-text",
+          "foreground": "#14532d",
+          "background": "#e7f7ef",
+          "minimum": 4.5,
+          "ratio": 8.234782608695653
+        },
+        {
+          "role": "success-alert-icon",
+          "foreground": "#1f8f59",
+          "background": "#e7f7ef",
+          "minimum": 3,
+          "ratio": 3.6848249027237356
+        },
+        {
+          "role": "success-filled-text",
+          "foreground": "#ffffff",
+          "background": "#14532d",
+          "minimum": 4.5,
+          "ratio": 9.130434782608695
+        },
+        {
+          "role": "warning-alert-text",
+          "foreground": "#8a4b08",
+          "background": "#fff4e5",
+          "minimum": 4.5,
+          "ratio": 6.232258064516129
+        },
+        {
+          "role": "warning-alert-icon",
+          "foreground": "#a85b04",
+          "background": "#fff4e5",
+          "minimum": 3,
+          "ratio": 4.644230769230769
+        },
+        {
+          "role": "warning-filled-text",
+          "foreground": "#ffffff",
+          "background": "#8a4b08",
+          "minimum": 4.5,
+          "ratio": 6.774193548387097
+        },
+        {
+          "role": "error-alert-text",
+          "foreground": "#8f1d1d",
+          "background": "#fdecec",
+          "minimum": 4.5,
+          "ratio": 7.788135593220339
+        },
+        {
+          "role": "error-alert-icon",
+          "foreground": "#d14343",
+          "background": "#fdecec",
+          "minimum": 3,
+          "ratio": 3.995652173913044
+        },
+        {
+          "role": "error-filled-text",
+          "foreground": "#ffffff",
+          "background": "#8f1d1d",
+          "minimum": 4.5,
+          "ratio": 8.898305084745763
+        },
+        {
+          "role": "info-alert-text",
+          "foreground": "#0f3f78",
+          "background": "#e8f2ff",
+          "minimum": 4.5,
+          "ratio": 9.29
+        },
+        {
+          "role": "info-alert-icon",
+          "foreground": "#0b5ed7",
+          "background": "#e8f2ff",
+          "minimum": 3,
+          "ratio": 5.161111111111111
+        },
+        {
+          "role": "info-filled-text",
+          "foreground": "#ffffff",
+          "background": "#0f3f78",
+          "minimum": 4.5,
+          "ratio": 10.5
+        },
+        {
+          "role": "primary-button",
+          "foreground": "#222d16",
+          "background": "#c0ef54",
+          "minimum": 4.5,
+          "ratio": 10.767123287671232
+        },
+        {
+          "role": "primary-button-hover",
+          "foreground": "#222d16",
+          "background": "#a8d63f",
+          "minimum": 4.5,
+          "ratio": 8.465753424657533
+        },
+        {
+          "role": "secondary-button",
+          "foreground": "#ffffff",
+          "background": "#425b16",
+          "minimum": 4.5,
+          "ratio": 7.664233576642335
+        },
+        {
+          "role": "danger-button",
+          "foreground": "#fff7f7",
+          "background": "#bd3434",
+          "minimum": 4.5,
+          "ratio": 5.378378378378378
+        },
+        {
+          "role": "selected-navigation",
+          "foreground": "#222d16",
+          "background": "#c0ef54",
+          "minimum": 4.5,
+          "ratio": 10.767123287671232
+        }
+      ]
+    }
+  ]
+}

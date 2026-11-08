@@ -475,3 +475,22 @@ final repeated interaction/media/memory and full validation remain outstanding.
 - Saved-search regression covers stale server revision, pending repeated clicks,
   rejected save, retained draft and confirmed discard. Two more actual-wire
   requests validate saved-search create/update projection (35 requests total).
+
+### Contrast and bounded remote-player picker
+
+- Corrected the original light-success text defect at the palette boundary, plus
+  warning-icon/destructive-button contrast and essential input/button borders.
+  282 exact semantic color pairings across the six preset/theme combinations pass;
+  minimum normal-text contrast is 4.98:1, minimum essential icon/control contrast
+  is 3.68:1. Exact colors, type sizes and limits are committed in contrast evidence.
+- The remote-player channel picker no longer fetches the complete TV catalogue
+  while closed. TV and raw-stream modes use 50-item pages and server-side search;
+  selected intent survives paging and pending sends block cancellation/repetition.
+- Generic sport artwork matrix at `884e8946`: 48/48 browser combinations passed,
+  with actual decoded local images, explicit remote-artwork requests, recoverable
+  remote-image failure, no writes and no dialog overflow. The initial launcher
+  emitted NO_COLOR/FORCE_COLOR environment notices; final browser launch will
+  remove that conflicting environment rather than suppress warnings.
+- First ARM64 scraper image quality scan (frozen `147a6e7`): completed, report-only,
+  427 baseline findings, zero new and zero new priority findings. Remaining image
+  scans and final-revision reruns remain required.

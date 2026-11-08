@@ -76,7 +76,7 @@ jest.mock('../hooks/useTuner', () => ({
   useUpdateTunerSettings: () => ({ mutateAsync: mockUpdateTunerSettings, isPending: false }),
 }));
 jest.mock('../hooks/useBaseUrls', () => ({ useBaseUrls: () => ({ data: [], isLoading: false }) }));
-jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => ({ data: [], isLoading: false }) }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelPage: () => ({ data: { items: [], total: 0 }, isLoading: false }) }));
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannels: () => ({ data: { items: [] }, isLoading: false }) }));
 jest.mock('@tanstack/react-query', () => ({ ...jest.requireActual('@tanstack/react-query'), useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }) }));
 

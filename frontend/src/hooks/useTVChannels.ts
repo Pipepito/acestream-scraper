@@ -39,11 +39,12 @@ export const useTVChannelCatalog = (filters?: TVChannelListFilters, refetchInter
 };
 
 /** Page/filter identity shares invalidation with all canonical channel editors. */
-export const useTVChannelPage = (params: TVBrowseParams) => useQuery({
+export const useTVChannelPage = (params: TVBrowseParams, enabled = true) => useQuery({
   queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'page', params],
   queryFn: ({ signal }) => tvChannelService.browse(params, signal),
   placeholderData: keepPreviousData,
   staleTime: 30_000,
+  enabled,
 });
 
 export const useTVInventory = () => useQuery({

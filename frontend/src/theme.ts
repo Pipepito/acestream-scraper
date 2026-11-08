@@ -81,7 +81,7 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
         bg: '#fff4e5',
         border: '#f5c27a',
         text: '#8a4b08',
-        icon: '#d97706',
+        icon: '#a85b04',
       },
       error: {
         bg: '#fdecec',
@@ -102,9 +102,10 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       primaryText: '#f7fffd',
       secondaryBg: '#dce9fb',
       secondaryText: '#0b5ed7',
-      dangerBg: '#d14343',
+      dangerBg: '#bd3434',
       dangerText: '#fff7f7',
       focusRing: 'rgba(11, 94, 215, 0.24)',
+      controlBorder: '#667c73',
       disabledBg: '#dbe4ec',
       disabledText: '#708191',
       accentWarm: '#dd8a42',
@@ -193,6 +194,7 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       dangerBg: '#d86363',
       dangerText: '#2a0f10',
       focusRing: 'rgba(102, 166, 255, 0.3)',
+      controlBorder: '#91a69c',
       disabledBg: '#243543',
       disabledText: '#7c93a5',
       accentWarm: '#f0a84b',
@@ -251,7 +253,7 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', la
       },
       secondary: {
         main: appTokens.action.secondaryText,
-        contrastText: appTokens.text.inverse,
+        contrastText: mode === 'light' ? '#ffffff' : appTokens.text.inverse,
       },
       background: {
         default: appTokens.surface.canvas,
@@ -262,16 +264,20 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', la
         secondary: appTokens.text.secondary,
       },
       error: {
-        main: appTokens.status.error.icon,
+        main: mode === 'light' ? appTokens.status.error.text : appTokens.status.error.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
       warning: {
-        main: appTokens.status.warning.icon,
+        main: mode === 'light' ? appTokens.status.warning.text : appTokens.status.warning.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
       success: {
-        main: appTokens.status.success.icon,
+        main: mode === 'light' ? appTokens.status.success.text : appTokens.status.success.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
       info: {
-        main: appTokens.status.info.icon,
+        main: mode === 'light' ? appTokens.status.info.text : appTokens.status.info.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
     },
     shape: {
@@ -446,7 +452,7 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', la
             },
           },
           outlined: {
-            borderColor: appTokens.surface.border,
+            borderColor: appTokens.action.controlBorder,
             color: appTokens.text.primary,
             backgroundColor: appTokens.action.secondaryBg,
             '&:hover': {
@@ -454,6 +460,12 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', la
               backgroundColor: appTokens.surface.muted,
             },
           },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          notchedOutline: { borderColor: appTokens.action.controlBorder },
+          root: { '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: appTokens.text.secondary } },
         },
       },
       MuiAlert: {

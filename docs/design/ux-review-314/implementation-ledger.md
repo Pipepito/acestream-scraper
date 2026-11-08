@@ -28,8 +28,8 @@ retain earlier failed, interrupted and superseded runs.
 
 Public full application checks pass locally and in the pinned Linux environment
 (2,619 backend / 750 frontend tests), as do all 15 image builds, 60 Docker packaging
-checks and the final browser matrices. The unchanged private Jest gate and AMD64
-wrapper remain failed for the documented compatibility reasons. Manual/native,
+checks and the final browser matrices. The subsequently authorized private compatibility fix passes the full trusted gate
+and all eleven image probes at `a057148`; its review branch is not deployed. Manual/native,
 participant and private-owner evidence is unwaived; all eleven issues remain open.
 The next required work is owner review of `pending-acceptance.md`, provision of its
 external acceptance evidence, then correction/revalidation of any resulting issues.
@@ -985,3 +985,56 @@ evidence remains explicitly unaccepted and requires the stated external owners.
   The final normalized contract outcomes are all passing, with original failure
   text retained. Evidence JSON parses, referenced local acceptance paths exist,
   and `git diff --check` passes. No runtime databases/logs/private captures are staged.
+
+
+### Authorized private validation compatibility follow-up · 2026-11-08
+
+The owner explicitly authorized fixing private Jest and the AMD64 runtime wrapper,
+rerunning validation and continuing automated work. No merge or deployment is
+allowed. Manual acceptance remains pending. After a separate explanation, the
+owner also explicitly authorized sending the four rendered pipeline definitions
+to the configured Jenkins read-only Declarative validator with local credentials.
+The earlier automatic approval rejection is resolved by that authorization; all
+four live checks pass without installing definitions or starting jobs.
+
+- Private branch `codex/ux314-validation-compat`, code revision
+  `a057148d9dd923329a297bd81236935f0982e912`, based on `0955626`.
+- Fixed private Jest uses individually mounted, read-only private font and
+  native-Fetch environment helpers in approved-PR, develop and release gates.
+  Runtime validation executes AMD64 images under emulation instead of choosing ARM
+  OCI layout assertions; peer containers use the explicit image platform. ARMv7
+  stays packaging-only, including on a matching host. No public code selects policy.
+- Six regression cases fail against the previous policy; the focused fixed suite
+  passes 14 tests. The initial borrowed pytest environment emits an unset asyncio
+  fixture-scope deprecation. The complete run explicitly selects function scope
+  and treats warnings as errors: **362/362 infrastructure tests pass**, 82.16 s.
+- Shell/Node syntax and publication/isolation guards pass. Offline bundle assembly
+  includes both new helpers among 60 regular files; all four templates render.
+  Four live Declarative checks pass with synthetic deployment identifiers. No
+  controller coordinate, credential or deployable private bundle is published.
+- The full fixed private application gate is running against application checkpoint
+  `cd969c72` (production source `e13a42ef`, unit fixtures `f09097aa`). Existing
+  dependency-runner bytes are reused; only committed policy files enter its offline
+  container. Full image probes follow. Four previously cache-only AMD64 flavors
+  are rebuilt/loaded from the unchanged frozen source for actual runtime execution.
+  All transient reports are under `/tmp/ux314-evidence/private-compat-a057148`.
+- Fixed private full gate: **2,619/2,619 backend tests** (712.02 s), **121/121
+  frontend suites / 750/750 tests** (161.731 s), zero failures/skips/test warnings/
+  console errors or warnings. Lint/types, generated schema/client drift, production
+  and helper builds/drift, and architecture/publication dry runs pass. Normalized
+  reports succeed; total backend/frontend coverage 86.15%/78.49%, changed-line
+  79.17%/79.92%, with the unchanged advisory 80% goal.
+- All four additional AMD64 image builds/loads pass. Cached stages needed partial
+  rebuilding; the dedicated builder is stopped afterward and no cache is pruned.
+  **Five AMD64 runtime probes, five native ARM64 runtime probes and one ARMv7
+  engine packaging probe pass** through the corrected private wrapper. Exact
+  immutable image IDs are in `private-validation-compatibility.json`; no supplemental
+  wrapper is needed. The earlier failed original wrapper run remains historical.
+- Private fix pushed in draft PR #15:
+  https://github.com/Pipepito/acestream-scraper-infra/pull/15 . Application integration
+  remains the single PR #325 into develop. Remote application develop and private
+  main were rechecked and still match the recorded bases. No source merge is needed.
+- Local full-gate/runtime checks, offline bundle assembly and explicitly authorized
+  live syntax validation are complete. Private main/deployed definitions remain
+  unchanged. Manual/native/participant acceptance and historical scanner owner
+  review remain pending. User instruction explicitly excludes merge/deployment.

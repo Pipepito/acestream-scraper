@@ -1338,5 +1338,5 @@
       ]
     }
   ],
-  "evidenceNote": "Final application snapshot e13a42ef; evidence-only documentation follows. Implementation and acceptance remain distinct: partial criteria retain their explicit coverage limits. Public full gate passes (2619 backend, 750 frontend); exact browser/Docker outcomes and unwaived private-policy/manual/physical/participant gaps are in implementation-ledger.md and pending-acceptance.md. No issue is automatically closed."
+  "evidenceNote": "Production application snapshot e13a42ef, final unit fixtures f09097aa. Public and fixed private full gates pass (2619 backend, 750 frontend); private infrastructure a057148 passes all eleven image probes and four authorized live Declarative checks. Its PR #15 is not merged/deployed. Per-criterion coverage limits and unwaived manual/physical/participant evidence remain explicit; no issue is automatically closed. See private-validation-compatibility.json and pending-acceptance.md."
 }

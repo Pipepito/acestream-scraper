@@ -436,16 +436,15 @@
     }
   ],
   "remaining": [
-    "Pinned private Jest configuration cannot load WOFF2 / native Fetch APIs. No private policy changed.",
-    "Unmodified runtime wrapper selects ARM OCI layout for nonnative AMD64; supplemental AMD64 execution is separate evidence.",
+    "Private compatibility fix passes all local checks in private PR #15 but is not merged/deployed; live Jenkins policy remains unchanged.",
     "Historical synthetic UUID scanner classification needs owner review.",
     "Native assistive technology, real browser zoom and physical mobile/receiver acceptance.",
     "Fluent Spanish and nontechnical participant acceptance.",
     "Native ARMv7 engine qualification remains experimental; emulation/layout is not physical qualification."
   ],
-  "evidenceLimits": "See implementation-ledger.md for failed/interrupted attempts, actual retry causes, warnings and exact scope; pending-acceptance.md names external owners. Local results are not Jenkins status. No publication, deployment or protected merge.",
+  "evidenceLimits": "Original failed/interrupted attempts remain historical evidence in implementation-ledger.md. The authorized private follow-up passes the fixed trusted gate and all eleven probes; manual acceptance is unwaived. No merge, deployment or publication.",
   "pinnedEnvironment": {
-    "status": "public-checks-pass-private-policy-fails",
+    "status": "fixed-private-and-public-checks-pass-policy-not-deployed",
     "applicationRevision": "e13a42ef",
     "sourceSnapshot": "24fbb4eb",
     "runtime": {
@@ -464,28 +463,31 @@
       }
     },
     "privatePolicyResult": {
-      "exitCode": 1,
-      "backend": {
-        "passed": 2619,
+      "exitCode": 0,
+      "applicationRevision": "cd969c725a39e16ae64ad9f4446e2935d09a61f6",
+      "infrastructureRevision": "a057148d9dd923329a297bd81236935f0982e912",
+      "backendTests": {
+        "tests": 2619,
         "failed": 0,
-        "skipped": 0,
-        "testWarnings": 0
+        "skipped": 0
       },
+      "frontendTests": {
+        "tests": 750,
+        "failed": 0,
+        "skipped": 0
+      },
+      "frontendSuites": 121,
+      "testWarnings": 0,
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "backendSeconds": 712.02,
+      "frontendSeconds": 161.731,
       "lint": "pass",
       "types": "pass",
-      "frontendSuites": {
-        "passed": 65,
-        "failed": 56
-      },
-      "executedFrontendTests": {
-        "passed": 231,
-        "failed": 8
-      },
-      "errors": [
-        "WOFF2 asset parsing",
-        "Request is not defined"
-      ],
-      "notExecuted": "Tests behind failed imports, subsequent production builds and private phase-5 stage; separate public/host evidence remains distinct."
+      "schemaAndClientDrift": "pass",
+      "productionAndStandaloneBuilds": "pass",
+      "architectureAndPublicationDryRuns": "pass",
+      "deployed": false
     },
     "isolation": "Frozen owned archive, offline container, no credentials or Docker socket. Unchanged private recipe/configuration copies; no shared runner cleanup.",
     "firstPublicFrontend": {
@@ -580,5 +582,269 @@
   "sourceScanRetry": {
     "firstAttempt": "incomplete RuntimeError, retained",
     "unchangedRetry": "success"
-  }
+  },
+  "privateCompatibilityFollowUp": {
+    "date": "2026-11-08",
+    "applicationRevision": "cd969c725a39e16ae64ad9f4446e2935d09a61f6",
+    "productionSourceRevision": "e13a42ef705abae8e5ae41f7997b38eb579a41a4",
+    "infrastructureRevision": "a057148d9dd923329a297bd81236935f0982e912",
+    "infrastructureBranch": "codex/ux314-validation-compat",
+    "status": "automated-validation-passed-not-deployed",
+    "baselineRegressions": {
+      "failed": 6,
+      "deselected": 8
+    },
+    "infrastructureTests": {
+      "passed": 362,
+      "failed": 0,
+      "skipped": 0,
+      "warnings": 0,
+      "seconds": 82.16,
+      "options": "-W error -o asyncio_default_fixture_loop_scope=function"
+    },
+    "liveDeclarativeLints": [
+      {
+        "pipeline": "pr",
+        "status": 200,
+        "valid": true
+      },
+      {
+        "pipeline": "pr-privileged",
+        "status": 200,
+        "valid": true
+      },
+      {
+        "pipeline": "develop",
+        "status": 200,
+        "valid": true
+      },
+      {
+        "pipeline": "release",
+        "status": 200,
+        "valid": true
+      }
+    ],
+    "offlineBundle": {
+      "regularFiles": 60,
+      "trustedHelpersIncluded": true,
+      "renderedPipelines": [
+        "pr",
+        "pr-privileged",
+        "develop",
+        "release"
+      ]
+    },
+    "deployed": false,
+    "merged": false,
+    "manualAcceptance": "Pending; not waived",
+    "fullPrivateApplicationGate": {
+      "exitCode": 0,
+      "applicationRevision": "cd969c725a39e16ae64ad9f4446e2935d09a61f6",
+      "infrastructureRevision": "a057148d9dd923329a297bd81236935f0982e912",
+      "backendTests": {
+        "tests": 2619,
+        "failed": 0,
+        "skipped": 0
+      },
+      "frontendTests": {
+        "tests": 750,
+        "failed": 0,
+        "skipped": 0
+      },
+      "frontendSuites": 121,
+      "testWarnings": 0,
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "backendSeconds": 712.02,
+      "frontendSeconds": 161.731,
+      "lint": "pass",
+      "types": "pass",
+      "schemaAndClientDrift": "pass",
+      "productionAndStandaloneBuilds": "pass",
+      "architectureAndPublicationDryRuns": "pass"
+    },
+    "coverage": {
+      "backend": {
+        "total": {
+          "covered": 22424,
+          "executable": 26030,
+          "percent": 86.15
+        },
+        "changed": {
+          "covered": 323,
+          "executable": 408,
+          "percent": 79.17
+        },
+        "changed_target": 80,
+        "coverage_gate": "advisory",
+        "note": "80% changed-line goal; advisory during rollout",
+        "tests": {
+          "tests": 2619,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "frontend": {
+        "total": {
+          "covered": 7878,
+          "executable": 10037,
+          "percent": 78.49
+        },
+        "changed": {
+          "covered": 2544,
+          "executable": 3183,
+          "percent": 79.92
+        },
+        "changed_target": 80,
+        "coverage_gate": "advisory",
+        "note": "80% changed-line goal; advisory during rollout",
+        "tests": {
+          "tests": 750,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
+    },
+    "runtimeImageChecks": [
+      {
+        "platform": "linux/amd64",
+        "flavor": "scraper",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:a25b1754e6c1bae68dddd6be468959b0ad72ecd459ea9b2d237d599bdb11a64b"
+      },
+      {
+        "platform": "linux/amd64",
+        "flavor": "scraper-acestream",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:bc5eb7e26db9d866b56675560ef1e933abf3770c534883c7a827881faa62100c"
+      },
+      {
+        "platform": "linux/amd64",
+        "flavor": "scraper-acexy",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:d59b9a0d2b423b9abdc249615502c3d391de88c9179af389e34a2446a49fa11b"
+      },
+      {
+        "platform": "linux/amd64",
+        "flavor": "scraper-acestream-acexy",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:b1868ee8cc595e9b8aad49062b4822021c4fb431876f2475d1662eb82f3f372e"
+      },
+      {
+        "platform": "linux/amd64",
+        "flavor": "scraper-outpace",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:7e5bb12306614a074e7ded98f7c14fbf2d53a779f6ab4942c44526cd6f5a8939"
+      },
+      {
+        "platform": "linux/arm64",
+        "flavor": "scraper",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:d707cab453f7380fa5322db0988db8dfae44fa05840e5f057bfba430fadf4e92"
+      },
+      {
+        "platform": "linux/arm64",
+        "flavor": "scraper-acestream",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:a3f8a4d26b3f1a8f369049e484e6eceb4af78f05f3419442722a83f542242a1f"
+      },
+      {
+        "platform": "linux/arm64",
+        "flavor": "scraper-acexy",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:e4d81ad98c8ac180501c1d38f260b998c5e3b5058fe7a29fc83448df052b9525"
+      },
+      {
+        "platform": "linux/arm64",
+        "flavor": "scraper-acestream-acexy",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:673b44b0190ed31cdbb1b1fb399c25e263feeecaf14b1f811c42b71710bd3917"
+      },
+      {
+        "platform": "linux/arm64",
+        "flavor": "scraper-outpace",
+        "exitCode": 0,
+        "kind": "runtime",
+        "imageId": "sha256:8bf13ebb80a11c5899e8cb530a57616cba48ca524c2ae0e2e13ac3c1b350198d"
+      },
+      {
+        "platform": "linux/arm/v7",
+        "flavor": "scraper-acestream",
+        "exitCode": 0,
+        "kind": "layout",
+        "imageId": "sha256:fd952444a785acb4e693496c79f2a56d3f928693aafba6b9e22395343d7a3585"
+      }
+    ],
+    "additionalAmd64BuildLoads": [
+      {
+        "flavor": "scraper",
+        "platform": "linux/amd64",
+        "exitCode": 0,
+        "source": "e13a42ef",
+        "published": false
+      },
+      {
+        "flavor": "scraper-acexy",
+        "platform": "linux/amd64",
+        "exitCode": 0,
+        "source": "e13a42ef",
+        "published": false
+      },
+      {
+        "flavor": "scraper-acestream-acexy",
+        "platform": "linux/amd64",
+        "exitCode": 0,
+        "source": "e13a42ef",
+        "published": false
+      },
+      {
+        "flavor": "scraper-outpace",
+        "platform": "linux/amd64",
+        "exitCode": 0,
+        "source": "e13a42ef",
+        "published": false
+      }
+    ],
+    "commands": [
+      "APP_TEST_ROOT=<application> APP_ROOT=<application> <application>/backend/venv/bin/python -m pytest -q -W error -o asyncio_default_fixture_loop_scope=function backend/tests",
+      "APP_ROOT=/workspace bash /validation/run_pr_validation.sh (offline pinned runner, exact committed private mounts, coverage enabled)",
+      "APP_ROOT=<application> python3 scripts/ci/validate_runtime_image.py --image <owned-image> --flavor <flavor> --platform <platform> (five AMD64, five ARM64, ARMv7 engine packaging)",
+      "Four rendered definitions submitted to the authorized Jenkins read-only Declarative validator with synthetic deployment identifiers"
+    ],
+    "privatePullRequest": "https://github.com/Pipepito/acestream-scraper-infra/pull/15"
+  },
+  "historicalPrivatePolicyResult": {
+    "exitCode": 1,
+    "backend": {
+      "passed": 2619,
+      "failed": 0,
+      "skipped": 0,
+      "testWarnings": 0
+    },
+    "lint": "pass",
+    "types": "pass",
+    "frontendSuites": {
+      "passed": 65,
+      "failed": 56
+    },
+    "executedFrontendTests": {
+      "passed": 231,
+      "failed": 8
+    },
+    "errors": [
+      "WOFF2 asset parsing",
+      "Request is not defined"
+    ],
+    "notExecuted": "Tests behind failed imports, subsequent production builds and private phase-5 stage; separate public/host evidence remains distinct."
+  },
+  "imageBuildsEvidenceNote": "Original 15-image matrix and wrapper results under private policy 0955626 are retained, including the original AMD64 failure. The successful runtime retest under a057148 is recorded in privateCompatibilityFollowUp.runtimeImageChecks."
 }

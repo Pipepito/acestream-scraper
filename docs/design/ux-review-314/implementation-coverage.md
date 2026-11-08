@@ -99,3 +99,7 @@ participant approval.
 Every row has an implementation owner. Exhaustive field/state/permission/preset/
 locale acceptance remains distinct from this route inventory and must not be
 inferred from a passing representative journey.
+
+The authorized private CI compatibility follow-up is recorded in
+`private-validation-compatibility.json`: the fixed trusted gate and eleven image
+probes pass locally; private review/deployment and manual acceptance remain pending.

@@ -7,40 +7,31 @@ checks cannot substitute for the evidence below. The per-criterion scope is in
 `acceptance.json`; exact automated outcomes and earlier failures are in
 `implementation-ledger.md`.
 
-## Private validation compatibility · #317 / #324
+## Private validation fixed; review/deployment pending · #317 / #324
 
 Owner: repository maintainer / private infrastructure reviewer.
 
-The read-only infrastructure snapshot is `0955626eee33149e88e83d5f95901bd131b065b5`.
-Its fixed Jest configuration cannot parse WOFF2 imports and does not provide the
-Fetch APIs used by React Router's data router. The earlier focused reproduction
-failed before its tests ran. The final full
-reproduction passes all 2,619 backend tests, lint and types, then reports 56 failed /
-65 passed frontend suites: eight failed / 231 passed tests execute. Font-load
-failures prevent the remaining tests from running; they are not passes or skips.
-The observed errors are WOFF2 parsing and missing `Request`. A reviewable
-compatibility change needs:
+The owner authorized the private compatibility changes after the original delivery.
+[Private PR #15](https://github.com/Pipepito/acestream-scraper-infra/pull/15), revision
+`a057148d9dd923329a297bd81236935f0982e912`, supplies trusted WOFF2 mapping and
+matching native Fetch APIs through individually mounted private helpers. The AMD64
+wrapper now executes actual runtime checks under emulation; ARMv7 stays packaging-only.
 
-- A fixed font-asset mapping/stub for WOFF2 imports.
-- A trusted jsdom environment exposing native Request, Response, Headers,
-  AbortController and AbortSignal, matching the public test environment's behavior.
-- The infrastructure's normal reviewed tool-bundle/checksum and runner lifecycle.
-  Public app configuration must not select trusted host policy.
+All 362 infrastructure regressions pass with warnings treated as errors. The fixed
+private full gate passes 2,619 backend tests and 121 frontend suites / 750 tests,
+with zero failures/skips/test warnings/console errors, plus lint/types, drift,
+builds and architecture/publication dry runs. Five AMD64 and five ARM64 runtime
+checks and the ARMv7 engine packaging probe pass. All four rendered pipeline
+files pass the live Jenkins Declarative validator after explicit owner authorization.
+See `private-validation-compatibility.json` for exact revisions and immutable images.
 
-The pinned runtime wrapper also selects its ARM OCI layout assertion for a
-non-native AMD64 image. AMD64 legitimately contains its Linux engine layout.
-Separate explicitly emulated runtime probes provide supplemental evidence; they
-do not turn the unmodified wrapper's failure into a pass. Review the platform
-selection in private infrastructure and rerun its unchanged intended validations.
-
-The same pinned image passes all 750 frontend tests with the public configuration,
-plus lint/types, schema/client drift and both builds, without test warnings after
-correcting three test fixtures. This is separate evidence, not a private gate pass.
-
-No private policy, Jenkins definition, credential, job or protected branch has
-been changed. The implementation request excluded these mutations; a separate
-owner decision is pending. Native ARMv7 engine qualification remains experimental
-and requires its documented hardware procedure, independently of successful builds.
+The prior failed-policy evidence remains in the ledger. These new local results do
+not claim that deployed Jenkins policy changed: the fix is on a review branch and
+has not been merged or installed. Live CI needs the separately authorized reviewed
+policy deployment. The owner explicitly requested no merge or deployment yet.
+No credentials, jobs, protected branches, publication policy or live definitions
+were changed. Native ARMv7 engine qualification remains experimental and needs its
+hardware procedure independently of successful packaging checks.
 
 ## Manual assistive technology · #315 / #317 / #324
 

@@ -14,6 +14,7 @@ jest.mock('@mui/material', () => {
 });
 jest.mock('../components/SetupNotice', () => ({ __esModule: true, default: () => null }));
 jest.mock('../components/UpdateAvailableNotice', () => ({ __esModule: true, default: () => null }));
+jest.mock('../pages/WatchHome', () => ({ __esModule: true, default: () => <h1>Watch</h1> }));
 jest.mock('../pages/TVDashboard', () => ({ __esModule: true, default: () => <h1>TV dashboard</h1> }));
 jest.mock('../pages/SystemDashboard', () => ({ __esModule: true, default: () => <h1>System status</h1> }));
 jest.mock('../pages/TVChannels', () => ({ __esModule: true, default: () => <h1>TV Channels</h1> }));
@@ -42,24 +43,21 @@ describe('routes', () => {
   });
 
   it('exposes destinations whose labels are the page titles', () => {
-    expect(navItems.map((item) => item.text)).toEqual(['TV dashboard', 'Live TV', 'Recordings', 'System status', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels', 'EPG', 'Events', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'WARP', 'Settings', 'Changelog']);
-    expect(navItems.find((item) => item.text === 'Events')?.section).toBe('Manage');
-    expect(navItems.some((item) => item.text === 'Catalogues')).toBe(false);
-    expect(getNavTitle('/')).toBe('TV dashboard');
-    expect(getNavTitle('/system')).toBe('System status');
+    expect(navItems.map(item => item.text)).toEqual(['Watch', 'Recordings', 'Events', 'Channels', 'Connections', 'Settings', 'System']);
+    expect(getNavTitle('/')).toBe('Watch');
+    expect(getNavTitle('/system')).toBe('System');
     expect(getNavTitle('/events')).toBe('Events');
-    expect(getNavTitle('/changelog')).toBe('Changelog');
-    expect(getNavTitle('/epg/channels/12')).toBe('EPG');
-    expect(getNavTitle('/integrations/public-address')).toBe('Public address');
-    expect(getNavTitle('/integrations/telegram')).toBe('Telegram');
-    expect(getNavTitle('/warp')).toBe('WARP');
+    expect(getNavTitle('/epg/channels/12')).toBe('Channels');
+    expect(getNavTitle('/integrations/public-address')).toBe('Connections');
+    expect(getNavTitle('/scraper/telegram')).toBe('Channels');
+    expect(getNavTitle('/warp')).toBe('System');
   });
 
   it.each([
     ['/integrations', 'Public address'],
     ['/health', 'System status'],
-    ['/stats', 'TV dashboard'],
-    ['/dashboard', 'TV dashboard'],
+    ['/stats', 'Watch'],
+    ['/dashboard', 'Watch'],
     ['/channels', 'TV Channels'],
     ['/channels/abc', 'TV Channels'],
     ['/search-new', 'Search'],
@@ -74,6 +72,7 @@ describe('routes', () => {
     expect(redirectTarget('/scraper?tab=w3u', '?catalogue=1&folder=x')).toBe('/scraper?tab=w3u&catalogue=1&folder=x');
     expect(redirectTarget('/epg?tab=rules', '?tab=other')).toBe('/epg?tab=rules');
     expect(redirectTarget('/', '')).toBe('/');
+    expect(redirectTarget('/tv-channels', '?filter=a&filter=b')).toBe('/tv-channels?filter=a&filter=b');
   });
   it.each([
     ['public-address', 'Public address'], ['web-player', 'Web player'],
@@ -81,8 +80,9 @@ describe('routes', () => {
   ])('opens and selects /integrations/%s directly', async (path, title) => {
     renderAt(`/integrations/${path}`);
     expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible();
-    expect(screen.getByRole('link', { name: title })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('list', { name: 'Integrations' })).toContainElement(screen.getByRole('link', { name: title }));
+    const destination = path === 'telegram' ? 'Channels' : 'Connections';
+    expect(screen.getByRole('link', { name: destination })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('list', { name: 'Main navigation' })).toContainElement(screen.getByRole('link', { name: destination }));
   });
 
 });

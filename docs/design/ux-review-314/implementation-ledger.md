@@ -37,10 +37,10 @@ dialogs, pending actions and the player node/session/position.
 
 | Step | Work | Status |
 | --- | --- | --- |
-| 1 | Baseline, exact issue criteria, prerequisites, performance | In progress |
-| 2 | Reproduce #315/SRC-F15, fixes, executable API contracts | Pending |
-| 3 | Shared presets, preferences, EN/ES, components | Pending |
-| 4 | Shell, aliases, access/startup, canonical settings | Pending |
+| 1 | Baseline, exact issue criteria, prerequisites, performance | Initial production baseline recorded; interaction/media and tooling preparation remain |
+| 2 | Reproduce #315/SRC-F15, fixes, executable API contracts | Defect fixes committed; initial wire contracts pass; operation coverage expansion remains |
+| 3 | Shared presets, preferences, EN/ES, components | Initial preferences/tokens/core resources implemented; full catalogue migration remains |
+| 4 | Shell, aliases, access/startup, canonical settings | Seven destinations and initial canonical links implemented; editor extraction/dirty navigation remain |
 | 5 | Sources/extraction, channels, guides, playlists | Pending |
 | 6 | Watch, events, recordings, batched artwork | Pending |
 | 7 | Connections, notifications, System/recovery | Pending |
@@ -109,5 +109,30 @@ Do not close tasks with unresolved acceptance or imply merged/released status.
   React >=18, TS 5/6/7 and Node >=22. npm reports 26 audit findings (4 low,
   22 moderate); triage against unchanged baseline is outstanding.
 
-Current next action: finish executable contract harnesses and shared presentation /
-localization preferences, then progress through every milestone above.
+### Integration evidence (not completion)
+
+- Commit `6dbdd99`: initial recording/bulk regressions, fixes and baseline.
+- Core preferences: 18 tests passed across preference/bootstrap/theme suites;
+  draft, media element, cache and selector survive all preset/theme/language changes.
+- First full frontend integration attempt: 660 passed / 18 failed (111 suites;
+  failures were old navigation assertions/mocks). Updated expected navigation to
+  the approved seven-destination contract; all four affected suites now pass:
+  57 tests, no warnings. Full final suite remains required.
+- Initial real-wire consumer suite: seven actual service requests validated after
+  Axios transport. Real-provider/schema-negative tests: 17 passed. Combined
+  contract + existing token/account semantic suites: 81 passed, no warnings.
+  More feature scenarios/non-JSON/preset parity remain to implement.
+- Shared OpenAPI error/security descriptions now reflect conditional installation
+  access without changing enforcement. Schema and generated client regenerated.
+  Batched GuideSlot.image_url is additive/nullable; no migration.
+- Production build, TypeScript and lint pass at this intermediate point.
+- Rendered three presets at 390/1440px: six cases, no page errors or document
+  overflow. Screenshots manually inspected. This is an early composition pass;
+  bilingual/dark/other-route/physical-device acceptance remains outstanding.
+- Owned current browser backend: loopback 18085, `/tmp/ux314-evidence/current`.
+  Baseline backend on 18084 stopped; frozen baseline build/data remain untouched.
+
+Current next action: finish localization migration across actual visible/dynamic
+messages, canonical settings/editor ownership and feature-family compositions;
+expand contract/parity evidence while preserving current behavior. Do not stop at
+these foundations. All task acceptance and final full validation remain open.

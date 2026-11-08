@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Checkbox, FormControlLabel, LinearProgress, Stack, TextField, Typography, useMediaQuery, useTheme } from '@mui/material';
@@ -17,7 +18,8 @@ import EventList from '../components/livetv/EventList';
 
 const SEARCH_LABEL: Record<BrowseMode, string> = { tv: 'Find a channel', streams: 'Find a stream', events: 'Find an event' };
 
-const LiveTV: React.FC = () => {
+const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
+  const { t } = useTranslation();
   const canResizePlayer = useMediaQuery(useTheme().breakpoints.up('lg'));
   const [largePlayer, setLargePlayer] = useState(false);
   const viewingArea = useRef<HTMLDivElement>(null);
@@ -55,7 +57,7 @@ const LiveTV: React.FC = () => {
   const watchStream = (stream: AcestreamChannel) => { close(); setPlayingStream(stream); };
 
   return <Box>
-    <PageHeader title="Live TV" subtitle="Choose a channel, see what’s on, and watch."
+    <PageHeader title={home ? t('watch') : 'Live TV'} subtitle="Choose a channel, see what’s on, and watch."
       actions={<Button component={RouterLink} to="/tv-channels" variant="outlined">Manage channels</Button>} />
     <StatusLine items={[{ label: 'Channels', value: channels.length }, { label: 'Guide times', value: timezone }]} />
     <Box ref={viewingArea} sx={{ scrollMarginTop: '76px', display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: isWatching ? (largePlayer ? 'minmax(0, 2.5fr) minmax(320px, 1fr)' : 'minmax(0, 1.3fr) minmax(320px, 1fr)') : 'minmax(0, 1fr)' }, gap: 2, alignItems: 'start' }}>

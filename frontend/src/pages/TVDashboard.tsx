@@ -18,7 +18,7 @@ import { normalizeApiError } from '../services/apiErrors';
 
 const REFRESH_MS = 30_000;
 
-export default function TVDashboard() {
+export default function TVDashboard({ embedded = false }: { embedded?: boolean }) {
   const cache = useQueryClient();
   const stats = useStats({ refetchInterval: REFRESH_MS });
   const tvStats = useTvChannelStats({ refetchInterval: REFRESH_MS });
@@ -35,11 +35,11 @@ export default function TVDashboard() {
   };
 
   return <Box>
-    <PageHeader title="TV dashboard" subtitle="Playback, upcoming events and channels." actions={<Stack direction="row" gap={1} flexWrap="wrap">
+    {!embedded ? <PageHeader title="TV dashboard" subtitle="Playback, upcoming events and channels." actions={<Stack direction="row" gap={1} flexWrap="wrap">
       <Button component={RouterLink} to="/events">Events</Button>
       <Button variant="outlined" onClick={() => setPlaylistOpen(true)}>Playlist</Button>
       <Button component={RouterLink} to="/live-tv" variant="contained">Watch TV</Button>
-    </Stack>} />
+    </Stack>} /> : null}
     <PlaylistDialog open={playlistOpen} onClose={() => setPlaylistOpen(false)} />
     <StatusLine aria-label="TV dashboard summary" items={[
       { label: 'Playing', value: playback.error ? 'Unavailable' : playing ?? 'Loading…' },

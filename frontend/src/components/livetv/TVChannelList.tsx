@@ -1,3 +1,5 @@
+import { useAppPreferences } from '../../preferences/AppPreferences';
+import ProgrammeArtwork from '../ProgrammeArtwork';
 import React, { useEffect, useRef } from 'react';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
@@ -34,6 +36,7 @@ const NowNextLines: React.FC<{ row: TVChannelNowNext | null | undefined; hasGuid
 };
 
 const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; row: TVChannelNowNext | null | undefined; fallback: boolean; onWatch: (channel: TVChannel) => void }> = ({ channel, selected, now, row, fallback, onWatch }) => {
+  const { interface: preset } = useAppPreferences();
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (selected) ref.current?.scrollIntoView?.({ block: 'nearest' }); }, [selected]);
   // A batched row proves the server resolved a guide mapping, whatever the catalogue copy carries.
@@ -41,8 +44,9 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
   const bestStream = onlineStreams[0] ?? channel.acestream_channels.find(stream => stream.is_active !== false) ?? channel.acestream_channels[0];
   const hasGuide = Boolean(row) || Boolean(channel.epg_id && channel.epg_source_id);
   return <Box component="article" ref={ref} aria-label={channel.name} aria-current={selected ? 'true' : undefined}
-    sx={{ py: 2, px: 1, mx: -1, borderBottom: 1, borderColor: 'divider', contentVisibility: 'auto', containIntrinsicSize: 'auto 140px',
+    sx={{ py: 2, px: preset === 'lime' ? 1 : 2, mx: preset === 'lime' ? -1 : 0, minWidth: 0, border: preset === 'lime' ? 0 : 1, borderBottom: 1, borderRadius: preset === 'lime' ? 0 : 2, borderColor: 'divider', contentVisibility: 'auto', containIntrinsicSize: 'auto 140px',
       ...(selected ? { bgcolor: 'action.selected', borderRadius: 1 } : {}) }}>
+    <Box sx={{ display: preset === 'lime' ? 'none' : 'block' }}><ProgrammeArtwork src={row?.now?.image_url} /></Box>
     <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
       <Box sx={{ flex: '1 1 180px', minWidth: 0 }}>
         <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? `${channel.channel_number}. ` : ''}{channel.name}</Typography>
@@ -63,7 +67,7 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
 
 /** The whole TV catalogue, no pagination: the list scrolls and the playing row stays highlighted. */
 const TVChannelList: React.FC<TVChannelListProps> = ({ channels, selectedId, now, nowNext, nowNextFailed = false, onWatch }) => (
-  <Box>
+  <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'minmax(0, 1fr)', '[data-interface=coral] &': { gridTemplateColumns: { xs: 'minmax(0, 1fr)', xl: 'repeat(2, minmax(0, 1fr))' } }, '[data-interface=cyan] &': { gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' } } }}>
     {channels.map((channel) => <ChannelRow key={channel.id} channel={channel} selected={selectedId === channel.id} now={now}
       row={nowNext ? nowNext.get(channel.id) ?? null : undefined} fallback={nowNextFailed} onWatch={onWatch} />)}
   </Box>

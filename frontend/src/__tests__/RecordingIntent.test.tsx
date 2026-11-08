@@ -32,10 +32,10 @@ it('opens over private HTTP and retains a secure intent key and exact programme 
 
 it('generates different keys for separate creation intents', async () => {
   service.create.mockResolvedValue({ id: 'saved' } as Recording);
-  const first = mount();
+  const view = mount();
   fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
   await waitFor(() => expect(service.create).toHaveBeenCalledTimes(1));
-  first.unmount();
+  view.unmount();
   mount();
   fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
   await waitFor(() => expect(service.create).toHaveBeenCalledTimes(2));

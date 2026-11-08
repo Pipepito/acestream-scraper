@@ -7,7 +7,7 @@ import { TestMemoryRouter } from '../testUtils/router';
 import { AccessContext } from '../components/access/AccessContext';
 import TvCasting from '../pages/integrations/TvCasting';
 import { castService } from '../services/castService';
-import { navItems } from '../components/layout/navItems';
+import { connectionLinks } from '../components/layout/SectionNavigation';
 
 jest.mock('../services/castService', () => ({ castService: {
   settings: jest.fn(), saveSettings: jest.fn(), capabilities: jest.fn(), devices: jest.fn(), discover: jest.fn(), trustHome: jest.fn(),
@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 test('has a dedicated menu entry and discovers TVs without account or address setup', async () => {
-  expect(navItems).toContainEqual(expect.objectContaining({ text: 'TV casting', path: '/integrations/tv-casting', section: 'Integrations' }));
+  expect(connectionLinks).toContainEqual({ label: 'tvsPlayers', to: '/integrations/tv-casting' });
   (castService.discover as jest.Mock).mockResolvedValue([{ id: 'tv', name: 'Living room', model: 'Android TV' }]);
   const view = renderPage();
   expect(screen.getByRole('heading', { level: 1, name: 'TV casting' })).toBeVisible();

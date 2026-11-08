@@ -1,6 +1,7 @@
+import RecordingSettingsFields from '../components/recordings/RecordingSettingsFields';
 import RecordingPlayback from '../components/recordings/RecordingPlayback';
 import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Chip, Dialog, DialogContent, DialogTitle, LinearProgress, MenuItem, Pagination, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../components/layout/PageHeader';
@@ -12,6 +13,8 @@ import { recordingService, recordingFileUrl, type Recording, type RecordingFile 
 import { getErrorMessage } from '../utils/errorUtils';
 const activeStates = ['starting', 'recording', 'recovering', 'finalizing'];
 const Recordings: React.FC = () => {
+  const [params, setParams] = useSearchParams();
+  const settingsOpen = params.get('tab') === 'settings';
   const [state, setState] = useState('');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -27,7 +30,11 @@ const Recordings: React.FC = () => {
     if (await confirm({ title: 'Delete recording?', body: `Delete every saved part of “${row.snapshot.title}”? This cannot be undone.`, confirmLabel: 'Delete files', danger: true })) change.mutate(() => recordingService.delete(row.id));
   };
   return <Box>
-    <PageHeader title="Recordings" subtitle="Scheduled programmes and saved recordings." actions={<Button component={RouterLink} to="/settings?tab=automation" variant="outlined">Recording settings</Button>} />
+    <PageHeader title="Recordings" subtitle="Scheduled programmes and saved recordings." actions={<Button component={RouterLink} to="/recordings?tab=settings" variant="outlined">Recording settings</Button>} />
+    <Dialog open={settingsOpen} onClose={() => { const next = new URLSearchParams(params); next.delete('tab'); setParams(next); }} fullWidth maxWidth="sm" aria-labelledby="recording-settings-title">
+      <DialogTitle id="recording-settings-title">Recording settings</DialogTitle>
+      <DialogContent>{settingsOpen ? <RecordingSettingsFields /> : null}<Button onClick={() => { const next = new URLSearchParams(params); next.delete('tab'); setParams(next); }}>Close</Button></DialogContent>
+    </Dialog>
     <StatusLine items={[{ label: 'Recordings', value: list.data?.total ?? '—' }, { label: 'Capture', value: capabilities.data?.enabled ? 'Enabled' : 'Disabled' }]} />
     {capabilities.data && !capabilities.data.available ? <Alert severity="info" sx={{ mb: 2 }}>Recordings are {capabilities.data.enabled ? 'unavailable' : 'disabled'}. {capabilities.data.message}</Alert> : null}
     <ContentSection title="Recording history" description="Record from Live TV or schedule a programme from its guide. Guide updates never move saved times.">

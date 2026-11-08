@@ -1,3 +1,4 @@
+import { translateKnown } from '../i18n/text';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -201,7 +202,7 @@ const EPG: React.FC = () => {
       <StatusLine
         aria-label={tUi("EPG summary")}
         items={[
-          { label: uiText("Sources"), value: `${sourceCount} (${enabledSourceCount} enabled)`, tone: failingSources > 0 ? 'error' : 'default' },
+          { label: uiText("Sources"), value: tUi('{{total}} ({{enabled}} enabled)', { total: sourceCount, enabled: enabledSourceCount }), tone: failingSources > 0 ? 'error' : 'default' },
           { label: uiText("Guide channels"), value: guideChannelTotal === undefined ? '…' : String(guideChannelTotal) },
           { label: uiText("Linked to a TV channel"), value: tvChannels ? String(linkedCount) : '…' },
           { label: uiText("Last refresh"), value: formatRelativeTime(lastRefresh), tone: lastRefresh ? 'default' : 'warning' },
@@ -219,7 +220,7 @@ const EPG: React.FC = () => {
         sx={{ mb: 2, borderBottom: `1px solid ${theme.appTokens.surface.border}` }}
       >
         {EPG_TABS.map((tab) => (
-          <Tab key={tab} value={tab} label={TAB_LABELS[tab]} id={`epg-tab-${tab}`} aria-controls={`epg-tabpanel-${tab}`} />
+          <Tab key={tab} value={tab} label={translateKnown(TAB_LABELS[tab])} id={`epg-tab-${tab}`} aria-controls={`epg-tabpanel-${tab}`} />
         ))}
       </Tabs>
 

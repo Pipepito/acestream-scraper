@@ -29,7 +29,7 @@ type BackendEnvelope = {
     correlation_id?: string;
     context?: unknown;
   };
-  detail?: string;
+  detail?: unknown;
 };
 
 export class ApiError extends Error {
@@ -114,7 +114,7 @@ const isAxiosLikeError = (error: unknown): error is AxiosError =>
   Boolean(error && typeof error === 'object' && (error as AxiosError).isAxiosError);
 
 const isTimeoutError = (error: AxiosError): boolean =>
-  error.code === 'ECONNABORTED' || error.message.toLowerCase().includes('timeout');
+  error.code === 'ECONNABORTED' || (typeof error.message === 'string' && error.message.toLowerCase().includes('timeout'));
 
 const getResponsePayload = (error: AxiosError): BackendEnvelope => {
   const data = error.response?.data;
@@ -154,7 +154,8 @@ export const normalizeApiError = (error: unknown): ApiError => {
     const backendError = payload.error;
     const kind = getApiErrorKindFromStatus(status);
     const message =
-      backendError?.message ?? payload.detail ?? DEFAULT_MESSAGES[kind];
+      typeof backendError?.message === 'string' ? backendError.message
+        : typeof payload.detail === 'string' ? payload.detail : DEFAULT_MESSAGES[kind];
 
     return new ApiError({
       message,

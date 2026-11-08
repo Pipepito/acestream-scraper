@@ -40,8 +40,9 @@ testing the SPA through FastAPI rather than the Vite server.
 
 ## UI contract
 
-- Navigation includes TV dashboard, Live TV, Recordings, Catalogues and Events under Watch; other destinations are System status, Scraper, Search,
-  Acestream Channels, TV Channels, EPG, Playlist, Public address, Web player, TV casting, Remote players, Media servers, Telegram, WARP, Settings and Changelog, grouped by Watch, Manage, Integrations and System.
+- Seven main destinations: Watch, Recordings, Events, Channels, Connections,
+  Settings and System. WARP stays directly discoverable. Channels and Connections
+  use shared section links; existing routes and query-preserving aliases remain.
 - Live TV (`/live-tv`) is the viewing catalog; TV Channels remains the management
   inventory. Use `ChannelPlayerDialog` to retain or resolve TV context and
   `StreamPlayerDialog` for the underlying HLS lifecycle.
@@ -86,8 +87,8 @@ testing the SPA through FastAPI rather than the Vite server.
 
 Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
 does not release playback; changing the channel or Stop watching releases the
-current viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
+current viewer. Other pages retain the player dialog. Navigation uses Watch, Recordings, Events, Channels, Connections, Settings and
+System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
@@ -120,7 +121,7 @@ installs default to an empty playback URL; existing saved endpoints are preserve
 
 ## TV and system dashboards
 
-The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+The default `/` route combines the Live TV catalogue and Watch overview: app-owned playback, channel/stream
 inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
 diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
 `/stats` redirect to `/`. Keep section failures independent and missing data unknown.
@@ -133,7 +134,7 @@ reads. See `docs/dev/dashboard-split.md`.
 
 ## Integration navigation
 
-Integrations is a sidebar category with independent pages at
+Connections groups the existing independent integration pages at
 `/integrations/public-address`, `/integrations/web-player`,
 `/integrations/tv-casting`, `/integrations/remote-players`, `/integrations/media-servers` and
 `/integrations/telegram`. The old `/integrations` URL redirects to Public address.
@@ -153,3 +154,14 @@ conversion or delete protected/active/reader-held media. File routes retain the
 optional API-token policy and descriptor-relative no-follow access. Recordings
 is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
 `docs/ops/recordings.md` for limits, qualification and rollback.
+
+## Shared presentation and editor ownership
+
+Exactly three presentations (`lime`, `coral`, `cyan`, default cyan) and independent
+light/dark and EN/ES preferences use one stable data router, query cache, access
+model and media owner. Never key providers/editors/players by a preference.
+Settings mounts only its selected canonical editor. Register dirty/pending editor
+state with `useUnsavedChanges`; the shared guard handles query tabs, route changes,
+Back and document unload. Modal close also needs the canonical discard confirmation.
+Keep independent saves independent and do not overwrite drafts on query refresh.
+See `docs/dev/frontend-localization.md` and `docs/dev/settings-editors.md`.

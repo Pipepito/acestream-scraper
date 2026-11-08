@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { UnsavedChangesProvider } from '../components/UnsavedChanges';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,6 +15,10 @@ type AppThemeModeValue = {
   setMode: React.Dispatch<React.SetStateAction<ThemeMode>>;
   toggleMode: () => void;
 };
+
+const router = createBrowserRouter([{ path: '*', element: (
+  <AccessGate><StartupGate><UnsavedChangesProvider><App /></UnsavedChangesProvider></StartupGate></AccessGate>
+) }]);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,9 +65,7 @@ const ApplicationProviders: React.FC = () => {
       <AppThemeModeContext.Provider value={controller}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <BrowserRouter>
-            <AccessGate><StartupGate><App /></StartupGate></AccessGate>
-          </BrowserRouter>
+          <RouterProvider router={router} />
         </ThemeProvider>
       </AppThemeModeContext.Provider>
     </QueryClientProvider>

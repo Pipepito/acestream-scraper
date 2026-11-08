@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../UnsavedChanges';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Button, Checkbox, FormControlLabel, LinearProgress, Stack, Switch, TextField, Typography } from '@mui/material';
@@ -16,6 +17,7 @@ export default function OfflineCleanupFields() {
     setDraft(null);
   } });
   const preview = useMutation({ mutationFn: previewOfflineCleanup });
+  useUnsavedChanges(Boolean(draft), save.isPending);
   const config = draft ?? query.data;
   if (query.isLoading) return <LinearProgress aria-label={tUi("Loading offline cleanup settings")} />;
   if (query.isError || !config) return <Alert severity="error" action={<Button onClick={() => void query.refetch()}>{tUi("Retry")}</Button>}>{tUi("Could not load offline cleanup settings.")}</Alert>;

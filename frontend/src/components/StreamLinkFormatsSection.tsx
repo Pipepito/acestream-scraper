@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from './UnsavedChanges';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -16,12 +17,12 @@ type Notify = (message: string, severity: FeedbackSeverity) => void;
 
 const describeSaveError = (error: unknown, attemptedName: string, fallback: string): string => {
   if (error instanceof ApiError && error.status === 409) {
-    return `A link format named "${attemptedName}" already exists. Choose a different name.`;
+    return uiText('A link format named "{{name}}" already exists. Choose a different name.', { name: attemptedName });
   }
   if (error instanceof ApiError && error.message) {
-    return error.message;
+    return getErrorMessage(error);
   }
-  return fallback;
+  return uiText(fallback, { defaultValue: fallback });
 };
 
 interface StreamLinkFormatsSectionProps {
@@ -56,11 +57,23 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
   const isMutating =
     createBaseUrlMutation.isPending || patchBaseUrlMutation.isPending || deleteBaseUrlMutation.isPending || updateLegacyBaseUrlMutation.isPending;
 
+  const addDirty = addOpen && Boolean(newName || newPattern || newIsDefault);
+  const editDirty = Boolean(editingEntry && (editPattern !== (editingEntry === 'builtin' ? legacyBaseUrlQuery.data ?? '' : editingEntry.pattern)
+    || editingEntry !== 'builtin' && editName !== editingEntry.name));
+  useUnsavedChanges(addDirty || editDirty, isMutating);
+  const requestClose = async (kind: 'add' | 'edit') => {
+    if (isMutating) return;
+    if ((kind === 'add' ? addDirty : editDirty) && !await confirm({ title: tUi('Discard unsaved changes?'),
+      body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true })) return;
+    if (kind === 'edit') setEditingEntry(null);
+    else { setAddOpen(false); setNewName(''); setNewPattern(''); setNewIsDefault(false); }
+  };
+
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newName.trim();
     const pattern = newPattern.trim();
-    if (!name || !pattern) return;
+    if (!name || !pattern || isMutating) return;
     createBaseUrlMutation.mutate(
       { name, pattern, is_default: newIsDefault },
       {
@@ -69,7 +82,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
           setNewPattern('');
           setNewIsDefault(false);
           setAddOpen(false);
-          notify(`Link format "${name}" added`, 'success');
+          notify(tUi('Link format "{{name}}" added', { name }), 'success');
         },
         onError: (error) => notify(describeSaveError(error, name, 'Failed to add the link format'), 'error'),
       }
@@ -80,7 +93,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
     patchBaseUrlMutation.mutate(
       { id: entry.id, data: { is_default: true } },
       {
-        onSuccess: () => notify(`"${entry.name}" is now the default link format`, 'success'),
+        onSuccess: () => notify(tUi('"{{name}}" is now the default link format', { name: entry.name }), 'success'),
         onError: (error) => notify(describeSaveError(error, entry.name, 'Failed to change the default link format'), 'error'),
       }
     );
@@ -88,14 +101,14 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
 
   const handleDelete = async (entry: StreamBaseUrl) => {
     const ok = await confirm({
-      title: `Delete the link format “${entry.name}”?`,
-      body: 'Playlists that were built with this format fall back to the default one.',
+      title: tUi('Delete the link format “{{name}}”?', { name: entry.name }),
+      body: tUi('Playlists that were built with this format fall back to the default one.'),
       confirmLabel: uiText("Delete"),
       danger: true,
     });
     if (!ok) return;
     deleteBaseUrlMutation.mutate(entry.id, {
-      onSuccess: () => notify(`Link format "${entry.name}" deleted`, 'success'),
+      onSuccess: () => notify(tUi('Link format "{{name}}" deleted', { name: entry.name }), 'success'),
       onError: (error) => notify(describeSaveError(error, entry.name, 'Failed to delete the link format'), 'error'),
     });
   };
@@ -110,7 +123,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
 
   const handleEditSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingEntry) return;
+    if (!editingEntry || isMutating) return;
     const name = editName.trim();
     const pattern = editPattern.trim();
     if (!pattern || (editingEntry !== 'builtin' && !name)) return;
@@ -129,7 +142,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
       {
         onSuccess: () => {
           closeEditDialog();
-          notify(`Link format "${name}" updated`, 'success');
+          notify(tUi('Link format "{{name}}" updated', { name }), 'success');
         },
         onError: (error) => notify(describeSaveError(error, name, 'Failed to update the link format'), 'error'),
       }
@@ -181,7 +194,7 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
             {!hasNamedDefault
               ? renderRow(
                   'builtin',
-                  'Default',
+                  tUi('Default'),
                   legacyBaseUrlQuery.data ?? 'acestream://',
                   true,
                   <Tooltip title={tUi("Edit the default format")}>
@@ -221,24 +234,24 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
         </Typography>
       </Stack>
 
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="sm">
+      <Dialog open={addOpen} onClose={() => void requestClose('add')} fullWidth maxWidth="sm">
         <form onSubmit={handleAddSubmit}>
           <DialogTitle>{tUi("Add link format")}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField label={tUi("Name")} fullWidth value={newName} onChange={(e) => setNewName(e.target.value)} helperText={tUi("A short label, e.g. VLC or Ace player")} />
+              <TextField label={tUi("Name")} fullWidth disabled={isMutating} value={newName} onChange={(e) => setNewName(e.target.value)} helperText={tUi("A short label, e.g. VLC or Ace player")} />
               <TextField
                 label={tUi("Pattern")}
                 fullWidth
-                value={newPattern}
+                disabled={isMutating} value={newPattern}
                 onChange={(e) => setNewPattern(e.target.value)}
-                helperText={'Use {tv_channel_id} for a stable TV relay, or {channel_id} for a specific stream'}
+                helperText={tUi('Use {tv_channel_id} for a stable TV relay, or {channel_id} for a specific stream')}
               />
-              <FormControlLabel control={<Checkbox checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />} label={tUi("Set as default")} />
+              <FormControlLabel control={<Checkbox disabled={isMutating} checked={newIsDefault} onChange={(e) => setNewIsDefault(e.target.checked)} />} label={tUi("Set as default")} />
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setAddOpen(false)} color="inherit">
+            <Button onClick={() => void requestClose('add')} disabled={isMutating} color="inherit">
               {tUi("Cancel")}</Button>
             <Button type="submit" variant="contained" color="primary" disabled={!newName.trim() || !newPattern.trim() || createBaseUrlMutation.isPending}>
               {createBaseUrlMutation.isPending ? <CircularProgress size={24} color="inherit" /> : tUi("Add base URL")}
@@ -247,23 +260,23 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
         </form>
       </Dialog>
 
-      <Dialog open={Boolean(editingEntry)} onClose={closeEditDialog} fullWidth maxWidth="sm">
+      <Dialog open={Boolean(editingEntry)} onClose={() => void requestClose('edit')} fullWidth maxWidth="sm">
         <form onSubmit={handleEditSave}>
           <DialogTitle>{editingEntry === 'builtin' ? tUi("Edit default link format") : tUi("Edit link format")}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              {editingEntry !== 'builtin' ? <TextField label={tUi("Name")} fullWidth value={editName} onChange={(e) => setEditName(e.target.value)} /> : null}
+              {editingEntry !== 'builtin' ? <TextField label={tUi("Name")} fullWidth disabled={isMutating} value={editName} onChange={(e) => setEditName(e.target.value)} /> : null}
               <TextField
                 label={tUi("Pattern")}
                 fullWidth
-                value={editPattern}
+                disabled={isMutating} value={editPattern}
                 onChange={(e) => setEditPattern(e.target.value)}
-                helperText={'Use {tv_channel_id} for a stable TV relay, or {channel_id} for a specific stream'}
+                helperText={tUi('Use {tv_channel_id} for a stable TV relay, or {channel_id} for a specific stream')}
               />
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={closeEditDialog} color="inherit">
+            <Button onClick={() => void requestClose('edit')} disabled={isMutating} color="inherit">
               {tUi("Cancel")}</Button>
             <Button type="submit" variant="contained" color="primary" disabled={!editPattern.trim() || (editingEntry !== 'builtin' && !editName.trim()) || isMutating}>
               {tUi("Save changes")}</Button>

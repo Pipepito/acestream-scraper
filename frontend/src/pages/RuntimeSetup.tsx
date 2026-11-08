@@ -1,3 +1,4 @@
+import { runtimeLabel, runtimeHelp } from '../i18n/runtime';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useRef, useState } from 'react';
@@ -56,13 +57,13 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
     const value = automaticChecker ? checkerAddress : automaticPlayback ? playbackAddress : draft[option.name] ?? option.default;
     const reason = saved.unavailable[option.name];
     const helper = automaticChecker ? uiText("Managed by the bundled checking engine. No external address is needed.")
-      : automaticPlayback ? uiText("Automatic address from the bundled engine. Internal ports are used here, regardless of Docker host mappings.") : option.help;
+      : automaticPlayback ? uiText("Automatic address from the bundled engine. Internal ports are used here, regardless of Docker host mappings.") : runtimeHelp(option);
     if (option.kind === 'boolean') return <Box key={option.name}>
-      <FormControlLabel control={<Checkbox checked={value === true} disabled={mutation.isPending || (Boolean(reason) && !value)} onChange={(_, checked) => setDraft(previous => ({ ...previous, [option.name]: checked }))} />} label={option.label} />
-      <Typography variant="body2" color="text.secondary">{reason || option.help}</Typography>
+      <FormControlLabel control={<Checkbox checked={value === true} disabled={mutation.isPending || (Boolean(reason) && !value)} onChange={(_, checked) => setDraft(previous => ({ ...previous, [option.name]: checked }))} />} label={runtimeLabel(option)} />
+      <Typography variant="body2" color="text.secondary">{reason || runtimeHelp(option)}</Typography>
     </Box>;
     const numeric = option.kind === 'number' || option.kind === 'integer';
-    return <TextField key={option.name} label={option.label} value={value} disabled={mutation.isPending} fullWidth type={numeric ? 'number' : 'text'}
+    return <TextField key={option.name} label={runtimeLabel(option)} value={value} disabled={mutation.isPending} fullWidth type={numeric ? 'number' : 'text'}
       helperText={helper || undefined} InputProps={{ readOnly: automaticChecker }} inputProps={numeric ? { min: option.minimum, max: option.maximum, step: option.kind === 'integer' ? 1 : 'any' } : { maxLength: 4096 }}
       onChange={event => setDraft(previous => ({ ...previous, [option.name]: numeric && event.target.value !== '' ? Number(event.target.value) : event.target.value }))} />;
   };
@@ -104,7 +105,7 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
           {step === 1 ? null : step < 3 ? saved.options.filter(option => option.group === groups[step]).map(field) : <>
             <Typography>{tUi("Save these choices to runtime-config.json beside your database. Each saved option overrides its environment variable, so you can remove those variables from Docker after saving. Restart the container to apply them; this interrupts playback. Keep port mappings, volumes, devices, capabilities and credentials in Docker.")}</Typography>
             <Typography component="h3" variant="subtitle1">{changes.length ? tUi("{{value0}} changes", { value0: changes.length }) : tUi("No runtime changes")}</Typography>
-            {changes.map(option => <Typography key={option.name} sx={{ overflowWrap: 'anywhere' }}>{option.label}: {String(draft[option.name]) || 'Not configured'}</Typography>)}
+            {changes.map(option => <Typography key={option.name} sx={{ overflowWrap: 'anywhere' }}>{runtimeLabel(option)}: {String(draft[option.name]) || 'Not configured'}</Typography>)}
             <Button disabled={mutation.isPending} aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>{advanced ? tUi("Hide advanced settings") : tUi("Advanced settings")}</Button>
             {advanced ? saved.options.filter(option => option.group === 'advanced').map(field) : null}
           </>}

@@ -1,3 +1,4 @@
+import { runtimeLabel, runtimeHelp } from '../../i18n/runtime';
 import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Alert, Box, Checkbox, FormControlLabel, Link, TextField, Typography } from '@mui/material';
@@ -22,11 +23,11 @@ export default function NetworkSettingsFields({ initial, values, disabled, onCha
     {initial.options.filter(option => option.group === 'network').map(option => {
       const value = values[option.name] ?? option.default;
       if (option.kind === 'boolean') return <Box key={option.name}>
-        <FormControlLabel label={option.label} control={<Checkbox checked={value === true} disabled={disabled} onChange={(_, checked) => onChange({ [option.name]: checked })} />} />
-        <Typography variant="body2" color="text.secondary">{option.help}</Typography>
+        <FormControlLabel label={runtimeLabel(option)} control={<Checkbox checked={value === true} disabled={disabled} onChange={(_, checked) => onChange({ [option.name]: checked })} />} />
+        <Typography variant="body2" color="text.secondary">{runtimeHelp(option)}</Typography>
       </Box>;
-      return <TextField key={option.name} label={option.label} value={value} disabled={disabled} fullWidth
-        helperText={option.help} inputProps={{ maxLength: 4096 }} onChange={event => onChange({ [option.name]: event.target.value })} />;
+      return <TextField key={option.name} label={runtimeLabel(option)} value={value} disabled={disabled} fullWidth
+        helperText={runtimeHelp(option)} inputProps={{ maxLength: 4096 }} onChange={event => onChange({ [option.name]: event.target.value })} />;
     })}
   </>;
 }

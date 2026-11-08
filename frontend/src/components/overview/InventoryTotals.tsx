@@ -1,3 +1,5 @@
+import { formatCount } from '../../i18n/locale';
+import { translateKnown } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
 import { uiText } from '../../i18n/text';
 import React from 'react';
@@ -43,7 +45,7 @@ const InventoryTotals: React.FC<InventoryTotalsProps> = ({ stats, tvStats }) => 
     {
       title: uiText("Sources and guide"),
       rows: stats ? [
-        ['Source URLs', `${stats.urls.total} (${stats.urls.active} enabled${stats.urls.error ? `, ${stats.urls.error} failing` : ''})`],
+        ['Source URLs', stats.urls.error ? uiText('{{total}} ({{enabled}} enabled, {{failing}} failing)', { total: stats.urls.total, enabled: stats.urls.active, failing: stats.urls.error }) : uiText('{{total}} ({{enabled}} enabled)', { total: stats.urls.total, enabled: stats.urls.active })],
         ['EPG sources', stats.epg.sources],
         ['Guide channels', stats.epg.channels],
         ['Programmes', stats.epg.programs],
@@ -53,18 +55,18 @@ const InventoryTotals: React.FC<InventoryTotalsProps> = ({ stats, tvStats }) => 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 3 }}>
       {groups.map((group) => (
-        <Box key={group.title} component="section" aria-label={group.title}>
+        <Box key={translateKnown(group.title)} component="section" aria-label={translateKnown(group.title)}>
           <Typography variant="subtitle2" component="h3" sx={{ mb: 1 }}>
-            {group.title}
+            {translateKnown(group.title)}
           </Typography>
           <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 2, rowGap: 0.5 }}>
             {group.rows.map(([label, value]) => (
-              <React.Fragment key={label}>
+              <React.Fragment key={translateKnown(label)}>
                 <Typography component="dt" variant="body2" sx={{ color: 'text.secondary' }}>
-                  {label}
+                  {translateKnown(label)}
                 </Typography>
                 <Typography component="dd" variant="body2" sx={{ m: 0, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: theme.palette.text.primary }}>
-                  {value}
+                  {typeof value === 'number' ? formatCount(value) : translateKnown(value)}
                 </Typography>
               </React.Fragment>
             ))}

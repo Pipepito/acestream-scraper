@@ -312,8 +312,8 @@ changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
 
 Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
 does not release playback; changing the channel or Stop watching releases the
-current viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
+current viewer. Other pages retain the player dialog. Navigation uses Watch, Recordings, Events, Channels, Connections, Settings and
+System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
@@ -720,7 +720,7 @@ remain unchanged; see `wiki/Usage.md#search-and-manual-additions` for recovery.
 
 ## TV and system dashboards
 
-The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+The default `/` route combines the Live TV catalogue and Watch overview: app-owned playback, channel/stream
 inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
 diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
 `/stats` redirect to `/`. Keep section failures independent and missing data unknown.
@@ -733,7 +733,7 @@ reads. See `docs/dev/dashboard-split.md`.
 
 ## Integration navigation
 
-Integrations is a sidebar category with independent pages at
+Connections groups the existing independent integration pages at
 `/integrations/public-address`, `/integrations/web-player`,
 `/integrations/remote-players`, `/integrations/media-servers` and
 `/integrations/telegram`. The old `/integrations` URL redirects to Public address.

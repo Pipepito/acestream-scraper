@@ -1,3 +1,4 @@
+import { statusLabel } from '../../i18n/status';
 import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
@@ -40,7 +41,7 @@ export default function SavedSearches() {
       {list.data?.total === 0 ? <Typography color="text.secondary">{tUi("Create a query here or save your last submitted query from")}{' '}<Button component={RouterLink} to="/search">{tUi("Search")}</Button>{tUi(". Automatic refresh starts off.")}</Typography> : null}
       {list.data?.items.map(row => <Stack key={row.id} direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }} alignItems={{ md: 'center' }}>
         <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}><Typography variant="subtitle1">{row.name}</Typography><Typography variant="body2">{row.query} · {row.category || 'All categories'}</Typography>
-          <Stack direction="row" spacing={1} sx={{ my: 1 }}><Chip size="small" label={(row.run_state || row.last_outcome || 'Never run').replace(/^./, first => first.toUpperCase())} /><Chip size="small" variant="outlined" label={row.refresh_enabled ? tUi("Automatic refresh on") : tUi("Paused")} /></Stack>
+          <Stack direction="row" spacing={1} sx={{ my: 1 }}><Chip size="small" label={statusLabel(row.run_state || row.last_outcome || 'never')} /><Chip size="small" variant="outlined" label={row.refresh_enabled ? tUi("Automatic refresh on") : tUi("Paused")} /></Stack>
           <Typography variant="body2" color="text.secondary">{row.last_result ? searchCounts(row.last_result) : tUi("No imports yet")} · {formatRelativeTime(row.last_finished_at)}</Typography>
           {row.last_result?.stop_reason ? <Typography variant="body2">{tUi("Stopped:")}{' '}{row.last_result.stop_reason.replace(/_/g, ' ')}</Typography> : null}
           {row.error_message ? <Alert severity="warning" sx={{ mt: 1 }}>{row.error_message}<Button component={RouterLink} to="/settings?tab=playback">{tUi("Engine settings")}</Button></Alert> : null}

@@ -83,6 +83,20 @@ describe('Settings page', () => {
     (baseUrlHooks.useDeleteBaseUrl as jest.Mock).mockReturnValue({ mutate: succeedingMutate(), isPending: false });
   });
 
+  it('mounts only the selected editor and leaves unrelated settings unfetched', async () => {
+    renderPage('playback');
+    expect(await screen.findByRole('heading', { name: 'Engine' })).toBeInTheDocument();
+    expect(configHooks.useRescrapeInterval).not.toHaveBeenCalled();
+    expect(configHooks.useEpgRefreshInterval).not.toHaveBeenCalled();
+    expect(configHooks.useCheckEngine).not.toHaveBeenCalled();
+    expect(configHooks.useAddPid).not.toHaveBeenCalled();
+    expect(configService.getAppId).not.toHaveBeenCalled();
+    expect(baseUrlHooks.useBaseUrls).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Stream links' }));
+    expect(await screen.findByRole('heading', { name: 'Stream link formats' })).toBeInTheDocument();
+    expect(configService.getAppId).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['assigned', 'favorites'] as const)('saves the %s stream check scope from Automation', async scope => {
     jest.mocked(configService.updateStreamCheckScope).mockResolvedValue({ scope });
     renderPage('automation');
@@ -125,9 +139,9 @@ describe('Settings page', () => {
 
     const engineStatus = screen.getByRole('status', { name: 'Engine status' });
     expect(engineStatus).toHaveTextContent('Online');
-    expect(engineStatus).toHaveTextContent('Engine online and ready');
+    expect(engineStatus).toHaveTextContent('The engine is reachable.');
     fireEvent.click(screen.getByRole('tab', { name: 'Stream links' }));
-    expect(screen.getByText('Adds the app id to acestream:// links for players that require it (rare).')).toBeInTheDocument();
+    expect(await screen.findByText('Adds the app id to acestream:// links for players that require it (rare).')).toBeInTheDocument();
   });
 
   it('saves the stream check interval in minutes and reports failure', async () => {
@@ -253,7 +267,7 @@ describe('Settings page', () => {
     renderPage('links');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
-    expect(screen.getByText(/could not load the appid setting/i)).toBeInTheDocument();
+    expect(await screen.findByText(/could not load the appid setting/i)).toBeInTheDocument();
     const appIdToggle = screen.getByRole('checkbox', { name: /use appid in stream links/i });
     fireEvent.click(appIdToggle);
     await waitFor(() => expect(configService.updateAppId).toHaveBeenCalledWith(true));

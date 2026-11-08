@@ -1,8 +1,17 @@
+import { statusEnglish } from './messages/status-en';
+import { statusSpanish } from './messages/status-es';
+import { errorEnglish } from './messages/errors-en';
+import { errorSpanish } from './messages/errors-es';
+import { runtimeEnglish } from './messages/runtime-en';
+import { runtimeSpanish } from './messages/runtime-es';
 import { uiEnglish } from './messages/en';
 import { uiSpanish } from './messages/es';
 
 export const en = {
   ui: uiEnglish,
+  runtime: runtimeEnglish,
+  errors: errorEnglish,
+  status: statusEnglish,
   common: {
     watch: 'Watch', recordings: 'Recordings', events: 'Events', channels: 'Channels', connections: 'Connections', settings: 'Settings', system: 'System',
     sources: 'Sources', guide: 'Programme guide', streams: 'Advanced streams', search: 'Search', playlists: 'Playlists',
@@ -29,6 +38,9 @@ export const en = {
 type TranslationShape<T> = { [K in keyof T]: T[K] extends string ? string : TranslationShape<T[K]> };
 export const es: TranslationShape<Omit<typeof en, 'ui'>> & { ui: typeof uiSpanish } = {
   ui: uiSpanish,
+  runtime: runtimeSpanish,
+  errors: errorSpanish,
+  status: statusSpanish,
   common: {
     watch: 'Ver', recordings: 'Grabaciones', events: 'Eventos', channels: 'Canales', connections: 'Conexiones', settings: 'Ajustes', system: 'Sistema',
     sources: 'Fuentes', guide: 'Guía de programación', streams: 'Emisiones avanzadas', search: 'Buscar', playlists: 'Listas de reproducción',

@@ -1,3 +1,4 @@
+import { statusLabel } from '../../i18n/status';
 import { uiText } from '../../i18n/text';
 import { getLocale } from '../../i18n/locale';
 import { useUiText } from '../../i18n/useUiText';
@@ -40,7 +41,7 @@ const EventList: React.FC<EventListProps> = ({ search, onWatchChannel }) => {
         </Typography>
         <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
           <Button component={RouterLink} to={detailsLink(event)} sx={{ p: 0, minHeight: 32, textAlign: 'left', justifyContent: 'flex-start', fontSize: '1rem', fontWeight: 600, color: 'text.primary' }}>{event.title}</Button>
-          <Typography variant="body2" color="text.secondary">{[event.competition, event.sport].filter(Boolean).join(' · ')}{event.state && !['scheduled', 'unknown'].includes(event.state) ? tUi(" · {{value0}}", { value0: event.state === 'live' ? 'Live · reported' : event.state }) : ''}</Typography>
+          <Typography variant="body2" color="text.secondary">{[event.competition, event.sport].filter(Boolean).join(' · ')}{event.state && !['scheduled', 'unknown'].includes(event.state) ? tUi(" · {{value0}}", { value0: statusLabel(event.state) }) : ''}</Typography>
         </Box>
       </Stack>
       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>

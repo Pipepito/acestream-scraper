@@ -1,3 +1,4 @@
+import { statusLabel } from '../../i18n/status';
 import { getLocale } from '../../i18n/locale';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
@@ -32,7 +33,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
       {editing ? <Stack spacing={2}>
         <TextField label={tUi("Title")} value={fields.title} onChange={(e) => setFields({ ...fields, title: e.target.value })} />
         <TextField select label={tUi("Event state")} value={fields.state} onChange={(e) => setFields({ ...fields, state: e.target.value as EventFields['state'] })}>
-          {['unknown', 'scheduled', 'live', 'finished', 'postponed', 'cancelled'].map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
+          {['unknown', 'scheduled', 'live', 'finished', 'postponed', 'cancelled'].map((state) => <MenuItem key={state} value={state}>{statusLabel(state)}</MenuItem>)}
         </TextField>
         <TextField label={tUi("Start (ISO date and time)")} value={fields.starts_at ?? ''} onChange={(e) => setFields({ ...fields, starts_at: e.target.value || null })} helperText={tUi("Include an offset, or use the source timezone {{value0}}. Blank means unknown.", { value0: fields.timezone })} />
         <TextField label={tUi("End (only if known)")} value={fields.ends_at ?? ''} onChange={(e) => setFields({ ...fields, ends_at: e.target.value || null })} />

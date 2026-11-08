@@ -158,3 +158,34 @@ Current next action: finish localization migration across actual visible/dynamic
 messages, canonical settings/editor ownership and feature-family compositions;
 expand contract/parity evidence while preserving current behavior. Do not stop at
 these foundations. All task acceptance and final full validation remain open.
+
+### Canonical editors and operational localization checkpoint
+
+- Settings now mounts only the selected canonical editor. Engine, three schedule
+  fields, link compatibility, access and network keep independent transactions.
+  Scalar drafts no longer get replaced by query refetches. One stable data router
+  and one shared dirty/pending registry protect route/query/Back/unload navigation.
+- Network, playback routing, checker, schedule anchors, offline cleanup, recording
+  settings and stream-link edits register with that guard. Link dialogs also guard
+  local Cancel/Escape/backdrop. Remaining editor families still need migration.
+- Recording disable, stop, scheduled cancellation and file deletion have distinct
+  confirmations. Settings enforce concurrency/byte/retention limits and retain
+  drafts on failure. Guide export has two named day controls, retains zero and
+  guards duplicate submission. Phone Watch brings the first channel into view.
+- Runtime copy uses all 47 stable option names; English source drift and Spanish
+  coverage are tested. Application status/reason codes and known API error codes
+  use localized resources. Non-string FastAPI validation details no longer crash.
+  Unknown errors use safe localized guidance; original user content stays verbatim.
+- Full frontend run with native Fetch test environment: 114 suites passed / 1 failed,
+  697 tests passed / 1 failed. Only failure was the old WARP conflict-copy assertion;
+  updated to the stable-code localized message and all five WARP tests then passed.
+  Earlier sandbox-only run could not bind the real-wire test listener; rerunning
+  with local socket access passed that contract suite. No skipped tests counted.
+- Built Spanish matrix rerun: 54 cases, zero page errors or document overflow.
+  Real built-app dirty navigation: six cases (three presets × EN/ES), cancelled
+  edits retained, discard navigated with unrelated query preserved, zero writes,
+  zero page errors or overflow. Temporary evidence remains under
+  `/tmp/ux314-evidence/current`; this is intermediate, not final task acceptance.
+- Final focused verification for this checkpoint: 13 suites / 98 tests passed;
+  TypeScript and lint passed without warnings. Complete application, Docker,
+  browser/E2E and external participant/device acceptance remain outstanding.

@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../UnsavedChanges';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/material';
@@ -28,6 +29,7 @@ export default function NetworkSettings() {
   const initial = draft?.initial ?? query.data;
   const values = { ...initial?.runtime, ...draft?.values };
   const changed = Boolean(draft && Object.entries(draft.values).some(([name, value]) => value !== draft.initial.runtime[name]));
+  useUnsavedChanges(changed, save.isPending);
   const reload = async () => {
     const result = await query.refetch();
     if (result.isSuccess) { setDraft(null); save.reset(); }

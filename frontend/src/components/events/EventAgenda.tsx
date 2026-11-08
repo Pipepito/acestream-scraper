@@ -1,3 +1,4 @@
+import { statusLabel } from '../../i18n/status';
 import { uiText } from '../../i18n/text';
 import { getLocale } from '../../i18n/locale';
 import { useUiText } from '../../i18n/useUiText';
@@ -53,7 +54,7 @@ export function EventAgendaRow({ event, zone, onSelect, showDate = false }: { ev
       <Button aria-label={tUi("View broadcasts for {{value0}}", { value0: event.title })} sx={{ p: 0, minHeight: 32, textAlign: 'left', justifyContent: 'flex-start', fontSize: '1rem', fontWeight: 600, color: 'text.primary' }} onClick={() => onSelect(event.id)}>{event.title}</Button>
       <Typography variant="body2" color="text.secondary">{[event.competition, event.sport].filter(Boolean).join(' · ')}</Typography>
       {event.followed || !['scheduled', 'unknown'].includes(event.state ?? 'unknown') ? <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
-        {!['scheduled', 'unknown'].includes(event.state ?? 'unknown') ? <Chip label={event.state === 'live' ? tUi("Live · reported") : event.state} size="small" variant="outlined" /> : null}
+        {!['scheduled', 'unknown'].includes(event.state ?? 'unknown') ? <Chip label={event.state === 'live' ? tUi("Live · reported") : statusLabel(event.state)} size="small" variant="outlined" /> : null}
         {event.followed ? <Chip label={tUi("Following")} size="small" variant="outlined" /> : null}
       </Stack> : null}
     </Box>

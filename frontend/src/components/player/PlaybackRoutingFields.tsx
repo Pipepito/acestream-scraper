@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../UnsavedChanges';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Button, FormControlLabel, LinearProgress, Stack, Switch, TextField, Typography } from '@mui/material';
@@ -11,6 +12,7 @@ const PlaybackRoutingFields: React.FC = () => {
   const save = useUpdatePlaybackRouting();
   const [draft, setDraft] = useState<PlaybackRouting | null>(null);
   const [saved, setSaved] = useState(false);
+  useUnsavedChanges(Boolean(draft), save.isPending);
   const routing = draft ?? query.data;
   if (query.isLoading) return <LinearProgress aria-label={tUi("Loading playback routing")} />;
   if (query.isError || !routing) return <Alert severity="error" action={<Button onClick={() => void query.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load playback routing.")}</Alert>;

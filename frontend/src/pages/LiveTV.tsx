@@ -1,3 +1,4 @@
+import { translateKnown } from '../i18n/text';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +9,6 @@ import { useTVChannelCatalog, useTVChannel } from '../hooks/useTVChannels';
 import { useNowNext } from '../hooks/useNowNext';
 import type { AcestreamChannel } from '../services/channelService';
 import type { TVChannel } from '../types/tvChannelTypes';
-import ContentSection from '../components/layout/ContentSection';
 import { useNow } from '../hooks/useNow';
 import PageHeader from '../components/layout/PageHeader';
 import StatusLine from '../components/StatusLine';
@@ -60,9 +60,8 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
   const watchStream = (stream: AcestreamChannel) => { close(); setPlayingStream(stream); };
 
   return <Box>
-    <PageHeader title={home ? t('watch') : tUi("Live TV")} subtitle={tUi("Choose a channel, see what’s on, and watch.")}
-      actions={<Button component={RouterLink} to="/tv-channels" variant="outlined">{tUi("Manage channels")}</Button>} />
-    <StatusLine items={[{ label: uiText("Channels"), value: channels.length }, { label: uiText("Guide times"), value: timezone }]} />
+    <PageHeader title={home ? t('watch') : tUi("Live TV")} subtitle={tUi("Choose a channel, see what’s on, and watch.")} />
+    <Box sx={{ display: { xs: 'none', sm: 'block' } }}><StatusLine items={[{ label: uiText("Channels"), value: channels.length }, { label: uiText("Guide times"), value: timezone }]} /></Box>
     <Box ref={viewingArea} sx={{ scrollMarginTop: '76px', display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: isWatching ? (largePlayer ? 'minmax(0, 2.5fr) minmax(320px, 1fr)' : 'minmax(0, 1.3fr) minmax(320px, 1fr)') : 'minmax(0, 1fr)' }, gap: 2, alignItems: 'start' }}>
       <Box sx={{ minWidth: 0, display: isWatching || selectedId ? 'block' : 'none' }}>
         <ChannelPlayerDialog inline hideUnavailableSources={onlineOnly} largePlayer={largePlayer} onTogglePlayerSize={canResizePlayer ? () => setLargePlayer((value) => !value) : undefined} open={Boolean(playingStream)} contentId={playingStream?.id ?? null} title={playingStream?.name ?? ''} onClose={() => setPlayingStream(null)} />
@@ -73,15 +72,17 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
           contentId={(selected.data?.acestream_channels.find(stream => stream.is_active !== false && stream.is_online === true) ?? selected.data?.acestream_channels.find(stream => stream.is_active !== false))?.id ?? null} title={selected.data?.name ?? ''} onClose={close} />
       </Box>
       <Box component="section" aria-label={tUi("Browse channels")} tabIndex={0} sx={{ minWidth: 0, '& > section': { height: 'auto' }, ...(isWatching ? { maxHeight: { xs: '70dvh', lg: 'calc(100dvh - 92px)' }, overflowY: 'auto', overscrollBehavior: 'contain', pr: 0.5 } : {}) }}>
-        <ContentSection title={tUi("Browse")}>
+        <Box>
           <Stack spacing={1.5} sx={{ mb: 2 }}>
             <BrowseModeToggle value={mode} onChange={(next) => updateParams({ list: next }, true)} />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              <TextField fullWidth label={SEARCH_LABEL[mode]} type="search" value={search} onChange={(event) => updateParams({ q: event.target.value }, true)} />
+              <TextField fullWidth label={translateKnown(SEARCH_LABEL[mode])} type="search" value={search} onChange={(event) => updateParams({ q: event.target.value }, true)} />
+              <Stack direction="row" flexWrap="wrap" useFlexGap>
               {mode === 'tv' ? <FormControlLabel sx={{ flexShrink: 0 }} control={<Checkbox checked={favorites} onChange={(_event, checked) => setFavorites(checked)} />} label={tUi("Favorites only")} /> : null}
               {mode !== 'events' ? <FormControlLabel sx={{ flexShrink: 0 }} control={<Checkbox checked={onlineOnly} onChange={(_event, checked) => updateParams({ availability: checked ? null : 'all' }, true)} />} label={tUi("Online only")} /> : null}
+              </Stack>
             </Stack>
-            {mode !== 'events' ? <Typography variant="body2" color="text.secondary">{onlineOnly ? tUi("Showing streams that passed their last check. Offline and unchecked streams stay in your library.") : tUi("Showing all enabled streams, including offline and unchecked ones.")} {' '}{tUi("Scheduled checks continue; this list refreshes automatically.")}</Typography> : null}
+            {mode !== 'events' ? <Box component="details" sx={{ color: 'text.secondary', typography: 'body2', '& summary': { cursor: 'pointer', minHeight: 44, display: 'flex', alignItems: 'center' } }}><summary>{tUi('About stream status')}</summary><Typography variant="body2" color="text.secondary">{onlineOnly ? tUi("Showing streams that passed their last check. Offline and unchecked streams stay in your library.") : tUi("Showing all enabled streams, including offline and unchecked ones.")} {' '}{tUi("Scheduled checks continue; this list refreshes automatically.")}</Typography></Box> : null}
           </Stack>
           {mode === 'tv' ? <>
             {catalog.isLoading ? <LinearProgress aria-label={tUi("Loading channels")} /> : null}
@@ -94,9 +95,10 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
           </> : null}
           {mode === 'streams' ? <StreamList search={search} onlineOnly={onlineOnly} tvNames={tvNames} onWatch={watchStream} /> : null}
           {mode === 'events' ? <EventList search={search} onWatchChannel={watchChannel} /> : null}
-        </ContentSection>
+        </Box>
       </Box>
     </Box>
+    <Button component={RouterLink} to="/tv-channels" sx={{ my: 2 }}>{tUi("Manage channels")}</Button>
   </Box>;
 };
 export default LiveTV;

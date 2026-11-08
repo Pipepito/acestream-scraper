@@ -119,7 +119,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 ### Frontend
 
 - Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
-- Navigation groups Watch (TV dashboard, Live TV, Recordings), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Events, Playlist) Integrations (Public address, Web player, TV casting, Remote players, Media servers, Telegram) and System (System status, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. W3U catalogues are a Scraper tab (`/scraper?tab=w3u`, tabs `sources|w3u|searches|exclusions`); the `Catalogues` page component renders `embedded` there without its own header. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`; `/catalogues` → `/scraper?tab=w3u`), and `redirectTarget()` carries the old query string (`catalogue`, `folder`) into the target. The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations category opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
+- Navigation has seven destinations: Watch, Recordings, Events, Channels, Connections, Settings and System, declared in `components/layout/navItems.tsx`. WARP remains directly discoverable. One stable data router, query cache, access layer and media owner serve all three presentations and both languages. Settings mounts only its selected canonical editor; `UnsavedChangesProvider` guards registered dirty/pending editors through route/query/Back navigation and document unload. Modal close uses the shared confirmation. See `docs/dev/settings-editors.md` and `docs/dev/frontend-localization.md`. W3U catalogues are a Scraper tab (`/scraper?tab=w3u`, tabs `sources|w3u|searches|exclusions`); the `Catalogues` page component renders `embedded` there without its own header. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`; `/catalogues` → `/scraper?tab=w3u`), and `redirectTarget()` carries the old query string (`catalogue`, `folder`) into the target. The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). Connections opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
 - Vite config (`frontend/vite.config.mts`) uses Rolldown dependency groups for React, MUI, data-grid, data, date utilities, HLS and TV Channels. Build configs use explicit ESM extensions. HLS builds pinned full-feature source modules so its code can split. Preserve dependency ownership to avoid initialization cycles; see `docs/dev/frontend-bundles.md` for upgrade and built-SPA verification.
@@ -345,8 +345,8 @@ changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
 Live TV embeds the existing HLS player alongside one scrollable browse list (TV
 channels, Streams or Events). Filtering or switching the list mode does not
 release playback; changing the channel or Stop watching releases the current
-viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
+viewer. Other pages retain the player dialog. Navigation uses Watch, Recordings, Events, Channels, Connections, Settings and
+System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
 Integrations. PID/AppID belong to Stream links, not Automation.
 
@@ -758,7 +758,7 @@ remain unchanged; see `wiki/Usage.md#search-and-manual-additions` for recovery.
 
 ## TV and system dashboards
 
-The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+The default `/` route combines the Live TV catalogue and Watch overview: app-owned playback, channel/stream
 inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
 diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
 `/stats` redirect to `/`. Keep section failures independent and missing data unknown.
@@ -771,7 +771,7 @@ reads. See `docs/dev/dashboard-split.md`.
 
 ## Integration navigation
 
-Integrations is a sidebar category with independent pages at
+Connections groups the existing independent integration pages at
 `/integrations/public-address`, `/integrations/web-player`,
 `/integrations/remote-players`, `/integrations/media-servers` and
 `/integrations/telegram`. The old `/integrations` URL redirects to Public address.

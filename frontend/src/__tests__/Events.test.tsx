@@ -81,7 +81,7 @@ it('previews manual events without saving until a row is selected', async () => 
   expect(await screen.findByRole('button', { name: 'Save selected (0)' })).toBeDisabled();
   expect(service.apply).not.toHaveBeenCalled();
   expect(service.preview).toHaveBeenCalledWith(expect.objectContaining({ observations: [expect.objectContaining({ title: 'New fixture', starts_at: null, state: 'unknown' })] }));
-  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · scheduled' }));
+  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · Scheduled' }));
   await user.click(screen.getByRole('button', { name: 'Save selected (1)' }));
   await waitFor(() => expect(service.apply).toHaveBeenCalledWith('review', [event.id]));
 });
@@ -169,7 +169,7 @@ it('reviews a URL before enabling scheduled refresh and saves explicit retention
   expect(await screen.findByRole('button', { name: 'Save selected (0)' })).toBeDisabled();
   expect(service.apply).not.toHaveBeenCalled();
   await user.click(screen.getByRole('checkbox', { name: /Refresh selected events automatically/ }));
-  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · scheduled' }));
+  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · Scheduled' }));
   await user.click(screen.getByRole('button', { name: 'Save selected (1)' }));
   await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [event.id], true));
 });

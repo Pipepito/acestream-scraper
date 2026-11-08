@@ -1,3 +1,4 @@
+import { statusLabel } from '../i18n/status';
 import { uiText } from '../i18n/text';
 import { getLocale } from '../i18n/locale';
 import { useUiText } from '../i18n/useUiText';
@@ -61,7 +62,7 @@ export default function Watch() {
           <List>
             {channels?.items.map(channel => <ListItem key={channel.id} divider secondaryAction={permissions.includes('live') ? <Button onClick={() => setPlaying({ id: channel.id, name: channel.name })}>{tUi("Watch")}</Button> : undefined}><ListItemText primary={channel.name} secondary={[channel.category, channel.online === true ? uiText("Verified signal") : channel.online === false ? uiText("Offline") : uiText("Signal unknown")].filter(Boolean).join(' · ')} /></ListItem>)}
             {programmes?.map(programme => <ListItem key={programme.id} divider><ListItemText primary={programme.title} secondary={`${programme.channel} · ${new Date(programme.start).toLocaleString(getLocale())} – ${new Date(programme.end).toLocaleTimeString(getLocale())}`} /></ListItem>)}
-            {events?.map(event => <ListItem key={event.id} divider><ListItemText primary={event.title} secondary={`${event.competition} · ${event.starts_at ? new Date(event.starts_at).toLocaleString(getLocale()) : uiText("Time to be confirmed")} · ${event.state}`} /></ListItem>)}
+            {events?.map(event => <ListItem key={event.id} divider><ListItemText primary={event.title} secondary={`${event.competition} · ${event.starts_at ? new Date(event.starts_at).toLocaleString(getLocale()) : uiText("Time to be confirmed")} · ${statusLabel(event.state)}`} /></ListItem>)}
             {recordings?.map(recording => <ListItem key={recording.id} divider><ListItemText primary={recording.title} secondary={`${recording.channel} · ${recording.state}`} />{recording.files?.map((id, index) => <Button key={id} onClick={() => setFile({ recording: recording.id, id })}>{tUi("Play file")}{' '}{index + 1}</Button>)}</ListItem>)}
           </List>
           {(channels?.items.length === 0 || (Array.isArray(query.data) && query.data.length === 0)) ? <Typography>{tUi("No items to show.")}</Typography> : null}

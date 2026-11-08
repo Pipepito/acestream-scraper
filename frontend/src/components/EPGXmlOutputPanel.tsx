@@ -1,6 +1,6 @@
-import { uiText } from '../i18n/text';
+import { getErrorMessage } from '../utils/errorUtils';
 import { useUiText } from '../i18n/useUiText';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Button,
@@ -23,6 +23,7 @@ interface EPGXmlOutputPanelProps {
 
 const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
   const tUi = useUiText();
+  const submitting = useRef(false);
   // XML generation state
   const [xmlOptions, setXmlOptions] = useState<EPGXMLGenerationParams>({
     search_term: '',
@@ -42,24 +43,17 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
     });
   };
 
-  // Handle day range slider change
-  const handleDaysRangeChange = (event: Event, newValue: number | number[]) => {
-    if (Array.isArray(newValue)) {
-      setXmlOptions({
-        ...xmlOptions,
-        days_back: Math.abs(newValue[0]),
-        days_forward: newValue[1]
-      });
-    }
-  };
-
   // Handle XML download
   const handleDownloadXML = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     try {
       await downloadEPGXML(xmlOptions);
-      onNotify('EPG XML generation started', 'info');
+      onNotify(tUi('EPG XML generation started'), 'info');
     } catch (error) {
-      onNotify(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
+      onNotify(getErrorMessage(error), 'error');
+    } finally {
+      submitting.current = false;
     }
   };
 
@@ -98,25 +92,22 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
           <Typography variant="subtitle1" gutterBottom>
             {tUi("Date Range")}</Typography>
           <Box sx={{ px: 2 }}>
-            <Slider
-              value={[-(xmlOptions.days_back || 1), xmlOptions.days_forward || 7]}
-              min={-14}
-              max={14}
-              step={1}
-              onChange={handleDaysRangeChange}
-              valueLabelDisplay="auto"
-              marks={[
-                { value: -14, label: '14 days past' },
-                { value: -7, label: '1 week past' },
-                { value: 0, label: uiText("Today") },
-                { value: 7, label: '1 week future' },
-                { value: 14, label: '2 weeks future' }
-              ]}
-              valueLabelFormat={(value) => value < 0 ? `${Math.abs(value)}d past` : `${value}d future`}
-            />
+            {(['days_back', 'days_forward'] as const).map(field => <Box key={field} sx={{ mb: 2 }}>
+              <Typography id={`xml-${field}-label`} variant="body2">{field === 'days_back' ? tUi('Past programmes (days)') : tUi('Future programmes (days)')}</Typography>
+              <Slider
+                aria-labelledby={`xml-${field}-label`}
+                value={xmlOptions[field] ?? (field === 'days_back' ? 1 : 7)}
+                min={0} max={14} step={1}
+                onChange={(_, value) => { if (typeof value === 'number') setXmlOptions(previous => ({ ...previous, [field]: value })); }}
+                valueLabelDisplay="auto"
+                getAriaValueText={count => tUi('{{count}} day', { count })}
+                marks={[{ value: 0, label: '0' }, { value: 7, label: '7' }, { value: 14, label: '14' }]}
+              />
+            </Box>)}
           </Box>
           <Typography variant="body2" color="textSecondary" align="center">
-            {tUi("Including")}{' '}{xmlOptions.days_back} {' '}{tUi("days of past programs and")}{' '}{xmlOptions.days_forward} {tUi("days of future programs")}</Typography>
+            {tUi('Including {{past}} days of past programmes and {{future}} days of future programmes.', { past: xmlOptions.days_back ?? 1, future: xmlOptions.days_forward ?? 7 })}
+          </Typography>
         </Grid>
 
         <Grid item xs={12}>

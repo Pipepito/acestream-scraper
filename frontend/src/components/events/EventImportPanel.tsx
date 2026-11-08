@@ -1,3 +1,4 @@
+import { statusLabel } from '../../i18n/status';
 import { getLocale } from '../../i18n/locale';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
@@ -85,7 +86,7 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
       {preview.events.map((event) => <Box key={event.id} sx={{ borderBottom: 1, borderColor: 'divider', pb: 1 }}>
         <FormControlLabel control={<Checkbox checked={selected.includes(event.id)} disabled={busy}
           onChange={(_, checked) => setSelected((ids) => checked ? [...ids, event.id] : ids.filter((id) => id !== event.id))} />}
-          label={tUi("{{value0}} · {{value1}}", { value0: event.title, value1: event.state ?? 'unknown' })} />
+          label={tUi("{{value0}} · {{value1}}", { value0: event.title, value1: statusLabel(event.state) })} />
         <Typography variant="body2">{event.starts_at ? new Date(event.starts_at).toLocaleString(getLocale(), { timeZone: zone }) : event.scheduled_date ? tUi("{{value0}} · Time unknown", { value0: event.scheduled_date }) : tUi("Start time unknown")} · {event.broadcasts.length} {' '}{tUi("broadcast options")}</Typography>
         {event.broadcasts.map((broadcast) => <Typography variant="body2" key={broadcast.id}>{broadcast.label} · {broadcast.compatibility} · {broadcast.language} {broadcast.quality}</Typography>)}
         {event.corrected ? <Typography variant="body2">{tUi("Manual correction will be kept.")}</Typography> : null}

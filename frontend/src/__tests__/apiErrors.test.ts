@@ -193,3 +193,11 @@ describe('normalizeApiError', () => {
     expect(services.getApiErrorKindFromStatus(429)).toBe('rate_limit');
   });
 });
+
+ it.each([[{ loc: ['body', 'name'], msg: 'Field required' }], { message: 'bad payload' }, null])('handles a non-string validation detail without exposing or throwing on it', detail => {
+  const normalized = normalizeApiError(createAxiosError({ response: {
+    status: 422, statusText: 'Unprocessable Entity', headers: {}, config: createAxiosConfig(), data: { detail },
+  } }));
+  expect(typeof normalized.message).toBe('string');
+  expect(normalized.kind).toBe('validation');
+});

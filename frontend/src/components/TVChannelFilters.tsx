@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useId, useState } from 'react';
 import { Button, Collapse, MenuItem, Stack, TextField } from '@mui/material';
 import { TVChannel } from '../types/tvChannelTypes';
@@ -26,29 +27,30 @@ export function matchesTVFilters(channel: TVChannel, filters: TVFilters): boolea
 }
 
 export default function TVChannelFilters({ channels, filters, onChange }: { channels: TVChannel[]; filters: TVFilters; onChange: (filters: TVFilters) => void }) {
+  const tUi = useUiText();
   const [advanced, setAdvanced] = useState(false);
   const advancedId = useId();
   const advancedCount = Object.entries(filters).filter(([key, value]) => value && !['search', 'category', 'is_active'].includes(key)).length;
   const change = (key: string, value: string) => onChange({ ...filters, [key]: value });
   const presence = [['yes', 'Present'], ['no', 'Missing']];
   const select = (key: string, label: string, options: string[][]) => <TextField key={key} select size="small" label={label} value={filters[key] ?? ''} onChange={e => change(key, e.target.value)}>
-    <MenuItem value="">All</MenuItem>{options.map(([value, text]) => <MenuItem key={value} value={value}>{text}</MenuItem>)}
+    <MenuItem value="">{tUi("All")}</MenuItem>{options.map(([value, text]) => <MenuItem key={value} value={value}>{text}</MenuItem>)}
   </TextField>;
-  return <Stack component="form" aria-label="Channel filters" onSubmit={e => e.preventDefault()} spacing={2}>
-    <TextField fullWidth size="small" label="Search" placeholder="Name, number, description, EPG ID or stream" value={filters.search ?? ''} onChange={e => change('search', e.target.value)} />
+  return <Stack component="form" aria-label={tUi("Channel filters")} onSubmit={e => e.preventDefault()} spacing={2}>
+    <TextField fullWidth size="small" label={tUi("Search")} placeholder={tUi("Name, number, description, EPG ID or stream")} value={filters.search ?? ''} onChange={e => change('search', e.target.value)} />
     <Stack component="fieldset" sx={{ border: 0, p: 0, m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: 2 }}>
       {(['category'] as const).map(key => select(key, key[0].toUpperCase() + key.slice(1), Array.from(new Set(channels.map(c => c[key]).filter((v): v is string => Boolean(v)))).sort().map(v => [v, v])))}
       {select('is_active', 'Status', [['true', 'Active'], ['false', 'Inactive']])}
     </Stack>
     <Button sx={{ alignSelf: 'flex-start' }} aria-expanded={advanced} aria-controls={advancedId} onClick={() => setAdvanced(value => !value)}>
-      Advanced filters{advancedCount ? ` (${advancedCount} active)` : ''}
+      {tUi("Advanced filters")}{advancedCount ? tUi(" ({{value0}} active)", { value0: advancedCount }) : ''}
     </Button>
     <Collapse in={advanced} id={advancedId} unmountOnExit>
     <Stack sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: 2, pt: 1 }}>
       {(['country', 'language'] as const).map(key => select(key, key[0].toUpperCase() + key.slice(1), Array.from(new Set(channels.map(c => c[key]).filter((v): v is string => Boolean(v)))).sort().map(v => [v, v])))}
       {select('is_favorite', 'Favorite', [['true', 'Favorites'], ['false', 'Not favorites']])}
       {select('epg', 'EPG mapping', [['yes', 'Mapped'], ['no', 'Not mapped']])}
-      {select('epg_source_id', 'EPG source', Array.from(new Set(channels.map(c => c.epg_source_id).filter((v): v is number => v != null))).sort((a,b) => a-b).map(v => [String(v), `Source ${v}`]))}
+      {select('epg_source_id', 'EPG source', Array.from(new Set(channels.map(c => c.epg_source_id).filter((v): v is number => v != null))).sort((a,b) => a-b).map(v => [String(v), tUi("Source {{value0}}", { value0: v })]))}
       {select('streams', 'Attached streams', [['any', 'With streams'], ['none', 'Without streams'], ['multiple', 'Multiple streams']])}
       {select('signal', 'Stream signal', [['verified', 'At least one verified'], ['unverified', 'None verified'], ['unknown', 'All not checked']])}
       {select('number', 'Channel number', presence)}
@@ -58,6 +60,6 @@ export default function TVChannelFilters({ channels, filters, onChange }: { chan
       {(['min_number', 'max_number', 'min_streams', 'max_streams'] as const).map((key, i) => <TextField key={key} size="small" type="number" label={['Minimum number', 'Maximum number', 'Minimum streams', 'Maximum streams'][i]} inputProps={{ min: 0, step: 1 }} value={filters[key] ?? ''} onChange={e => change(key, e.target.value)} />)}
     </Stack>
     </Collapse>
-    <Button sx={{ alignSelf: 'flex-start' }} onClick={() => onChange({})}>Reset filters</Button>
+    <Button sx={{ alignSelf: 'flex-start' }} onClick={() => onChange({})}>{tUi("Reset filters")}</Button>
   </Stack>;
 }

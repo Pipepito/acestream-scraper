@@ -1,3 +1,4 @@
+import { uiText } from '../i18n/text';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { tvChannelService, EPGMatchAnalysisResponse, EPGMatchAnalysisRow, EPGMatchStrictness } from '../services/tvChannelService';
@@ -38,7 +39,7 @@ export const useEPGMatchAnalysis = (selectedSourceId: number | undefined, showSn
       const result = await tvChannelService.analyzeEPGMatches({ strictness: matchStrictness, source_id: selectedSourceId });
       if (revision.current === current) { setMatchAnalysis(result); setMatchFilter('all'); }
     } catch {
-      if (revision.current === current) showSnackbar('Could not analyze guide matches. Try again.', 'error');
+      if (revision.current === current) showSnackbar(uiText("Could not analyze guide matches. Try again."), 'error');
     } finally {
       if (revision.current === current) setIsAnalyzingMatches(false);
     }
@@ -63,7 +64,7 @@ export const useEPGMatchAnalysis = (selectedSourceId: number | undefined, showSn
       }
       showSnackbar(`Created ${result.created_count} TV channels, assigned ${result.associated_count} streams, skipped ${result.skipped_count}${result.failure_count ? `, failed ${result.failure_count}` : ''}`, result.failure_count ? 'warning' : 'success');
     } catch {
-      showSnackbar('Could not apply matches. The catalogue may have changed; analyze again before applying.', 'error');
+      showSnackbar(uiText("Could not apply matches. The catalogue may have changed; analyze again before applying."), 'error');
     } finally {
       applying.current = false; setIsApplyingMatches(false); setSelectedMatchRowIds([]); setMatchAnalysis(null);
     }

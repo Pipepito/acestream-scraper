@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useCallback, useId, useRef, useState } from 'react';
 import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 
@@ -14,6 +15,7 @@ export interface ConfirmDialogProps {
 
 /** The app's one confirmation dialog: replaces window.confirm everywhere. */
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ open, title, body, confirmLabel, danger = false, busy = false, onConfirm, onClose }) => {
+  const tUi = useUiText();
   const titleId = useId();
   return (
     <Dialog open={open} onClose={busy ? undefined : onClose} aria-labelledby={titleId} maxWidth="xs" fullWidth>
@@ -23,8 +25,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ open, title, body, confir
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={busy}>
-          Cancel
-        </Button>
+          {tUi("Cancel")}</Button>
         <Button variant="contained" color={danger ? 'error' : 'primary'} onClick={onConfirm} disabled={busy} startIcon={busy ? <CircularProgress size={16} color="inherit" /> : undefined}>
           {confirmLabel}
         </Button>

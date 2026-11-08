@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import RecordingOverview from '../components/recordings/RecordingOverview';
 import { Link as RouterLink } from 'react-router-dom';
 import React from 'react';
@@ -21,6 +23,7 @@ const REFRESH_MS = 30_000;
 
 /** Service administration stays independent of catalogue availability. */
 const SystemDashboard: React.FC = () => {
+  const tUi = useUiText();
   const theme = useTheme();
   const services = useSystemServices({ refetchInterval: REFRESH_MS });
   const tasks = useBackgroundTaskStatus(REFRESH_MS);
@@ -47,10 +50,10 @@ const SystemDashboard: React.FC = () => {
   };
 
   const statusTone = theme.appTokens.status[needsAttention ? 'warning' : 'success'];
-  const chip = statusUnavailable ? <Chip label="Status unavailable" variant="outlined" /> : (
+  const chip = statusUnavailable ? <Chip label={tUi("Status unavailable")} variant="outlined" /> : (
     <Chip
       icon={needsAttention ? <WarningAmberIcon /> : <CheckCircleOutlineIcon />}
-      label={needsAttention ? 'Services need attention' : 'Services healthy'}
+      label={needsAttention ? tUi("Services need attention") : tUi("Services healthy")}
       variant="outlined"
       sx={{ color: statusTone.text, bgcolor: statusTone.bg, borderColor: statusTone.border, '& .MuiChip-icon': { color: statusTone.icon } }}
     />
@@ -58,36 +61,35 @@ const SystemDashboard: React.FC = () => {
 
   return (
     <Box>
-      <PageHeader title="System status" subtitle="Services, storage and scheduled maintenance." actions={chip} />
+      <PageHeader title={tUi("System status")} subtitle={tUi("Services, storage and scheduled maintenance.")} actions={chip} />
 
       <StatusLine
-        aria-label="System status summary"
+        aria-label={tUi("System status summary")}
         items={[
           {
-            label: 'Engine',
-            value: statusUnavailable ? 'Unavailable' : engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : !engineConfigured ? 'not configured' : engineStopped ? 'stopped by you' : 'not reachable',
+            label: uiText("Engine"),
+            value: statusUnavailable ? uiText("Unavailable") : engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : !engineConfigured ? 'not configured' : engineStopped ? 'stopped by you' : 'not reachable',
             tone: statusUnavailable ? 'default' : engineOnline ? 'success' : !engineConfigured || engineStopped ? 'default' : 'error',
           },
-          { label: 'Application version', value: health.error ? 'Unavailable' : health.data?.version ?? 'Loading…' },
+          { label: uiText("Application version"), value: health.error ? uiText("Unavailable") : health.data?.version ?? 'Loading…' },
         ]}
         action={
           <Button size="small" variant="outlined" onClick={refetchAll}>
-            Refresh
-          </Button>
+            {tUi("Refresh")}</Button>
         }
       />
 
-      {health.error ? <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" onClick={() => void health.refetch()}>Retry health</Button>}>
-        Could not load system health: {normalizeApiError(health.error).message}
-      </Alert> : !health.data ? <Typography role="status">Checking system health…</Typography> : null}
+      {health.error ? <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" onClick={() => void health.refetch()}>{tUi("Retry health")}</Button>}>
+        {tUi("Could not load system health:")}{' '}{normalizeApiError(health.error).message}
+      </Alert> : !health.data ? <Typography role="status">{tUi("Checking system health…")}</Typography> : null}
 
       {!services.error && attention.length > 0 ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          {attention.map((s) => `${s.label}: ${s.message}`).join(' · ')}
+          {attention.map((s) => tUi("{{value0}}: {{value1}}", { value0: s.label, value1: s.message })).join(' · ')}
         </Alert>
       ) : null}
 
-      <ContentSection title="Services" description="What this image ships, what is switched on, and whether each service answers. Start, stop or restart the engine without recreating the container.">
+      <ContentSection title={tUi("Services")} description={tUi("What this image ships, what is switched on, and whether each service answers. Start, stop or restart the engine without recreating the container.")}>
         <ServicesPanel pollIntervalMs={REFRESH_MS} />
         <DiagnosticsDownload />
       </ContentSection>
@@ -95,10 +97,10 @@ const SystemDashboard: React.FC = () => {
       <RecordingOverview system />
       <StoragePanel />
 
-      <Box id="scheduled-jobs" sx={{ scrollMarginTop: 90 }}><ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">Edit schedules</Button>} title="Scheduled jobs" description="What ran last, what it did, and when it runs again.">
+      <Box id="scheduled-jobs" sx={{ scrollMarginTop: 90 }}><ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">{tUi("Edit schedules")}</Button>} title={tUi("Scheduled jobs")} description={tUi("What ran last, what it did, and when it runs again.")}>
         {tasks.error ? (
-          <Alert severity="error" action={<Button color="inherit" onClick={() => void tasks.refetch()}>Retry jobs</Button>}>Could not load the scheduler status: {normalizeApiError(tasks.error).message}</Alert>
-        ) : !tasks.data ? <Typography role="status">Loading scheduled jobs…</Typography> : (
+          <Alert severity="error" action={<Button color="inherit" onClick={() => void tasks.refetch()}>{tUi("Retry jobs")}</Button>}>{tUi("Could not load the scheduler status:")}{' '}{normalizeApiError(tasks.error).message}</Alert>
+        ) : !tasks.data ? <Typography role="status">{tUi("Loading scheduled jobs…")}</Typography> : (
           <ScheduledJobs tasks={tasks.data ?? []} />
         )}
       </ContentSection></Box>

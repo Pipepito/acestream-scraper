@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import ChannelNumberField from './ChannelNumberField';
 import React from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
@@ -61,6 +63,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   onPlay,
   onNumberChange,
 }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -79,11 +82,11 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   const hasCountry = channels.some((channel) => Boolean(channel.country));
 
   const renderFavorite = (channel: TVChannel) => (
-<Tooltip title={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}>
+<Tooltip title={channel.is_favorite ? tUi("Remove from favorites") : tUi("Add to favorites")}>
             <IconButton
               size="medium"
               color={channel.is_favorite ? 'warning' : 'default'}
-              aria-label={`toggle favorite for tv channel ${channel.name}`}
+              aria-label={tUi("toggle favorite for tv channel {{value0}}", { value0: channel.name })}
               aria-pressed={channel.is_favorite}
               onClick={() => onToggleFavorite(channel)}
             >
@@ -101,37 +104,33 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
           <Button
             variant="outlined"
             startIcon={<Edit fontSize="small" />}
-            aria-label={`edit tv channel ${channel.name}`}
+            aria-label={tUi("edit tv channel {{value0}}", { value0: channel.name })}
             onClick={() => onEdit(channel)}
           >
-            Edit
-          </Button>
+            {tUi("Edit")}</Button>
           <Button
             variant="outlined"
             color="error"
             startIcon={<Delete fontSize="small" />}
-            aria-label={`delete tv channel ${channel.name}`}
+            aria-label={tUi("delete tv channel {{value0}}", { value0: channel.name })}
             onClick={() => onDelete(channel.id)}
           >
-            Delete
-          </Button>
+            {tUi("Delete")}</Button>
           <Button
             variant="outlined"
             startIcon={<PlayArrowRounded fontSize="small" />}
-            aria-label={`play tv channel ${channel.name}`}
+            aria-label={tUi("play tv channel {{value0}}", { value0: channel.name })}
             disabled={!canPlay}
             onClick={() => onPlay?.(channel)}
           >
-            Play
-          </Button>
+            {tUi("Play")}</Button>
           <Button
             variant="contained"
             startIcon={<OpenInNew fontSize="small" />}
-            aria-label={`open tv channel ${channel.name}`}
+            aria-label={tUi("open tv channel {{value0}}", { value0: channel.name })}
             onClick={() => onOpen(channel.id)}
           >
-            Open
-          </Button>
+            {tUi("Open")}</Button>
         </Stack>
       );
     }
@@ -140,18 +139,18 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     // row-action rule the Acestream rows follow. Favorite state stays visible
     // on the row through the star next to the name.
     const menuActions: RowAction[] = [
-      { label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
-      { label: 'Delete', icon: <Delete fontSize="small" />, danger: true, onClick: () => onDelete(channel.id) },
+      { label: uiText("Edit"), icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
+      { label: uiText("Delete"), icon: <Delete fontSize="small" />, danger: true, onClick: () => onDelete(channel.id) },
     ];
 
     return (
-      <Box display="flex" gap={0.25} role="group" aria-label={`TV channel actions for ${channel.name}`}>
-        <Tooltip title={canPlay ? 'Watch channel and choose a stream' : 'No stream to play yet'}>
+      <Box display="flex" gap={0.25} role="group" aria-label={tUi("TV channel actions for {{value0}}", { value0: channel.name })}>
+        <Tooltip title={canPlay ? tUi("Watch channel and choose a stream") : tUi("No stream to play yet")}>
           <span>
             <IconButton
               size="small"
               color="primary"
-              aria-label={`play tv channel ${channel.name}`}
+              aria-label={tUi("play tv channel {{value0}}", { value0: channel.name })}
               disabled={!canPlay}
               onClick={() => onPlay?.(channel)}
             >
@@ -159,26 +158,26 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Open channel page">
-          <IconButton size="small" color="primary" aria-label={`open tv channel ${channel.name}`} onClick={() => onOpen(channel.id)}>
+        <Tooltip title={tUi("Open channel page")}>
+          <IconButton size="small" color="primary" aria-label={tUi("open tv channel {{value0}}", { value0: channel.name })} onClick={() => onOpen(channel.id)}>
             <OpenInNew fontSize="small" />
           </IconButton>
         </Tooltip>
-        <RowActionsMenu label={`More actions for ${channel.name}`} actions={menuActions} />
+        <RowActionsMenu label={tUi("More actions for {{value0}}", { value0: channel.name })} actions={menuActions} />
       </Box>
     );
   };
 
-  const DesktopEmptyState = () => (
+  const DesktopEmptyState = () => { const tUi = useUiText(); return (
     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 3, px: 2 }}>
       <EmptyState
-        title="No TV channels to show"
-        description="Add a TV channel or adjust your filters to start organizing playback sources."
+        title={tUi("No TV channels to show")}
+        description={tUi("Add a TV channel or adjust your filters to start organizing playback sources.")}
       />
     </Box>
-  );
+  ); };
 
-  const DesktopPageEmptyState = () => (
+  const DesktopPageEmptyState = () => { const tUi = useUiText(); return (
     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 3, px: 2 }}>
       <Paper
         variant="outlined"
@@ -192,16 +191,14 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         }}
       >
         <Typography variant="sectionTitle" component="h2">
-          No TV channels on this page
-        </Typography>
+          {tUi("No TV channels on this page")}</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-          Move between pages to keep browsing the list.
-        </Typography>
+          {tUi("Move between pages to keep browsing the list.")}</Typography>
       </Paper>
     </Box>
-  );
+  ); };
 
-  const MobileLoadingState = () => (
+  const MobileLoadingState = () => { const tUi = useUiText(); return (
     <Box
       sx={{
         display: 'flex',
@@ -214,17 +211,15 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         gap: 1,
       }}
     >
-      <CircularProgress aria-label="Loading TV channels" size={28} />
+      <CircularProgress aria-label={tUi("Loading TV channels")} size={28} />
       <Typography variant="sectionTitle" component="p">
-        Loading TV channels
-      </Typography>
+        {tUi("Loading TV channels")}</Typography>
       <Typography variant="body2" color="text.secondary" align="center">
-        Preparing the latest results.
-      </Typography>
+        {tUi("Preparing the latest results.")}</Typography>
     </Box>
-  );
+  ); };
 
-  const DesktopLoadingState = () => (
+  const DesktopLoadingState = () => { const tUi = useUiText(); return (
     <Box
       sx={{
         display: 'flex',
@@ -238,17 +233,15 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         gap: 1,
       }}
     >
-      <CircularProgress aria-label="Loading TV channels" size={28} />
+      <CircularProgress aria-label={tUi("Loading TV channels")} size={28} />
       <Typography variant="sectionTitle" component="p">
-        Loading TV channels
-      </Typography>
+        {tUi("Loading TV channels")}</Typography>
       <Typography variant="body2" color="text.secondary" align="center">
-        Refreshing the latest results.
-      </Typography>
+        {tUi("Refreshing the latest results.")}</Typography>
     </Box>
-  );
+  ); };
 
-  const MobilePagination = () => (
+  const MobilePagination = () => { const tUi = useUiText(); return (
     <Paper
       variant="outlined"
       sx={{
@@ -261,21 +254,21 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       <Stack spacing={1.5}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
           <Typography variant="body2" color="text.secondary">
-            {`${rangeStart}-${rangeEnd} of ${totalCount}`}
+            {tUi("{{value0}}-{{value1}} of {{value2}}", { value0: rangeStart, value1: rangeEnd, value2: totalCount })}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {totalPages > 0 ? `Page ${page + 1} of ${totalPages}` : 'Page 0 of 0'}
+            {totalPages > 0 ? tUi("Page {{value0}} of {{value1}}", { value0: page + 1, value1: totalPages }) : tUi("Page 0 of 0")}
           </Typography>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
           <FormControl sx={{ minWidth: 120 }}>
-            <InputLabel id="tv-channels-mobile-page-size-label">Rows per page</InputLabel>
+            <InputLabel id="tv-channels-mobile-page-size-label">{tUi("Rows per page")}</InputLabel>
             <Select
               labelId="tv-channels-mobile-page-size-label"
               value={pageSize}
-              label="Rows per page"
+              label={tUi("Rows per page")}
               onChange={handlePageSizeChange}
-              inputProps={{ 'aria-label': 'Rows per page' }}
+              inputProps={{ 'aria-label': uiText("Rows per page") }}
             >
               {[10, 25, 50, 100].map((size) => (
                 <MenuItem key={size} value={size}>
@@ -285,22 +278,20 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
             </Select>
           </FormControl>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" disabled={page === 0} aria-label="Go to previous page" onClick={() => onPageChange(page - 1)}>
-              Previous
-            </Button>
+            <Button variant="outlined" disabled={page === 0} aria-label={tUi("Go to previous page")} onClick={() => onPageChange(page - 1)}>
+              {tUi("Previous")}</Button>
             <Button
               variant="outlined"
               disabled={page >= totalPages - 1 || totalPages === 0}
-              aria-label="Go to next page"
+              aria-label={tUi("Go to next page")}
               onClick={() => onPageChange(page + 1)}
             >
-              Next
-            </Button>
+              {tUi("Next")}</Button>
           </Stack>
         </Stack>
       </Stack>
     </Paper>
-  );
+  ); };
 
   const renderMobileMetadata = (channel: TVChannel) => {
     const secondaryMetadata = [
@@ -378,7 +369,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
       width: 90,
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
         <Chip
-          label={params.row.is_active ? 'Active' : 'Inactive'}
+          label={params.row.is_active ? tUi("Active") : tUi("Inactive")}
           size="small"
           variant="outlined"
           sx={getStatusChipSx(params.row.is_active)}
@@ -421,12 +412,12 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
                       </Typography>
                       {channel.channel_number ? (
                         <Typography variant="body2" color="text.secondary">
-                          Channel {channel.channel_number}
+                          {tUi("Channel")}{' '}{channel.channel_number}
                         </Typography>
                       ) : null}
                     </Box>
                     <Chip
-                      label={channel.is_active ? 'Active' : 'Inactive'}
+                      label={channel.is_active ? tUi("Active") : tUi("Inactive")}
                       size="small"
                       variant="outlined"
                       sx={getStatusChipSx(channel.is_active)}
@@ -435,7 +426,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     {channel.category ? <Chip label={channel.category} size="small" variant="outlined" /> : null}
-                    <Chip label={`${streamCount} ${streamCount === 1 ? 'stream' : 'streams'}`} size="small" variant="outlined" />
+                    <Chip label={tUi("{{value0}} {{value1}}", { value0: streamCount, value1: streamCount === 1 ? 'stream' : 'streams' })} size="small" variant="outlined" />
                   </Stack>
 
                   <Stack direction="row" spacing={1} alignItems="flex-start">
@@ -462,11 +453,9 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
             }}
           >
             <Typography variant="sectionTitle" component="h2">
-              No TV channels on this page
-            </Typography>
+              {tUi("No TV channels on this page")}</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-              Move between pages to keep browsing the list.
-            </Typography>
+              {tUi("Move between pages to keep browsing the list.")}</Typography>
           </Paper>
         )}
         {totalCount > 0 ? <MobilePagination /> : null}
@@ -478,7 +467,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     <Paper
       component="section"
       role="region"
-      aria-label="TV channel inventory"
+      aria-label={tUi("TV channel inventory")}
       variant="outlined"
       sx={{
         borderRadius: 2,

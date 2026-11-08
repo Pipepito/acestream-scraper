@@ -1,3 +1,5 @@
+import { useUiText } from '../../i18n/useUiText';
+import { uiText } from '../../i18n/text';
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -15,10 +17,11 @@ interface Group {
 
 /** Three short definition lists: what the app holds right now. */
 const InventoryTotals: React.FC<InventoryTotalsProps> = ({ stats, tvStats }) => {
+  useUiText();
   const theme = useTheme();
   const groups: Group[] = [
     {
-      title: 'Streams',
+      title: uiText("Streams"),
       rows: stats ? [
         ['Total', stats.channels.total],
         ['Online', stats.channels.online],
@@ -27,7 +30,7 @@ const InventoryTotals: React.FC<InventoryTotalsProps> = ({ stats, tvStats }) => 
       ] : [['Total', 'Unavailable']],
     },
     {
-      title: 'TV channels',
+      title: uiText("TV channels"),
       rows: tvStats
         ? [
             ['Total', tvStats.total],
@@ -38,7 +41,7 @@ const InventoryTotals: React.FC<InventoryTotalsProps> = ({ stats, tvStats }) => 
         : [['Total', '—']],
     },
     {
-      title: 'Sources and guide',
+      title: uiText("Sources and guide"),
       rows: stats ? [
         ['Source URLs', `${stats.urls.total} (${stats.urls.active} enabled${stats.urls.error ? `, ${stats.urls.error} failing` : ''})`],
         ['EPG sources', stats.epg.sources],

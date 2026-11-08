@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import {
   Box,
@@ -20,6 +22,7 @@ interface EPGXmlOutputPanelProps {
 }
 
 const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
+  const tUi = useUiText();
   // XML generation state
   const [xmlOptions, setXmlOptions] = useState<EPGXMLGenerationParams>({
     search_term: '',
@@ -56,7 +59,7 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
       await downloadEPGXML(xmlOptions);
       onNotify('EPG XML generation started', 'info');
     } catch (error) {
-      onNotify(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      onNotify(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     }
   };
 
@@ -66,11 +69,11 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Search Term (Optional)"
+            label={tUi("Search Term (Optional)")}
             name="search_term"
             value={xmlOptions.search_term || ''}
             onChange={handleXmlOptionChange}
-            placeholder="Filter channels by name"
+            placeholder={tUi("Filter channels by name")}
             variant="outlined"
             margin="normal"
           />
@@ -86,15 +89,14 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
                 color="primary"
               />
             }
-            label="Include Favorite Channels Only"
+            label={tUi("Include Favorite Channels Only")}
             sx={{ mt: 2 }}
           />
         </Grid>
 
         <Grid item xs={12}>
           <Typography variant="subtitle1" gutterBottom>
-            Date Range
-          </Typography>
+            {tUi("Date Range")}</Typography>
           <Box sx={{ px: 2 }}>
             <Slider
               value={[-(xmlOptions.days_back || 1), xmlOptions.days_forward || 7]}
@@ -106,7 +108,7 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
               marks={[
                 { value: -14, label: '14 days past' },
                 { value: -7, label: '1 week past' },
-                { value: 0, label: 'Today' },
+                { value: 0, label: uiText("Today") },
                 { value: 7, label: '1 week future' },
                 { value: 14, label: '2 weeks future' }
               ]}
@@ -114,8 +116,7 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
             />
           </Box>
           <Typography variant="body2" color="textSecondary" align="center">
-            Including {xmlOptions.days_back} days of past programs and {xmlOptions.days_forward} days of future programs
-          </Typography>
+            {tUi("Including")}{' '}{xmlOptions.days_back} {' '}{tUi("days of past programs and")}{' '}{xmlOptions.days_forward} {tUi("days of future programs")}</Typography>
         </Grid>
 
         <Grid item xs={12}>
@@ -129,7 +130,7 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
               disabled={isDownloadingXML}
               size="large"
             >
-              {isDownloadingXML ? 'Generating...' : 'Generate and Download EPG XML'}
+              {isDownloadingXML ? tUi("Generating...") : tUi("Generate and Download EPG XML")}
             </Button>
           </Box>
         </Grid>

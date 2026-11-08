@@ -1,3 +1,6 @@
+import { getLocale } from '../../i18n/locale';
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import RecordButton from '../recordings/RecordButton';
 import React, { useMemo, useState } from 'react';
 import { Alert, Box, Button, Chip, Collapse, LinearProgress, List, ListItem, Stack, Tab, Tabs, Typography, useTheme } from '@mui/material';
@@ -18,12 +21,13 @@ export interface ScheduleViewProps {
 const DAY_COUNT = 7;
 
 export const dayLabel = (offset: number, base: Date): string => {
-  if (offset === 0) return 'Today';
-  if (offset === 1) return 'Tomorrow';
-  return format(addDays(base, offset), 'EEE d');
+  if (offset === 0) return uiText('Today');
+  if (offset === 1) return uiText('Tomorrow');
+  return addDays(base, offset).toLocaleDateString(getLocale(), { weekday: 'short', day: 'numeric' });
 };
 
 const ProgramRow: React.FC<{ program: EPGProgram; past: boolean; tvChannelId?: number; tvChannelName?: string }> = ({ program, past, tvChannelId, tvChannelName }) => {
+  const tUi = useUiText();
   const [open, setOpen] = useState(false);
   const details = [program.subtitle, program.description].filter(Boolean).join(' — ');
   return (
@@ -53,7 +57,7 @@ const ProgramRow: React.FC<{ program: EPGProgram; past: boolean; tvChannelId?: n
                 </Typography>
               </Collapse>
               <Button size="small" onClick={() => setOpen((value) => !value)} aria-expanded={open} sx={{ mt: 0.25, ml: -0.75 }}>
-                {open ? 'Less' : 'More'}
+                {open ? tUi("Less") : tUi("More")}
               </Button>
             </>
           ) : null}
@@ -65,6 +69,7 @@ const ProgramRow: React.FC<{ program: EPGProgram; past: boolean; tvChannelId?: n
 
 /** Day-tabbed schedule for one guide channel: Now/Next for today, then the day's programmes grouped by hour. */
 const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, tvChannelId, tvChannelName, now: suppliedNow }) => {
+  const tUi = useUiText();
   const clock = useNow();
   const now = suppliedNow ?? clock;
   const theme = useTheme();
@@ -95,24 +100,24 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, tvChannelId, 
     const byHour = new Map<string, EPGProgram[]>();
     programs.forEach((program) => {
       const start = parseISO(program.start_time);
-      const key = start < dayStart ? 'Before midnight' : format(start, 'HH:00');
+      const key = start < dayStart ? uiText("Before midnight") : format(start, 'HH:00');
       byHour.set(key, [...(byHour.get(key) ?? []), program]);
     });
     return Array.from(byHour.entries());
   }, [programs, dayStart]);
 
-  const dayPhrase = dayOffset === 0 ? 'today' : dayOffset === 1 ? 'tomorrow' : `on ${dayLabel(dayOffset, today)}`;
+  const dayPhrase = dayOffset === 0 ? tUi('today') : dayOffset === 1 ? tUi('tomorrow') : tUi('on {{day}}', { day: dayLabel(dayOffset, today) });
 
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary">Times in {Intl.DateTimeFormat().resolvedOptions().timeZone}</Typography>
+      <Typography variant="caption" color="text.secondary">{tUi("Times in")}{' '}{Intl.DateTimeFormat().resolvedOptions().timeZone}</Typography>
       <Tabs
         value={dayOffset}
         onChange={(_event, value: number) => setDayOffset(value)}
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
-        aria-label="Schedule day"
+        aria-label={tUi("Schedule day")}
         sx={{ mb: 2, borderBottom: `1px solid ${theme.appTokens.surface.border}` }}
       >
         {Array.from({ length: DAY_COUNT }, (_, offset) => (
@@ -125,23 +130,23 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ epgChannelId, tvChannelId, 
       {isLoading ? (
         <Box role="status" aria-live="polite" sx={{ mb: 2 }}>
           <LinearProgress sx={{ mb: 1 }} />
-          <Typography variant="body2">Loading schedule…</Typography>
+          <Typography variant="body2">{tUi("Loading schedule…")}</Typography>
         </Box>
       ) : null}
 
-      {error ? <Alert severity="error">Unable to load the schedule right now.</Alert> : null}
+      {error ? <Alert severity="error">{tUi("Unable to load the schedule right now.")}</Alert> : null}
 
       {!isLoading && !error ? (
         <>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {programs.length === 0 ? `No programmes ${dayPhrase}.` : `${programs.length} programme${programs.length === 1 ? '' : 's'} ${dayPhrase}`}
+            {programs.length === 0 ? tUi("No programmes {{value0}}.", { value0: dayPhrase }) : tUi("{{count}} programme {{day}}", { count: programs.length, day: dayPhrase })}
           </Typography>
           {groups.map(([hour, items]) => (
-            <Box key={hour} sx={{ mb: 1.5 }}>
+            <Box key={hour === 'Before midnight' ? tUi('Before midnight') : hour} sx={{ mb: 1.5 }}>
               <Typography variant="statusMeta" component="h3" color="text.secondary" sx={{ mb: 0.5 }}>
-                {hour}
+                {hour === 'Before midnight' ? tUi('Before midnight') : hour}
               </Typography>
-              <List disablePadding aria-label={`Programmes from ${hour}`}>
+              <List disablePadding aria-label={tUi("Programmes from {{value0}}", { value0: hour === 'Before midnight' ? tUi('Before midnight') : hour })}>
                 {items.map((program) => (
                   <ProgramRow tvChannelId={tvChannelId} tvChannelName={tvChannelName} key={program.id} program={program} past={dayOffset === 0 && parseISO(program.end_time) <= now} />
                 ))}

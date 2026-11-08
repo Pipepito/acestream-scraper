@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -76,6 +78,7 @@ interface StreamOrderDraft {
 }
 
 const TVChannelDetail: React.FC = () => {
+  const tUi = useUiText();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const channelId = id ? parseInt(id, 10) : 0;
@@ -127,7 +130,7 @@ const TVChannelDetail: React.FC = () => {
         expectedOrder: draft.expectedOrder,
       });
       setOrderDraft(null);
-      setNotice({ message: 'Stream preference order saved successfully.', severity: 'success' });
+      setNotice({ message: uiText("Stream preference order saved successfully."), severity: 'success' });
     } catch (err) {
       setNotice({ message: normalizeApiError(err).message || 'Failed to save stream order.', severity: 'error' });
     } finally {
@@ -211,9 +214,9 @@ const TVChannelDetail: React.FC = () => {
         },
       });
       setIsEditing(false);
-      setNotice({ message: 'TV channel updated successfully.', severity: 'success' });
+      setNotice({ message: uiText("TV channel updated successfully."), severity: 'success' });
     } catch {
-      setNotice({ message: 'Failed to update TV channel.', severity: 'error' });
+      setNotice({ message: uiText("Failed to update TV channel."), severity: 'error' });
     }
   };
 
@@ -222,7 +225,7 @@ const TVChannelDetail: React.FC = () => {
     const ok = await confirm({
       title: `Remove ${stream?.name || aceStreamId} from this channel?`,
       body: 'The stream stays in the Acestream inventory; it just stops feeding this TV channel.',
-      confirmLabel: 'Remove',
+      confirmLabel: uiText("Remove"),
       danger: true,
     });
     if (!ok) return;
@@ -230,7 +233,7 @@ const TVChannelDetail: React.FC = () => {
       await removeAcestreamMutation.mutateAsync({ tvChannelId: channelId, aceStreamId });
       setNotice({ message: `Removed acestream ${stream?.name || aceStreamId} successfully.`, severity: 'success' });
     } catch {
-      setNotice({ message: 'Failed to remove acestream.', severity: 'error' });
+      setNotice({ message: uiText("Failed to remove acestream."), severity: 'error' });
     }
   };
 
@@ -240,7 +243,7 @@ const TVChannelDetail: React.FC = () => {
       try {
         await associateAcestreamMutation.mutateAsync({ tvChannelId: channelId, aceStreamId });
       } catch {
-        setNotice({ message: 'Failed to assign selected acestream sources.', severity: 'error' });
+        setNotice({ message: uiText("Failed to assign selected acestream sources."), severity: 'error' });
         return;
       }
     }
@@ -254,8 +257,7 @@ const TVChannelDetail: React.FC = () => {
       <Box sx={{ width: '100%', p: 3 }} role="status" aria-live="polite">
         <LinearProgress />
         <Typography variant="body1" sx={{ mt: 2 }}>
-          Loading TV channel details...
-        </Typography>
+          {tUi("Loading TV channel details...")}</Typography>
       </Box>
     );
   }
@@ -264,11 +266,9 @@ const TVChannelDetail: React.FC = () => {
     return (
       <Box sx={{ width: '100%', p: 3 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
-          Error loading TV channel details.
-        </Alert>
-        <Button startIcon={<BackIcon />} onClick={() => navigate('/tv-channels')} aria-label="Back to TV channels">
-          Back to TV Channels
-        </Button>
+          {tUi("Error loading TV channel details.")}</Alert>
+        <Button startIcon={<BackIcon />} onClick={() => navigate('/tv-channels')} aria-label={tUi("Back to TV channels")}>
+          {tUi("Back to TV Channels")}</Button>
       </Box>
     );
   }
@@ -284,36 +284,33 @@ const TVChannelDetail: React.FC = () => {
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/tv-channels')}>
-              Back
-            </Button>
+              {tUi("Back")}</Button>
             <Button
               variant="contained"
               startIcon={<PlayArrowRounded />}
               disabled={streamCount === 0}
               onClick={() => setPlayerTarget({ contentId: channel.acestream_channels[0].id, title: channel.name })}
             >
-              Watch channel
-            </Button>
+              {tUi("Watch channel")}</Button>
             {!isEditing ? (
               <Button variant="outlined" startIcon={<EditIcon />} onClick={handleEdit}>
-                Edit
-              </Button>
+                {tUi("Edit")}</Button>
             ) : null}
           </Stack>
         }
       />
 
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label="Channel summary" sx={{ mb: 2 }}>
-        <Chip label={channel.is_active ? 'Active' : 'Hidden'} color={channel.is_active ? 'success' : 'default'} size="small" variant="outlined" />
-        {channel.is_favorite ? <Chip label="Favorite" color="warning" size="small" variant="outlined" /> : null}
-        <Chip label={`${streamCount} stream${streamCount === 1 ? '' : 's'}`} size="small" variant="outlined" color={streamCount === 0 ? 'warning' : 'default'} />
-        <Chip label={channel.epg_id ? `EPG: ${channel.epg_id}` : 'EPG: not mapped'} size="small" variant="outlined" color={channel.epg_id ? 'default' : 'warning'} sx={{ fontFamily: channel.epg_id ? 'monospace' : undefined }} />
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label={tUi("Channel summary")} sx={{ mb: 2 }}>
+        <Chip label={channel.is_active ? tUi("Active") : tUi("Hidden")} color={channel.is_active ? 'success' : 'default'} size="small" variant="outlined" />
+        {channel.is_favorite ? <Chip label={tUi("Favorite")} color="warning" size="small" variant="outlined" /> : null}
+        <Chip label={tUi("{{value0}} stream{{value1}}", { value0: streamCount, value1: streamCount === 1 ? '' : 's' })} size="small" variant="outlined" color={streamCount === 0 ? 'warning' : 'default'} />
+        <Chip label={channel.epg_id ? tUi("EPG: {{value0}}", { value0: channel.epg_id }) : tUi("EPG: not mapped")} size="small" variant="outlined" color={channel.epg_id ? 'default' : 'warning'} sx={{ fontFamily: channel.epg_id ? 'monospace' : undefined }} />
         {epgChannel ? (
           <Chip
             component={RouterLink}
             to={`/epg/channels/${epgChannel.id}`}
             clickable
-            label={`Guide channel: ${epgChannel.name}`}
+            label={tUi("Guide channel: {{value0}}", { value0: epgChannel.name })}
             size="small"
             variant="outlined"
             color="primary"
@@ -328,25 +325,25 @@ const TVChannelDetail: React.FC = () => {
       ) : null}
 
       {isEditing ? (
-        <ContentSection title="Edit channel">
+        <ContentSection title={tUi("Edit channel")}>
           <Stack spacing={2} component="form" onSubmit={(event) => { event.preventDefault(); void handleSaveEdit(); }}>
-            <TextField name="name" label="Name" value={editFormData.name} onChange={handleEditFormChange} required fullWidth />
+            <TextField name="name" label={tUi("Name")} value={editFormData.name} onChange={handleEditFormChange} required fullWidth />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField name="category" label="Category" value={editFormData.category} onChange={handleEditFormChange} fullWidth />
-              <TextField name="channel_number" label="Channel number" type="number" value={editFormData.channel_number} onChange={handleEditFormChange} sx={{ minWidth: 160 }} />
+              <TextField name="category" label={tUi("Category")} value={editFormData.category} onChange={handleEditFormChange} fullWidth />
+              <TextField name="channel_number" label={tUi("Channel number")} type="number" value={editFormData.channel_number} onChange={handleEditFormChange} sx={{ minWidth: 160 }} />
             </Stack>
             <TextField
               name="epg_id"
-              label="EPG ID"
+              label={tUi("EPG ID")}
               value={editFormData.epg_id}
               onChange={handleEditFormChange}
               fullWidth
-              helperText="The guide channel's XML id. Set it to show the schedule below."
+              helperText={tUi("The guide channel's XML id. Set it to show the schedule below.")}
               InputProps={{ sx: { fontFamily: 'monospace' } }}
             />
             <Stack direction="row" spacing={2}>
-              <FormControlLabel control={<Checkbox name="is_active" checked={editFormData.is_active} onChange={handleEditFormChange} />} label="Active" />
-              <FormControlLabel control={<Checkbox name="is_favorite" checked={editFormData.is_favorite} onChange={handleEditFormChange} />} label="Favorite" />
+              <FormControlLabel control={<Checkbox name="is_active" checked={editFormData.is_active} onChange={handleEditFormChange} />} label={tUi("Active")} />
+              <FormControlLabel control={<Checkbox name="is_favorite" checked={editFormData.is_favorite} onChange={handleEditFormChange} />} label={tUi("Favorite")} />
             </Stack>
             <Button
               onClick={() => setMoreFieldsOpen((value) => !value)}
@@ -354,35 +351,34 @@ const TVChannelDetail: React.FC = () => {
               endIcon={moreFieldsOpen ? <ExpandLess /> : <ExpandMore />}
               sx={{ alignSelf: 'flex-start' }}
             >
-              {moreFieldsOpen ? 'Fewer fields' : 'More fields'}
+              {moreFieldsOpen ? tUi("Fewer fields") : tUi("More fields")}
             </Button>
             <Collapse in={moreFieldsOpen} unmountOnExit>
               <Stack spacing={2}>
-                <TextField name="description" label="Description" value={editFormData.description} onChange={handleEditFormChange} fullWidth multiline rows={2} />
-                <TextField name="logo_url" label="Logo URL" value={editFormData.logo_url} onChange={handleEditFormChange} fullWidth />
-                <TextField name="website" label="Website" value={editFormData.website} onChange={handleEditFormChange} fullWidth />
+                <TextField name="description" label={tUi("Description")} value={editFormData.description} onChange={handleEditFormChange} fullWidth multiline rows={2} />
+                <TextField name="logo_url" label={tUi("Logo URL")} value={editFormData.logo_url} onChange={handleEditFormChange} fullWidth />
+                <TextField name="website" label={tUi("Website")} value={editFormData.website} onChange={handleEditFormChange} fullWidth />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <TextField name="language" label="Language" value={editFormData.language} onChange={handleEditFormChange} fullWidth />
-                  <TextField name="country" label="Country" value={editFormData.country} onChange={handleEditFormChange} fullWidth />
+                  <TextField name="language" label={tUi("Language")} value={editFormData.language} onChange={handleEditFormChange} fullWidth />
+                  <TextField name="country" label={tUi("Country")} value={editFormData.country} onChange={handleEditFormChange} fullWidth />
                 </Stack>
               </Stack>
             </Collapse>
             <Stack direction="row" spacing={1}>
               <Button type="submit" variant="contained">
-                Save
-              </Button>
-              <Button onClick={() => setIsEditing(false)}>Cancel</Button>
+                {tUi("Save")}</Button>
+              <Button onClick={() => setIsEditing(false)}>{tUi("Cancel")}</Button>
             </Stack>
           </Stack>
         </ContentSection>
       ) : null}
 
       <ContentSection
-        title="Streams"
+        title={tUi("Streams")}
         actions={
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
             {draft && (
-              <Button disabled={isSavingOrder} onClick={() => setOrderDraft(null)}>Cancel</Button>
+              <Button disabled={isSavingOrder} onClick={() => setOrderDraft(null)}>{tUi("Cancel")}</Button>
             )}
             <Button
               variant="contained"
@@ -392,19 +388,17 @@ const TVChannelDetail: React.FC = () => {
               disabled={!isOrderModified || isSavingOrder || streamCount < 2}
               onClick={() => void handleSaveOrder()}
             >
-              {isSavingOrder ? 'Saving…' : 'Save order'}
+              {isSavingOrder ? tUi("Saving…") : tUi("Save order")}
             </Button>
             <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpenAssociateDialog(true)}>
-              Add stream
-            </Button>
+              {tUi("Add stream")}</Button>
             <Button variant="outlined" size="small" onClick={() => setOpenBatchAssignDialog(true)}>
-              Add many
-            </Button>
+              {tUi("Add many")}</Button>
           </Stack>
         }
       >
         {streamCount === 0 ? (
-          <Alert severity="info">No streams yet. Add one so this channel can play.</Alert>
+          <Alert severity="info">{tUi("No streams yet. Add one so this channel can play.")}</Alert>
         ) : (
           <List sx={{ p: 0 }}>
             {orderedStreams.map((acestream, index) => (
@@ -439,19 +433,19 @@ const TVChannelDetail: React.FC = () => {
                   },
                 }}
                 secondaryAction={
-                  <Box role="group" aria-label={`Acestream actions for ${acestream.name}`}>
-                    <Tooltip title="Play in the browser">
+                  <Box role="group" aria-label={tUi("Acestream actions for {{value0}}", { value0: acestream.name })}>
+                    <Tooltip title={tUi("Play in the browser")}>
                       <IconButton
                         edge="end"
                         color="primary"
-                        aria-label={`play stream ${acestream.name}`}
+                        aria-label={tUi("play stream {{value0}}", { value0: acestream.name })}
                         onClick={() => setPlayerTarget({ contentId: acestream.id, title: acestream.name })}
                       >
                         <PlayArrowRounded />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Remove from this channel">
-                      <IconButton edge="end" color="error" aria-label={`Remove acestream ${acestream.name}`} onClick={() => handleRemoveAcestream(acestream.id)}>
+                    <Tooltip title={tUi("Remove from this channel")}>
+                      <IconButton edge="end" color="error" aria-label={tUi("Remove acestream {{value0}}", { value0: acestream.name })} onClick={() => handleRemoveAcestream(acestream.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </Tooltip>
@@ -463,7 +457,7 @@ const TVChannelDetail: React.FC = () => {
                     size="small"
                     draggable={!isSavingOrder}
                     disabled={isSavingOrder}
-                    aria-label={`Drag ${acestream.name}`}
+                    aria-label={tUi("Drag {{value0}}", { value0: acestream.name })}
                     sx={{ cursor: 'grab' }}
                     onDragStart={(e) => {
                       draggedStreamId.current = acestream.id;
@@ -487,7 +481,7 @@ const TVChannelDetail: React.FC = () => {
                     <DragIndicator />
                   </IconButton>
                   <Typography
-                    aria-label={`Order ${index + 1}`}
+                    aria-label={tUi("Order {{value0}}", { value0: index + 1 })}
                     sx={{
                       minWidth: 28,
                       textAlign: 'center',
@@ -499,7 +493,7 @@ const TVChannelDetail: React.FC = () => {
                   </Typography>
                   <IconButton
                     size="small"
-                    aria-label={`Move ${acestream.name} up`}
+                    aria-label={tUi("Move {{value0}} up", { value0: acestream.name })}
                     disabled={isSavingOrder || index === 0}
                     onClick={() => moveStreamStep(index, 'up')}
                   >
@@ -507,7 +501,7 @@ const TVChannelDetail: React.FC = () => {
                   </IconButton>
                   <IconButton
                     size="small"
-                    aria-label={`Move ${acestream.name} down`}
+                    aria-label={tUi("Move {{value0}} down", { value0: acestream.name })}
                     disabled={isSavingOrder || index === orderedStreams.length - 1}
                     onClick={() => moveStreamStep(index, 'down')}
                   >
@@ -520,7 +514,7 @@ const TVChannelDetail: React.FC = () => {
                   secondary={
                     <Stack component="span" direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                       {acestream.is_online !== undefined && acestream.is_online !== null ? (
-                        <Chip component="span" size="small" variant="outlined" label={acestream.is_online ? 'Online' : 'Offline'} color={acestream.is_online ? 'success' : 'error'} />
+                        <Chip component="span" size="small" variant="outlined" label={acestream.is_online ? tUi("Online") : tUi("Offline")} color={acestream.is_online ? 'success' : 'error'} />
                       ) : null}
                       {acestream.group ? <Chip component="span" size="small" variant="outlined" label={acestream.group} /> : null}
                       <Typography component="span" variant="body2" sx={{ fontFamily: 'monospace', alignSelf: 'center', overflowWrap: 'anywhere' }}>
@@ -536,53 +530,52 @@ const TVChannelDetail: React.FC = () => {
         )}
       </ContentSection>
 
-      <ContentSection title="Schedule">
+      <ContentSection title={tUi("Schedule")}>
         {!channel.epg_id ? (
-          <Alert severity="info">No EPG ID yet. Edit the channel and set one to see the schedule here.</Alert>
+          <Alert severity="info">{tUi("No EPG ID yet. Edit the channel and set one to see the schedule here.")}</Alert>
         ) : isResolvingEpg ? (
           <Box role="status" aria-live="polite">
             <LinearProgress sx={{ mb: 1 }} />
-            <Typography variant="body2">Finding the guide channel…</Typography>
+            <Typography variant="body2">{tUi("Finding the guide channel…")}</Typography>
           </Box>
         ) : epgChannel ? (
           <ScheduleView epgChannelId={epgChannel.id} />
         ) : (
           <Alert severity="warning">
             {isEpgResolveError
-              ? 'Unable to look up the guide channel right now.'
-              : `No guide channel with id “${channel.epg_id}” was found in the EPG sources. Check the ID or refresh the sources.`}
+              ? tUi("Unable to look up the guide channel right now.")
+              : tUi("No guide channel with id “{{value0}}” was found in the EPG sources. Check the ID or refresh the sources.", { value0: channel.epg_id })}
           </Alert>
         )}
       </ContentSection>
 
       <Dialog open={openAssociateDialog} onClose={() => setOpenAssociateDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add a stream</DialogTitle>
+        <DialogTitle>{tUi("Add a stream")}</DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
-            label="Search by name, group, or ID"
+            label={tUi("Search by name, group, or ID")}
             fullWidth
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Type to search..."
+            placeholder={tUi("Type to search...")}
             variant="outlined"
             sx={{ mb: 2 }}
           />
           {isLoadingAcestreamCandidates ? (
             <Box sx={{ mb: 2 }} role="status" aria-live="polite">
               <LinearProgress sx={{ mb: 1 }} />
-              <Typography variant="body2">Loading Acestream candidates...</Typography>
+              <Typography variant="body2">{tUi("Loading Acestream candidates...")}</Typography>
             </Box>
           ) : null}
           {isErrorLoadingAcestreamCandidates ? (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Unable to load Acestream candidates. Try searching again in a moment.
-            </Alert>
+              {tUi("Unable to load Acestream candidates. Try searching again in a moment.")}</Alert>
           ) : null}
           <Alert severity="info" sx={{ mb: 2 }} role="status">
             {selectedAcestreams.length === 0
-              ? 'Select one or more Acestream sources before assigning them.'
-              : `${selectedAcestreams.length} acestream selected for assignment.`}
+              ? tUi("Select one or more Acestream sources before assigning them.")
+              : tUi("{{value0}} acestream selected for assignment.", { value0: selectedAcestreams.length })}
           </Alert>
           <List sx={{ maxHeight: 350, overflow: 'auto' }}>
             {isErrorLoadingAcestreamCandidates ? null : acestreamCandidateItems.length === 0 ? (
@@ -614,11 +607,9 @@ const TVChannelDetail: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenAssociateDialog(false)} color="inherit">
-            Cancel
-          </Button>
+            {tUi("Cancel")}</Button>
           <Button onClick={handleAssociateSelected} color="primary" variant="contained" disabled={selectedAcestreams.length === 0}>
-            Assign Selected
-          </Button>
+            {tUi("Assign Selected")}</Button>
         </DialogActions>
       </Dialog>
 

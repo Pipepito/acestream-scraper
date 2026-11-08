@@ -1,3 +1,5 @@
+import { useUiText } from '../../i18n/useUiText';
+import { uiText } from '../../i18n/text';
 import React from 'react';
 import { Chip, useTheme } from '@mui/material';
 
@@ -7,9 +9,10 @@ export interface OnlineChipProps {
 
 /** Keep the full signal status readable, including in narrow cards. */
 const OnlineChip: React.FC<OnlineChipProps> = ({ isOnline }) => {
+  useUiText();
   const theme = useTheme();
   const tone = isOnline === true ? theme.appTokens.status.success : isOnline === false ? theme.appTokens.status.error : null;
-  const label = isOnline === true ? 'Signal verified' : isOnline === false ? 'No signal verified' : 'Not checked';
+  const label = isOnline === true ? uiText("Signal verified") : isOnline === false ? uiText("No signal verified") : uiText("Not checked");
   return (
     <Chip
       label={label}

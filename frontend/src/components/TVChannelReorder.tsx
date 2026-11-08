@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useRef, useState } from 'react';
 import { Alert, Box, Button, IconButton, Stack, Typography } from '@mui/material';
 import { ArrowDownward, ArrowUpward, DragIndicator } from '@mui/icons-material';
@@ -7,6 +8,7 @@ import { normalizeApiError } from '../services/apiErrors';
 export default function TVChannelReorder({ channels, onSave, onCancel }: {
   channels: TVChannel[]; onSave: (ids: number[], expected: number[]) => Promise<void>; onCancel: () => void;
 }) {
+  const tUi = useUiText();
   const original = useRef(channels);
   const [ordered, setOrdered] = useState(channels);
   const dragged = useRef<number | null>(null);
@@ -33,27 +35,27 @@ export default function TVChannelReorder({ channels, onSave, onCancel }: {
     finally { saving.current = false; setPending(false); }
   };
   return <Stack spacing={2}>
-    <Typography>Drag a handle to move a channel, or use the arrow buttons. This shows all channels and saves consecutive numbers from 1.</Typography>
+    <Typography>{tUi("Drag a handle to move a channel, or use the arrow buttons. This shows all channels and saves consecutive numbers from 1.")}</Typography>
     {error ? <Alert severity="error">{error}</Alert> : null}
     <Typography role="status" variant="body2">{announcement}</Typography>
-    <Box component="ol" aria-label="Channel order" sx={{ listStyle: 'none', p: 0, m: 0, maxHeight: '60vh', overflowY: 'auto' }}>
+    <Box component="ol" aria-label={tUi("Channel order")} sx={{ listStyle: 'none', p: 0, m: 0, maxHeight: '60vh', overflowY: 'auto' }}>
       {ordered.map((channel, index) => <Box component="li" key={channel.id}
         onDragOver={e => { if (!pending && dragged.current !== null) { e.preventDefault(); setOver(channel.id); e.dataTransfer.dropEffect = 'move'; } }}
         onDrop={e => { e.preventDefault(); if (dragged.current !== null) move(dragged.current, channel.id); dragged.current = null; setOver(null); }}
         sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, borderBottom: 1, borderColor: 'divider', bgcolor: over === channel.id ? 'action.selected' : 'transparent' }}>
-        <IconButton draggable={!pending} disabled={pending} aria-label={`Drag ${channel.name}`} sx={{ cursor: 'grab' }}
+        <IconButton draggable={!pending} disabled={pending} aria-label={tUi("Drag {{value0}}", { value0: channel.name })} sx={{ cursor: 'grab' }}
           onDragStart={e => { dragged.current = channel.id; e.dataTransfer.setData('text/plain', String(channel.id)); e.dataTransfer.effectAllowed = 'move'; }}
           onDragEnd={() => { dragged.current = null; setOver(null); }}
           onKeyDown={e => { const target = e.key === 'ArrowUp' ? ordered[index - 1] : e.key === 'ArrowDown' ? ordered[index + 1] : null; if (target) { e.preventDefault(); move(channel.id, target.id); } }}><DragIndicator /></IconButton>
-        <Typography aria-label={`Number ${index + 1}`} sx={{ minWidth: 32 }}>{index + 1}</Typography>
+        <Typography aria-label={tUi("Number {{value0}}", { value0: index + 1 })} sx={{ minWidth: 32 }}>{index + 1}</Typography>
         <Typography sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{channel.name}</Typography>
-        <IconButton aria-label={`Move ${channel.name} up`} disabled={pending || index === 0} onClick={() => move(channel.id, ordered[index - 1].id)}><ArrowUpward /></IconButton>
-        <IconButton aria-label={`Move ${channel.name} down`} disabled={pending || index === ordered.length - 1} onClick={() => move(channel.id, ordered[index + 1].id)}><ArrowDownward /></IconButton>
+        <IconButton aria-label={tUi("Move {{value0}} up", { value0: channel.name })} disabled={pending || index === 0} onClick={() => move(channel.id, ordered[index - 1].id)}><ArrowUpward /></IconButton>
+        <IconButton aria-label={tUi("Move {{value0}} down", { value0: channel.name })} disabled={pending || index === ordered.length - 1} onClick={() => move(channel.id, ordered[index + 1].id)}><ArrowDownward /></IconButton>
       </Box>)}
     </Box>
     <Stack direction="row" spacing={1}>
-      <Button variant="contained" disabled={pending} onClick={() => void save()}>{pending ? 'Saving…' : 'Save order'}</Button>
-      <Button disabled={pending} onClick={onCancel}>Cancel</Button>
+      <Button variant="contained" disabled={pending} onClick={() => void save()}>{pending ? tUi("Saving…") : tUi("Save order")}</Button>
+      <Button disabled={pending} onClick={onCancel}>{tUi("Cancel")}</Button>
     </Stack>
   </Stack>;
 }

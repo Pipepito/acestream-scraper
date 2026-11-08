@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/material';
 import { usePublicUrl, useSystemServices } from '../hooks/useSystemServices';
@@ -8,6 +10,7 @@ interface StreamFormatSuggestionsProps {
 
 /** Prefill editable formats: published sidecar ports can differ from container ports. */
 const StreamFormatSuggestions: React.FC<StreamFormatSuggestionsProps> = ({ onSelect }) => {
+  const tUi = useUiText();
   const { data: publicUrl } = usePublicUrl();
   const { data, isError } = useSystemServices();
   const formats = [{ name: 'AceStream app', pattern: 'acestream://{channel_id}' }];
@@ -20,17 +23,17 @@ const StreamFormatSuggestions: React.FC<StreamFormatSuggestionsProps> = ({ onSel
       url.protocol = 'http:';
       url.port = service.name === 'acexy' ? '8080' : '6878';
       formats.push({
-        name: service.name === 'acexy' ? 'Acexy' : 'AceStream direct',
+        name: service.name === 'acexy' ? uiText("Acexy") : uiText("AceStream direct"),
         pattern: `${url.origin}/ace/getstream?id={channel_id}${service.name === 'acestream' ? '&pid={pid}' : ''}`,
       });
     }
   }
   return <Stack spacing={1}>
-    <Typography variant="body2">Start with a suggested format. Review the host and published port before saving.</Typography>
+    <Typography variant="body2">{tUi("Start with a suggested format. Review the host and published port before saving.")}</Typography>
     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
       {formats.map(format => <Button key={format.name} size="small" variant="outlined" onClick={() => onSelect(format.name, format.pattern)}>{format.name}</Button>)}
     </Stack>
-    {isError ? <Alert severity="warning">Service suggestions could not be loaded.</Alert> : null}
+    {isError ? <Alert severity="warning">{tUi("Service suggestions could not be loaded.")}</Alert> : null}
   </Stack>;
 };
 export default StreamFormatSuggestions;

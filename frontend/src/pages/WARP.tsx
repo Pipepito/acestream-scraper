@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -28,8 +30,8 @@ const SUBTITLE = 'Cloudflare WARP tunnel for the scraper’s outbound traffic.';
 
 /** One sentence that says everything a user needs about the tunnel state. */
 export const describeWarpStatus = (status: WarpStatus | undefined): string => {
-  if (!status?.running) return 'Not running';
-  const parts = [status.connected ? 'Connected' : 'Disconnected'];
+  if (!status?.running) return uiText("Not running");
+  const parts: string[] = [status.connected ? uiText("Connected") : uiText("Disconnected")];
   if (status.mode) parts.push(`mode ${status.mode}`);
   if (status.account_type) parts.push(`${status.account_type} account`);
   if (status.connected && (status.location || status.colo)) {
@@ -39,6 +41,7 @@ export const describeWarpStatus = (status: WarpStatus | undefined): string => {
 };
 
 const WarpPage: React.FC = () => {
+  const tUi = useUiText();
   const navigate = useNavigate();
   const { data: status, isLoading, error } = useWarpStatus();
   const connectMutation = useWarpConnect();
@@ -90,7 +93,7 @@ const WarpPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }} role="status" aria-label="Loading WARP status">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }} role="status" aria-label={tUi("Loading WARP status")}>
         <CircularProgress />
       </Box>
     );
@@ -99,8 +102,8 @@ const WarpPage: React.FC = () => {
   if (error) {
     return (
       <Box>
-        <PageHeader title="WARP" subtitle={SUBTITLE} />
-        <Alert severity="error">Error loading WARP status: {(error as Error).message}</Alert>
+        <PageHeader title={tUi("WARP")} subtitle={SUBTITLE} />
+        <Alert severity="error">{tUi("Error loading WARP status:")}{' '}{(error as Error).message}</Alert>
       </Box>
     );
   }
@@ -108,28 +111,28 @@ const WarpPage: React.FC = () => {
   const running = Boolean(status?.running);
   const connected = Boolean(status?.connected);
   const chipColor = !running ? 'default' : connected ? 'success' : 'warning';
-  const chipLabel = !running ? 'Not running' : connected ? 'Connected' : 'Disconnected';
+  const chipLabel = !running ? uiText("Not running") : connected ? uiText("Connected") : uiText("Disconnected");
 
   return (
     <Box>
       <PageHeader
-        title="WARP"
+        title={tUi("WARP")}
         subtitle={SUBTITLE}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!running || connected || connectMutation.isPending || reconnecting}>
-              {connectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Connect'}
+              {connectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : tUi("Connect")}
             </Button>
             <Button variant="outlined" onClick={() => disconnectMutation.mutate()} disabled={!running || !connected || disconnectMutation.isPending || reconnecting}>
-              {disconnectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Disconnect'}
+              {disconnectMutation.isPending ? <CircularProgress size={24} color="inherit" /> : tUi("Disconnect")}
             </Button>
-            <Button disabled={!running || !connected || reconnecting || connectMutation.isPending || disconnectMutation.isPending} onClick={reconnect}>{reconnecting ? 'Reconnecting…' : 'Reconnect'}</Button>
+            <Button disabled={!running || !connected || reconnecting || connectMutation.isPending || disconnectMutation.isPending} onClick={reconnect}>{reconnecting ? tUi("Reconnecting…") : tUi("Reconnect")}</Button>
           </Stack>
         }
-        overflowActions={[{ label: 'Back to System status', onClick: () => navigate('/system') }]}
+        overflowActions={[{ label: uiText("Back to System status"), onClick: () => navigate('/system') }]}
       />
 
-      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap role="status" aria-label="WARP status" sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap role="status" aria-label={tUi("WARP status")} sx={{ mb: 2 }}>
         <Chip label={chipLabel} color={chipColor} variant="outlined" sx={{ fontWeight: 600, minWidth: 110 }} />
         <Typography variant="body2" color="text.secondary">
           {describeWarpStatus(status)}
@@ -144,66 +147,58 @@ const WarpPage: React.FC = () => {
 
       {!running ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          WARP is not running in this container. Enable it with <code>ENABLE_WARP=true</code>.
-          DNS-only startup uses <code>WARP_DNS_ONLY=true</code> and needs <code>NET_ADMIN</code>.
-          Full tunneling also needs <code>/dev/net/tun</code>. Neither mode needs <code>SYS_ADMIN</code> with the current client.
-          Recreate the container if permissions or devices are missing; saving app settings cannot add them.
-        </Alert>
+          {tUi("WARP is not running in this container. Enable it with")}{' '}<code>{tUi("ENABLE_WARP=true")}</code>{tUi(". DNS-only startup uses")}{' '}<code>{tUi("WARP_DNS_ONLY=true")}</code> {' '}{tUi("and needs")}{' '}<code>{tUi("NET_ADMIN")}</code>{tUi(". Full tunneling also needs")}{' '}<code>{tUi("/dev/net/tun")}</code>{tUi(". Neither mode needs")}{' '}<code>{tUi("SYS_ADMIN")}</code> {tUi("with the current client. Recreate the container if permissions or devices are missing; saving app settings cannot add them.")}</Alert>
       ) : null}
 
       {running ? (
-        <ContentSection title="Connection details">
+        <ContentSection title={tUi("Connection details")}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Current path">
+              <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label={tUi("Current path")}>
                 <Typography variant="sectionTitle" sx={{ mb: 1 }}>
-                  Current path
-                </Typography>
+                  {tUi("Current path")}</Typography>
                 {status?.ip ? (
                   <Typography variant="body2" color="text.secondary">
-                    IP: {status.ip}
+                    {tUi("IP:")}{' '}{status.ip}
                   </Typography>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    {connected ? 'Public IP not reported yet.' : 'Connect to see the public IP and exit location.'}
+                    {connected ? tUi("Public IP not reported yet.") : tUi("Connect to see the public IP and exit location.")}
                   </Typography>
                 )}
                 {status?.location || status?.colo ? (
                   <Typography variant="body2" color="text.secondary">
-                    Exit location: {[status?.location, status?.colo ? `via ${status.colo}` : null].filter(Boolean).join(' ')}
+                    {tUi("Exit location:")}{' '}{[status?.location, status?.colo ? tUi("via {{value0}}", { value0: status.colo }) : null].filter(Boolean).join(' ')}
                   </Typography>
                 ) : null}
               </Paper>
             </Grid>
             {connected && status?.tunnel && Object.values(status.tunnel).some(Boolean) ? (
               <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Tunnel details">
+                <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label={tUi("Tunnel details")}>
                   <Typography variant="sectionTitle" sx={{ mb: 1 }}>
-                    Tunnel details
-                  </Typography>
-                  {status.tunnel.protocol ? <Typography variant="body2" color="text.secondary">Protocol: {status.tunnel.protocol}</Typography> : null}
-                  {status.tunnel.latency ? <Typography variant="body2" color="text.secondary">Latency: {status.tunnel.latency}</Typography> : null}
-                  {status.tunnel.loss ? <Typography variant="body2" color="text.secondary">Packet loss: {status.tunnel.loss}</Typography> : null}
-                  {status.tunnel.last_handshake ? <Typography variant="body2" color="text.secondary">Last handshake: {status.tunnel.last_handshake} ago</Typography> : null}
+                    {tUi("Tunnel details")}</Typography>
+                  {status.tunnel.protocol ? <Typography variant="body2" color="text.secondary">{tUi("Protocol:")}{' '}{status.tunnel.protocol}</Typography> : null}
+                  {status.tunnel.latency ? <Typography variant="body2" color="text.secondary">{tUi("Latency:")}{' '}{status.tunnel.latency}</Typography> : null}
+                  {status.tunnel.loss ? <Typography variant="body2" color="text.secondary">{tUi("Packet loss:")}{' '}{status.tunnel.loss}</Typography> : null}
+                  {status.tunnel.last_handshake ? <Typography variant="body2" color="text.secondary">{tUi("Last handshake:")}{' '}{status.tunnel.last_handshake} {' '}{tUi("ago")}</Typography> : null}
                   {status.tunnel.sent || status.tunnel.received ? (
                     <Typography variant="body2" color="text.secondary">
-                      Traffic: {status.tunnel.sent ?? '?'} sent, {status.tunnel.received ?? '?'} received
-                    </Typography>
+                      {tUi("Traffic:")}{' '}{status.tunnel.sent ?? '?'} {' '}{tUi("sent,")}{' '}{status.tunnel.received ?? '?'} {tUi("received")}</Typography>
                   ) : null}
-                  {status.tunnel.endpoints ? <Typography variant="body2" color="text.secondary">Endpoints: {status.tunnel.endpoints}</Typography> : null}
-                  {status.tunnel.tls_version ? <Typography variant="body2" color="text.secondary">TLS: {status.tunnel.tls_version}</Typography> : null}
+                  {status.tunnel.endpoints ? <Typography variant="body2" color="text.secondary">{tUi("Endpoints:")}{' '}{status.tunnel.endpoints}</Typography> : null}
+                  {status.tunnel.tls_version ? <Typography variant="body2" color="text.secondary">{tUi("TLS:")}{' '}{status.tunnel.tls_version}</Typography> : null}
                 </Paper>
               </Grid>
             ) : null}
             {status?.registration && (status.registration.device_id || status.registration.account_id || status.registration.license) ? (
               <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label="Registration">
+                <Paper variant="outlined" sx={{ p: 2, height: '100%' }} component="section" aria-label={tUi("Registration")}>
                   <Typography variant="sectionTitle" sx={{ mb: 1 }}>
-                    Registration
-                  </Typography>
-                  {status.registration.device_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>Device ID: {status.registration.device_id}</Typography> : null}
-                  {status.registration.account_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>Account ID: {status.registration.account_id}</Typography> : null}
-                  {status.registration.license ? <Typography variant="body2" color="text.secondary">License: {status.registration.license}</Typography> : null}
+                    {tUi("Registration")}</Typography>
+                  {status.registration.device_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>{tUi("Device ID:")}{' '}{status.registration.device_id}</Typography> : null}
+                  {status.registration.account_id ? <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>{tUi("Account ID:")}{' '}{status.registration.account_id}</Typography> : null}
+                  {status.registration.license ? <Typography variant="body2" color="text.secondary">{tUi("License:")}{' '}{status.registration.license}</Typography> : null}
                 </Paper>
               </Grid>
             ) : null}
@@ -215,30 +210,30 @@ const WarpPage: React.FC = () => {
       <WarpStartupSection />
 
       {running ? (
-        <ContentSection title="Mode and license" description="Change how WARP routes traffic, then register a license key if your account needs it.">
+        <ContentSection title={tUi("Mode and license")} description={tUi("Change how WARP routes traffic, then register a license key if your account needs it.")}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth sx={{ mb: 3 }}>
-                <InputLabel id="warp-mode-label">Mode</InputLabel>
-                <Select labelId="warp-mode-label" value={selectedMode} onChange={handleModeChange} label="Mode">
-                  <MenuItem value={WarpMode.WARP}>WARP with standard DNS</MenuItem>
-                  <MenuItem value={WarpMode.WARP_DOH}>WARP with DNS over HTTPS</MenuItem>
-                  <MenuItem value={WarpMode.WARP_DOT}>WARP with DNS over TLS</MenuItem>
-                  <MenuItem value={WarpMode.DOH}>DNS over HTTPS only</MenuItem>
-                  <MenuItem value={WarpMode.TUNNEL_ONLY}>Tunnel only, keep current DNS</MenuItem>
-                  <MenuItem value={WarpMode.DOT}>DNS over TLS only</MenuItem>
-                  <MenuItem value={WarpMode.PROXY}>SOCKS5 proxy only</MenuItem>
+                <InputLabel id="warp-mode-label">{tUi("Mode")}</InputLabel>
+                <Select labelId="warp-mode-label" value={selectedMode} onChange={handleModeChange} label={tUi("Mode")}>
+                  <MenuItem value={WarpMode.WARP}>{tUi("WARP with standard DNS")}</MenuItem>
+                  <MenuItem value={WarpMode.WARP_DOH}>{tUi("WARP with DNS over HTTPS")}</MenuItem>
+                  <MenuItem value={WarpMode.WARP_DOT}>{tUi("WARP with DNS over TLS")}</MenuItem>
+                  <MenuItem value={WarpMode.DOH}>{tUi("DNS over HTTPS only")}</MenuItem>
+                  <MenuItem value={WarpMode.TUNNEL_ONLY}>{tUi("Tunnel only, keep current DNS")}</MenuItem>
+                  <MenuItem value={WarpMode.DOT}>{tUi("DNS over TLS only")}</MenuItem>
+                  <MenuItem value={WarpMode.PROXY}>{tUi("SOCKS5 proxy only")}</MenuItem>
                 </Select>
                 <Button variant="contained" color="primary" onClick={handleSetMode} disabled={status?.mode === selectedMode || setModeMutation.isPending} sx={{ mt: 2 }}>
-                  {setModeMutation.isPending ? <CircularProgress size={24} /> : 'Set Mode'}
+                  {setModeMutation.isPending ? <CircularProgress size={24} /> : tUi("Set Mode")}
                 </Button>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <TextField label="License Key" value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} placeholder="Enter your WARP+ or WARP Teams license key" />
+                <TextField label={tUi("License Key")} value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} placeholder={tUi("Enter your WARP+ or WARP Teams license key")} />
                 <Button variant="contained" color="primary" onClick={handleRegisterLicense} disabled={!licenseKey.trim() || registerLicenseMutation.isPending} sx={{ mt: 2 }}>
-                  {registerLicenseMutation.isPending ? <CircularProgress size={24} /> : 'Register License'}
+                  {registerLicenseMutation.isPending ? <CircularProgress size={24} /> : tUi("Register License")}
                 </Button>
               </FormControl>
             </Grid>

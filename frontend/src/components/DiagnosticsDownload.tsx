@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -5,6 +6,7 @@ import Button from '@mui/material/Button';
 import { systemService } from '../services/systemService';
 
 export default function DiagnosticsDownload() {
+  const tUi = useUiText();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const download = async () => {
@@ -21,9 +23,9 @@ export default function DiagnosticsDownload() {
   return (
     <Box>
       <Button variant="outlined" disabled={busy} onClick={() => void download()}>
-        {busy ? 'Gathering diagnostics…' : 'Download diagnostics'}
+        {busy ? tUi("Gathering diagnostics…") : tUi("Download diagnostics")}
       </Button>
-      {failed ? <Alert severity="error" sx={{ mt: 1 }}>Could not download diagnostics. Try again.</Alert> : null}
+      {failed ? <Alert severity="error" sx={{ mt: 1 }}>{tUi("Could not download diagnostics. Try again.")}</Alert> : null}
     </Box>
   );
 }

@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -86,6 +88,7 @@ interface ServerCardProps {
 }
 
 const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest, onDelete, onDisconnect }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const { data: status } = useMediaServerStatus(server.id);
   const refresh = useRefreshMediaServer();
@@ -136,7 +139,7 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest,
     <Paper
       variant="outlined"
       role="group"
-      aria-label={`Media server ${server.name}`}
+      aria-label={tUi("Media server {{value0}}", { value0: server.name })}
       sx={{
         p: 2,
         height: '100%',
@@ -164,7 +167,7 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest,
           variant="outlined"
           color={server.connected ? 'success' : 'default'}
           icon={server.connected ? <CheckCircleOutlineRoundedIcon /> : <ErrorOutlineRoundedIcon />}
-          label={server.connected ? 'Connected' : 'Not connected'}
+          label={server.connected ? tUi("Connected") : tUi("Not connected")}
         />
         <Chip
           size="small"
@@ -175,8 +178,8 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest,
         />
       </Stack>
       <Typography variant="body2" color="text.secondary">
-        Last guide refresh {formatRelativeTime(server.last_sync_at)}
-        {channelCount === null ? '' : ` · ${channelCount} channels in ${KIND_LABEL[server.kind]}`}
+        {tUi("Last guide refresh")}{' '}{formatRelativeTime(server.last_sync_at)}
+        {channelCount === null ? '' : tUi(" · {{value0}} channels in {{value1}}", { value0: channelCount, value1: KIND_LABEL[server.kind] })}
       </Typography>
       {server.last_sync_status === 'error' && server.last_error ? (
         <Typography variant="body2" color="error.main">
@@ -191,8 +194,7 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest,
       {server.kind === 'plex' ? (
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="body2" color="text.secondary">
-            Live TV &amp; DVR in Plex needs an active Plex Pass.
-          </Typography>
+            {tUi("Live TV & DVR in Plex needs an active Plex Pass.")}</Typography>
           <List component="ol" dense sx={{ listStyleType: 'decimal', pl: 3, py: 0.5 }}>
             {(status?.steps ?? []).map((step) => (
               <ListItem key={step} sx={{ display: 'list-item', px: 0, py: 0.25 }} disableGutters>
@@ -202,44 +204,41 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, notify, onEdit, onTest,
           </List>
           <Stack spacing={0.5}>
             {status?.paste.tuner_address ? (
-              <PasteRow label="Tuner address" value={status.paste.tuner_address} copyLabel="Copy tuner address" onCopy={(l, v) => void copy(l, v)} />
+              <PasteRow label={tUi("Tuner address")} value={status.paste.tuner_address} copyLabel="Copy tuner address" onCopy={(l, v) => void copy(l, v)} />
             ) : null}
             {status?.paste.guide_url ? (
-              <PasteRow label="Guide URL" value={status.paste.guide_url} copyLabel="Copy guide URL" onCopy={(l, v) => void copy(l, v)} />
+              <PasteRow label={tUi("Guide URL")} value={status.paste.guide_url} copyLabel="Copy guide URL" onCopy={(l, v) => void copy(l, v)} />
             ) : null}
           </Stack>
         </Box>
       ) : null}
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 'auto', pt: 1 }}>
-        <Tooltip title={refreshable ? '' : 'Add a Plex token to refresh automatically'}>
+        <Tooltip title={refreshable ? '' : tUi("Add a Plex token to refresh automatically")}>
           <span>
             <Button
               size="small"
               variant="outlined"
-              aria-label={`Refresh now ${server.name}`}
+              aria-label={tUi("Refresh now {{value0}}", { value0: server.name })}
               disabled={!refreshable || refresh.isPending}
               onClick={() => void runRefresh()}
             >
-              Refresh now
-            </Button>
+              {tUi("Refresh now")}</Button>
           </span>
         </Tooltip>
         {server.connected ? (
-          <Button size="small" aria-label={`Disconnect ${server.name}`} onClick={onDisconnect}>
-            Disconnect
-          </Button>
+          <Button size="small" aria-label={tUi("Disconnect {{value0}}", { value0: server.name })} onClick={onDisconnect}>
+            {tUi("Disconnect")}</Button>
         ) : (
-          <Button size="small" variant="contained" aria-label={`Connect ${server.name}`} disabled={connect.isPending} onClick={() => void runConnect()}>
-            Connect
-          </Button>
+          <Button size="small" variant="contained" aria-label={tUi("Connect {{value0}}", { value0: server.name })} disabled={connect.isPending} onClick={() => void runConnect()}>
+            {tUi("Connect")}</Button>
         )}
         <Box sx={{ ml: 'auto' }}>
           <RowActionsMenu
-            label={`More actions for ${server.name}`}
+            label={tUi("More actions for {{value0}}", { value0: server.name })}
             actions={[
-              { label: 'Edit', onClick: onEdit },
-              { label: 'Test connection', onClick: onTest },
-              { label: 'Delete', danger: true, onClick: onDelete },
+              { label: uiText("Edit"), onClick: onEdit },
+              { label: uiText("Test connection"), onClick: onTest },
+              { label: uiText("Delete"), danger: true, onClick: onDelete },
             ]}
           />
         </Box>
@@ -291,6 +290,7 @@ const toForm = (settings: TunerSettings): TunerFormState => ({
 
 /** Friendly name, stream cap and lineup size the tuner reports to Jellyfin and Plex. */
 const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify }) => {
+  const tUi = useUiText();
   const { data } = useTunerSettings();
   const update = useUpdateTunerSettings();
   const [form, setForm] = useState<TunerFormState | null>(null);
@@ -320,7 +320,7 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
         source_start_seconds: Number(form.source_start_seconds),
         startup_budget_seconds: Number(form.startup_budget_seconds),
       });
-      notify('Tuner settings saved.', 'success');
+      notify(tUi("Tuner settings saved."), 'success');
     } catch (err) {
       notify(describeMediaServerError(err), 'error');
     }
@@ -330,28 +330,27 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
     <Accordion disableGutters elevation={0} square sx={{ mt: 2, bgcolor: 'transparent', '&::before': { display: 'none' } }}>
       <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} sx={{ px: 0 }}>
         <Typography component="h3" variant="subtitle2">
-          Tuner settings
-        </Typography>
+          {tUi("Tuner settings")}</Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ px: 0 }}>
-        <Stack component="form" spacing={2} onSubmit={(event: React.FormEvent) => void save(event)} aria-label="Tuner settings form">
+        <Stack component="form" spacing={2} onSubmit={(event: React.FormEvent) => void save(event)} aria-label={tUi("Tuner settings form")}>
           <TextField
             size="small"
-            label="Tuner name"
+            label={tUi("Tuner name")}
             value={form?.friendly_name ?? ''}
             onChange={(event) => setForm((prev) => (prev ? { ...prev, friendly_name: event.target.value } : prev))}
-            inputProps={{ 'aria-label': 'Tuner name' }}
-            helperText="The name Jellyfin and Plex show for this tuner."
+            inputProps={{ 'aria-label': uiText("Tuner name") }}
+            helperText={tUi("The name Jellyfin and Plex show for this tuner.")}
             fullWidth
           />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               size="small"
               type="number"
-              label="Streams at once"
+              label={tUi("Streams at once")}
               value={form?.tuner_count ?? ''}
               onChange={(event) => setForm((prev) => (prev ? { ...prev, tuner_count: event.target.value } : prev))}
-              inputProps={{ 'aria-label': 'Streams at once', min: TUNER_COUNT_RANGE.min, max: TUNER_COUNT_RANGE.max, step: 1 }}
+              inputProps={{ 'aria-label': uiText("Streams at once"), min: TUNER_COUNT_RANGE.min, max: TUNER_COUNT_RANGE.max, step: 1 }}
               error={countError !== null}
               helperText={countError ?? 'How many channels can play through the tuner at the same time.'}
               fullWidth
@@ -359,10 +358,10 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
             <TextField
               size="small"
               type="number"
-              label="Most channels to publish"
+              label={tUi("Most channels to publish")}
               value={form?.max_channels ?? ''}
               onChange={(event) => setForm((prev) => (prev ? { ...prev, max_channels: event.target.value } : prev))}
-              inputProps={{ 'aria-label': 'Most channels to publish', min: MAX_CHANNELS_RANGE.min, max: MAX_CHANNELS_RANGE.max, step: 1 }}
+              inputProps={{ 'aria-label': uiText("Most channels to publish"), min: MAX_CHANNELS_RANGE.min, max: MAX_CHANNELS_RANGE.max, step: 1 }}
               error={channelsError !== null}
               helperText={channelsError ?? 'Plex stops saving channel maps at roughly 450-480 channels.'}
               fullWidth
@@ -372,10 +371,10 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
             <TextField
               size="small"
               type="number"
-              label="Seconds per source"
+              label={tUi("Seconds per source")}
               value={form?.source_start_seconds ?? ''}
               onChange={(event) => setForm((prev) => (prev ? { ...prev, source_start_seconds: event.target.value } : prev))}
-              inputProps={{ 'aria-label': 'Seconds per source', min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
+              inputProps={{ 'aria-label': uiText("Seconds per source"), min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
               error={sourceStartError !== null}
               helperText={sourceStartError ?? 'Time a source gets to start before the next one is tried. A cold engine can take 20 s.'}
               fullWidth
@@ -383,10 +382,10 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
             <TextField
               size="small"
               type="number"
-              label="Seconds to start a channel"
+              label={tUi("Seconds to start a channel")}
               value={form?.startup_budget_seconds ?? ''}
               onChange={(event) => setForm((prev) => (prev ? { ...prev, startup_budget_seconds: event.target.value } : prev))}
-              inputProps={{ 'aria-label': 'Seconds to start a channel', min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
+              inputProps={{ 'aria-label': uiText("Seconds to start a channel"), min: START_SECONDS_RANGE.min, max: START_SECONDS_RANGE.max, step: 1 }}
               error={budgetError !== null}
               helperText={budgetError ?? 'Total for all its sources. Keep it under the player timeout: Kodi gives up after about 30 s.'}
               fullWidth
@@ -399,38 +398,36 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
                 onChange={(event) => setForm((prev) => (prev ? { ...prev, only_online: event.target.checked } : prev))}
               />
             }
-            label="Publish only channels that are online"
+            label={tUi("Publish only channels that are online")}
           />
           <FormControlLabel
             control={<Switch checked={form?.hide_unusable ?? false} disabled={!form || update.isPending}
               onChange={(event) => setForm(prev => prev ? { ...prev, hide_unusable: event.target.checked } : prev)} />}
-            label="Hide stale or repeatedly failing sources"
+            label={tUi("Hide stale or repeatedly failing sources")}
           />
-          <Typography variant="body2" color="text.secondary">Leaves sources unseen by lists for 14 days or with repeated playback failures out of tuner lineups and playlists. Nothing is deleted; sources can return after fresh evidence.</Typography>
+          <Typography variant="body2" color="text.secondary">{tUi("Leaves sources unseen by lists for 14 days or with repeated playback failures out of tuner lineups and playlists. Nothing is deleted; sources can return after fresh evidence.")}</Typography>
           <FormControlLabel
             control={<Switch checked={form?.plex_compatible_audio ?? false} disabled={!form || update.isPending}
               onChange={(event) => setForm(prev => prev ? { ...prev, plex_compatible_audio: event.target.checked } : prev)} />}
-            label="Plex Desktop compatible audio"
+            label={tUi("Plex Desktop compatible audio")}
           />
           <Typography variant="body2" color="text.secondary">
-            Converts audio tracks to stereo AAC/LATM for Plex Desktop. Keeps the original video quality unless experimental recovery is enabled. Uses server CPU and requires FFmpeg. Applies to new TV channel connections.
-          </Typography>
+            {tUi("Converts audio tracks to stereo AAC/LATM for Plex Desktop. Keeps the original video quality unless experimental recovery is enabled. Uses server CPU and requires FFmpeg. Applies to new TV channel connections.")}</Typography>
           <FormControlLabel
             control={<Switch checked={form?.experimental_transcoding ?? false} disabled={!form || update.isPending}
               onChange={(event) => setForm(prev => prev ? { ...prev, experimental_transcoding: event.target.checked } : prev)} />}
-            label="Experimental transcoding recovery"
+            label={tUi("Experimental transcoding recovery")}
           />
           <Alert severity={form?.experimental_transcoding ? 'warning' : 'info'}>
             {form?.experimental_transcoding
-              ? 'Use at your own risk. Each viewer uses CPU-intensive video and audio encoding. This can overload the server, increase bandwidth and reduce quality. Recovery without reconnecting is experimental and may not work in every player. Requires FFmpeg. Applies to new TV relay connections.'
+              ? tUi("Use at your own risk. Each viewer uses CPU-intensive video and audio encoding. This can overload the server, increase bandwidth and reduce quality. Recovery without reconnecting is experimental and may not work in every player. Requires FFmpeg. Applies to new TV relay connections.")
               : form?.plex_compatible_audio
-                ? 'Audio compatibility is enabled; video passes through without encoding. If a source fails, reconnect to the same TV channel URL.'
-                : 'Default: original streams pass through without encoding. If a source fails, your player must reconnect to the same TV channel URL; the relay then prefers another working source. Enable automatic reconnection in your player.'}
+                ? tUi("Audio compatibility is enabled; video passes through without encoding. If a source fails, reconnect to the same TV channel URL.")
+                : tUi("Default: original streams pass through without encoding. If a source fails, your player must reconnect to the same TV channel URL; the relay then prefers another working source. Enable automatic reconnection in your player.")}
           </Alert>
           <Box>
-            <Button type="submit" variant="contained" size="small" aria-label="Save tuner settings" disabled={!canSave || update.isPending}>
-              Save
-            </Button>
+            <Button type="submit" variant="contained" size="small" aria-label={tUi("Save tuner settings")} disabled={!canSave || update.isPending}>
+              {tUi("Save")}</Button>
           </Box>
         </Stack>
       </AccordionDetails>
@@ -440,6 +437,7 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
 
 /** Saved Jellyfin/Plex servers, what they know about our tuner, and the tuner's own settings. */
 const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => {
+  const tUi = useUiText();
   const { data: servers = [], isLoading, isError, error, refetch } = useMediaServers();
   const remove = useDeleteMediaServer();
   const disconnect = useDisconnectMediaServer();
@@ -453,9 +451,9 @@ const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => 
       title: `Delete ${server.name}?`,
       body:
         server.kind === 'jellyfin' && server.connected
-          ? 'The server is removed from this list. This also removes the tuner and guide provider from Jellyfin.'
-          : 'The server is removed from this list.',
-      confirmLabel: 'Delete',
+          ? uiText("The server is removed from this list. This also removes the tuner and guide provider from Jellyfin.")
+          : uiText("The server is removed from this list."),
+      confirmLabel: uiText("Delete"),
       danger: true,
     });
     if (!ok) return;
@@ -472,7 +470,7 @@ const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => 
       const ok = await confirm({
         title: `Disconnect ${server.name}?`,
         body: 'This removes the AceStream tuner and its guide provider from Jellyfin. Jellyfin will re-run Refresh Guide and drop those channels.',
-        confirmLabel: 'Disconnect',
+        confirmLabel: uiText("Disconnect"),
         danger: true,
       });
       if (!ok) return;
@@ -498,29 +496,27 @@ const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => 
 
   return (
     <ContentSection
-      title="Media servers"
-      description="Jellyfin and Plex pick up these channels as a tuner with its own guide."
+      title={tUi("Media servers")}
+      description={tUi("Jellyfin and Plex pick up these channels as a tuner with its own guide.")}
       actions={
         <Button variant="contained" size="small" onClick={() => setAdding(true)}>
-          Add media server
-        </Button>
+          {tUi("Add media server")}</Button>
       }
     >
       {isError ? (
         <InlineStatusNotice
           severity="error"
-          title="Unable to load media servers"
+          title={tUi("Unable to load media servers")}
           description={describeMediaServerError(error)}
           action={
             <Button variant="outlined" size="small" onClick={() => void refetch()}>
-              Try again
-            </Button>
+              {tUi("Try again")}</Button>
           }
         />
       ) : isLoading ? (
-        <Typography variant="body2">Loading media servers…</Typography>
+        <Typography variant="body2">{tUi("Loading media servers…")}</Typography>
       ) : servers.length === 0 ? (
-        <EmptyState title="No media servers yet" description="Add Jellyfin or Plex to watch these channels there with a full guide." />
+        <EmptyState title={tUi("No media servers yet")} description={tUi("Add Jellyfin or Plex to watch these channels there with a full guide.")} />
       ) : (
         <Grid container spacing={2}>
           {servers.map((server) => (

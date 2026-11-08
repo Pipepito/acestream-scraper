@@ -1,3 +1,4 @@
+import { uiText } from '../i18n/text';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { EPGChannel } from '../services/epgService';
@@ -87,7 +88,7 @@ export const useEPGChannelSelection = ({
       return channel && !isChannelMapped(channel);
     });
     if (unmappedIds.length === 0) {
-      showSnackbar('No unmapped EPG channels selected.', 'warning');
+      showSnackbar(uiText("No unmapped EPG channels selected."), 'warning');
       return;
     }
     try {
@@ -100,7 +101,7 @@ export const useEPGChannelSelection = ({
       );
       setSelectedEPGChannelIds([]);
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     }
   };
 

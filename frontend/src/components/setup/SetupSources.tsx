@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,6 +8,7 @@ import { scraperService, type ScrapedURL } from '../../services/scraperService';
 import { getErrorMessage } from '../../utils/errorUtils';
 
 export default function SetupSources({ active, onBusyChange }: { active: boolean; onBusyChange: (busy: boolean) => void }) {
+  const tUi = useUiText();
   const client = useQueryClient();
   const sources = useURLs(undefined, { enabled: active });
   const [address, setAddress] = useState('');
@@ -29,7 +32,7 @@ export default function SetupSources({ active, onBusyChange }: { active: boolean
       severity: !result.success ? 'error' : result.channels_found ? 'success' : 'warning',
       text: !result.success ? `Source saved, but channels could not be read. ${result.error || 'Check the address or try again.'}`
         : result.channels_found ? `Found ${result.channels_found} channels. You can add another source or continue.`
-          : 'Source saved, but no channels were found. Check that the link contains a channel list, or try another source.',
+          : uiText("Source saved, but no channels were found. Check that the link contains a channel list, or try another source."),
     }),
     onError: error => setNotice({ severity: 'error', text: `Could not finish adding channels. ${getErrorMessage(error)}` }),
     onSettled: () => {
@@ -38,36 +41,36 @@ export default function SetupSources({ active, onBusyChange }: { active: boolean
     },
   });
   return <Stack spacing={2.5}>
-    <Typography>Paste a link to a page or playlist that lists your channels. We&apos;ll read it and add the channels we find. This link is called a <strong>source</strong>.</Typography>
+    <Typography>{tUi("Paste a link to a page or playlist that lists your channels. We'll read it and add the channels we find. This link is called a")}{' '}<strong>{tUi("source")}</strong>.</Typography>
     <Box component="form" onSubmit={event => { event.preventDefault(); if (address.trim() && !importSource.isPending && sources.isSuccess) importSource.mutate(undefined); }}>
-      <TextField fullWidth label="Channel source link" placeholder="https://…" value={address} disabled={importSource.isPending}
-        onChange={event => setAddress(event.target.value)} helperText="Use a channel-list link from your provider or a source you have permission to use." inputProps={{ maxLength: 4096 }} />
-      <Button type="submit" variant="contained" sx={{ mt: 2 }} disabled={!address.trim() || importSource.isPending || !sources.isSuccess}>{importSource.isPending ? 'Finding channels…' : 'Add source and find channels'}</Button>
+      <TextField fullWidth label={tUi("Channel source link")} placeholder={tUi("https://…")} value={address} disabled={importSource.isPending}
+        onChange={event => setAddress(event.target.value)} helperText={tUi("Use a channel-list link from your provider or a source you have permission to use.")} inputProps={{ maxLength: 4096 }} />
+      <Button type="submit" variant="contained" sx={{ mt: 2 }} disabled={!address.trim() || importSource.isPending || !sources.isSuccess}>{importSource.isPending ? tUi("Finding channels…") : tUi("Add source and find channels")}</Button>
     </Box>
-    {importSource.isPending ? <Typography role="status">Reading the source. This can take a little while.</Typography> : null}
+    {importSource.isPending ? <Typography role="status">{tUi("Reading the source. This can take a little while.")}</Typography> : null}
     {notice ? <Alert severity={notice.severity}>{notice.text}</Alert> : null}
     <Box>
-      <Button aria-expanded={showProviders} onClick={() => setShowProviders(value => !value)}>Choose a built-in broadcaster</Button>
+      <Button aria-expanded={showProviders} onClick={() => setShowProviders(value => !value)}>{tUi("Choose a built-in broadcaster")}</Button>
       {showProviders ? <>
-        {providers.isError ? <Alert severity="error">Could not load broadcasters. <Button onClick={() => void providers.refetch()}>Try again</Button></Alert> : null}
-        <FormControl fullWidth sx={{ mt: 2 }}><InputLabel id="setup-broadcaster-label">Broadcaster</InputLabel>
-          <Select labelId="setup-broadcaster-label" label="Broadcaster" value={providers.data?.find(provider => provider.url === address)?.id ?? ''} disabled={importSource.isPending || providers.isPending}
+        {providers.isError ? <Alert severity="error">{tUi("Could not load broadcasters.")}{' '}<Button onClick={() => void providers.refetch()}>{tUi("Try again")}</Button></Alert> : null}
+        <FormControl fullWidth sx={{ mt: 2 }}><InputLabel id="setup-broadcaster-label">{tUi("Broadcaster")}</InputLabel>
+          <Select labelId="setup-broadcaster-label" label={tUi("Broadcaster")} value={providers.data?.find(provider => provider.url === address)?.id ?? ''} disabled={importSource.isPending || providers.isPending}
             onChange={event => setAddress(providers.data?.find(provider => provider.id === event.target.value)?.url ?? '')}>
-            <MenuItem value="">Choose a broadcaster</MenuItem>{providers.data?.map(provider => <MenuItem key={provider.id} value={provider.id}>{provider.name}</MenuItem>)}
+            <MenuItem value="">{tUi("Choose a broadcaster")}</MenuItem>{providers.data?.map(provider => <MenuItem key={provider.id} value={provider.id}>{provider.name}</MenuItem>)}
           </Select>
         </FormControl>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Choosing one fills in the link. Add it when you&apos;re ready. Availability may depend on your region.</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{tUi("Choosing one fills in the link. Add it when you're ready. Availability may depend on your region.")}</Typography>
       </> : null}
     </Box>
-    {sources.isPending ? <Typography role="status">Loading your saved sources…</Typography> : null}
-    {sources.isError ? <Alert severity="error">Could not load your saved sources. <Button onClick={() => void sources.refetch()}>Try again</Button></Alert> : null}
-    {sources.data?.length ? <Box><Typography component="h3" variant="subtitle1" sx={{ mb: 1 }}>Your sources</Typography>
+    {sources.isPending ? <Typography role="status">{tUi("Loading your saved sources…")}</Typography> : null}
+    {sources.isError ? <Alert severity="error">{tUi("Could not load your saved sources.")}{' '}<Button onClick={() => void sources.refetch()}>{tUi("Try again")}</Button></Alert> : null}
+    {sources.data?.length ? <Box><Typography component="h3" variant="subtitle1" sx={{ mb: 1 }}>{tUi("Your sources")}</Typography>
       <Stack component="ul" spacing={1.5} sx={{ listStyle: 'none', p: 0, m: 0 }}>{sources.data.map(source => <Box component="li" key={source.id} sx={{ overflowWrap: 'anywhere' }}>
         <Typography>{source.name || source.url}</Typography>
-        <Typography variant="body2" color="text.secondary">{source.last_processed ? source.status === 'OK' ? source.channels_found == null ? 'Channels imported' : `${source.channels_found} channels found` : 'Could not read channels on the last attempt' : 'Saved — channels have not been read yet'}{source.enabled ? '' : ' · Automatic updates are paused'}</Typography>
-        <Button disabled={importSource.isPending} onClick={() => importSource.mutate(source)}>Find channels</Button>
+        <Typography variant="body2" color="text.secondary">{source.last_processed ? source.status === 'OK' ? source.channels_found == null ? tUi("Channels imported") : tUi("{{value0}} channels found", { value0: source.channels_found }) : tUi("Could not read channels on the last attempt") : tUi("Saved — channels have not been read yet")}{source.enabled ? '' : tUi(" · Automatic updates are paused")}</Typography>
+        <Button disabled={importSource.isPending} onClick={() => importSource.mutate(source)}>{tUi("Find channels")}</Button>
       </Box>)}</Stack>
     </Box> : null}
-    <Typography variant="body2" color="text.secondary">Sources are saved as you add them. You can manage them later in Scraper.</Typography>
+    <Typography variant="body2" color="text.secondary">{tUi("Sources are saved as you add them. You can manage them later in Scraper.")}</Typography>
   </Stack>;
 }

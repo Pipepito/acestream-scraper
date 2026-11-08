@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React from 'react';
 import {
   Button,
@@ -30,17 +31,17 @@ const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
   onSelectProvider,
   onClose,
   onSubmit,
-}) => (
+}) => { const tUi = useUiText(); return (
   <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
     <DialogTitle>
-      {isEdit ? 'Edit EPG Source' : 'Add EPG Source'}
+      {isEdit ? tUi("Edit EPG Source") : tUi("Add EPG Source")}
     </DialogTitle>
     <DialogContent>
-      {!isEdit && onSelectProvider ? epgProviders.map(provider => <Button key={provider.id} onClick={() => onSelectProvider(provider)}>Use {provider.name}</Button>) : null}
+      {!isEdit && onSelectProvider ? epgProviders.map(provider => <Button key={provider.id} onClick={() => onSelectProvider(provider)}>{tUi("Use")}{' '}{provider.name}</Button>) : null}
       <TextField
         margin="dense"
         name="name"
-        label="Name"
+        label={tUi("Name")}
         fullWidth
         value={formData.name}
         onChange={onChange}
@@ -49,13 +50,13 @@ const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
       <TextField
         margin="dense"
         name="url"
-        label="URL"
+        label={tUi("URL")}
         fullWidth
         value={formData.url}
         onChange={onChange}
         sx={{ mb: 2 }}
-        placeholder="https://example.com/epg.xml"
-        helperText="XMLTV, TV Rioja weekday schedule, or a Sincroguía /programacion/ channel page. Football schedules belong in Events."
+        placeholder={tUi("https://example.com/epg.xml")}
+        helperText={tUi("XMLTV, TV Rioja weekday schedule, or a Sincroguía /programacion/ channel page. Football schedules belong in Events.")}
       />
       <FormControlLabel
         control={
@@ -65,21 +66,21 @@ const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
             onChange={onChange}
           />
         }
-        label="Enabled"
+        label={tUi("Enabled")}
       />
     </DialogContent>
     <DialogActions>
-      <Button onClick={onClose}>Cancel</Button>
+      <Button onClick={onClose}>{tUi("Cancel")}</Button>
       <Button
         onClick={onSubmit}
         variant="contained"
         color="primary"
         disabled={!formData.url || !formData.name}
       >
-        {isEdit ? 'Update' : 'Add'}
+        {isEdit ? tUi("Update") : tUi("Add")}
       </Button>
     </DialogActions>
   </Dialog>
-);
+); };
 
 export default EPGSourceDialog;

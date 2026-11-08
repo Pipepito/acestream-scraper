@@ -7,6 +7,8 @@ declare module 'i18next' {
     defaultNS: 'common';
     resources: typeof en;
     returnNull: false;
+    keySeparator: false;
+    nsSeparator: false;
   }
 }
 
@@ -14,6 +16,7 @@ declare module 'i18next' {
 void i18next.use(initReactI18next).init({
   resources: { en, es }, lng: 'en', fallbackLng: 'en', supportedLngs: ['en', 'es'],
   defaultNS: 'common', returnNull: false, initAsync: false,
+  keySeparator: false, nsSeparator: false,
   interpolation: { escapeValue: false }, react: { useSuspense: false },
 });
 export default i18next;

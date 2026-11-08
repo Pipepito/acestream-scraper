@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import { useAppPreferences } from '../../preferences/AppPreferences';
 import ProgrammeArtwork from '../ProgrammeArtwork';
 import React, { useEffect, useRef } from 'react';
@@ -24,18 +25,20 @@ interface TVChannelListProps {
 const time = (value: string) => format(parseISO(value), 'HH:mm');
 
 const NowNextLines: React.FC<{ row: TVChannelNowNext | null | undefined; hasGuide: boolean }> = ({ row, hasGuide }) => {
-  if (!hasGuide) return <Typography color="text.secondary">No guide mapped to this channel.</Typography>;
-  if (row === undefined) return <Typography role="status">Loading programme…</Typography>;
+  const tUi = useUiText();
+  if (!hasGuide) return <Typography color="text.secondary">{tUi("No guide mapped to this channel.")}</Typography>;
+  if (row === undefined) return <Typography role="status">{tUi("Loading programme…")}</Typography>;
   const current: GuideSlot | null | undefined = row?.now;
   const next: GuideSlot | null | undefined = row?.next;
   return <>
-    <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{current ? `Now · ${current.title}` : 'No current programme listed.'}</Typography>
+    <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{current ? tUi("Now · {{value0}}", { value0: current.title }) : tUi("No current programme listed.")}</Typography>
     {current ? <Typography variant="body2" color="text.secondary">{time(current.start)}–{time(current.end)}</Typography> : null}
-    {next ? <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>Next · {time(next.start)} · {next.title}</Typography> : null}
+    {next ? <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>{tUi("Next ·")}{' '}{time(next.start)} · {next.title}</Typography> : null}
   </>;
 };
 
 const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; row: TVChannelNowNext | null | undefined; fallback: boolean; onWatch: (channel: TVChannel) => void }> = ({ channel, selected, now, row, fallback, onWatch }) => {
+  const tUi = useUiText();
   const { interface: preset } = useAppPreferences();
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (selected) ref.current?.scrollIntoView?.({ block: 'nearest' }); }, [selected]);
@@ -49,13 +52,13 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
     <Box sx={{ display: preset === 'lime' ? 'none' : 'block' }}><ProgrammeArtwork src={row?.now?.image_url} /></Box>
     <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
       <Box sx={{ flex: '1 1 180px', minWidth: 0 }}>
-        <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? `${channel.channel_number}. ` : ''}{channel.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{onlineStreams.length ? `${onlineStreams.length} online stream${onlineStreams.length === 1 ? '' : 's'}` : 'No stream verified online'}{channel.category ? ` · ${channel.category}` : ''}</Typography>
+        <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? tUi("{{value0}}. ", { value0: channel.channel_number }) : ''}{channel.name}</Typography>
+        <Typography variant="body2" color="text.secondary">{onlineStreams.length ? tUi("{{value0}} online stream{{value1}}", { value0: onlineStreams.length, value1: onlineStreams.length === 1 ? '' : 's' }) : tUi("No stream verified online")}{channel.category ? tUi(" · {{value0}}", { value0: channel.category }) : ''}</Typography>
       </Box>
       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
-        <Button variant="contained" startIcon={<PlayArrowRounded />} aria-pressed={selected} aria-label={`Watch ${channel.name}`} onClick={() => onWatch(channel)}>{selected ? 'Selected' : 'Watch'}</Button>
+        <Button variant="contained" startIcon={<PlayArrowRounded />} aria-pressed={selected} aria-label={tUi("Watch {{value0}}", { value0: channel.name })} onClick={() => onWatch(channel)}>{selected ? tUi("Selected") : tUi("Watch")}</Button>
         <RecordButton channelId={channel.id} channelName={channel.name} disabled={!channel.acestream_channels.some(stream => stream.is_active)} />
-        <PlayOnMenu contentId={bestStream.id} title={channel.name} label="Send to player" />
+        <PlayOnMenu contentId={bestStream.id} title={channel.name} label={tUi("Send to player")} />
       </Stack>
     </Stack>
     {fallback ? null : <NowNextLines row={row} hasGuide={hasGuide} />}

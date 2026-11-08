@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, MenuItem, Stack, TextField } from '@mui/material';
@@ -15,6 +16,7 @@ export default function ExtractionBuilder() {
 }
 
 function SourceBuilderPage({ id }: { id: number | null }) {
+  const tUi = useUiText();
   const [source, setSource] = useState<ScrapedURL | null>(null);
   const [url, setUrl] = useState('');
   const [urlType, setUrlType] = useState('auto');
@@ -39,13 +41,13 @@ function SourceBuilderPage({ id }: { id: number | null }) {
     await queries.invalidateQueries({ queryKey: ['urls'] });
   };
   return <Box>
-    <PageHeader title="Extraction builder" subtitle="Configure a source without changing scraper code." actions={<Button component={RouterLink} to="/scraper">Back to sources</Button>} />
+    <PageHeader title={tUi("Extraction builder")} subtitle={tUi("Configure a source without changing scraper code.")} actions={<Button component={RouterLink} to="/scraper">{tUi("Back to sources")}</Button>} />
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <TextField label="Source URL" value={url} onChange={e => setUrl(e.target.value)} fullWidth />
-        <TextField select label="Source type" value={urlType} onChange={e => setUrlType(e.target.value)} sx={{ minWidth: 170 }}>
-          <MenuItem value="auto">Auto-detect</MenuItem><MenuItem value="regular">HTTP</MenuItem><MenuItem value="zeronet">ZeroNet</MenuItem><MenuItem value="ipfs">IPFS</MenuItem>
+        <TextField label={tUi("Source URL")} value={url} onChange={e => setUrl(e.target.value)} fullWidth />
+        <TextField select label={tUi("Source type")} value={urlType} onChange={e => setUrlType(e.target.value)} sx={{ minWidth: 170 }}>
+          <MenuItem value="auto">{tUi("Auto-detect")}</MenuItem><MenuItem value="regular">{tUi("HTTP")}</MenuItem><MenuItem value="zeronet">{tUi("ZeroNet")}</MenuItem><MenuItem value="ipfs">{tUi("IPFS")}</MenuItem>
         </TextField>
       </Stack>
       {ready && <RecipeBuilder key={id ?? 'new'} sourceIdentity={`${url}:${urlType}`} initialRecipe={source?.extraction_recipe} onSave={save}

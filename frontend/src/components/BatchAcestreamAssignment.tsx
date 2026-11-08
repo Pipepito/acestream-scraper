@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { 
   Box, 
@@ -29,6 +30,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
   tvChannelId,
   tvChannelName
 }) => {
+  const tUi = useUiText();
   const [aceStreamIds, setAceStreamIds] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -45,7 +47,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
       .filter(id => id.length > 0);
     
     if (ids.length === 0) {
-      setError('No valid acestream IDs provided');
+      setError(tUi("No valid acestream IDs provided"));
       return;
     }
     
@@ -73,13 +75,12 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Batch Associate Acestreams to {tvChannelName}
+        {tUi("Batch Associate Acestreams to")}{' '}{tvChannelName}
       </DialogTitle>
       <DialogContent>
         <Box my={2}>
           <Typography variant="body1" gutterBottom>
-            Enter multiple acestream IDs, separated by commas, spaces, or line breaks.
-          </Typography>
+            {tUi("Enter multiple acestream IDs, separated by commas, spaces, or line breaks.")}</Typography>
           
           {error && (
             <Alert severity="error" sx={{ my: 2 }} onClose={() => setError(null)}>
@@ -94,13 +95,13 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
           )}
           
           <TextField
-            label="Acestream IDs"
+            label={tUi("Acestream IDs")}
             multiline
             rows={6}
             value={aceStreamIds}
             onChange={(e) => setAceStreamIds(e.target.value)}
             fullWidth
-            placeholder="Enter acestream IDs here, e.g.:\nabc123def456\nxyz789\n..."
+            placeholder={tUi("Enter acestream IDs here, e.g.:\\nabc123def456\\nxyz789\\n...")}
             variant="outlined"
             sx={{ mt: 2 }}
           />
@@ -108,8 +109,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
+          {tUi("Cancel")}</Button>
         <Button 
           onClick={handleSubmit} 
           color="primary" 

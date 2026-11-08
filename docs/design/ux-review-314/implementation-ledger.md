@@ -132,6 +132,28 @@ Do not close tasks with unresolved acceptance or imply merged/released status.
 - Owned current browser backend: loopback 18085, `/tmp/ux314-evidence/current`.
   Baseline backend on 18084 stopped; frozen baseline build/data remain untouched.
 
+### Localization integration (continuing)
+
+- One draft PR: https://github.com/Pipepito/acestream-scraper/pull/325, targeting
+  develop; no automatic closing references. Foundation commits are pushed.
+- 2,200+ typed feature messages now have Spanish resources. UI copy migration,
+  chosen-language date/number formatting, initial plural consolidation and MUI
+  locale configuration are implemented. Original catalogue names stay verbatim.
+- Recipe helper has an independently initialized language preference and generated
+  subset catalogue; its build checks subset drift without importing the app.
+- Full English regression run: 111 suites passed / 1 failed; 682 tests passed /
+  1 failed. Failure was the new test helper spreading a RegExp iterator under the
+  existing ES5 compilation target, corrected to Array.from. Focused rerun: 5/5 localization tests passed; TypeScript/lint passed.
+- Built Spanish application: 54 cases (three presets × two themes × three widths
+  × Watch/network/guide), zero uncaught errors or document overflow. Screenshots
+  inspected; visible runtime/enum labels still in English were found and recorded.
+- Production app + standalone build passed. Initial localization library growth
+  exceeded the existing MUI chunk budget; isolating the translation libraries
+  removed that warning without splitting MUI/Emotion or React helpers.
+- Runtime labels, protocol reason codes, complete feedback sentences, dirty/pending
+  language switching and visual bilingual coverage still need reconciliation.
+  Resource key coverage is not full localization acceptance.
+
 Current next action: finish localization migration across actual visible/dynamic
 messages, canonical settings/editor ownership and feature-family compositions;
 expand contract/parity evidence while preserving current behavior. Do not stop at

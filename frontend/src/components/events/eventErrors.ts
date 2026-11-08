@@ -1,3 +1,4 @@
+import { uiText } from '../../i18n/text';
 import { normalizeApiError } from '../../services/apiErrors';
 import { getErrorMessage } from '../../utils/errorUtils';
 
@@ -10,7 +11,7 @@ export function eventErrorMessage(error: unknown): string {
     if (Array.isArray(detail)) {
       const messages = detail.slice(0, 10).flatMap((item: unknown) => {
         if (!item || typeof item !== 'object' || !('msg' in item) || typeof item.msg !== 'string') return [];
-        const path = 'loc' in item && Array.isArray(item.loc) ? item.loc.filter((part: unknown) => typeof part === 'number' || typeof part === 'string').join('.') : 'Schedule';
+        const path = 'loc' in item && Array.isArray(item.loc) ? item.loc.filter((part: unknown) => typeof part === 'number' || typeof part === 'string').join('.') : uiText("Schedule");
         return [`${path}: ${item.msg}`];
       });
       if (messages.length) return messages.join('\n');

@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import OfflineCleanupFields from '../components/settings/OfflineCleanupFields';
 import GuideMatchingFields from '../components/GuideMatchingFields';
 import StreamCheckScopeField from '../components/StreamCheckScopeField';
@@ -62,10 +64,10 @@ interface IntervalFieldProps {
   onSave: () => void;
 }
 
-const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, helper, value, saved, pending, onChange, onSave }) => (
+const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, helper, value, saved, pending, onChange, onSave }) => { const tUi = useUiText(); return (
   <Stack
     component="form"
-    aria-label={`${label} form`}
+    aria-label={tUi("{{value0}} form", { value0: label })}
     direction={{ xs: 'column', sm: 'row' }}
     spacing={1}
     alignItems="flex-start"
@@ -86,12 +88,13 @@ const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, hel
       sx={{ width: { xs: '100%', sm: 280 } }}
     />
     <Button type="submit" variant="outlined" size="small" disabled={pending || value === '' || !Number.isInteger(value) || value < 1 || value > max || value === saved} sx={{ mt: 0.5 }}>
-      {pending ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+      {pending ? <CircularProgress size={18} color="inherit" /> : tUi("Save")}
     </Button>
   </Stack>
-);
+); };
 
 const Settings: React.FC = () => {
+  const tUi = useUiText();
   const access = useAccess();
   const [params, setParams] = useSearchParams();
   const sections = ['playback', 'automation', 'links', 'access', 'network'];
@@ -165,7 +168,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     updateAceEngineUrlMutation.mutate(aceEngineUrl, {
       onSuccess: () => {
-        notify('Engine URL saved', 'success');
+        notify(tUi("Engine URL saved"), 'success');
         acestreamStatusQuery.refetch();
       },
       onError: (error) => notify(`Failed to save the engine URL: ${getErrorMessage(error)}`, 'error'),
@@ -192,7 +195,7 @@ const Settings: React.FC = () => {
     const checked = e.target.checked;
     setAddPid(checked);
     updateAddPidMutation.mutate(checked, {
-      onSuccess: () => notify(checked ? 'PID will be appended to stream links' : 'PID will no longer be appended', 'success'),
+      onSuccess: () => notify(checked ? uiText("PID will be appended to stream links") : uiText("PID will no longer be appended"), 'success'),
       onError: (error) => {
         setAddPid(!checked);
         notify(`Failed to save the PID setting: ${getErrorMessage(error)}`, 'error');
@@ -208,11 +211,11 @@ const Settings: React.FC = () => {
       .updateAppId(checked)
       .then(() => {
         setAppIdError('');
-        notify(checked ? 'AppID will be added to stream links' : 'AppID will no longer be added', 'success');
+        notify(checked ? uiText("AppID will be added to stream links") : uiText("AppID will no longer be added"), 'success');
       })
       .catch(() => {
         setAppid(!checked);
-        notify('Failed to update AppID setting', 'error');
+        notify(tUi("Failed to update AppID setting"), 'error');
       })
       .finally(() => setAppidSubmitting(false));
   };
@@ -225,7 +228,7 @@ const Settings: React.FC = () => {
     setApiTokenInput(trimmed);
     resetApiTokenRequired();
     setApiTokenRequired(false);
-    notify('API token saved. It will be sent with future API requests.', 'success');
+    notify(tUi("API token saved. It will be sent with future API requests."), 'success');
   };
 
   const handleApiTokenClear = () => {
@@ -233,7 +236,7 @@ const Settings: React.FC = () => {
     setApiTokenInput('');
     resetApiTokenRequired();
     setApiTokenRequired(false);
-    notify('API token cleared', 'success');
+    notify(tUi("API token cleared"), 'success');
   };
 
   const isLoading = section === 'playback' ? aceEngineUrlQuery.isLoading
@@ -243,10 +246,9 @@ const Settings: React.FC = () => {
   if (isLoading) {
     return (
       <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="60vh" gap={1.5}>
-        <CircularProgress aria-label="Loading settings" />
+        <CircularProgress aria-label={tUi("Loading settings")} />
         <Box component="p" sx={{ typography: 'sectionTitle', m: 0 }}>
-          Loading settings
-        </Box>
+          {tUi("Loading settings")}</Box>
       </Box>
     );
   }
@@ -255,45 +257,44 @@ const Settings: React.FC = () => {
 
   return (
     <Box>
-      <PageHeader title="Settings" subtitle="Playback, scheduled jobs, stream links, accounts and network access." actions={<><Button component={RouterLink} to="/setup" variant="outlined">Setup wizard</Button><Button href="/startup" variant="outlined">Startup diagnostics</Button></>} />
+      <PageHeader title={tUi("Settings")} subtitle={tUi("Playback, scheduled jobs, stream links, accounts and network access.")} actions={<><Button component={RouterLink} to="/setup" variant="outlined">{tUi("Setup wizard")}</Button><Button href="/startup" variant="outlined">{tUi("Startup diagnostics")}</Button></>} />
 
-      <Tabs value={section} onChange={(_event, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="Settings sections" sx={{ mb: 2 }}>
+      <Tabs value={section} onChange={(_event, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label={tUi("Settings sections")} sx={{ mb: 2 }}>
         {sections.map((name, index) => <Tab key={name} value={name} id={`settings-tab-${name}`} aria-controls={`settings-panel-${name}`} label={['Playback', 'Automation', 'Stream links', 'Access', 'Network'][index]} />)}
       </Tabs>
       <Box {...panelProps('playback')}>
       <ContentSection
-        title="Engine"
+        title={tUi("Engine")}
         actions={
           <Button variant="outlined" size="small" onClick={() => acestreamStatusQuery.refetch()} disabled={acestreamStatusQuery.isFetching}>
-            Refresh status
-          </Button>
+            {tUi("Refresh status")}</Button>
         }
       >
         <Stack spacing={2}>
-          <Stack direction="row" spacing={1.5} alignItems="center" role="status" aria-label="Engine status">
+          <Stack direction="row" spacing={1.5} alignItems="center" role="status" aria-label={tUi("Engine status")}>
             {acestreamStatusQuery.isLoading ? (
               <CircularProgress size={18} />
             ) : (
-              <Chip label={acestreamStatusQuery.error ? 'Unknown' : !aceEngineUrlQuery.data ? 'Not configured' : engineOnline ? 'Online' : 'Offline'} color={acestreamStatusQuery.error ? 'default' : !aceEngineUrlQuery.data ? 'default' : engineOnline ? 'success' : 'error'} variant="outlined" sx={{ fontWeight: 600, minWidth: 90 }} />
+              <Chip label={acestreamStatusQuery.error ? tUi("Unknown") : !aceEngineUrlQuery.data ? tUi("Not configured") : engineOnline ? tUi("Online") : tUi("Offline")} color={acestreamStatusQuery.error ? 'default' : !aceEngineUrlQuery.data ? 'default' : engineOnline ? 'success' : 'error'} variant="outlined" sx={{ fontWeight: 600, minWidth: 90 }} />
             )}
             <Typography variant="body2" color="text.secondary">
               {acestreamStatusQuery.error
-                ? `Could not check the engine: ${getErrorMessage(acestreamStatusQuery.error)}`
-                : !aceEngineUrlQuery.data ? 'An engine is optional. Without one, playback and stream checks are unavailable unless a dedicated checker is configured.' : engineOnline ? acestreamStatusQuery.data?.message || 'The engine is reachable.' : 'The backend cannot reach the engine. Check its address and make sure the service is running.'}
+                ? tUi("Could not check the engine: {{value0}}", { value0: getErrorMessage(acestreamStatusQuery.error) })
+                : !aceEngineUrlQuery.data ? tUi("An engine is optional. Without one, playback and stream checks are unavailable unless a dedicated checker is configured.") : engineOnline ? acestreamStatusQuery.data?.message || 'The engine is reachable.' : tUi("The backend cannot reach the engine. Check its address and make sure the service is running.")}
             </Typography>
           </Stack>
           <form onSubmit={handleAceEngineUrlSubmit}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
               <TextField
-                label="Acestream Engine URL"
+                label={tUi("Acestream Engine URL")}
                 size="small"
                 value={aceEngineUrl}
                 onChange={(e) => setAceEngineUrl(e.target.value)}
-                helperText="Optional. Leave blank when no playback engine is available."
+                helperText={tUi("Optional. Leave blank when no playback engine is available.")}
                 sx={{ flex: 1, maxWidth: 480 }}
               />
               <Button type="submit" variant="contained" size="small" disabled={updateAceEngineUrlMutation.isPending || aceEngineUrl === aceEngineUrlQuery.data} sx={{ mt: 0.5 }}>
-                {updateAceEngineUrlMutation.isPending ? <CircularProgress size={18} color="inherit" /> : 'Save engine URL'}
+                {updateAceEngineUrlMutation.isPending ? <CircularProgress size={18} color="inherit" /> : tUi("Save engine URL")}
               </Button>
             </Stack>
           </form>
@@ -301,27 +302,27 @@ const Settings: React.FC = () => {
         </Stack>
       </ContentSection>
 
-      <ContentSection title="Players and network" description="Manage the address other devices use, remote players, media servers and tuner limits in Integrations.">
+      <ContentSection title={tUi("Players and network")} description={tUi("Manage the address other devices use, remote players, media servers and tuner limits in Integrations.")}>
         <Stack direction="row" gap={1} flexWrap="wrap">
-          <Button component={RouterLink} to="/integrations/public-address" variant="outlined">Public address</Button>
-          <Button component={RouterLink} to="/integrations/remote-players" variant="outlined">Remote players</Button>
-          <Button component={RouterLink} to="/integrations/media-servers" variant="outlined">Media servers and tuner</Button>
+          <Button component={RouterLink} to="/integrations/public-address" variant="outlined">{tUi("Public address")}</Button>
+          <Button component={RouterLink} to="/integrations/remote-players" variant="outlined">{tUi("Remote players")}</Button>
+          <Button component={RouterLink} to="/integrations/media-servers" variant="outlined">{tUi("Media servers and tuner")}</Button>
         </Stack>
       </ContentSection>
       </Box>
       <Box {...panelProps('automation')}>
 
-      {section === 'automation' ? <Button component={RouterLink} to="/recordings?tab=settings">Recording settings</Button> : null}
-      {section === 'automation' ? <ContentSection title="Offline stream cleanup"><OfflineCleanupFields /></ContentSection> : null}
-      {section === 'automation' ? <ContentSection title="Guide matching"><GuideMatchingFields /></ContentSection> : null}
-      <ContentSection title="Stream status checks"><CheckEngineFields /></ContentSection>
+      {section === 'automation' ? <Button component={RouterLink} to="/recordings?tab=settings">{tUi("Recording settings")}</Button> : null}
+      {section === 'automation' ? <ContentSection title={tUi("Offline stream cleanup")}><OfflineCleanupFields /></ContentSection> : null}
+      {section === 'automation' ? <ContentSection title={tUi("Guide matching")}><GuideMatchingFields /></ContentSection> : null}
+      <ContentSection title={tUi("Stream status checks")}><CheckEngineFields /></ContentSection>
 
-      <ContentSection title="Automation" description="Background jobs run on these schedules. Changes apply right away.">
+      <ContentSection title={tUi("Automation")} description={tUi("Background jobs run on these schedules. Changes apply right away.")}>
         <Stack spacing={2.5}>
-          {rescrapeIntervalQuery.isError || epgRefreshIntervalQuery.isError ? <Alert severity="error">Some schedules could not be loaded. Reload before changing them.</Alert> : null}
+          {rescrapeIntervalQuery.isError || epgRefreshIntervalQuery.isError ? <Alert severity="error">{tUi("Some schedules could not be loaded. Reload before changing them.")}</Alert> : null}
           <IntervalField
             id="rescrape-interval"
-            label="Scrape sources every (hours)"
+            label={tUi("Scrape sources every (hours)")}
             helper="1 to 168 hours"
             value={rescrapeInterval}
             saved={rescrapeIntervalQuery.data}
@@ -331,7 +332,7 @@ const Settings: React.FC = () => {
           />
           <IntervalField
             id="epg-refresh-interval"
-            label="Refresh EPG every (hours)"
+            label={tUi("Refresh EPG every (hours)")}
             helper="1 to 168 hours"
             value={epgRefreshInterval}
             saved={epgRefreshIntervalQuery.data}
@@ -339,10 +340,10 @@ const Settings: React.FC = () => {
             onChange={setEpgRefreshInterval}
             onSave={handleEpgRefreshSave}
           />
-          {channelStatusIntervalQuery.isError ? <Alert severity="error">Could not load the stream check interval. Reload to try again.</Alert> : null}
+          {channelStatusIntervalQuery.isError ? <Alert severity="error">{tUi("Could not load the stream check interval. Reload to try again.")}</Alert> : null}
           <IntervalField
             id="channel-status-interval"
-            label="Stream check interval (minutes)"
+            label={tUi("Stream check interval (minutes)")}
             helper="Default: 60 minutes. Channel playback also checks its sources in the background."
             max={10080}
             value={channelStatusInterval}
@@ -356,16 +357,16 @@ const Settings: React.FC = () => {
 
         </Stack>
       </ContentSection>
-      <Button component={RouterLink} to="/connections/notifications">Notifications</Button>
+      <Button component={RouterLink} to="/connections/notifications">{tUi("Notifications")}</Button>
 
       </Box>
       <Box {...panelProps('links')}>
       <StreamLinkFormatsSection notify={notify} />
-      <ContentSection title="Player compatibility" description="Optional additions for players that require them. Changes affect generated links.">
+      <ContentSection title={tUi("Player compatibility")} description={tUi("Optional additions for players that require them. Changes affect generated links.")}>
         <Stack spacing={2}>
           <Box>
-            <FormControlLabel control={<Switch checked={addPid} onChange={handleAddPidChange} disabled={updateAddPidMutation.isPending} />} label="Append PID to stream links" />
-            <FormHelperText sx={{ ml: 0 }}>Some players need a PID on each acestream:// link to keep streams apart.</FormHelperText>
+            <FormControlLabel control={<Switch checked={addPid} onChange={handleAddPidChange} disabled={updateAddPidMutation.isPending} />} label={tUi("Append PID to stream links")} />
+            <FormHelperText sx={{ ml: 0 }}>{tUi("Some players need a PID on each acestream:// link to keep streams apart.")}</FormHelperText>
           </Box>
           <Box>
             {appIdError ? (
@@ -373,27 +374,27 @@ const Settings: React.FC = () => {
                 {appIdError}
               </Alert>
             ) : null}
-            <FormControlLabel control={<Switch checked={appid} onChange={handleAppidChange} disabled={appidSubmitting} />} label="Use AppID in stream links" />
-            <FormHelperText sx={{ ml: 0 }}>Adds the app id to acestream:// links for players that require it (rare).</FormHelperText>
+            <FormControlLabel control={<Switch checked={appid} onChange={handleAppidChange} disabled={appidSubmitting} />} label={tUi("Use AppID in stream links")} />
+            <FormHelperText sx={{ ml: 0 }}>{tUi("Adds the app id to acestream:// links for players that require it (rare).")}</FormHelperText>
           </Box>
         </Stack>
       </ContentSection>
-      <Button component={RouterLink} to="/playlist">Open playlist builder</Button>
-      <Button component={RouterLink} to="/integrations/public-address">Manage public address</Button>
+      <Button component={RouterLink} to="/playlist">{tUi("Open playlist builder")}</Button>
+      <Button component={RouterLink} to="/integrations/public-address">{tUi("Manage public address")}</Button>
       </Box>
       <Box {...panelProps('network')}>{section === 'network' ? <NetworkSettings /> : null}</Box>
       <Box {...panelProps('access')}>
       {section === 'access' ? <AccessSettings /> : null}
-      {access?.status.mode !== 'accounts' ? <ContentSection title="Legacy API access" description="Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.">
+      {access?.status.mode !== 'accounts' ? <ContentSection title={tUi("Legacy API access")} description={tUi("Only needed when the server sets API_TOKEN. The token is stored in this browser and sent with every request.")}>
         <Stack spacing={2} sx={{ maxWidth: 520 }}>
           {apiTokenRequired ? (
-            <Alert severity="warning">The server rejected a request because a valid token is missing. Enter the token below to restore access.</Alert>
+            <Alert severity="warning">{tUi("The server rejected a request because a valid token is missing. Enter the token below to restore access.")}</Alert>
           ) : null}
           <form onSubmit={handleApiTokenSave}>
             <Stack spacing={2}>
               <TextField
                 id="api-token"
-                label="API token"
+                label={tUi("API token")}
                 size="small"
                 type={showApiToken ? 'text' : 'password'}
                 fullWidth
@@ -403,7 +404,7 @@ const Settings: React.FC = () => {
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton aria-label={showApiToken ? 'Hide API token' : 'Show API token'} onClick={() => setShowApiToken((current) => !current)} edge="end" size="small">
+                      <IconButton aria-label={showApiToken ? tUi("Hide API token") : tUi("Show API token")} onClick={() => setShowApiToken((current) => !current)} edge="end" size="small">
                         {showApiToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
@@ -412,11 +413,9 @@ const Settings: React.FC = () => {
               />
               <Stack direction="row" spacing={1}>
                 <Button type="submit" variant="contained" size="small" disabled={!apiTokenInput.trim()}>
-                  Save token
-                </Button>
+                  {tUi("Save token")}</Button>
                 <Button variant="outlined" color="inherit" size="small" onClick={handleApiTokenClear}>
-                  Clear token
-                </Button>
+                  {tUi("Clear token")}</Button>
               </Stack>
             </Stack>
           </form>

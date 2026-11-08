@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Snackbar } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,6 +31,7 @@ const KIND_LABEL: Record<string, string> = { vlc: 'VLC', vlc_android: 'VLC Andro
 
 /** Send directly to a receiver; opening this menu never starts browser playback. */
 const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone, notify }) => {
+  const tUi = useUiText();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'warning' | 'error' } | null>(null);
   const { data: players = [], isLoading } = useRemotePlayers();
@@ -57,7 +60,7 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
       report(sent.message, sent.severity);
       onDone?.();
     } catch (err) {
-      report(err instanceof ApiError ? describeRemotePlayerError(err) : 'Could not reach the player.', 'error');
+      report(err instanceof ApiError ? describeRemotePlayerError(err) : uiText("Could not reach the player."), 'error');
     }
   };
 
@@ -94,14 +97,14 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
         startIcon={<CastRoundedIcon />}
         onClick={(event) => setAnchor(event.currentTarget)}
         aria-haspopup="menu"
-        aria-label={label ? `${label} ${title}` : undefined}
+        aria-label={label ? tUi("{{value0}} {{value1}}", { value0: label, value1: title }) : undefined}
         aria-expanded={Boolean(anchor)}
         disabled={play.isPending || casting}
       >
-        {casting ? 'Starting cast…' : label ?? 'Play on…'}
+        {casting ? tUi("Starting cast…") : label ?? 'Play on…'}
       </Button>
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)} slotProps={{ paper: { sx: { maxWidth: 'calc(100vw - 32px)', '& .MuiListItemText-root': { whiteSpace: 'normal', overflowWrap: 'anywhere' } } } }}>
-        {isLoading ? <MenuItem disabled>Loading players…</MenuItem> : players.length === 0
+        {isLoading ? <MenuItem disabled>{tUi("Loading players…")}</MenuItem> : players.length === 0
           ? (
               <MenuItem component={RouterLink} to="/integrations/remote-players" onClick={() => setAnchor(null)}>
                 <ListItemText primary="Add a player" secondary="VLC or Kodi on your network, under Integrations" />
@@ -112,18 +115,18 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
                 <ListItemIcon>
                   <CastRoundedIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{`${player.name} (${KIND_LABEL[player.kind] ?? player.kind})`}</ListItemText>
+                <ListItemText>{tUi("{{value0}} ({{value1}})", { value0: player.name, value1: KIND_LABEL[player.kind] ?? player.kind })}</ListItemText>
               </MenuItem>
             ))}
         {canCast ? <Divider /> : null}
-        {canCast && capabilities.isFetching && !capabilities.data ? <MenuItem disabled>Checking TV casting…</MenuItem> : null}
+        {canCast && capabilities.isFetching && !capabilities.data ? <MenuItem disabled>{tUi("Checking TV casting…")}</MenuItem> : null}
         {serverAllowed ? devices.data?.map(tv => <MenuItem key={tv.id} onClick={() => void sendToTv(tv.id, tv.name)} disabled={casting || !capabilities.data?.media_url_configured}>
           <ListItemIcon><CastRoundedIcon fontSize="small" /></ListItemIcon>
           <ListItemText primary={tv.name} secondary="Google Cast TV" />
         </MenuItem>) : null}
-        {serverAllowed ? <MenuItem disabled={finding} onClick={() => void findTvs()}>{finding ? 'Finding TVs…' : 'Find TVs'}</MenuItem> : null}
-        {canCast ? <MenuItem onClick={() => { setAnchor(null); setCastOptions(true); }}>Casting options and controls…</MenuItem> : null}
-        {canCast && (capabilities.isError || devices.isError) ? <MenuItem disabled>Could not load TVs. Open casting options to retry.</MenuItem> : null}
+        {serverAllowed ? <MenuItem disabled={finding} onClick={() => void findTvs()}>{finding ? tUi("Finding TVs…") : tUi("Find TVs")}</MenuItem> : null}
+        {canCast ? <MenuItem onClick={() => { setAnchor(null); setCastOptions(true); }}>{tUi("Casting options and controls…")}</MenuItem> : null}
+        {canCast && (capabilities.isError || devices.isError) ? <MenuItem disabled>{tUi("Could not load TVs. Open casting options to retry.")}</MenuItem> : null}
         {canCast && capabilities.data && !serverAllowed ? <MenuItem component={RouterLink} to="/integrations/tv-casting" onClick={() => setAnchor(null)}><ListItemText primary="Check TV casting access" secondary={capabilities.data.message} /></MenuItem> : null}
       </Menu>
       {canCast && castOptions ? <CastDialog contentId={contentId} audioIndex={null} subtitleIndex={null} open onClose={() => setCastOptions(false)} /> : null}

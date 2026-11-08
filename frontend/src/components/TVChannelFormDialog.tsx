@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React from 'react';
 import {
   Alert,
@@ -42,9 +43,9 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
   onChange,
   onClose,
   onSubmit,
-}) => (
+}) => { const tUi = useUiText(); return (
   <Dialog open={open} onClose={onClose} {...dialogProps}>
-    <DialogTitle>{mode === 'create' ? 'Add TV Channel' : 'Edit TV Channel'}</DialogTitle>
+    <DialogTitle>{mode === 'create' ? tUi("Add TV Channel") : tUi("Edit TV Channel")}</DialogTitle>
     <DialogContent dividers>
       {formErrors.submit ? (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -54,7 +55,7 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
       <Stack spacing={2.5} sx={{ py: 1 }}>
         <TextField
           name="name"
-          label="Channel Name"
+          label={tUi("Channel Name")}
           fullWidth
           value={formData.name || ''}
           onChange={onChange}
@@ -64,7 +65,7 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
         />
         <TextField
           name="description"
-          label="Description"
+          label={tUi("Description")}
           fullWidth
           value={formData.description || ''}
           onChange={onChange}
@@ -75,37 +76,36 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
 
         <Box>
           <Typography variant="helperText" sx={{ display: 'block', mb: 1 }}>
-            Optional details
-          </Typography>
+            {tUi("Optional details")}</Typography>
           <Stack spacing={2}>
-            <TextField name="logo_url" label="Logo URL" fullWidth value={formData.logo_url || ''} onChange={onChange} />
-            <TextField name="category" label="Category" fullWidth value={formData.category || ''} onChange={onChange} />
-            <TextField name="country" label="Country" fullWidth value={formData.country || ''} onChange={onChange} />
-            <TextField name="language" label="Language" fullWidth value={formData.language || ''} onChange={onChange} />
-            {mode === 'edit' ? <TextField name="epg_id" label="EPG ID" fullWidth value={formData.epg_id || ''} onChange={onChange} /> : null}
-            <TextField name="channel_number" label="Channel Number" type="number" fullWidth value={formData.channel_number || ''} onChange={onChange} />
+            <TextField name="logo_url" label={tUi("Logo URL")} fullWidth value={formData.logo_url || ''} onChange={onChange} />
+            <TextField name="category" label={tUi("Category")} fullWidth value={formData.category || ''} onChange={onChange} />
+            <TextField name="country" label={tUi("Country")} fullWidth value={formData.country || ''} onChange={onChange} />
+            <TextField name="language" label={tUi("Language")} fullWidth value={formData.language || ''} onChange={onChange} />
+            {mode === 'edit' ? <TextField name="epg_id" label={tUi("EPG ID")} fullWidth value={formData.epg_id || ''} onChange={onChange} /> : null}
+            <TextField name="channel_number" label={tUi("Channel Number")} type="number" fullWidth value={formData.channel_number || ''} onChange={onChange} />
           </Stack>
         </Box>
 
         <Stack spacing={1}>
           <FormControlLabel
             control={<Switch checked={formData.is_active === true} onChange={onChange} name="is_active" color="primary" />}
-            label="Active"
+            label={tUi("Active")}
           />
           <FormControlLabel
             control={<Switch checked={formData.is_favorite === true} onChange={onChange} name="is_favorite" color="primary" />}
-            label="Favorite"
+            label={tUi("Favorite")}
           />
         </Stack>
       </Stack>
     </DialogContent>
     <DialogActions>
-      <Button onClick={onClose}>Cancel</Button>
+      <Button onClick={onClose}>{tUi("Cancel")}</Button>
       <Button onClick={onSubmit} variant="contained" color="primary" disabled={submitting}>
-        {mode === 'create' ? 'Create' : 'Update'}
+        {mode === 'create' ? tUi("Create") : tUi("Update")}
       </Button>
     </DialogActions>
   </Dialog>
-);
+); };
 
 export default TVChannelFormDialog;

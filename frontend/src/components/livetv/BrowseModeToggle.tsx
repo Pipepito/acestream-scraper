@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { ToggleButton, ToggleButtonGroup } from '@mui/material';
 
@@ -17,11 +18,11 @@ interface BrowseModeToggleProps {
 }
 
 /** One list, three views: the toggle keeps the side column to a single scrolling list. */
-const BrowseModeToggle: React.FC<BrowseModeToggleProps> = ({ value, onChange }) => (
+const BrowseModeToggle: React.FC<BrowseModeToggleProps> = ({ value, onChange }) => { const tUi = useUiText(); return (
   <ToggleButtonGroup exclusive size="small" value={value} onChange={(_, next: BrowseMode | null) => { if (next) onChange(next); }}
-    aria-label="Browse" sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+    aria-label={tUi("Browse")} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
     {BROWSE_MODES.map((mode) => <ToggleButton key={mode.value} value={mode.value} sx={{ whiteSpace: 'nowrap' }}>{mode.label}</ToggleButton>)}
   </ToggleButtonGroup>
-);
+); };
 
 export default BrowseModeToggle;

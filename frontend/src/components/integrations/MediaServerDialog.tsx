@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useId, useState } from 'react';
 import {
   Alert,
@@ -39,6 +41,7 @@ const KEY_HELPER: Record<MediaServerKind, string> = {
 
 /** Add or edit one Jellyfin/Plex server, with an inline "Test connection" probe. */
 const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onClose, notify }) => {
+  const tUi = useUiText();
   const tunerModeLabelId = useId();
   const [kind, setKind] = useState<MediaServerKind>('jellyfin');
   const [name, setName] = useState('');
@@ -110,50 +113,50 @@ const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onC
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" aria-labelledby="media-server-dialog-title">
       <form onSubmit={(event) => void submit(event)}>
-        <DialogTitle id="media-server-dialog-title">{server ? `Edit ${server.name}` : 'Add media server'}</DialogTitle>
+        <DialogTitle id="media-server-dialog-title">{server ? tUi("Edit {{value0}}", { value0: server.name }) : tUi("Add media server")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl fullWidth>
-              <InputLabel id="media-server-kind">Media server</InputLabel>
+              <InputLabel id="media-server-kind">{tUi("Media server")}</InputLabel>
               <Select
                 labelId="media-server-kind"
-                label="Media server"
+                label={tUi("Media server")}
                 value={kind}
                 disabled={server !== null}
                 onChange={(event) => setKind(event.target.value as MediaServerKind)}
               >
-                <MenuItem value="jellyfin">Jellyfin</MenuItem>
-                <MenuItem value="plex">Plex</MenuItem>
+                <MenuItem value="jellyfin">{tUi("Jellyfin")}</MenuItem>
+                <MenuItem value="plex">{tUi("Plex")}</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              label="Name"
+              label={tUi("Name")}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              inputProps={{ 'aria-label': 'Name' }}
+              inputProps={{ 'aria-label': uiText("Name") }}
               fullWidth
               required
             />
             <TextField
-              label="Address"
+              label={tUi("Address")}
               value={baseUrl}
               onChange={(event) => setBaseUrl(event.target.value)}
-              inputProps={{ 'aria-label': 'Address' }}
+              inputProps={{ 'aria-label': uiText("Address") }}
               fullWidth
               required
-              helperText={`Address of ${KIND_LABEL[kind]} as seen from this server, e.g. http://192.168.1.12:8096`}
+              helperText={tUi("Address of {{value0}} as seen from this server, e.g. http://192.168.1.12:8096", { value0: KIND_LABEL[kind] })}
             />
             <TextField
-              label={kind === 'jellyfin' ? 'API key' : 'Token'}
+              label={kind === 'jellyfin' ? tUi("API key") : tUi("Token")}
               type="password"
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
               fullWidth
-              helperText={server?.has_api_key ? `Leave empty to keep the saved one. ${KEY_HELPER[kind]}` : KEY_HELPER[kind]}
+              helperText={server?.has_api_key ? tUi("Leave empty to keep the saved one. {{value0}}", { value0: KEY_HELPER[kind] }) : KEY_HELPER[kind]}
             />
             {kind === 'jellyfin' ? (
               <FormControl>
-                <FormLabel id={tunerModeLabelId}>Channels reach Jellyfin as</FormLabel>
+                <FormLabel id={tunerModeLabelId}>{tUi("Channels reach Jellyfin as")}</FormLabel>
                 <RadioGroup
                   aria-labelledby={tunerModeLabelId}
                   value={tunerMode}
@@ -162,32 +165,31 @@ const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onC
                   <FormControlLabel
                     value="hdhomerun"
                     control={<Radio />}
-                    label="HDHomeRun tuner (recommended) — stable channel identity, favorites survive changes"
+                    label={tUi("HDHomeRun tuner (recommended) — stable channel identity, favorites survive changes")}
                   />
                   <FormControlLabel
                     value="m3u"
                     control={<Radio />}
-                    label="M3U playlist + XMLTV — uses tvg-id matching; any change to the address or link format recreates every channel in Jellyfin and drops favorites"
+                    label={tUi("M3U playlist + XMLTV — uses tvg-id matching; any change to the address or link format recreates every channel in Jellyfin and drops favorites")}
                   />
                 </RadioGroup>
               </FormControl>
             ) : null}
             <FormControlLabel
               control={<Switch checked={autoRefresh} onChange={(event) => setAutoRefresh(event.target.checked)} />}
-              label="Refresh the guide automatically when channels change"
+              label={tUi("Refresh the guide automatically when channels change")}
             />
             {probe ? <Alert severity={probe.severity}>{probe.text}</Alert> : null}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => void runTest()} disabled={!baseUrl.trim() || test.isPending}>
-            {test.isPending ? <CircularProgress size={18} /> : 'Test connection'}
+            {test.isPending ? <CircularProgress size={18} /> : tUi("Test connection")}
           </Button>
           <Button onClick={onClose} color="inherit">
-            Cancel
-          </Button>
+            {tUi("Cancel")}</Button>
           <Button type="submit" variant="contained" disabled={!valid || create.isPending || update.isPending}>
-            {server ? 'Save' : 'Add media server'}
+            {server ? tUi("Save") : tUi("Add media server")}
           </Button>
         </DialogActions>
       </form>

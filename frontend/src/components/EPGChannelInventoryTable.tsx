@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React from 'react';
 import { Box, Checkbox, Chip, Link, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
@@ -25,13 +27,14 @@ const EPGChannelInventoryTable: React.FC<EPGChannelInventoryTableProps> = ({
   onSelectAll,
   onSelectChannel,
 }) => {
+  const tUi = useUiText();
   const showSource = (sources?.length ?? 0) > 1;
   const showLanguage = channels.some((channel) => Boolean(channel.language));
   const columnCount = 4 + (showSource ? 1 : 0) + (showLanguage ? 1 : 0);
 
   return (
     <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
-      <Table size="small" aria-label="Guide channels">
+      <Table size="small" aria-label={tUi("Guide channels")}>
         <TableHead>
           <TableRow>
             <TableCell padding="checkbox">
@@ -40,14 +43,14 @@ const EPGChannelInventoryTable: React.FC<EPGChannelInventoryTableProps> = ({
                 checked={visibleUnmappedChannelIds.length > 0 && selectedChannelIds.length === visibleUnmappedChannelIds.length}
                 disabled={!isTVChannelCatalogReady}
                 onChange={onSelectAll}
-                inputProps={{ 'aria-label': 'select all EPG channels' }}
+                inputProps={{ 'aria-label': uiText("select all EPG channels") }}
               />
             </TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>XML ID</TableCell>
-            {showSource ? <TableCell>Source</TableCell> : null}
-            {showLanguage ? <TableCell>Language</TableCell> : null}
-            <TableCell>TV channel</TableCell>
+            <TableCell>{tUi("Name")}</TableCell>
+            <TableCell>{tUi("XML ID")}</TableCell>
+            {showSource ? <TableCell>{tUi("Source")}</TableCell> : null}
+            {showLanguage ? <TableCell>{tUi("Language")}</TableCell> : null}
+            <TableCell>{tUi("TV channel")}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -75,7 +78,7 @@ const EPGChannelInventoryTable: React.FC<EPGChannelInventoryTableProps> = ({
                 {showSource ? <TableCell>{sources?.find((s) => s.id === channel.epg_source_id)?.name || channel.epg_source_id}</TableCell> : null}
                 {showLanguage ? <TableCell>{channel.language || '—'}</TableCell> : null}
                 <TableCell>
-                  {mapped ? <Chip label="Linked" size="small" color="success" variant="outlined" /> : <Chip label="Not linked" size="small" variant="outlined" />}
+                  {mapped ? <Chip label={tUi("Linked")} size="small" color="success" variant="outlined" /> : <Chip label={tUi("Not linked")} size="small" variant="outlined" />}
                 </TableCell>
               </TableRow>
             );
@@ -83,8 +86,7 @@ const EPGChannelInventoryTable: React.FC<EPGChannelInventoryTableProps> = ({
           {channels && channels.length === 0 && (
             <TableRow>
               <TableCell colSpan={columnCount} align="center">
-                No EPG channels found
-              </TableCell>
+                {tUi("No EPG channels found")}</TableCell>
             </TableRow>
           )}
         </TableBody>

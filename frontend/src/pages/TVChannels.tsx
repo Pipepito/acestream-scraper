@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import TVChannelReorder from '../components/TVChannelReorder';
 import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +36,7 @@ const TVAutoMatchDialog = lazy(() => import('../components/TVAutoMatchDialog'));
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const TVChannels: React.FC = () => {
+  const tUi = useUiText();
   const [reordering, setReordering] = useState(false);
   const reorderMutation = useReorderTVChannels();
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
@@ -192,13 +195,11 @@ const TVChannels: React.FC = () => {
   if (isCatalogLoading) {
     return (
       <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="50vh" gap={1.5}>
-        <CircularProgress aria-label="Loading TV channels" />
+        <CircularProgress aria-label={tUi("Loading TV channels")} />
         <Typography variant="sectionTitle" component="p">
-          Loading TV channels
-        </Typography>
+          {tUi("Loading TV channels")}</Typography>
         <Typography variant="body2" color="text.secondary" align="center">
-          Preparing the latest TV channel inventory and actions.
-        </Typography>
+          {tUi("Preparing the latest TV channel inventory and actions.")}</Typography>
       </Box>
     );
   }
@@ -207,10 +208,9 @@ const TVChannels: React.FC = () => {
     return (
       <Box p={3}>
         <Stack spacing={2} alignItems="flex-start">
-          <Alert severity="error">We could not load the TV channel inventory. Try refreshing to reconnect.</Alert>
+          <Alert severity="error">{tUi("We could not load the TV channel inventory. Try refreshing to reconnect.")}</Alert>
           <Button variant="outlined" disabled={reordering} onClick={() => refetchCatalog()}>
-            Retry loading TV channels
-          </Button>
+            {tUi("Retry loading TV channels")}</Button>
         </Stack>
       </Box>
     );
@@ -230,29 +230,27 @@ const TVChannels: React.FC = () => {
   return (
     <Box sx={{ width: '100%' }}>
       <PageHeader
-        title="TV Channels"
-        subtitle="The channels you publish. Each one groups its streams and carries the EPG for the playlist."
+        title={tUi("TV Channels")}
+        subtitle={tUi("The channels you publish. Each one groups its streams and carries the EPG for the playlist.")}
         primaryActions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button variant="outlined" disabled={reordering || channels.length < 2} onClick={() => setReordering(true)}>Reorder channels</Button>
-            <Button variant="outlined" disabled={reordering} onClick={() => setAutoMatchOpen(true)}>Auto-match streams</Button>
+            <Button variant="outlined" disabled={reordering || channels.length < 2} onClick={() => setReordering(true)}>{tUi("Reorder channels")}</Button>
+            <Button variant="outlined" disabled={reordering} onClick={() => setAutoMatchOpen(true)}>{tUi("Auto-match streams")}</Button>
             <Button variant="outlined" disabled={reordering} onClick={() => refetchCatalog()}>
-              Refresh
-            </Button>
+              {tUi("Refresh")}</Button>
             <Button variant="contained" color="primary" disabled={reordering} onClick={handleOpenCreateDialog}>
-              Add TV Channel
-            </Button>
+              {tUi("Add TV Channel")}</Button>
           </Stack>
         }
       />
 
       <StatusLine
-        aria-label="TV channel summary"
+        aria-label={tUi("TV channel summary")}
         items={[
-          { label: favoritesOnly ? 'Favorites' : 'Channels', value: String(channels.length) },
-          ...(favoritesOnly ? [] : [{ label: 'Favorites', value: String(favoriteCount) }]),
-          { label: 'With streams', value: String(withStreamsCount), tone: withStreamsCount === 0 && channels.length > 0 ? 'warning' as const : 'default' as const },
-          { label: 'Matching filters', value: hasFilters ? String(totalChannels) : 'all' },
+          { label: favoritesOnly ? uiText("Favorites") : uiText("Channels"), value: String(channels.length) },
+          ...(favoritesOnly ? [] : [{ label: uiText("Favorites"), value: String(favoriteCount) }]),
+          { label: uiText("With streams"), value: String(withStreamsCount), tone: withStreamsCount === 0 && channels.length > 0 ? 'warning' as const : 'default' as const },
+          { label: uiText("Matching filters"), value: hasFilters ? String(totalChannels) : 'all' },
         ]}
       />
 
@@ -264,7 +262,7 @@ const TVChannels: React.FC = () => {
 
       <Box data-testid="tv-channels-page-layout">
         <ContentSection
-          title="Channels"
+          title={tUi("Channels")}
           actions={
             isPhone && !reordering ? (
               <Button
@@ -273,7 +271,7 @@ const TVChannels: React.FC = () => {
                 aria-expanded={filtersOpen}
                 aria-controls="tv-channels-filters-panel"
               >
-                {filtersOpen ? 'Hide filters' : 'Show filters'}
+                {filtersOpen ? tUi("Hide filters") : tUi("Show filters")}
               </Button>
             ) : null
           }
@@ -286,7 +284,7 @@ const TVChannels: React.FC = () => {
           <Box sx={{ mb: 2 }}>
             <FormControlLabel
               control={<Switch checked={favoritesOnly} onChange={handleFavoritesOnlyChange} name="favorites_only" color="primary" />}
-              label="Favorites only"
+              label={tUi("Favorites only")}
             />
             {isPhone ? (
               <Collapse in={showFilters} id="tv-channels-filters-panel" unmountOnExit>
@@ -317,18 +315,16 @@ const TVChannels: React.FC = () => {
           {totalChannels === 0 && hasFilters ? (
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography component="span" sx={{ display: 'block', fontWeight: 600 }}>
-                No TV channels match the current filters
-              </Typography>
+                {tUi("No TV channels match the current filters")}</Typography>
               <Typography component="span" variant="body2">
-                Reset the filters or broaden your search to see the full list.
-              </Typography>
+                {tUi("Reset the filters or broaden your search to see the full list.")}</Typography>
             </Alert>
           ) : null}
           </>}
         </ContentSection>
       </Box>
 
-      {autoMatchOpen ? <Suspense fallback={<CircularProgress aria-label="Loading auto-match" />}><TVAutoMatchDialog onClose={() => setAutoMatchOpen(false)} /></Suspense> : null}
+      {autoMatchOpen ? <Suspense fallback={<CircularProgress aria-label={tUi("Loading auto-match")} />}><TVAutoMatchDialog onClose={() => setAutoMatchOpen(false)} /></Suspense> : null}
 
       <TVChannelFormDialog
         mode="create"

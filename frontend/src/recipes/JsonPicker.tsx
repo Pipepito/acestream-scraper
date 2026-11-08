@@ -1,9 +1,11 @@
+import { useUiText } from '../i18n/useUiText';
 import { renderingLimit } from './renderBudget';
 import React, { useMemo } from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/material';
 import { pathValue } from './engine';
 interface Props { sample: string; records: string; pickingRecord: boolean; onPick: (path: string) => void }
 export default function JsonPicker({ sample, records, pickingRecord, onPick }: Props) {
+  const tUi = useUiText();
   const data = useMemo(() => {
     try {
       const limit = renderingLimit(sample);
@@ -26,8 +28,8 @@ export default function JsonPicker({ sample, records, pickingRecord, onPick }: P
     } catch { return { rows: [], error: 'Paste a valid JSON response to select its fields.' }; }
   }, [sample, records, pickingRecord]);
   return <Stack spacing={1}>{data.error ? <Alert severity="info">{data.error}</Alert> : <>
-    <Typography variant="body2">{pickingRecord ? 'Select the array containing channels.' : 'Select a field from the first record. The same path is used for every record.'}</Typography>
+    <Typography variant="body2">{pickingRecord ? tUi("Select the array containing channels.") : tUi("Select a field from the first record. The same path is used for every record.")}</Typography>
     {data.rows.map(row => <Button key={row.path} variant="outlined" sx={{ justifyContent: 'flex-start', textAlign: 'left', overflowWrap: 'anywhere' }} onClick={() => onPick(row.path)}>{row.path || '(root)'} — {row.label}</Button>)}
-    {!data.rows.length && <Alert severity="info">Choose a records array first, or enter its path below.</Alert>}
+    {!data.rows.length && <Alert severity="info">{tUi("Choose a records array first, or enter its path below.")}</Alert>}
   </>}</Stack>;
 }

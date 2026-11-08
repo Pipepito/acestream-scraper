@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import { normalizeApiError } from '../services/apiErrors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, useMediaQuery, useTheme } from '@mui/material';
@@ -37,6 +39,7 @@ const hasAnyFilter = (filters: AcestreamChannelFilters): boolean =>
   Boolean(filters.source_url || filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined || filters.assigned !== undefined);
 
 const AcestreamChannels: React.FC = () => {
+  const tUi = useUiText();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const theme = useTheme();
@@ -115,9 +118,9 @@ const AcestreamChannels: React.FC = () => {
   const handleCopyId = useCallback(async (id: string) => {
     try {
       await navigator.clipboard.writeText(id);
-      setNotice({ message: 'Acestream ID copied.' });
+      setNotice({ message: uiText("Acestream ID copied.") });
     } catch {
-      setNotice({ message: 'ID selected. Press Ctrl+C or ⌘C, or use your device’s Copy menu.', severity: 'warning' });
+      setNotice({ message: uiText("ID selected. Press Ctrl+C or ⌘C, or use your device’s Copy menu."), severity: 'warning' });
     }
   }, []);
 
@@ -157,7 +160,7 @@ const AcestreamChannels: React.FC = () => {
         if (detail.code !== 'IMPORT_EXCLUDED') throw error;
         const context = detail.context as { rule_ids?: number[] } | undefined;
         const ruleIds = context?.rule_ids ?? [];
-        const accepted = await confirm({ title: 'Add excluded stream?', body: <Stack spacing={1}><span>This stream matches import rule {ruleIds.join(', ')}. Add anyway applies only to this manual addition.</span><Button href={`/scraper?tab=exclusions#rule-${ruleIds[0] ?? ''}`}>Review import exclusions</Button></Stack>, confirmLabel: 'Add anyway' });
+        const accepted = await confirm({ title: uiText("Add excluded stream?"), body: <Stack spacing={1}><span>{tUi("This stream matches import rule")}{' '}{ruleIds.join(', ')}{tUi(". Add anyway applies only to this manual addition.")}</span><Button href={`/scraper?tab=exclusions#rule-${ruleIds[0] ?? ''}`}>{tUi("Review import exclusions")}</Button></Stack>, confirmLabel: uiText("Add anyway") });
         if (!accepted) return;
         await acestreamChannelService.createAcestreamChannel({ ...values, allow_excluded: true });
       }
@@ -194,7 +197,7 @@ const AcestreamChannels: React.FC = () => {
       const ok = await confirm({
         title: `Delete ${channel.name}?`,
         body: 'The channel is removed from the inventory and the playlist. It comes back if a source still lists it.',
-        confirmLabel: 'Delete',
+        confirmLabel: uiText("Delete"),
         danger: true,
       });
       if (!ok) return;
@@ -334,31 +337,30 @@ const AcestreamChannels: React.FC = () => {
   return (
     <Box sx={{ width: '100%' }}>
       <PageHeader
-        title="Acestream Channels"
-        subtitle="Streams found by the scraper. Hide the ones you don't want in the playlist and link the rest to TV channels."
+        title={tUi("Acestream Channels")}
+        subtitle={tUi("Streams found by the scraper. Hide the ones you don't want in the playlist and link the rest to TV channels.")}
         actions={
           <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
-            Add channel
-          </Button>
+            {tUi("Add channel")}</Button>
         }
         overflowActions={[
-          { label: 'Refresh', icon: <Refresh fontSize="small" />, onClick: () => void refetch() },
-          { label: checkingAll ? 'Requesting…' : 'Run status check now', onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
-          { label: 'Export CSV', icon: <FileDownload fontSize="small" />, onClick: () => void handleExportCSV() },
+          { label: uiText("Refresh"), icon: <Refresh fontSize="small" />, onClick: () => void refetch() },
+          { label: checkingAll ? uiText("Requesting…") : uiText("Run status check now"), onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
+          { label: uiText("Export CSV"), icon: <FileDownload fontSize="small" />, onClick: () => void handleExportCSV() },
         ]}
       />
 
       <StatusLine
-        aria-label="Channel summary"
+        aria-label={tUi("Channel summary")}
         items={[
-          { label: 'Channels', value: allTotal === undefined ? '…' : String(allTotal) },
+          { label: uiText("Channels"), value: allTotal === undefined ? '…' : String(allTotal) },
           {
-            label: 'Online',
+            label: uiText("Online"),
             value: onlineTotal === undefined ? '…' : String(onlineTotal),
             tone: onlineTotal === 0 && (allTotal ?? 0) > 0 ? 'warning' : 'default',
           },
-          { label: 'Matching filters', value: filtered ? String(totalCount) : 'all' },
-          { label: 'Selected', value: String(selectedIds.length) },
+          { label: uiText("Matching filters"), value: filtered ? String(totalCount) : 'all' },
+          { label: uiText("Selected"), value: String(selectedIds.length) },
         ]}
       />
 
@@ -372,12 +374,11 @@ const AcestreamChannels: React.FC = () => {
         <Box sx={{ mb: 2 }}>
           <InlineStatusNotice
             severity="error"
-            title="Unable to load channels"
+            title={tUi("Unable to load channels")}
             description={getErrorMessage(fetchError)}
             action={
               <Button variant="outlined" onClick={() => refetch()}>
-                Try again
-              </Button>
+                {tUi("Try again")}</Button>
             }
           />
         </Box>
@@ -385,29 +386,27 @@ const AcestreamChannels: React.FC = () => {
 
       {groupError ? (
         <Box sx={{ mb: 2 }}>
-          <InlineStatusNotice severity="error" title="Unable to load groups" description={groupError} />
+          <InlineStatusNotice severity="error" title={tUi("Unable to load groups")} description={groupError} />
         </Box>
       ) : null}
 
       <ContentSection
-        title="Channels"
+        title={tUi("Channels")}
         actions={
           selectedIds.length > 0 ? (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <Button variant="contained" color="secondary" onClick={() => setBulkOpen(true)}>
-                Bulk actions ({selectedIds.length})
+                {tUi("Bulk actions (")}{selectedIds.length})
               </Button>
               <Button variant="outlined" onClick={() => setBatchAssignOpen(true)}>
-                Set group
-              </Button>
+                {tUi("Set group")}</Button>
               <Button variant="outlined" onClick={() => handleOpenAssignDialog(selectedIds)}>
-                Link to TV channel
-              </Button>
+                {tUi("Link to TV channel")}</Button>
             </Stack>
           ) : undefined
         }
       >
-        {sources.isError ? <Alert severity="error" action={<Button onClick={() => void sources.refetch()}>Retry</Button>}>Unable to load source filters.</Alert> : null}
+        {sources.isError ? <Alert severity="error" action={<Button onClick={() => void sources.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load source filters.")}</Alert> : null}
         <ChannelFilterBar filters={filters} groups={groups} sources={sources.data ?? []} onChange={handleFilterChange} />
         {isCompact ? (
           <ChannelCardList
@@ -496,7 +495,7 @@ const AcestreamChannels: React.FC = () => {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id="acestream-play-on-title">Play on…</DialogTitle>
+        <DialogTitle id="acestream-play-on-title">{tUi("Play on…")}</DialogTitle>
         <DialogContent>
           {playOnTarget ? (
             <PlayOnMenu
@@ -508,7 +507,7 @@ const AcestreamChannels: React.FC = () => {
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPlayOnTarget(null)}>Close</Button>
+          <Button onClick={() => setPlayOnTarget(null)}>{tUi("Close")}</Button>
         </DialogActions>
       </Dialog>
 

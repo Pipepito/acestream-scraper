@@ -1,3 +1,5 @@
+import { getLocale } from '../i18n/locale';
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Alert } from '@mui/material';
 import { acestreamChannelService } from '../services/channelService';
@@ -16,6 +18,7 @@ interface ChannelActivityLogProps {
 }
 
 const ChannelActivityLog: React.FC<ChannelActivityLogProps> = ({ channelId }) => {
+  const tUi = useUiText();
   const [log, setLog] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,37 +32,37 @@ const ChannelActivityLog: React.FC<ChannelActivityLogProps> = ({ channelId }) =>
         setLoading(false);
       })
       .catch(() => {
-        setError('Failed to load activity log');
+        setError('load_failed');
         setLoading(false);
       });
   }, [channelId]);
 
   if (loading) return <CircularProgress />;
-  if (error) return <Alert severity="error">{error}</Alert>;
+  if (error) return <Alert severity="error">{tUi("Failed to load activity log")}</Alert>;
 
   return (
     <Box mt={2}>
-      <Typography variant="h6" gutterBottom>Activity Log</Typography>
+      <Typography variant="h6" gutterBottom>{tUi("Activity Log")}</Typography>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Timestamp</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Message</TableCell>
-              <TableCell>User</TableCell>
-              <TableCell>Details</TableCell>
+              <TableCell>{tUi("Timestamp")}</TableCell>
+              <TableCell>{tUi("Type")}</TableCell>
+              <TableCell>{tUi("Message")}</TableCell>
+              <TableCell>{tUi("User")}</TableCell>
+              <TableCell>{tUi("Details")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {log.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center">No activity found</TableCell>
+                <TableCell colSpan={5} align="center">{tUi("No activity found")}</TableCell>
               </TableRow>
             ) : (
               log.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell>{new Date(entry.timestamp).toLocaleString()}</TableCell>
+                  <TableCell>{new Date(entry.timestamp).toLocaleString(getLocale())}</TableCell>
                   <TableCell>{entry.type}</TableCell>
                   <TableCell>{entry.message}</TableCell>
                   <TableCell>{entry.user || '-'}</TableCell>

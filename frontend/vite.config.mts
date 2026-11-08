@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => ({
             },
             { name: 'mui-data-grid', test: /node_modules\/@mui\/x-data-grid\//, maxSize: 650_000, priority: 30 },
             { name: 'mui-icons', test: /node_modules\/@mui\/icons-material\//, priority: 30 },
+            { name: 'localization-vendor', test: /node_modules\/(i18next|react-i18next|html-parse-stringify|void-elements)\//, priority: 20 },
             { name: 'date-vendor', test: /node_modules\/date-fns\//, priority: 20 },
             // Keep UI helpers (Emotion/transitions) with MUI, including their
             // shared dependencies, rather than extracting cyclic common chunks.

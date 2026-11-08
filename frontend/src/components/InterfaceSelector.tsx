@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import PaletteOutlined from '@mui/icons-material/PaletteOutlined';
@@ -7,6 +8,7 @@ import { interfaceIds, useAppPreferences, type AppLanguage } from '../preference
 
 const colors = { lime: ['#f3f4ed', '#c0ef54', '#242d22'], coral: ['#f6f3ee', '#ffad87', '#202336'], cyan: ['#101f21', '#55dfc4', '#eff9f2'] };
 export default function InterfaceSelector() {
+  const tUi = useUiText();
   const [open, setOpen] = useState(false);
   const preferences = useAppPreferences();
   const { t } = useTranslation();
@@ -29,7 +31,7 @@ export default function InterfaceSelector() {
             </ButtonBase>)}
           </Box>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField fullWidth select label={t('language')} value={preferences.language} onChange={event => preferences.setPreference('language', event.target.value as AppLanguage)}><MenuItem value="en" lang="en">English</MenuItem><MenuItem value="es" lang="es">Español</MenuItem></TextField>
+            <TextField fullWidth select label={t('language')} value={preferences.language} onChange={event => preferences.setPreference('language', event.target.value as AppLanguage)}><MenuItem value="en" lang="en">{tUi("English")}</MenuItem><MenuItem value="es" lang="es">{tUi("Español")}</MenuItem></TextField>
             <TextField fullWidth select label={t('theme')} value={preferences.mode} onChange={event => preferences.setPreference('mode', event.target.value as 'light' | 'dark')}><MenuItem value="light">{t('light')}</MenuItem><MenuItem value="dark">{t('dark')}</MenuItem></TextField>
           </Stack>
           {preferences.storageFailure ? <Alert severity="warning" action={<Button color="inherit" onClick={preferences.retryStorage}>{t('retry')}</Button>}>{t(preferences.storageFailure === 'read' ? 'preferenceReadError' : 'preferenceError')}</Alert> : null}

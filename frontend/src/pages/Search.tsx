@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
@@ -43,6 +45,7 @@ import AddAndLinkDialog from '../components/search/AddAndLinkDialog';
 import SearchBroadcastStatus from '../components/SearchBroadcastStatus';
 
 const Search: React.FC = () => {
+  const tUi = useUiText();
   const [linkStream, setLinkStream] = useState<SearchResultItem | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [importMessage, setImportMessage] = useState('');
@@ -167,16 +170,16 @@ const Search: React.FC = () => {
 
   return (
     <Box>
-      <PageHeader title="Search" subtitle="Find streams in the AceStream catalogue and add them to your channels." />
+      <PageHeader title={tUi("Search")} subtitle={tUi("Find streams in the AceStream catalogue and add them to your channels.")} />
 
-      <ContentSection title="Search">
+      <ContentSection title={tUi("Search")}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={7}>
             <TextField
               fullWidth
-              label="Search Query"
-              helperText="Leave blank to browse all published channels."
-              placeholder="Enter search terms..."
+              label={tUi("Search Query")}
+              helperText={tUi("Leave blank to browse all published channels.")}
+              placeholder={tUi("Enter search terms...")}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               onKeyDown={(event) => {
@@ -188,60 +191,58 @@ const Search: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
-              <InputLabel id="search-category-label">Category</InputLabel>
-              <Select labelId="search-category-label" value={category} label="Category" onChange={handleCategoryChange}>
-                <MenuItem value="">All Categories</MenuItem>
-                <MenuItem value="sports">Sports</MenuItem>
-                <MenuItem value="movies">Movies</MenuItem>
-                <MenuItem value="tv">TV</MenuItem>
-                <MenuItem value="news">News</MenuItem>
+              <InputLabel id="search-category-label">{tUi("Category")}</InputLabel>
+              <Select labelId="search-category-label" value={category} label={tUi("Category")} onChange={handleCategoryChange}>
+                <MenuItem value="">{tUi("All Categories")}</MenuItem>
+                <MenuItem value="sports">{tUi("Sports")}</MenuItem>
+                <MenuItem value="movies">{tUi("Movies")}</MenuItem>
+                <MenuItem value="tv">{tUi("TV")}</MenuItem>
+                <MenuItem value="news">{tUi("News")}</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} md={2}>
             <Button fullWidth variant="contained" size="large" onClick={handleSearch} disabled={searchLoading}>
-              {searchLoading ? <CircularProgress size={24} color="inherit" /> : 'Search'}
+              {searchLoading ? <CircularProgress size={24} color="inherit" /> : tUi("Search")}
             </Button>
           </Grid>
         </Grid>
       </ContentSection>
 
-      {activeSearch?.query ? <Button sx={{ mb: 2 }} onClick={() => setSaveOpen(true)}>Save search</Button> : null}
+      {activeSearch?.query ? <Button sx={{ mb: 2 }} onClick={() => setSaveOpen(true)}>{tUi("Save search")}</Button> : null}
       {saveOpen && activeSearch ? <SavedSearchDialog initial={{ name: activeSearch.query.slice(0, 100), query: activeSearch.query, category: activeSearch.category, refresh_enabled: false }} onClose={() => setSaveOpen(false)} /> : null}
-      {importMessage ? <Alert severity="info" sx={{ mb: 2 }}>{importMessage}<Button component={RouterLink} to={`/scraper?tab=exclusions${importRuleId ? `#rule-${importRuleId}` : ''}`}>{importRuleId ? `Exclusion rule #${importRuleId}` : 'Import exclusions'}</Button></Alert> : null}
+      {importMessage ? <Alert severity="info" sx={{ mb: 2 }}>{importMessage}<Button component={RouterLink} to={`/scraper?tab=exclusions${importRuleId ? `#rule-${importRuleId}` : ''}`}>{importRuleId ? tUi("Exclusion rule #{{value0}}", { value0: importRuleId }) : tUi("Import exclusions")}</Button></Alert> : null}
       {searchError && activeSearch ? (
         <Alert severity="error" sx={{ mb: 3 }}>
-          Search for &quot;{activeSearch.query}&quot; failed. {searchErrorMessage}
+          {tUi("Search for \"")}{activeSearch.query}{tUi("\" failed.")}{' '}{searchErrorMessage}
         </Alert>
       ) : null}
 
       {searchResults && activeSearch ? (
         <ContentSection
-          title="Results"
+          title={tUi("Results")}
           actions={
             hasSelection ? (
-              <Button variant="contained" onClick={handleAddSelectedChannels} disabled={addChannelMutation.isPending || bulkBusy} aria-label={`Add ${selectedChannels.length} selected channels`}>
-                {addChannelMutation.isPending ? <CircularProgress size={24} /> : `Add ${selectedChannels.length} selected channels`}
+              <Button variant="contained" onClick={handleAddSelectedChannels} disabled={addChannelMutation.isPending || bulkBusy} aria-label={tUi("Add {{value0}} selected channels", { value0: selectedChannels.length })}>
+                {addChannelMutation.isPending ? <CircularProgress size={24} /> : tUi("Add {{value0}} selected channels", { value0: selectedChannels.length })}
               </Button>
             ) : null
           }
         >
           <StatusLine
-            aria-label="Search summary"
+            aria-label={tUi("Search summary")}
             items={[
-              { label: 'Results', value: `${totalResults} ${activeSearch.query ? `for ‘${activeSearch.query}’` : 'in all channels'}${activeSearch.category ? ` in ${activeSearch.category}` : ''}` },
-              { label: 'Selected', value: String(selectedChannels.length) },
-              ...(addedIds.size > 0 ? [{ label: 'Added this session', value: String(addedIds.size), tone: 'success' as const }] : []),
+              { label: uiText("Results"), value: `${totalResults} ${activeSearch.query ? `for ‘${activeSearch.query}’` : 'in all channels'}${activeSearch.category ? ` in ${activeSearch.category}` : ''}` },
+              { label: uiText("Selected"), value: String(selectedChannels.length) },
+              ...(addedIds.size > 0 ? [{ label: uiText("Added this session"), value: String(addedIds.size), tone: 'success' as const }] : []),
             ]}
           />
           {results.length === 0 ? (
             <Box sx={{ py: 3, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
-                No channels found matching your search criteria.
-              </Typography>
+                {tUi("No channels found matching your search criteria.")}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Try a broader query or adjust the category, then search again.
-              </Typography>
+                {tUi("Try a broader query or adjust the category, then search again.")}</Typography>
             </Box>
           ) : (
             <>
@@ -258,11 +259,11 @@ const Search: React.FC = () => {
                           disabled={selectableResults.length === 0}
                         />
                       </TableCell>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Categories</TableCell>
-                      <TableCell>Bitrate</TableCell>
-                      <TableCell>Availability</TableCell>
-                      <TableCell>Action</TableCell>
+                      <TableCell>{tUi("Name")}</TableCell>
+                      <TableCell>{tUi("Categories")}</TableCell>
+                      <TableCell>{tUi("Bitrate")}</TableCell>
+                      <TableCell>{tUi("Availability")}</TableCell>
+                      <TableCell>{tUi("Action")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -303,17 +304,16 @@ const Search: React.FC = () => {
                                 startIcon={<PlayArrowRounded />}
                                 onClick={() => playMutation.mutate(channel)}
                                 disabled={playMutation.isPending}
-                                aria-label={`play ${channel.name}`}
+                                aria-label={tUi("play {{value0}}", { value0: channel.name })}
                               >
-                                {playMutation.isPending && playMutation.variables?.id === channel.id ? 'Resolving…' : 'Play'}
+                                {playMutation.isPending && playMutation.variables?.id === channel.id ? tUi("Resolving…") : tUi("Play")}
                               </Button>
-                              <Button size="small" variant="outlined" onClick={() => setLinkStream(channel)} disabled={addChannelMutation.isPending || bulkBusy} aria-label={`Add and Link ${channel.name}`}>Add and Link</Button>
+                              <Button size="small" variant="outlined" onClick={() => setLinkStream(channel)} disabled={addChannelMutation.isPending || bulkBusy} aria-label={tUi("Add and Link {{value0}}", { value0: channel.name })}>{tUi("Add and Link")}</Button>
                               {added ? (
-                                <Chip size="small" color="success" icon={<CheckIcon />} label="Added" aria-label={`Added ${channel.name}`} />
+                                <Chip size="small" color="success" icon={<CheckIcon />} label={tUi("Added")} aria-label={tUi("Added {{value0}}", { value0: channel.name })} />
                               ) : (
-                                <Button size="small" variant="outlined" onClick={() => handleAddChannel(channel)} disabled={addChannelMutation.isPending || bulkBusy} aria-label={`Add ${channel.name}`}>
-                                  Add
-                                </Button>
+                                <Button size="small" variant="outlined" onClick={() => handleAddChannel(channel)} disabled={addChannelMutation.isPending || bulkBusy} aria-label={tUi("Add {{value0}}", { value0: channel.name })}>
+                                  {tUi("Add")}</Button>
                               )}
                             </Stack>
                           </TableCell>

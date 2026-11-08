@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Button, Stack, TextField } from '@mui/material';
 import ContentSection from '../layout/ContentSection';
@@ -7,6 +8,7 @@ import { getAccessErrorMessage } from '../../services/accessErrors';
 import AccountTransportNotice from './AccountTransportNotice';
 
 export default function LoginForm({ onCancel }: { onCancel?: () => void }) {
+  const tUi = useUiText();
   const access = useAccess();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,12 +20,12 @@ export default function LoginForm({ onCancel }: { onCancel?: () => void }) {
     catch (reason) { setError(getAccessErrorMessage(reason)); }
     finally { setBusy(false); }
   };
-  return <ContentSection title="Sign in"><Stack component="form" spacing={2} onSubmit={submit} sx={{ maxWidth: 440 }}>
+  return <ContentSection title={tUi("Sign in")}><Stack component="form" spacing={2} onSubmit={submit} sx={{ maxWidth: 440 }}>
     <AccountTransportNotice />
-    <TextField required label="Username" autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} />
-    <TextField required label="Password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
+    <TextField required label={tUi("Username")} autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} />
+    <TextField required label={tUi("Password")} type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
     {error ? <Alert severity="error">{error}</Alert> : null}
-    <Button type="submit" disabled={busy || access?.status.account_transport === 'blocked'} variant="contained">{busy ? 'Signing in…' : 'Sign in'}</Button>
-    {onCancel ? <Button onClick={onCancel}>Back to viewing</Button> : null}
+    <Button type="submit" disabled={busy || access?.status.account_transport === 'blocked'} variant="contained">{busy ? tUi("Signing in…") : tUi("Sign in")}</Button>
+    {onCancel ? <Button onClick={onCancel}>{tUi("Back to viewing")}</Button> : null}
   </Stack></ContentSection>;
 }

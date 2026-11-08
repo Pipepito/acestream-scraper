@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Box, Button, Checkbox, Chip, Paper, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import EmptyState from '../state/EmptyState';
@@ -36,6 +37,7 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
   onCopyId,
   ...handlers
 }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const rangeStart = totalCount === 0 ? 0 : page * pageSize + 1;
   const rangeEnd = Math.min(totalCount, (page + 1) * pageSize);
@@ -48,8 +50,8 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
   if (!loading && channels.length === 0) {
     return (
       <EmptyState
-        title={totalCount === 0 ? 'No channels to show' : 'No channels on this page'}
-        description={totalCount === 0 ? 'Adjust your filters or add a channel.' : 'Move to another page to keep browsing.'}
+        title={totalCount === 0 ? tUi("No channels to show") : tUi("No channels on this page")}
+        description={totalCount === 0 ? tUi("Adjust your filters or add a channel.") : tUi("Move to another page to keep browsing.")}
       />
     );
   }
@@ -80,17 +82,17 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {channel.group || 'No group'}
-                  {channel.tv_channel_name ? ` · TV: ${channel.tv_channel_name}` : ''}
+                  {channel.tv_channel_name ? tUi(" · TV: {{value0}}", { value0: channel.tv_channel_name }) : ''}
                 </Typography>
               </Box>
             </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
               <OnlineChip isOnline={channel.is_online} />
-              {hidden ? <Chip label="Hidden" size="small" variant="outlined" sx={{ minWidth: 72 }} /> : null}
-              <Tooltip title={channel.last_checked ? formatDateTime(channel.last_checked) : 'Never checked'}>
+              {hidden ? <Chip label={tUi("Hidden")} size="small" variant="outlined" sx={{ minWidth: 72 }} /> : null}
+              <Tooltip title={channel.last_checked ? formatDateTime(channel.last_checked) : tUi("Never checked")}>
                 <Typography variant="body2" color="text.secondary">
-                  Checked {formatRelativeTime(channel.last_checked)}
+                  {tUi("Checked")}{' '}{formatRelativeTime(channel.last_checked)}
                 </Typography>
               </Tooltip>
             </Stack>
@@ -111,15 +113,13 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
       {totalCount > 0 ? (
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ pt: 0.5 }}>
           <Typography variant="body2" color="text.secondary">
-            {rangeStart}–{rangeEnd} of {totalCount}
+            {rangeStart}–{rangeEnd} {' '}{tUi("of")}{' '}{totalCount}
           </Typography>
           <Stack direction="row" spacing={1}>
-            <Button size="small" variant="outlined" disabled={page === 0} onClick={() => onPageChange(page - 1)} aria-label="Go to previous page">
-              Previous
-            </Button>
-            <Button size="small" variant="outlined" disabled={page >= lastPage} onClick={() => onPageChange(page + 1)} aria-label="Go to next page">
-              Next
-            </Button>
+            <Button size="small" variant="outlined" disabled={page === 0} onClick={() => onPageChange(page - 1)} aria-label={tUi("Go to previous page")}>
+              {tUi("Previous")}</Button>
+            <Button size="small" variant="outlined" disabled={page >= lastPage} onClick={() => onPageChange(page + 1)} aria-label={tUi("Go to next page")}>
+              {tUi("Next")}</Button>
           </Stack>
         </Stack>
       ) : null}

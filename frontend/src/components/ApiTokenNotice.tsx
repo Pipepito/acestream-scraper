@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Alert, Snackbar } from '@mui/material';
 import { API_TOKEN_REQUIRED_EVENT } from '../services/apiToken';
@@ -11,6 +12,7 @@ import { API_TOKEN_REQUIRED_EVENT } from '../services/apiToken';
  * parallel queries fail together. The token itself is entered in Settings.
  */
 const ApiTokenNotice: React.FC = () => {
+  const tUi = useUiText();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -37,8 +39,7 @@ const ApiTokenNotice: React.FC = () => {
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
     >
       <Alert onClose={() => setOpen(false)} severity="warning" variant="filled" sx={{ width: '100%' }}>
-        API token required — set it in Settings
-      </Alert>
+        {tUi("API token required — set it in Settings")}</Alert>
     </Snackbar>
   );
 };

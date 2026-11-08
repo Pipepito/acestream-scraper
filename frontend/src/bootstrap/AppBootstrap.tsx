@@ -41,7 +41,7 @@ export const useAppThemeMode = () => {
 const ApplicationProviders: React.FC = () => {
   const preferences = useAppPreferences();
   const { mode, setPreference } = preferences;
-  const theme = React.useMemo(() => createAppTheme(mode, preferences.interface), [mode, preferences.interface]);
+  const theme = React.useMemo(() => createAppTheme(mode, preferences.interface, preferences.language), [mode, preferences.interface, preferences.language]);
   const handleSetMode = React.useCallback<React.Dispatch<React.SetStateAction<ThemeMode>>>((value) => {
     setPreference('mode', typeof value === 'function' ? value(mode) : value);
   }, [mode, setPreference]);

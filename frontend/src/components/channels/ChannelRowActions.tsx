@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { Delete, Edit, Refresh, Star, StarBorder, VisibilityOff, Visibility } from '@mui/icons-material';
@@ -39,17 +41,18 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
   onToggleTVFavorite,
   onDelete,
 }) => {
+  const tUi = useUiText();
   const linkedName = channel.tv_channel_name || 'linked TV channel';
   const hidden = channel.is_active === false;
 
   const menuActions = [
     channel.tv_channel_id
       ? { label: `Open TV channel: ${linkedName}`, icon: <TvIcon fontSize="small" />, onClick: () => onOpenTV(channel) }
-      : { label: 'Link to a TV channel', icon: <LinkIcon fontSize="small" />, onClick: () => onAssignTV(channel) },
-    { label: 'Play on…', icon: <CastRoundedIcon fontSize="small" />, onClick: () => onPlayOn(channel) },
-    { label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
+      : { label: uiText("Link to a TV channel"), icon: <LinkIcon fontSize="small" />, onClick: () => onAssignTV(channel) },
+    { label: uiText("Play on…"), icon: <CastRoundedIcon fontSize="small" />, onClick: () => onPlayOn(channel) },
+    { label: uiText("Edit"), icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
     {
-      label: hidden ? 'Show in playlist' : 'Hide from playlist',
+      label: hidden ? uiText("Show in playlist") : uiText("Hide from playlist"),
       icon: hidden ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />,
       onClick: () => onToggleHidden(channel),
     },
@@ -62,16 +65,16 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
           },
         ]
       : []),
-    { label: 'Delete', icon: <Delete fontSize="small" />, danger: true, onClick: () => onDelete(channel) },
+    { label: uiText("Delete"), icon: <Delete fontSize="small" />, danger: true, onClick: () => onDelete(channel) },
   ];
 
   return (
-    <Box role="group" aria-label={`Acestream channel actions for ${channel.name}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-      <Tooltip title="Play in the browser">
+    <Box role="group" aria-label={tUi("Acestream channel actions for {{value0}}", { value0: channel.name })} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+      <Tooltip title={tUi("Play in the browser")}>
         <IconButton
           size="small"
           color="primary"
-          aria-label={`play channel ${channel.name}`}
+          aria-label={tUi("play channel {{value0}}", { value0: channel.name })}
           onClick={(event) => {
             event.stopPropagation();
             onPlay(channel);
@@ -80,11 +83,11 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
           <PlayArrowRounded fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Check status">
+      <Tooltip title={tUi("Check status")}>
         <span>
           <IconButton
             size="small"
-            aria-label={`check channel status ${channel.name}`}
+            aria-label={tUi("check channel status {{value0}}", { value0: channel.name })}
             disabled={checking}
             onClick={(event) => {
               event.stopPropagation();
@@ -95,7 +98,7 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
           </IconButton>
         </span>
       </Tooltip>
-      <RowActionsMenu label={`More actions for ${channel.name}`} actions={menuActions} />
+      <RowActionsMenu label={tUi("More actions for {{value0}}", { value0: channel.name })} actions={menuActions} />
     </Box>
   );
 };

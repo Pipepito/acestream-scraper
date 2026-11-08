@@ -1,3 +1,4 @@
+import { useUiText } from './i18n/useUiText';
 import React from 'react';
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import RouteBoundary from './components/layout/RouteBoundary';
@@ -71,6 +72,7 @@ const RedirectTo: React.FC<{ to: string }> = ({ to }) => {
 };
 
 const App: React.FC = () => {
+  const tUi = useUiText();
   const access = useAccess();
   const location = useLocation();
   const channelsSection = channelLinks.some(link => location.pathname === link.to || location.pathname.startsWith(`${link.to}/`));
@@ -78,7 +80,7 @@ const App: React.FC = () => {
   const settingsTab = new URLSearchParams(location.search).get('tab');
   return (
     <AppShell>
-      {access?.status.user ? <Stack direction="row" spacing={2} justifyContent="flex-end" alignItems="center" sx={{ mb: 1 }}><Typography variant="body2">{access.status.user.username}</Typography><Button onClick={() => void accessService.logout().then(access.refresh)}>Sign out</Button></Stack> : null}
+      {access?.status.user ? <Stack direction="row" spacing={2} justifyContent="flex-end" alignItems="center" sx={{ mb: 1 }}><Typography variant="body2">{access.status.user.username}</Typography><Button onClick={() => void accessService.logout().then(access.refresh)}>{tUi("Sign out")}</Button></Stack> : null}
       <ApiTokenNotice />
       <UpdateAvailableNotice />
       <SetupNotice />
@@ -86,33 +88,33 @@ const App: React.FC = () => {
       {connectionsSection ? <SectionNavigation links={connectionLinks} label="connections" /> : null}
       <RouteBoundary key={location.pathname}><Routes>
         <Route path="/" element={<WatchHome />} />
-        <Route path="/system" element={<React.Suspense fallback={<p role="status">Loading system status…</p>}><SystemDashboard /></React.Suspense>} />
+        <Route path="/system" element={<React.Suspense fallback={<p role="status">{tUi("Loading system status…")}</p>}><SystemDashboard /></React.Suspense>} />
         <Route path="/acestream-channels" element={<AcestreamChannels />} />
         <Route path="/live-tv" element={<LiveTV />} />
-        <Route path="/recordings" element={<React.Suspense fallback={<p role="status">Loading recordings…</p>}><Recordings /></React.Suspense>} />
-        <Route path="/events" element={<React.Suspense fallback={<p role="status">Loading events…</p>}><Events /></React.Suspense>} />
+        <Route path="/recordings" element={<React.Suspense fallback={<p role="status">{tUi("Loading recordings…")}</p>}><Recordings /></React.Suspense>} />
+        <Route path="/events" element={<React.Suspense fallback={<p role="status">{tUi("Loading events…")}</p>}><Events /></React.Suspense>} />
         <Route path="/tv-channels" element={<TVChannels />} />
         <Route path="/tv-channels/:id" element={<TVChannelDetail />} />
         <Route path="/scraper" element={<Scraper />} />
-        <Route path="/scraper/builder" element={<React.Suspense fallback={<p>Loading extraction builder…</p>}><ExtractionBuilder /></React.Suspense>} />
+        <Route path="/scraper/builder" element={<React.Suspense fallback={<p>{tUi("Loading extraction builder…")}</p>}><ExtractionBuilder /></React.Suspense>} />
         <Route path="/epg" element={<EPG />} />
         <Route path="/epg/channels/:id" element={<EPGChannelDetail />} />
         <Route path="/playlist" element={<Playlist />} />
         <Route path="/warp" element={<WARP />} />
         <Route path="/search" element={<Search />} />
-        <Route path="/integrations/public-address" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><PublicAddress /></React.Suspense>} />
-        <Route path="/integrations/web-player" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><WebPlayer /></React.Suspense>} />
-        <Route path="/integrations/tv-casting" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><TvCasting /></React.Suspense>} />
-        <Route path="/integrations/remote-players" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><RemotePlayers /></React.Suspense>} />
-        <Route path="/integrations/media-servers" element={<React.Suspense fallback={<p role="status">Loading integration…</p>}><MediaServers /></React.Suspense>} />
-        <Route path="/connections/notifications" element={<React.Suspense fallback={<p role="status">Loading…</p>}><Notifications /></React.Suspense>} />
-        <Route path="/system/runtime" element={<React.Suspense fallback={<p role="status">Loading…</p>}><SystemRuntime /></React.Suspense>} />
-        <Route path="/scraper/telegram" element={<React.Suspense fallback={<p role="status">Loading…</p>}><Telegram /></React.Suspense>} />
+        <Route path="/integrations/public-address" element={<React.Suspense fallback={<p role="status">{tUi("Loading integration…")}</p>}><PublicAddress /></React.Suspense>} />
+        <Route path="/integrations/web-player" element={<React.Suspense fallback={<p role="status">{tUi("Loading integration…")}</p>}><WebPlayer /></React.Suspense>} />
+        <Route path="/integrations/tv-casting" element={<React.Suspense fallback={<p role="status">{tUi("Loading integration…")}</p>}><TvCasting /></React.Suspense>} />
+        <Route path="/integrations/remote-players" element={<React.Suspense fallback={<p role="status">{tUi("Loading integration…")}</p>}><RemotePlayers /></React.Suspense>} />
+        <Route path="/integrations/media-servers" element={<React.Suspense fallback={<p role="status">{tUi("Loading integration…")}</p>}><MediaServers /></React.Suspense>} />
+        <Route path="/connections/notifications" element={<React.Suspense fallback={<p role="status">{tUi("Loading…")}</p>}><Notifications /></React.Suspense>} />
+        <Route path="/system/runtime" element={<React.Suspense fallback={<p role="status">{tUi("Loading…")}</p>}><SystemRuntime /></React.Suspense>} />
+        <Route path="/scraper/telegram" element={<React.Suspense fallback={<p role="status">{tUi("Loading…")}</p>}><Telegram /></React.Suspense>} />
         <Route path="/integrations/telegram" element={<RedirectTo to="/scraper/telegram" />} />
-        <Route path="/setup" element={<React.Suspense fallback={<p role="status">Loading setup…</p>}><Setup /></React.Suspense>} />
+        <Route path="/setup" element={<React.Suspense fallback={<p role="status">{tUi("Loading setup…")}</p>}><Setup /></React.Suspense>} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/settings" element={settingsTab ? <Settings /> : <SettingsIndex />} />
-        <Route path="/changelog" element={<React.Suspense fallback={<p role="status">Loading changelog…</p>}><Changelog /></React.Suspense>} />
+        <Route path="/changelog" element={<React.Suspense fallback={<p role="status">{tUi("Loading changelog…")}</p>}><Changelog /></React.Suspense>} />
         {LEGACY_REDIRECTS.map((redirect) => (
           <Route key={redirect.from} path={redirect.from} element={<RedirectTo to={redirect.to} />} />
         ))}

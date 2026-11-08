@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 import {
@@ -48,6 +50,7 @@ interface StringMappingFormData {
 }
 
 const EPGChannelDetail: React.FC = () => {
+  const tUi = useUiText();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const channelId = parseInt(id || '0', 10);
@@ -91,11 +94,11 @@ const EPGChannelDetail: React.FC = () => {
     const trimmedPattern = stringMappingFormData.search_pattern.trim();
     try {
       await addStringMapping({ pattern: trimmedPattern, isExclusion: stringMappingFormData.is_exclusion });
-      showSnackbar('String mapping added successfully', 'success');
+      showSnackbar(uiText("String mapping added successfully"), 'success');
       setOpenStringMappingDialog(false);
       setStringMappingFormData({ search_pattern: '', is_exclusion: false });
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     }
   };
 
@@ -103,15 +106,15 @@ const EPGChannelDetail: React.FC = () => {
     const ok = await confirm({
       title: `Delete the rule “${mapping.search_pattern}”?`,
       body: 'Matching stops using this pattern from the next EPG refresh.',
-      confirmLabel: 'Delete',
+      confirmLabel: uiText("Delete"),
       danger: true,
     });
     if (!ok) return;
     try {
       await deleteStringMapping(mapping.id);
-      showSnackbar('String mapping deleted successfully', 'success');
+      showSnackbar(uiText("String mapping deleted successfully"), 'success');
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     }
   };
 
@@ -119,11 +122,11 @@ const EPGChannelDetail: React.FC = () => {
     if (!selectedTVChannel || isLoadingTVChannels || tvChannelsError || !tvChannels?.length) return;
     try {
       await mapChannel({ epg_channel_id: channelId, tv_channel_id: selectedTVChannel });
-      showSnackbar('Channel mapped successfully', 'success');
+      showSnackbar(uiText("Channel mapped successfully"), 'success');
       setOpenMappingDialog(false);
       setSelectedTVChannel(null);
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     }
   };
 
@@ -143,10 +146,10 @@ const EPGChannelDetail: React.FC = () => {
     if (!channel) return;
     try {
       await createTVChannel({ ...createTVForm, epg_id: channel.channel_xml_id });
-      showSnackbar('TV channel created successfully', 'success');
+      showSnackbar(uiText("TV channel created successfully"), 'success');
       setOpenCreateTVDialog(false);
     } catch {
-      showSnackbar('Failed to create TV Channel', 'error');
+      showSnackbar(uiText("Failed to create TV Channel"), 'error');
     }
   };
 
@@ -155,8 +158,7 @@ const EPGChannelDetail: React.FC = () => {
       <Box sx={{ width: '100%', p: 3 }} role="status" aria-live="polite">
         <LinearProgress />
         <Typography variant="h6" sx={{ mt: 2 }}>
-          Loading EPG channel...
-        </Typography>
+          {tUi("Loading EPG channel...")}</Typography>
       </Box>
     );
   }
@@ -164,7 +166,7 @@ const EPGChannelDetail: React.FC = () => {
   if (!channel) {
     return (
       <Box sx={{ width: '100%', p: 3 }}>
-        <Alert severity="error">{channelError ? 'Unable to load the EPG channel right now.' : 'EPG channel not found'}</Alert>
+        <Alert severity="error">{channelError ? tUi("Unable to load the EPG channel right now.") : tUi("EPG channel not found")}</Alert>
       </Box>
     );
   }
@@ -175,82 +177,77 @@ const EPGChannelDetail: React.FC = () => {
     <Box sx={{ width: '100%', typography: 'body1' }}>
       <PageHeader
         title={channel.name}
-        subtitle="Guide channel from the EPG sources."
+        subtitle={tUi("Guide channel from the EPG sources.")}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/epg?tab=channels')}>
-              Back
-            </Button>
+              {tUi("Back")}</Button>
             {linkedTVChannel ? null : (
               <>
                 <Button variant="outlined" onClick={() => setOpenMappingDialog(true)}>
-                  Map to TV Channel
-                </Button>
+                  {tUi("Map to TV Channel")}</Button>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>
-                  Create TV Channel
-                </Button>
+                  {tUi("Create TV Channel")}</Button>
               </>
             )}
           </Stack>
         }
       />
 
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label="Guide channel summary" sx={{ mb: 2 }}>
-        <Chip label={`XML ID: ${channel.channel_xml_id}`} size="small" variant="outlined" sx={{ fontFamily: 'monospace' }} />
-        {channel.language ? <Chip label={`Language: ${channel.language}`} size="small" variant="outlined" /> : null}
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label={tUi("Guide channel summary")} sx={{ mb: 2 }}>
+        <Chip label={tUi("XML ID: {{value0}}", { value0: channel.channel_xml_id })} size="small" variant="outlined" sx={{ fontFamily: 'monospace' }} />
+        {channel.language ? <Chip label={tUi("Language: {{value0}}", { value0: channel.language })} size="small" variant="outlined" /> : null}
         {isLoadingTVChannels ? (
-          <Chip label="Checking TV channels…" size="small" variant="outlined" />
+          <Chip label={tUi("Checking TV channels…")} size="small" variant="outlined" />
         ) : tvChannelsError ? (
-          <Chip label="TV channels unavailable" size="small" variant="outlined" color="warning" />
+          <Chip label={tUi("TV channels unavailable")} size="small" variant="outlined" color="warning" />
         ) : linkedTVChannel ? (
           <Chip
             component={RouterLink}
             to={`/tv-channels/${linkedTVChannel.id}`}
             clickable
-            label={`TV channel: ${linkedTVChannel.name}`}
+            label={tUi("TV channel: {{value0}}", { value0: linkedTVChannel.name })}
             size="small"
             variant="outlined"
             color="primary"
           />
         ) : (
-          <Chip label="Not linked to a TV channel" size="small" variant="outlined" color="warning" />
+          <Chip label={tUi("Not linked to a TV channel")} size="small" variant="outlined" color="warning" />
         )}
       </Stack>
 
-      <ContentSection title="Schedule">
+      <ContentSection title={tUi("Schedule")}>
         <GuideRecordingSelector epgChannelId={channelId} sourceId={channel.epg_source_id} xmlId={channel.channel_xml_id} />
       </ContentSection>
 
       <ContentSection
-        title="String mapping rules"
-        description="Patterns that decide which scraped channel names match this guide channel."
+        title={tUi("String mapping rules")}
+        description={tUi("Patterns that decide which scraped channel names match this guide channel.")}
         actions={
           <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setOpenStringMappingDialog(true)}>
-            Add String Mapping
-          </Button>
+            {tUi("Add String Mapping")}</Button>
         }
       >
         {isLoadingMappings ? (
           <Box sx={{ mb: 2 }} role="status" aria-live="polite">
             <LinearProgress sx={{ mb: 1 }} />
-            <Typography variant="body2">Loading string mapping rules...</Typography>
+            <Typography variant="body2">{tUi("Loading string mapping rules...")}</Typography>
           </Box>
         ) : null}
 
         {!isLoadingMappings && stringMappingsError ? (
           <Alert severity="error" sx={{ mb: 2 }}>
-            Unable to load string mapping rules right now.
-          </Alert>
+            {tUi("Unable to load string mapping rules right now.")}</Alert>
         ) : null}
 
         {!stringMappingsError ? (
           <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
-            <Table aria-label="String mapping rules table" size="small">
+            <Table aria-label={tUi("String mapping rules table")} size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Pattern</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>{tUi("Pattern")}</TableCell>
+                  <TableCell>{tUi("Type")}</TableCell>
+                  <TableCell>{tUi("Actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -262,20 +259,18 @@ const EPGChannelDetail: React.FC = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip label={mapping.is_exclusion ? 'Exclusion' : 'Inclusion'} color={mapping.is_exclusion ? 'error' : 'success'} size="small" variant="outlined" />
+                      <Chip label={mapping.is_exclusion ? tUi("Exclusion") : tUi("Inclusion")} color={mapping.is_exclusion ? 'error' : 'success'} size="small" variant="outlined" />
                     </TableCell>
                     <TableCell>
-                      <Button color="error" size="small" onClick={() => handleDeleteStringMapping(mapping)} aria-label={`Delete string mapping ${mapping.search_pattern}`}>
-                        Delete
-                      </Button>
+                      <Button color="error" size="small" onClick={() => handleDeleteStringMapping(mapping)} aria-label={tUi("Delete string mapping {{value0}}", { value0: mapping.search_pattern })}>
+                        {tUi("Delete")}</Button>
                     </TableCell>
                   </TableRow>
                 ))}
                 {!stringMappingsError && stringMappings && stringMappings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} align="center">
-                      No string mappings found
-                    </TableCell>
+                      {tUi("No string mappings found")}</TableCell>
                   </TableRow>
                 ) : null}
               </TableBody>
@@ -285,29 +280,28 @@ const EPGChannelDetail: React.FC = () => {
       </ContentSection>
 
       <Dialog open={openMappingDialog} onClose={() => setOpenMappingDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Map to TV Channel</DialogTitle>
+        <DialogTitle>{tUi("Map to TV Channel")}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Select a TV channel to map this EPG channel to:
-          </Typography>
+            {tUi("Select a TV channel to map this EPG channel to:")}</Typography>
           {isLoadingTVChannels ? (
             <Box sx={{ py: 1 }}>
               <LinearProgress sx={{ mb: 2 }} />
-              <Typography variant="body2">Loading TV channels...</Typography>
+              <Typography variant="body2">{tUi("Loading TV channels...")}</Typography>
             </Box>
           ) : null}
-          {!isLoadingTVChannels && tvChannelsError ? <Alert severity="error">Unable to load TV channels right now.</Alert> : null}
+          {!isLoadingTVChannels && tvChannelsError ? <Alert severity="error">{tUi("Unable to load TV channels right now.")}</Alert> : null}
           {!isLoadingTVChannels && !tvChannelsError && tvChannels?.length === 0 ? (
-            <Alert severity="info">No TV channels are available to map yet.</Alert>
+            <Alert severity="info">{tUi("No TV channels are available to map yet.")}</Alert>
           ) : null}
           {!isLoadingTVChannels && !tvChannelsError && (tvChannels?.length || 0) > 0 ? (
             <Stack spacing={2}>
               <Alert severity="info" role="status">
-                {selectedMappedChannel ? `Selected TV channel: ${selectedMappedChannel.name}` : 'Select one TV channel before confirming the mapping.'}
+                {selectedMappedChannel ? tUi("Selected TV channel: {{value0}}", { value0: selectedMappedChannel.name }) : tUi("Select one TV channel before confirming the mapping.")}
               </Alert>
               <FormControl component="fieldset" fullWidth>
                 <RadioGroup
-                  aria-label="Available TV channels"
+                  aria-label={tUi("Available TV channels")}
                   name="available-tv-channels"
                   value={selectedTVChannel?.toString() || ''}
                   onChange={(_event, value) => setSelectedTVChannel(Number(value))}
@@ -336,7 +330,7 @@ const EPGChannelDetail: React.FC = () => {
                                   {tvChannel.name}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                  Category: {tvChannel.category || 'None'}
+                                  {tUi("Category:")}{' '}{tvChannel.category || 'None'}
                                 </Typography>
                               </Box>
                             }
@@ -352,29 +346,28 @@ const EPGChannelDetail: React.FC = () => {
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenMappingDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenMappingDialog(false)}>{tUi("Cancel")}</Button>
           <Button
             onClick={handleMapToTVChannel}
             variant="contained"
             color="primary"
             disabled={!selectedTVChannel || isLoadingTVChannels || Boolean(tvChannelsError) || !tvChannels?.length}
           >
-            Map Channel
-          </Button>
+            {tUi("Map Channel")}</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={openStringMappingDialog} onClose={() => setOpenStringMappingDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add String Mapping</DialogTitle>
+        <DialogTitle>{tUi("Add String Mapping")}</DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
-            label="Search Pattern"
+            label={tUi("Search Pattern")}
             fullWidth
             value={stringMappingFormData.search_pattern}
             onChange={(event) => setStringMappingFormData({ ...stringMappingFormData, search_pattern: event.target.value })}
             sx={{ mb: 2 }}
-            placeholder="e.g., ESPN, CNN, etc."
+            placeholder={tUi("e.g., ESPN, CNN, etc.")}
           />
           <FormControlLabel
             control={
@@ -383,40 +376,36 @@ const EPGChannelDetail: React.FC = () => {
                 onChange={(event) => setStringMappingFormData({ ...stringMappingFormData, is_exclusion: event.target.checked })}
               />
             }
-            label="Is Exclusion Pattern"
+            label={tUi("Is Exclusion Pattern")}
           />
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Inclusion patterns match channels that should be included. Exclusion patterns match channels that should be excluded.
-          </Typography>
+            {tUi("Inclusion patterns match channels that should be included. Exclusion patterns match channels that should be excluded.")}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenStringMappingDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenStringMappingDialog(false)}>{tUi("Cancel")}</Button>
           <Button onClick={handleAddStringMapping} variant="contained" color="primary" disabled={!stringMappingFormData.search_pattern.trim()}>
-            Add Mapping
-          </Button>
+            {tUi("Add Mapping")}</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={openCreateTVDialog} onClose={() => setOpenCreateTVDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create TV Channel from EPG</DialogTitle>
+        <DialogTitle>{tUi("Create TV Channel from EPG")}</DialogTitle>
         <DialogContent>
           <Box my={2}>
-            <TextField name="name" label="Channel Name" fullWidth value={createTVForm.name} onChange={(e) => setCreateTVForm((f) => ({ ...f, name: e.target.value }))} required margin="dense" />
-            <TextField name="logo_url" label="Logo URL" fullWidth value={createTVForm.logo_url} onChange={(e) => setCreateTVForm((f) => ({ ...f, logo_url: e.target.value }))} margin="dense" />
-            <TextField name="description" label="Description" fullWidth value={createTVForm.description} onChange={(e) => setCreateTVForm((f) => ({ ...f, description: e.target.value }))} margin="dense" multiline rows={2} />
-            <TextField name="category" label="Category" fullWidth value={createTVForm.category} onChange={(e) => setCreateTVForm((f) => ({ ...f, category: e.target.value }))} margin="dense" />
-            <TextField name="country" label="Country" fullWidth value={createTVForm.country} onChange={(e) => setCreateTVForm((f) => ({ ...f, country: e.target.value }))} margin="dense" />
-            <TextField name="language" label="Language" fullWidth value={createTVForm.language} onChange={(e) => setCreateTVForm((f) => ({ ...f, language: e.target.value }))} margin="dense" />
-            <TextField name="epg_id" label="EPG ID" fullWidth value={channel.channel_xml_id} InputProps={{ readOnly: true }} margin="dense" />
+            <TextField name="name" label={tUi("Channel Name")} fullWidth value={createTVForm.name} onChange={(e) => setCreateTVForm((f) => ({ ...f, name: e.target.value }))} required margin="dense" />
+            <TextField name="logo_url" label={tUi("Logo URL")} fullWidth value={createTVForm.logo_url} onChange={(e) => setCreateTVForm((f) => ({ ...f, logo_url: e.target.value }))} margin="dense" />
+            <TextField name="description" label={tUi("Description")} fullWidth value={createTVForm.description} onChange={(e) => setCreateTVForm((f) => ({ ...f, description: e.target.value }))} margin="dense" multiline rows={2} />
+            <TextField name="category" label={tUi("Category")} fullWidth value={createTVForm.category} onChange={(e) => setCreateTVForm((f) => ({ ...f, category: e.target.value }))} margin="dense" />
+            <TextField name="country" label={tUi("Country")} fullWidth value={createTVForm.country} onChange={(e) => setCreateTVForm((f) => ({ ...f, country: e.target.value }))} margin="dense" />
+            <TextField name="language" label={tUi("Language")} fullWidth value={createTVForm.language} onChange={(e) => setCreateTVForm((f) => ({ ...f, language: e.target.value }))} margin="dense" />
+            <TextField name="epg_id" label={tUi("EPG ID")} fullWidth value={channel.channel_xml_id} InputProps={{ readOnly: true }} margin="dense" />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCreateTVDialog(false)} color="inherit">
-            Cancel
-          </Button>
+            {tUi("Cancel")}</Button>
           <Button onClick={handleCreateTVChannel} color="primary" variant="contained" disabled={!createTVForm.name || isCreatingTVChannel}>
-            Create
-          </Button>
+            {tUi("Create")}</Button>
         </DialogActions>
       </Dialog>
 

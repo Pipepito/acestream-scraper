@@ -1,4 +1,5 @@
-const DATE_FALLBACK = 'Not available';
+import { getLocale } from '../i18n/locale';
+import { uiText } from '../i18n/text';
 const NUMBER_FALLBACK = '0';
 const FALLBACK_LOCALE = 'en-US';
 
@@ -19,18 +20,18 @@ const formatWithFallback = <T>(formatter: () => T, fallback: () => T): T => {
 
 export const formatDateTime = (value?: string | null, locale?: string): string => {
   if (!value) {
-    return DATE_FALLBACK;
+    return uiText('Not available');
   }
 
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return DATE_FALLBACK;
+    return uiText('Not available');
   }
 
   return formatWithFallback(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      new Intl.DateTimeFormat(locale ?? getLocale(), {
         year: 'numeric',
         month: 'short',
         day: '2-digit',
@@ -55,7 +56,7 @@ export const formatNumber = (value?: number | null, locale?: string): string => 
 
   return formatWithFallback(
     () =>
-      new Intl.NumberFormat(locale, {
+      new Intl.NumberFormat(locale ?? getLocale(), {
         maximumFractionDigits: 20,
       }).format(value),
     () =>

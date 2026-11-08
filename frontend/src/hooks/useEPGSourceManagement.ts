@@ -1,3 +1,4 @@
+import { uiText } from '../i18n/text';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -136,14 +137,14 @@ export const useEPGSourceManagement = (
     try {
       if (isEditSource && editSourceId) {
         await updateSource(sourceFormData);
-        showSnackbar('EPG source updated successfully', 'success');
+        showSnackbar(uiText("EPG source updated successfully"), 'success');
       } else {
         await createSource(sourceFormData);
-        showSnackbar('EPG source added successfully', 'success');
+        showSnackbar(uiText("EPG source added successfully"), 'success');
       }
       handleCloseSourceDialog();
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     }
   };
 
@@ -151,9 +152,9 @@ export const useEPGSourceManagement = (
     if (window.confirm('Are you sure you want to delete this EPG source?')) {
       try {
         await deleteSource(id);
-        showSnackbar('EPG source deleted successfully', 'success');
+        showSnackbar(uiText("EPG source deleted successfully"), 'success');
       } catch (error) {
-        showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+        showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
       }
     }
   };
@@ -176,7 +177,7 @@ export const useEPGSourceManagement = (
       queryClient.invalidateQueries({ queryKey: ['epg-channels'] });
       await describeRefreshOutcome(after, name);
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     } finally {
       if (mountedRef.current) setRefreshingSourceId(null);
     }
@@ -190,7 +191,7 @@ export const useEPGSourceManagement = (
       const results = await refreshAllSources();
       const failedToStart = results.filter((r) => !r.success).length;
       if (enabled.length === 0) {
-        showSnackbar('No enabled EPG sources to refresh.', 'warning');
+        showSnackbar(uiText("No enabled EPG sources to refresh."), 'warning');
         return;
       }
       showSnackbar(
@@ -215,7 +216,7 @@ export const useEPGSourceManagement = (
         showSnackbar(`EPG refresh: ${parts.join(', ')}`, failed > 0 ? 'error' : 'warning');
       }
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
     } finally {
       if (mountedRef.current) setIsWatchingRefreshAll(false);
     }

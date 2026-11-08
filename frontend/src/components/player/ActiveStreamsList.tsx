@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Box, Chip, List, ListItem, Typography } from '@mui/material';
 import type { ActiveStream } from '../../services/playerService';
@@ -32,8 +33,9 @@ const streamFacts = (stream: ActiveStream): string => {
 
 /** Read-only presentation: rendering never joins or keeps a session alive. */
 export default function ActiveStreamsList({ streams, showContentId = false }: { streams: ActiveStream[]; showContentId?: boolean }) {
-  if (!streams.length) return <Typography variant="body2">Nothing is playing through this app right now.</Typography>;
-  return <List disablePadding aria-label="Playback sessions">
+  const tUi = useUiText();
+  if (!streams.length) return <Typography variant="body2">{tUi("Nothing is playing through this app right now.")}</Typography>;
+  return <List disablePadding aria-label={tUi("Playback sessions")}>
     {streams.map(stream => <ListItem key={`${stream.kind}-${stream.id}`} disableGutters sx={{ alignItems: 'flex-start', gap: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
       <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
         <Typography fontWeight={600}>{streamTitle(stream)}</Typography>

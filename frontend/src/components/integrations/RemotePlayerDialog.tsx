@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -32,6 +34,7 @@ export interface RemotePlayerDialogProps {
 
 /** Add or edit one VLC/Kodi player, with an inline "Test connection" probe. */
 const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, prefill, onClose, notify }) => {
+  const tUi = useUiText();
   const [pairing, setPairing] = useState<{ challenge: string; fingerprint: string } | null>(null);
   const [pairingBusy, setPairingBusy] = useState(false);
   const [code, setCode] = useState('');
@@ -152,22 +155,22 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
   return (
     <Dialog open={open} onClose={pairingBusy ? undefined : onClose} fullWidth maxWidth="sm" aria-labelledby="remote-player-dialog-title">
       <form onSubmit={(event) => void submit(event)}>
-        <DialogTitle id="remote-player-dialog-title">{player ? `Edit ${player.name}` : 'Add player'}</DialogTitle>
+        <DialogTitle id="remote-player-dialog-title">{player ? tUi("Edit {{value0}}", { value0: player.name }) : tUi("Add player")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Name"
+              label={tUi("Name")}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              inputProps={{ 'aria-label': 'Name' }}
+              inputProps={{ 'aria-label': uiText("Name") }}
               fullWidth
               required
             />
             <FormControl fullWidth>
-              <InputLabel id="remote-player-kind">Player</InputLabel>
+              <InputLabel id="remote-player-kind">{tUi("Player")}</InputLabel>
               <Select
                 labelId="remote-player-kind"
-                label="Player"
+                label={tUi("Player")}
                 value={kind}
                 disabled={pairingBusy}
                 onChange={(event) => {
@@ -177,81 +180,76 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
                   resetPairing();
                 }}
               >
-                <MenuItem value="vlc">VLC (desktop)</MenuItem>
-                <MenuItem value="vlc_android">VLC Android (3.6+)</MenuItem>
-                <MenuItem value="kodi">Kodi</MenuItem>
+                <MenuItem value="vlc">{tUi("VLC (desktop)")}</MenuItem>
+                <MenuItem value="vlc_android">{tUi("VLC Android (3.6+)")}</MenuItem>
+                <MenuItem value="kodi">{tUi("Kodi")}</MenuItem>
               </Select>
             </FormControl>
             <Stack direction="row" spacing={1}>
               <TextField
-                label="Host"
+                label={tUi("Host")}
                 value={host}
                 disabled={pairingBusy}
                 onChange={(event) => { setHost(event.target.value); resetPairing(); }}
-                inputProps={{ 'aria-label': 'Host' }}
+                inputProps={{ 'aria-label': uiText("Host") }}
                 fullWidth
                 required
-                helperText={kind === 'vlc_android' ? "Use the host and HTTPS port shown in VLC > Settings > Remote access." : "IP address or hostname on your network"}
+                helperText={kind === 'vlc_android' ? tUi("Use the host and HTTPS port shown in VLC > Settings > Remote access.") : tUi("IP address or hostname on your network")}
               />
               <TextField
-                label="Port"
+                label={tUi("Port")}
                 value={port}
                 disabled={pairingBusy}
                 onChange={(event) => { setPort(event.target.value); resetPairing(); }}
-                inputProps={{ 'aria-label': 'Port', inputMode: 'numeric' }}
+                inputProps={{ 'aria-label': uiText("Port"), inputMode: 'numeric' }}
                 sx={{ width: 120 }}
               />
             </Stack>
             {kind === 'kodi' ? (
-              <TextField label="Username" value={username} onChange={(event) => setUsername(event.target.value)} fullWidth />
+              <TextField label={tUi("Username")} value={username} onChange={(event) => setUsername(event.target.value)} fullWidth />
             ) : null}
             {kind === 'vlc_android' ? (
               <Stack spacing={1}>
                 <Alert severity="info">
-                  Enable Remote access and playback control in VLC Android 3.6 or later. Keep VLC open when sending video.
-                  Request a code, then enter the six digits shown on the Android device within 60 seconds.
-                  Android supports pause, resume and volume; stop playback on the device.
-                </Alert>
+                  {tUi("Enable Remote access and playback control in VLC Android 3.6 or later. Keep VLC open when sending video. Request a code, then enter the six digits shown on the Android device within 60 seconds. Android supports pause, resume and volume; stop playback on the device.")}</Alert>
                 <Button onClick={() => void pairAndroid(false)} disabled={!validTarget || pairingBusy}>
-                  {pairingBusy ? 'Connecting…' : password || savedPairing ? 'Pair again' : 'Request pairing code'}
+                  {pairingBusy ? tUi("Connecting…") : password || savedPairing ? tUi("Pair again") : tUi("Request pairing code")}
                 </Button>
                 {pairing ? <>
                   <Alert severity="info" sx={{ overflowWrap: 'anywhere' }}>
-                    Confirm this is your device before pairing. This HTTPS certificate will be remembered.
-                    SHA-256: {pairing.fingerprint}
+                    {tUi("Confirm this is your device before pairing. This HTTPS certificate will be remembered. SHA-256:")}{' '}{pairing.fingerprint}
                   </Alert>
-                  <TextField label="Pairing code" value={code} disabled={pairingBusy}
+                  <TextField label={tUi("Pairing code")} value={code} disabled={pairingBusy}
                     onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
                     inputProps={{ inputMode: 'numeric', autoComplete: 'one-time-code', maxLength: 6 }} />
                   <Button onClick={() => void pairAndroid(true)} disabled={pairingBusy || !/^\d{6}$/.test(code)}>
-                    Pair with VLC Android
-                  </Button>
+                    {tUi("Pair with VLC Android")}</Button>
                 </> : null}
-                {savedPairing && !password ? <Alert severity="success">A paired connection is saved for this device.</Alert> : null}
+                {savedPairing && !password ? <Alert severity="success">{tUi("A paired connection is saved for this device.")}</Alert> : null}
               </Stack>
             ) : <TextField
-              label="Password"
+              label={tUi("Password")}
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               fullWidth
               helperText={
                 player?.has_password
-                  ? 'Leave empty to keep the saved password. Moving the player to another address or port clears it — type it again.'
+                  ? tUi("Leave empty to keep the saved password. Moving the player to another address or port clears it — type it again.")
                   : kind === 'vlc'
-                    ? 'The Lua HTTP password you set in VLC.'
-                    : 'From Kodi > Settings > Services > Control.'
+                    ? tUi("The Lua HTTP password you set in VLC.")
+                    : tUi("From Kodi > Settings > Services > Control.")
               }
             />}
             <FormControl fullWidth size="small">
-              <InputLabel id="remote-player-link-format">Stream link format</InputLabel>
+              <InputLabel id="remote-player-link-format">{tUi("Stream link format")}</InputLabel>
               <Select
                 labelId="remote-player-link-format"
-                label="Stream link format"
+                label={tUi("Stream link format")}
                 value={baseUrlId}
                 onChange={(event) => setBaseUrlId(event.target.value === '' ? '' : Number(event.target.value))}
               >
-                <MenuItem value="">Server relay (recommended)</MenuItem>
+                <MenuItem value="">{tUi("Server relay (recommended)")}</MenuItem>
                 {baseUrls.map((entry) => (
                   <MenuItem key={entry.id} value={entry.id}>
                     {entry.name}
@@ -259,19 +257,18 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
                 ))}
               </Select>
             </FormControl>
-            <Alert severity="info">When Acexy routing is enabled in Settings, playback uses the server relay instead of this link format.</Alert>
+            <Alert severity="info">{tUi("When Acexy routing is enabled in Settings, playback uses the server relay instead of this link format.")}</Alert>
             {probe ? <Alert severity={probe.severity}>{probe.text}</Alert> : null}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => void runTest()} disabled={!validTarget || test.isPending || pairingBusy}>
-            {test.isPending ? <CircularProgress size={18} /> : 'Test connection'}
+            {test.isPending ? <CircularProgress size={18} /> : tUi("Test connection")}
           </Button>
           <Button onClick={onClose} color="inherit" disabled={pairingBusy}>
-            Cancel
-          </Button>
+            {tUi("Cancel")}</Button>
           <Button type="submit" variant="contained" disabled={!valid || create.isPending || update.isPending || pairingBusy}>
-            {player ? 'Save' : 'Add player'}
+            {player ? tUi("Save") : tUi("Add player")}
           </Button>
         </DialogActions>
       </form>

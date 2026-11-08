@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { responsiveTableSx } from '../styles/responsiveTable';
 import React, { useMemo, useState } from 'react';
@@ -70,9 +72,9 @@ export const URL_TYPE_LABELS: Record<string, string> = {
  * ("OK", "Error: ...", "pending"). Surface it so a failing source is visible.
  */
 export const describeScrapeResult = (status: string | null | undefined): { label: string; color: 'success' | 'error' | 'default'; detail?: string } => {
-  if (!status || status === 'pending' || status === 'active') return { label: 'Not scraped yet', color: 'default' };
+  if (!status || status === 'pending' || status === 'active') return { label: uiText("Not scraped yet"), color: 'default' };
   if (status === 'OK') return { label: 'OK', color: 'success' };
-  if (/^error/i.test(status)) return { label: 'Error', color: 'error', detail: status };
+  if (/^error/i.test(status)) return { label: uiText("Error"), color: 'error', detail: status };
   return { label: status, color: 'default' };
 };
 
@@ -99,6 +101,7 @@ const initialFormData: URLFormData = {
 };
 
 const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation }) => {
+  const tUi = useUiText();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirm();
@@ -198,7 +201,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
         await updateURL.mutateAsync(updateData);
         setSnackbar({
           open: true,
-          message: 'URL updated successfully',
+          message: uiText("URL updated successfully"),
           severity: 'success'
         });
       } else {
@@ -206,7 +209,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
         await createURL.mutateAsync(createData);
         setSnackbar({
           open: true,
-          message: 'URL added successfully',
+          message: uiText("URL added successfully"),
           severity: 'success'
         });
       }
@@ -230,7 +233,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
       setDeletingSource(null);
       setSnackbar({
         open: true,
-        message: deleteStreams ? `Source deleted with ${result.deleted_streams} stream${result.deleted_streams === 1 ? '' : 's'}.` : 'Source deleted. Its streams stay in the inventory.',
+        message: deleteStreams ? `Source deleted with ${result.deleted_streams} stream${result.deleted_streams === 1 ? '' : 's'}.` : uiText("Source deleted. Its streams stay in the inventory."),
         severity: 'success'
       });
     } catch (error) {
@@ -251,8 +254,8 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
       setSnackbar({
         open: true,
         message: checked
-          ? 'Bare content ID harvesting enabled'
-          : 'Bare content ID harvesting disabled',
+          ? uiText("Bare content ID harvesting enabled")
+          : uiText("Bare content ID harvesting disabled"),
         severity: 'success'
       });
     } catch (error) {
@@ -271,9 +274,9 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
     setEnabledUpdatingId(url.id);
     try {
       await patchURL.mutateAsync({ id: url.id, data: { enabled: checked } });
-      setSnackbar({ open: true, message: checked ? 'Source enabled' : 'Source disabled; it is skipped by scheduled scrapes', severity: 'success' });
+      setSnackbar({ open: true, message: checked ? uiText("Source enabled") : uiText("Source disabled; it is skipped by scheduled scrapes"), severity: 'success' });
     } catch (error) {
-      setSnackbar({ open: true, message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, severity: 'error' });
+      setSnackbar({ open: true, message: `Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, severity: 'error' });
     } finally {
       setEnabledUpdatingId(null);
     }
@@ -293,7 +296,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
 
       setSnackbar({
         open: true,
-        message: 'Scraping completed',
+        message: uiText("Scraping completed"),
         severity: 'success'
       });
     } catch (error) {
@@ -308,12 +311,12 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
   };
 
   const handleScrapeAll = async () => {
-    if (await confirm({ title: 'Scrape all enabled sources?', body: `${enabledSourceCount} source${enabledSourceCount === 1 ? '' : 's'} will be fetched now; results appear in the table as each finishes.`, confirmLabel: 'Scrape all' })) {
+    if (await confirm({ title: uiText("Scrape all enabled sources?"), body: `${enabledSourceCount} source${enabledSourceCount === 1 ? '' : 's'} will be fetched now; results appear in the table as each finishes.`, confirmLabel: uiText("Scrape all") })) {
       try {
         await scrapeAllURLs.mutateAsync();
         setSnackbar({
           open: true,
-          message: 'Scraping all URLs completed',
+          message: uiText("Scraping all URLs completed"),
           severity: 'success'
         });
       } catch (error) {
@@ -333,13 +336,12 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
   return (
     <Box>
       <PageHeader
-        title="Scraper"
-        subtitle="Source URLs and the channels each one yields."
+        title={tUi("Scraper")}
+        subtitle={tUi("Source URLs and the channels each one yields.")}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog(false)}>
-              Add URL
-            </Button>
+              {tUi("Add URL")}</Button>
             <Button
               variant="outlined"
               color="secondary"
@@ -347,37 +349,36 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
               onClick={handleScrapeAll}
               disabled={scrapeAllURLs.isPending || enabledSourceCount === 0}
             >
-              Scrape all
-            </Button>
+              {tUi("Scrape all")}</Button>
           </Stack>
         }
-        overflowActions={[{ label: 'Extraction builder', onClick: () => navigate('/scraper/builder') }, { label: 'Clean up removed sources…', onClick: () => setCleanupOpen(true) }, { label: 'Refresh', icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
+        overflowActions={[{ label: uiText("Extraction builder"), onClick: () => navigate('/scraper/builder') }, { label: uiText("Clean up removed sources…"), onClick: () => setCleanupOpen(true) }, { label: uiText("Refresh"), icon: <RefreshIcon fontSize="small" />, onClick: () => void refetch(), disabled: isLoading }]}
       />
 
       {navigation}
       <StatusLine
-        aria-label="Source status"
+        aria-label={tUi("Source status")}
         items={[
-          { label: 'Sources', value: `${enabledSourceCount} of ${totalSourceCount} enabled` },
-          { label: 'Last scrape', value: formatRelativeTime(latestProcessedAt), tone: latestProcessedAt ? 'default' : 'warning' },
-          { label: 'Channels found', value: String(totalExtractedChannels) },
-          ...(failingSourceCount > 0 ? [{ label: 'Failing', value: String(failingSourceCount), tone: 'error' as const }] : []),
+          { label: uiText("Sources"), value: `${enabledSourceCount} of ${totalSourceCount} enabled` },
+          { label: uiText("Last scrape"), value: formatRelativeTime(latestProcessedAt), tone: latestProcessedAt ? 'default' : 'warning' },
+          { label: uiText("Channels found"), value: String(totalExtractedChannels) },
+          ...(failingSourceCount > 0 ? [{ label: uiText("Failing"), value: String(failingSourceCount), tone: 'error' as const }] : []),
         ]}
       />
 
-      <ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">Edit schedule</Button>} title="Sources">
+      <ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">{tUi("Edit schedule")}</Button>} title={tUi("Sources")}>
         {isLoading && <LinearProgress sx={{ mb: 2 }} />}
         <TableContainer sx={[responsiveTableSx, { maxHeight: { xs: 'none', sm: 640 } }]}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>URL</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Enabled</TableCell>
-                <TableCell>Last result</TableCell>
-                <TableCell>Last scraped</TableCell>
-                <TableCell align="right">Channels</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Actions</TableCell>
+                <TableCell>{tUi("URL")}</TableCell>
+                <TableCell>{tUi("Type")}</TableCell>
+                <TableCell>{tUi("Enabled")}</TableCell>
+                <TableCell>{tUi("Last result")}</TableCell>
+                <TableCell>{tUi("Last scraped")}</TableCell>
+                <TableCell align="right">{tUi("Channels")}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{tUi("Actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -385,8 +386,8 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                 urls.map((url) => (
                   <TableRow key={url.id} hover>
                     <TableCell data-label="URL" sx={{ overflowWrap: 'anywhere' }}>{url.name ? <Typography variant="body2" fontWeight={600}>{url.name}</Typography> : null}{url.url}</TableCell>
-                    <TableCell data-label="Type" sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}{url.extraction_recipe && <Chip size="small" label="Custom recipe" sx={{ ml: 1 }} />}</TableCell>
-                    <TableCell data-label="Enabled">
+                    <TableCell data-label={uiText("Type")} sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}{url.extraction_recipe && <Chip size="small" label={tUi("Custom recipe")} sx={{ ml: 1 }} />}</TableCell>
+                    <TableCell data-label={uiText("Enabled")}>
                       <Switch
                         size="small"
                         checked={url.enabled}
@@ -395,14 +396,14 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                         inputProps={{ 'aria-label': `Enable ${url.url}` }}
                       />
                     </TableCell>
-                    <TableCell data-label="Last result">{renderScrapeResult(url)}</TableCell>
-                    <TableCell data-label="Last scraped" sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell data-label={uiText("Last result")}>{renderScrapeResult(url)}</TableCell>
+                    <TableCell data-label={uiText("Last scraped")} sx={{ whiteSpace: 'nowrap' }}>
                       <Tooltip title={url.last_processed ? formatDateTime(url.last_processed) : ''}>
                         <span>{formatRelativeTime(url.last_processed)}</span>
                       </Tooltip>
                     </TableCell>
-                    <TableCell data-label="Channels" align="right">{url.channels_found || 0}</TableCell>
-                    <TableCell data-label="Actions" sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell data-label={uiText("Channels")} align="right">{url.channels_found || 0}</TableCell>
+                    <TableCell data-label={uiText("Actions")} sx={{ whiteSpace: 'nowrap' }}>
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <Button
                           size="small"
@@ -410,17 +411,16 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                           startIcon={<PlayArrowIcon />}
                           onClick={() => handleScrape(url.id)}
                           disabled={scrapingId === url.id || !url.enabled}
-                          aria-label={`Scrape URL ${url.url}`}
+                          aria-label={tUi("Scrape URL {{value0}}", { value0: url.url })}
                         >
-                          Scrape
-                        </Button>
+                          {tUi("Scrape")}</Button>
                         <RowActionsMenu
-                          label={`More actions for ${url.url}`}
+                          label={tUi("More actions for {{value0}}", { value0: url.url })}
                           actions={[
-                            { label: 'Edit', onClick: () => handleOpenDialog(true, url) },
-                            { label: 'Configure extraction', disabled: url.url_type === 'broadcaster', onClick: () => navigate(`/scraper/builder?source=${url.id}`) },
-                            { label: 'Harvest bare IDs', checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: url.url_type === 'broadcaster' || bareIdsUpdatingId === url.id || Boolean(url.extraction_recipe) },
-                            { label: 'Delete', danger: true, onClick: () => handleDelete(url) },
+                            { label: uiText("Edit"), onClick: () => handleOpenDialog(true, url) },
+                            { label: uiText("Configure extraction"), disabled: url.url_type === 'broadcaster', onClick: () => navigate(`/scraper/builder?source=${url.id}`) },
+                            { label: uiText("Harvest bare IDs"), checked: Boolean(url.scrape_bare_ids), onClick: () => handleToggleBareIds(url, !url.scrape_bare_ids), disabled: url.url_type === 'broadcaster' || bareIdsUpdatingId === url.id || Boolean(url.extraction_recipe) },
+                            { label: uiText("Delete"), danger: true, onClick: () => handleDelete(url) },
                           ]}
                         />
                       </Stack>
@@ -433,7 +433,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                     {isLoading ? (
                       'Loading…'
                     ) : (
-                      <Typography variant="body2">No source URLs yet. Add one to start scraping.</Typography>
+                      <Typography variant="body2">{tUi("No source URLs yet. Add one to start scraping.")}</Typography>
                     )}
                   </TableCell>
                 </TableRow>
@@ -445,12 +445,12 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
 
       {/* URL Form Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{isEdit ? 'Edit URL' : 'Add URL'}</DialogTitle>
+        <DialogTitle>{isEdit ? tUi("Edit URL") : tUi("Add URL")}</DialogTitle>
         <DialogContent>
-          {providers.isError ? <Alert severity="error" action={<Button onClick={() => void providers.refetch()}>Retry</Button>}>Unable to load built-in providers.</Alert> : null}
+          {providers.isError ? <Alert severity="error" action={<Button onClick={() => void providers.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load built-in providers.")}</Alert> : null}
           {!isEdit ? <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
-            <InputLabel id="builtin-provider-label">Built-in provider</InputLabel>
-            <Select labelId="builtin-provider-label" label="Built-in provider"
+            <InputLabel id="builtin-provider-label">{tUi("Built-in provider")}</InputLabel>
+            <Select labelId="builtin-provider-label" label={tUi("Built-in provider")}
               value={formData.url_type === 'broadcaster' ? providers.data?.find(provider => provider.url === formData.url)?.id ?? '' : ''}
               onChange={event => {
                 const provider = providers.data?.find(item => item.id === event.target.value);
@@ -462,16 +462,16 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                     : { ...previous, url: '', url_type: 'auto', name: customName ? previous.name : '' };
                 });
               }}>
-              <MenuItem value="">Custom source URL</MenuItem>
+              <MenuItem value="">{tUi("Custom source URL")}</MenuItem>
               {providers.data?.map(provider => <MenuItem key={provider.id} value={provider.id}>{provider.name}</MenuItem>)}
             </Select>
-            <FormHelperText>Built-in broadcasters import channels directly through their adapter. Saving does not import channels.</FormHelperText>
+            <FormHelperText>{tUi("Built-in broadcasters import channels directly through their adapter. Saving does not import channels.")}</FormHelperText>
           </FormControl> : null}
-          <TextField label="Friendly name (optional)" name="name" fullWidth value={formData.name} onChange={handleChange} inputProps={{ maxLength: 255 }} helperText="Shown in the source list and channel filters." sx={{ mb: 2 }} />
+          <TextField label={tUi("Friendly name (optional)")} name="name" fullWidth value={formData.name} onChange={handleChange} inputProps={{ maxLength: 255 }} helperText={tUi("Shown in the source list and channel filters.")} sx={{ mb: 2 }} />
           <TextField
             margin="dense"
             name="url"
-            label="URL"
+            label={tUi("URL")}
             type="text"
             fullWidth
             value={formData.url}
@@ -479,34 +479,34 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
             sx={{ mb: 2 }}
           />
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="scraper-url-type-label">URL Type</InputLabel>
+            <InputLabel id="scraper-url-type-label">{tUi("URL Type")}</InputLabel>
             <Select
               id="scraper-url-type"
               labelId="scraper-url-type-label"
               name="url_type"
               value={formData.url_type}
-              label="URL Type"
+              label={tUi("URL Type")}
               onChange={handleSelectChange}
             >
-              <MenuItem value="broadcaster">Built-in broadcaster</MenuItem>
-              <MenuItem value="auto">Auto-detect</MenuItem>
-              <MenuItem value="regular">Regular HTTP</MenuItem>
-              <MenuItem value="zeronet">ZeroNet</MenuItem>
-              <MenuItem value="ipfs">IPFS</MenuItem>
+              <MenuItem value="broadcaster">{tUi("Built-in broadcaster")}</MenuItem>
+              <MenuItem value="auto">{tUi("Auto-detect")}</MenuItem>
+              <MenuItem value="regular">{tUi("Regular HTTP")}</MenuItem>
+              <MenuItem value="zeronet">{tUi("ZeroNet")}</MenuItem>
+              <MenuItem value="ipfs">{tUi("IPFS")}</MenuItem>
             </Select>
           </FormControl>
           <FormControl fullWidth>
-            <InputLabel id="scraper-status-label">Status</InputLabel>
+            <InputLabel id="scraper-status-label">{tUi("Status")}</InputLabel>
             <Select
               id="scraper-status"
               labelId="scraper-status-label"
               name="enabled"
               value={formData.enabled ? 'true' : 'false'}
-              label="Status"
+              label={tUi("Status")}
               onChange={handleEnabledChange}
             >
-              <MenuItem value="true">Enabled</MenuItem>
-              <MenuItem value="false">Disabled</MenuItem>
+              <MenuItem value="true">{tUi("Enabled")}</MenuItem>
+              <MenuItem value="false">{tUi("Disabled")}</MenuItem>
             </Select>
           </FormControl>
           <Box sx={{ mt: 2 }}>
@@ -518,22 +518,21 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                   onChange={(e) => setFormData({ ...formData, scrape_bare_ids: e.target.checked })}
                 />
               }
-              label="Harvest bare content IDs"
+              label={tUi("Harvest bare content IDs")}
             />
             <FormHelperText sx={{ ml: 0 }}>
-              Also collect raw 40-character acestream hashes from pages that don&apos;t use acestream:// links.
-            </FormHelperText>
+              {tUi("Also collect raw 40-character acestream hashes from pages that don't use acestream:// links.")}</FormHelperText>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={handleCloseDialog}>{tUi("Cancel")}</Button>
           <Button
             onClick={handleSubmit}
             variant="contained"
             color="primary"
             disabled={!formData.url || createURL.isPending || updateURL.isPending}
           >
-            {isEdit ? 'Update' : 'Add'}
+            {isEdit ? tUi("Update") : tUi("Add")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -558,15 +557,16 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
 const Catalogues = React.lazy(() => import('./Catalogues'));
 
 const Scraper: React.FC = () => {
+  const tUi = useUiText();
   const [params, setParams] = useSearchParams();
   const selected = params.get('tab');
   const tab = selected === 'w3u' || selected === 'searches' || selected === 'exclusions' ? selected : 'sources';
-  const navigation = <Tabs value={tab} onChange={(_, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} aria-label="Scraper sections" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2 }}>
-    <Tab value="sources" label="Sources" /><Tab value="w3u" label="W3U catalogues" /><Tab value="searches" label="Saved searches" /><Tab value="exclusions" label="Import exclusions" />
+  const navigation = <Tabs value={tab} onChange={(_, value: string) => { const next = new URLSearchParams(params); next.set('tab', value); setParams(next); }} aria-label={tUi("Scraper sections")} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2 }}>
+    <Tab value="sources" label={tUi("Sources")} /><Tab value="w3u" label={tUi("W3U catalogues")} /><Tab value="searches" label={tUi("Saved searches")} /><Tab value="exclusions" label={tUi("Import exclusions")} />
   </Tabs>;
   return <Box>
-    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title="Scraper" subtitle="Manage discoveries and future imports." />{navigation}
-      {tab === 'w3u' ? <React.Suspense fallback={<p role="status">Loading catalogues…</p>}><Catalogues embedded /></React.Suspense> : tab === 'searches' ? <SavedSearches /> : <ImportExclusions />}</>}
+    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title={tUi("Scraper")} subtitle={tUi("Manage discoveries and future imports.")} />{navigation}
+      {tab === 'w3u' ? <React.Suspense fallback={<p role="status">{tUi("Loading catalogues…")}</p>}><Catalogues embedded /></React.Suspense> : tab === 'searches' ? <SavedSearches /> : <ImportExclusions />}</>}
   </Box>;
 };
 export default Scraper;

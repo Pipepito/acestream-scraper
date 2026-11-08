@@ -1,3 +1,4 @@
+import { enUS, esES } from '@mui/material/locale';
 import { createTheme } from '@mui/material/styles';
 import { applyPreset } from './styles/presets';
 import type { InterfaceId } from './preferences/AppPreferences';
@@ -213,7 +214,7 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
   },
 };
 
-export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan') => {
+export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', language: 'en' | 'es' = 'en') => {
   const displayFont = preset === 'lime' ? `'Barlow Condensed', ${fontFamily}` : fontFamily;
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -495,5 +496,5 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan') =>
         },
       },
     },
-  });
+  }, language === 'es' ? esES : enUS);
 };

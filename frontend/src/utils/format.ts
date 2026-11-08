@@ -1,3 +1,5 @@
+import { getLocale } from '../i18n/locale';
+import { uiText } from '../i18n/text';
 /**
  * Human formatting shared across pages. Everything a user reads that comes
  * from the API as a raw number, id or timestamp goes through here.
@@ -5,8 +7,8 @@
 
 /** Engine bitrates arrive in bits per second. */
 export const formatBitrate = (bitsPerSecond?: number | null): string => {
-  if (!bitsPerSecond || bitsPerSecond <= 0) return 'Unknown';
-  if (bitsPerSecond >= 1_000_000) return `${(bitsPerSecond / 1_000_000).toFixed(1)} Mbps`;
+  if (!bitsPerSecond || bitsPerSecond <= 0) return uiText('Unknown');
+  if (bitsPerSecond >= 1_000_000) return `${(bitsPerSecond / 1_000_000).toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Mbps`;
   return `${Math.round(bitsPerSecond / 1000)} kbps`;
 };
 
@@ -14,17 +16,22 @@ const plural = (n: number, one: string, many: string): string => `${n} ${n === 1
 
 /** "12 min ago", "in 23 h", "3 days ago", "just now", "never". */
 export const formatRelativeTime = (iso?: string | null, now: Date = new Date()): string => {
-  if (!iso) return 'never';
+  if (!iso) return uiText('never');
   const then = new Date(iso);
-  if (Number.isNaN(then.getTime())) return 'never';
+  if (Number.isNaN(then.getTime())) return uiText('never');
   const diffMs = then.getTime() - now.getTime();
   const past = diffMs < 0;
   const abs = Math.abs(diffMs);
   const minutes = Math.round(abs / 60_000);
   const hours = Math.round(abs / 3_600_000);
   const days = Math.round(abs / 86_400_000);
+  if (getLocale() === 'es-ES' && abs >= 45_000) {
+    const unit = minutes < 60 ? 'minute' : hours < 48 ? 'hour' : 'day';
+    const amount = minutes < 60 ? minutes : hours < 48 ? hours : days;
+    return new Intl.RelativeTimeFormat(getLocale(), { numeric: 'always', style: 'short' }).format(past ? -amount : amount, unit);
+  }
   let phrase: string;
-  if (abs < 45_000) return 'just now';
+  if (abs < 45_000) return uiText('just now');
   if (minutes < 60) phrase = `${minutes} min`;
   else if (hours < 48) phrase = `${hours} h`;
   else phrase = plural(days, 'day', 'days');

@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Autocomplete, Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
@@ -19,6 +21,7 @@ const fromTriState = (value: TriState): boolean | undefined => (value === '' ? u
 
 /** Filters honoured by the channel list API: text search, group, online state, playlist visibility and TV channel linkage. */
 const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, sources = [], onChange }) => {
+  const tUi = useUiText();
   const [search, setSearch] = useState(filters.search ?? '');
 
   useEffect(() => {
@@ -52,13 +55,13 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, so
   return (
     <Box
       role="search"
-      aria-label="Channel filters"
+      aria-label={tUi("Channel filters")}
       sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mb: 2 }}
     >
       <TextField
         size="small"
-        label="Search"
-        placeholder="Name or ID"
+        label={tUi("Search")}
+        placeholder={tUi("Name or ID")}
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         sx={{ minWidth: { xs: '100%', sm: 220 }, flex: { sm: 1 }, maxWidth: 360 }}
@@ -67,16 +70,16 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, so
         size="small"
         options={sources}
         value={sources.find(source => source.value === filters.source_url) ?? null}
-        getOptionLabel={source => source.label === source.value ? source.value : `${source.label} · ${source.kind === 'catalogue' ? 'W3U catalogue · ' : source.kind === 'broadcaster' ? 'Broadcaster · ' : ''}${source.value}`}
+        getOptionLabel={source => source.label === source.value ? source.value : `${source.label} · ${source.kind === 'catalogue' ? uiText("W3U catalogue · ") : source.kind === 'broadcaster' ? uiText("Broadcaster · ") : ''}${source.value}`}
         isOptionEqualToValue={(option, value) => option.value === value.value}
         onChange={(_, source) => onChange({ ...filters, source_url: source?.value })}
-        renderInput={params => <TextField {...params} label="Source" placeholder="Name or source URL" />}
+        renderInput={params => <TextField {...params} label={tUi("Source")} placeholder={tUi("Name or source URL")} />}
         sx={{ width: { xs: '100%', sm: 280 } }}
       />
       <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="channel-filter-group">Group</InputLabel>
-        <Select labelId="channel-filter-group" label="Group" value={filters.group ?? ''} onChange={handleGroup}>
-          <MenuItem value="">Any group</MenuItem>
+        <InputLabel id="channel-filter-group">{tUi("Group")}</InputLabel>
+        <Select labelId="channel-filter-group" label={tUi("Group")} value={filters.group ?? ''} onChange={handleGroup}>
+          <MenuItem value="">{tUi("Any group")}</MenuItem>
           {groups.map((group) => (
             <MenuItem key={group} value={group}>
               {group}
@@ -85,33 +88,32 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({ filters, groups, so
         </Select>
       </FormControl>
       <FormControl size="small" sx={{ minWidth: 130 }}>
-        <InputLabel id="channel-filter-online">Online</InputLabel>
-        <Select labelId="channel-filter-online" label="Online" value={toTriState(filters.is_online)} onChange={handleOnline}>
-          <MenuItem value="">Any</MenuItem>
-          <MenuItem value="true">Online</MenuItem>
-          <MenuItem value="false">Offline</MenuItem>
+        <InputLabel id="channel-filter-online">{tUi("Online")}</InputLabel>
+        <Select labelId="channel-filter-online" label={tUi("Online")} value={toTriState(filters.is_online)} onChange={handleOnline}>
+          <MenuItem value="">{tUi("Any")}</MenuItem>
+          <MenuItem value="true">{tUi("Online")}</MenuItem>
+          <MenuItem value="false">{tUi("Offline")}</MenuItem>
         </Select>
       </FormControl>
       <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="channel-filter-visibility">Playlist</InputLabel>
-        <Select labelId="channel-filter-visibility" label="Playlist" value={toTriState(filters.is_active)} onChange={handleVisibility}>
-          <MenuItem value="">All channels</MenuItem>
-          <MenuItem value="true">In playlist</MenuItem>
-          <MenuItem value="false">Hidden</MenuItem>
+        <InputLabel id="channel-filter-visibility">{tUi("Playlist")}</InputLabel>
+        <Select labelId="channel-filter-visibility" label={tUi("Playlist")} value={toTriState(filters.is_active)} onChange={handleVisibility}>
+          <MenuItem value="">{tUi("All channels")}</MenuItem>
+          <MenuItem value="true">{tUi("In playlist")}</MenuItem>
+          <MenuItem value="false">{tUi("Hidden")}</MenuItem>
         </Select>
       </FormControl>
       <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="channel-filter-linked">Linked</InputLabel>
-        <Select labelId="channel-filter-linked" label="Linked" value={toTriState(filters.assigned)} onChange={handleAssigned}>
-          <MenuItem value="">Any</MenuItem>
-          <MenuItem value="true">Linked</MenuItem>
-          <MenuItem value="false">Not linked</MenuItem>
+        <InputLabel id="channel-filter-linked">{tUi("Linked")}</InputLabel>
+        <Select labelId="channel-filter-linked" label={tUi("Linked")} value={toTriState(filters.assigned)} onChange={handleAssigned}>
+          <MenuItem value="">{tUi("Any")}</MenuItem>
+          <MenuItem value="true">{tUi("Linked")}</MenuItem>
+          <MenuItem value="false">{tUi("Not linked")}</MenuItem>
         </Select>
       </FormControl>
       {hasFilters ? (
         <Button size="small" onClick={() => onChange({})}>
-          Reset filters
-        </Button>
+          {tUi("Reset filters")}</Button>
       ) : null}
     </Box>
   );

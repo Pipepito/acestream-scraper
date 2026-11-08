@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Checkbox, FormControlLabel, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -10,6 +12,7 @@ import { castService, type CastSettings } from '../../services/castService';
 import { getAccessErrorMessage } from '../../services/accessErrors';
 
 function CastingSettings({ initial, accounts }: { initial: CastSettings; accounts: boolean }) {
+  const tUi = useUiText();
   const cache = useQueryClient();
   const [draft, setSettings] = useState<CastSettings | null>(null);
   const settings = draft ?? initial;
@@ -26,30 +29,31 @@ function CastingSettings({ initial, accounts }: { initial: CastSettings; account
       setSettings(null); setHome(null);
       await cache.invalidateQueries({ queryKey: ['cast-capabilities'] });
       await cache.invalidateQueries({ queryKey: ['access-policy'] });
-      setFeedback({ message: 'TV casting settings saved.', error: false });
+      setFeedback({ message: uiText("TV casting settings saved."), error: false });
     } catch (reason) { setFeedback({ message: getAccessErrorMessage(reason), error: true }); }
     finally { setBusy(false); }
   };
-  return <ContentSection title="Casting preferences" description="These settings are kept when user management is enabled or disabled.">
+  return <ContentSection title={tUi("Casting preferences")} description={tUi("These settings are kept when user management is enabled or disabled.")}>
     <Stack component="form" onSubmit={submit} spacing={2}>
-      <FormControlLabel label="Offer H.264 compatibility conversion" control={<Checkbox checked={settings.compatibility_conversion ?? false} onChange={(_, value) => setSettings({ ...settings, compatibility_conversion: value })} />} />
-      <Typography variant="body2">Original video is the default. Conversion uses more CPU, is limited to one 720p/30 fps stream, and yields to recordings.</Typography>
+      <FormControlLabel label={tUi("Offer H.264 compatibility conversion")} control={<Checkbox checked={settings.compatibility_conversion ?? false} onChange={(_, value) => setSettings({ ...settings, compatibility_conversion: value })} />} />
+      <Typography variant="body2">{tUi("Original video is the default. Conversion uses more CPU, is limited to one 720p/30 fps stream, and yields to recordings.")}</Typography>
       <Accordion disableGutters>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>Advanced connection settings</AccordionSummary>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>{tUi("Advanced connection settings")}</AccordionSummary>
         <AccordionDetails><Stack spacing={2}>
-          <TextField label="Application address for TVs" value={settings.cast_media_url ?? ''} onChange={e => setSettings({ ...settings, cast_media_url: e.target.value })} helperText="Optional. Leave blank to use the address you opened in your browser. Include any proxy path prefix." />
-          <TextField label="Allowed home networks" value={home} onChange={e => setHome(e.target.value)} helperText="Optional override, separated by commas. Leave blank to recognize private-network clients automatically. These are visitor networks, not TV addresses." />
-          <FormControlLabel label="Allow accounts with casting permission to control TVs away from home" control={<Checkbox disabled={!accounts} checked={settings.remote_casting ?? false} onChange={(_, value) => setSettings({ ...settings, remote_casting: value })} />} />
-          {!accounts ? <Typography variant="body2">Remote control requires an account. Local casting works without user management.</Typography> : null}
+          <TextField label={tUi("Application address for TVs")} value={settings.cast_media_url ?? ''} onChange={e => setSettings({ ...settings, cast_media_url: e.target.value })} helperText={tUi("Optional. Leave blank to use the address you opened in your browser. Include any proxy path prefix.")} />
+          <TextField label={tUi("Allowed home networks")} value={home} onChange={e => setHome(e.target.value)} helperText={tUi("Optional override, separated by commas. Leave blank to recognize private-network clients automatically. These are visitor networks, not TV addresses.")} />
+          <FormControlLabel label={tUi("Allow accounts with casting permission to control TVs away from home")} control={<Checkbox disabled={!accounts} checked={settings.remote_casting ?? false} onChange={(_, value) => setSettings({ ...settings, remote_casting: value })} />} />
+          {!accounts ? <Typography variant="body2">{tUi("Remote control requires an account. Local casting works without user management.")}</Typography> : null}
         </Stack></AccordionDetails>
       </Accordion>
       {feedback ? <Alert severity={feedback.error ? 'error' : 'success'}>{feedback.message}</Alert> : null}
-      <Box><Button variant="contained" type="submit" disabled={busy}>Save casting settings</Button></Box>
+      <Box><Button variant="contained" type="submit" disabled={busy}>{tUi("Save casting settings")}</Button></Box>
     </Stack>
   </ContentSection>;
 }
 
 export default function TvCasting() {
+  const tUi = useUiText();
   const cache = useQueryClient();
   const access = useAccess();
   const capabilities = useQuery({ queryKey: ['cast-capabilities'], queryFn: castService.capabilities, retry: false });
@@ -76,36 +80,36 @@ export default function TvCasting() {
     await cache.invalidateQueries({ queryKey: ['access-policy'] });
     setTrustConfirmed(false);
   };
-  return <IntegrationPage title="TV casting" summary={[
-    { label: 'Connection', value: capabilities.data ? openAccess ? 'Open access' : capabilities.data.home_connection ? 'Home' : 'Outside or unverified' : 'Checking…' },
-    { label: 'TVs', value: allowed ? devices.data?.length ?? 'Looking…' : 'Unavailable' },
+  return <IntegrationPage title={tUi("TV casting")} summary={[
+    { label: uiText("Connection"), value: capabilities.data ? openAccess ? uiText("Open access") : capabilities.data.home_connection ? uiText("Home") : uiText("Outside or unverified") : uiText("Checking…") },
+    { label: 'TVs', value: allowed ? devices.data?.length ?? 'Looking…' : uiText("Unavailable") },
   ]}>{() => <>
-    <ContentSection title="Home TVs" description="Discover Chromecast and Google Cast-enabled Android TVs. Casting from the scraper works with any browser and does not require user management.">
+    <ContentSection title={tUi("Home TVs")} description={tUi("Discover Chromecast and Google Cast-enabled Android TVs. Casting from the scraper works with any browser and does not require user management.")}>
       <Stack spacing={2}>
-        {capabilities.isError ? <Alert severity="error">Could not check casting access.</Alert> : null}
-        {openAccess ? <Typography variant="body2">Anyone who can open this app can list and control TVs. Set CAST_REQUIRE_HOME_NETWORK=true on the container or enable accounts to limit this.</Typography> : null}
+        {capabilities.isError ? <Alert severity="error">{tUi("Could not check casting access.")}</Alert> : null}
+        {openAccess ? <Typography variant="body2">{tUi("Anyone who can open this app can list and control TVs. Set CAST_REQUIRE_HOME_NETWORK=true on the container or enable accounts to limit this.")}</Typography> : null}
         {capabilities.data && !allowed ? <Alert severity="info">{capabilities.data.message}</Alert> : null}
-        {capabilities.data?.home_check === 'deployment' ? <Typography variant="body2">Home-network check enforced by the deployment.</Typography> : null}
+        {capabilities.data?.home_check === 'deployment' ? <Typography variant="body2">{tUi("Home-network check enforced by the deployment.")}</Typography> : null}
         {capabilities.data && !openAccess && !capabilities.data.home_connection && access?.status.user?.administrator ? <>
-          <Typography variant="body2">Using your public HTTPS address at home? Trust this connection to allow casting from your home internet address. Other visitors remain blocked. Repeat this if your provider changes your address. Shared internet connections also share this trust.</Typography>
-          <FormControlLabel label="I am connected to my home network now" control={<Checkbox checked={trustConfirmed} onChange={(_, value) => setTrustConfirmed(value)} />} />
-          <Box><Button disabled={busy || !trustConfirmed} onClick={() => void run(trustHome)}>Trust this home connection</Button></Box>
+          <Typography variant="body2">{tUi("Using your public HTTPS address at home? Trust this connection to allow casting from your home internet address. Other visitors remain blocked. Repeat this if your provider changes your address. Shared internet connections also share this trust.")}</Typography>
+          <FormControlLabel label={tUi("I am connected to my home network now")} control={<Checkbox checked={trustConfirmed} onChange={(_, value) => setTrustConfirmed(value)} />} />
+          <Box><Button disabled={busy || !trustConfirmed} onClick={() => void run(trustHome)}>{tUi("Trust this home connection")}</Button></Box>
         </> : null}
         {allowed ? <>
           <Box><Button variant="outlined" disabled={busy} onClick={() => void run(async () => {
             cache.setQueryData(['cast-devices'], await castService.discover()); setSearched(true);
-          })}>{busy ? 'Searching…' : 'Find TVs'}</Button></Box>
-          {devices.isError ? <Alert severity="error">Could not load TVs. Try Find TVs again.</Alert> : null}
-          {devices.isFetching && !devices.data?.length ? <Typography role="status">Looking for TVs on your home network… This can take up to 20 seconds.</Typography> : null}
-          {devices.data?.length ? <List disablePadding>{devices.data.map(tv => <ListItem key={tv.id} disableGutters><ListItemText primary={tv.name} secondary={tv.model} /></ListItem>)}</List> : <Typography variant="body2">{searched ? 'No Google Cast TVs found. Turn on the TV and enable Google Cast. Docker may need host networking for multicast discovery.' : 'Listening for TVs on your home network. Find TVs also checks the local network when multicast is unavailable.'}</Typography>}
-          <Typography variant="body2">Use Send to player beside a channel in Live TV to cast directly to a TV. Casting options includes playback controls and compatibility settings.</Typography>
-          <Box><Button component={RouterLink} to="/live-tv">Open Live TV</Button></Box>
-          {capabilities.data?.media_url_configured ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Video address: {capabilities.data.media_url}</Typography> : <Alert severity="info">{capabilities.data?.home_connection ? 'Open the app using its home-network or HTTPS address so the TV can fetch video.' : 'From this connection the TV needs a fixed address: set Application address for TVs under Advanced connection settings, or open the app from your home network.'}</Alert>}
+          })}>{busy ? tUi("Searching…") : tUi("Find TVs")}</Button></Box>
+          {devices.isError ? <Alert severity="error">{tUi("Could not load TVs. Try Find TVs again.")}</Alert> : null}
+          {devices.isFetching && !devices.data?.length ? <Typography role="status">{tUi("Looking for TVs on your home network… This can take up to 20 seconds.")}</Typography> : null}
+          {devices.data?.length ? <List disablePadding>{devices.data.map(tv => <ListItem key={tv.id} disableGutters><ListItemText primary={tv.name} secondary={tv.model} /></ListItem>)}</List> : <Typography variant="body2">{searched ? tUi("No Google Cast TVs found. Turn on the TV and enable Google Cast. Docker may need host networking for multicast discovery.") : tUi("Listening for TVs on your home network. Find TVs also checks the local network when multicast is unavailable.")}</Typography>}
+          <Typography variant="body2">{tUi("Use Send to player beside a channel in Live TV to cast directly to a TV. Casting options includes playback controls and compatibility settings.")}</Typography>
+          <Box><Button component={RouterLink} to="/live-tv">{tUi("Open Live TV")}</Button></Box>
+          {capabilities.data?.media_url_configured ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{tUi("Video address:")}{' '}{capabilities.data.media_url}</Typography> : <Alert severity="info">{capabilities.data?.home_connection ? tUi("Open the app using its home-network or HTTPS address so the TV can fetch video.") : tUi("From this connection the TV needs a fixed address: set Application address for TVs under Advanced connection settings, or open the app from your home network.")}</Alert>}
         </> : null}
         {error ? <Alert severity="error">{error}</Alert> : null}
       </Stack>
     </ContentSection>
-    {access?.status.mode === 'open' || access?.status.user?.administrator ? <Box><Button component={RouterLink} to="/settings?tab=network">Network settings</Button></Box> : null}
-    {settings.data ? <CastingSettings key={settingsVersion} initial={settings.data} accounts={access?.status.mode === 'accounts'} /> : settings.isError || (capabilities.data && !canConfigure) ? <Alert severity="info">Casting settings are available to administrators or, without accounts, from a recognized home connection.</Alert> : <Typography role="status">Loading casting settings…</Typography>}
+    {access?.status.mode === 'open' || access?.status.user?.administrator ? <Box><Button component={RouterLink} to="/settings?tab=network">{tUi("Network settings")}</Button></Box> : null}
+    {settings.data ? <CastingSettings key={settingsVersion} initial={settings.data} accounts={access?.status.mode === 'accounts'} /> : settings.isError || (capabilities.data && !canConfigure) ? <Alert severity="info">{tUi("Casting settings are available to administrators or, without accounts, from a recognized home connection.")}</Alert> : <Typography role="status">{tUi("Loading casting settings…")}</Typography>}
   </>}</IntegrationPage>;
 }

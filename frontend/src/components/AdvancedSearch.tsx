@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import {
   Box,
@@ -42,7 +43,7 @@ const statusOptions = [
   { value: 'inactive', label: 'Inactive' },
   { value: 'online', label: 'Online' },
   { value: 'offline', label: 'Offline' },
-];
+] as const;
 
 const sortOptions = [
   { value: '', label: 'Default' },
@@ -50,7 +51,7 @@ const sortOptions = [
   { value: 'status', label: 'Status' },
   { value: 'category', label: 'Category' },
   { value: 'last_checked', label: 'Last Checked' },
-];
+] as const;
 
 const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
   filters,
@@ -59,6 +60,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
   groups = [],
   visibleFields,
 }) => {
+  const tUi = useUiText();
   const [local, setLocal] = useState<AdvancedSearchFilters>(filters);
   const theme = useTheme();
   const isPhone = useMediaQuery(`(max-width:${theme.appTokens.layout.shell.phoneMaxWidth}px)`);
@@ -88,22 +90,21 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
     onChange({});
   };
 
-  const getSelectProps = (name: string, label: string) => ({
+  const getSelectProps = (name: string, label: 'Category' | 'Group' | 'Status' | 'Sort By' | 'Active' | 'Online') => ({
     labelId: `${name}-label`,
     id: `${name}-select`,
     name,
-    label,
+    label: tUi(label),
   });
 
   return (
-    <Box component="form" aria-label="Channel filters" onSubmit={(event) => {
+    <Box component="form" aria-label={tUi("Channel filters")} onSubmit={(event) => {
       event.preventDefault();
       handleApply();
     }} sx={{ display: 'grid', gap: 2.5 }}>
       <Box>
         <Typography variant="body2" color="text.secondary">
-          Narrow the inventory before acting.
-        </Typography>
+          {tUi("Narrow the inventory before acting.")}</Typography>
       </Box>
 
       <Grid container spacing={2} alignItems="flex-start">
@@ -111,43 +112,43 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         <Grid item xs={12} sm={6} md={3}>
           <TextField
             name="search"
-            label="Search"
+            label={tUi("Search")}
             value={local.search || ''}
             onChange={handleInputChange}
             fullWidth
             size={fieldSize}
-            helperText="Search by channel name or number."
+            helperText={tUi("Search by channel name or number.")}
           />
         </Grid>
         ) : null}
         {isFieldVisible('category') ? (
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size={fieldSize}>
-            <InputLabel id="category-label">Category</InputLabel>
+            <InputLabel id="category-label">{tUi("Category")}</InputLabel>
             <Select
               {...getSelectProps('category', 'Category')}
               value={local.category || ''}
               onChange={handleSelectChange}
             >
-              <MenuItem value="">Any</MenuItem>
+              <MenuItem value="">{tUi("Any")}</MenuItem>
               {categories.map(cat => (
                 <MenuItem key={cat} value={cat}>{cat}</MenuItem>
               ))}
             </Select>
-            <FormHelperText>Limit results to one channel category.</FormHelperText>
+            <FormHelperText>{tUi("Limit results to one channel category.")}</FormHelperText>
           </FormControl>
         </Grid>
         ) : null}
         {isFieldVisible('group') ? (
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size={fieldSize}>
-            <InputLabel id="group-label">Group</InputLabel>
+            <InputLabel id="group-label">{tUi("Group")}</InputLabel>
             <Select
               {...getSelectProps('group', 'Group')}
               value={local.group || ''}
               onChange={handleSelectChange}
             >
-              <MenuItem value="">Any</MenuItem>
+              <MenuItem value="">{tUi("Any")}</MenuItem>
               {groups.map(grp => (
                 <MenuItem key={grp} value={grp}>{grp}</MenuItem>
               ))}
@@ -158,14 +159,14 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         {isFieldVisible('status') ? (
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size={fieldSize}>
-            <InputLabel id="status-label">Status</InputLabel>
+            <InputLabel id="status-label">{tUi("Status")}</InputLabel>
             <Select
               {...getSelectProps('status', 'Status')}
               value={local.status || ''}
               onChange={handleSelectChange}
             >
               {statusOptions.map(opt => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                <MenuItem key={opt.value} value={opt.value}>{tUi(opt.label)}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -174,14 +175,14 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         {isFieldVisible('sort') ? (
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size={fieldSize}>
-            <InputLabel id="sort-label">Sort By</InputLabel>
+            <InputLabel id="sort-label">{tUi("Sort By")}</InputLabel>
             <Select
               {...getSelectProps('sort', 'Sort By')}
               value={local.sort || ''}
               onChange={handleSelectChange}
             >
               {sortOptions.map(opt => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                <MenuItem key={opt.value} value={opt.value}>{tUi(opt.label)}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -191,12 +192,12 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         <Grid item xs={12} sm={6} md={2}>
           <TextField
             name="country"
-            label="Country"
+            label={tUi("Country")}
             value={local.country || ''}
             onChange={handleInputChange}
             fullWidth
             size={fieldSize}
-            helperText="Use a short country code when you know it."
+            helperText={tUi("Use a short country code when you know it.")}
           />
         </Grid>
         ) : null}
@@ -204,27 +205,27 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         <Grid item xs={12} sm={6} md={2}>
           <TextField
             name="language"
-            label="Language"
+            label={tUi("Language")}
             value={local.language || ''}
             onChange={handleInputChange}
             fullWidth
             size={fieldSize}
-            helperText="Use the channel audio language when available."
+            helperText={tUi("Use the channel audio language when available.")}
           />
         </Grid>
         ) : null}
         {isFieldVisible('is_active') ? (
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size={fieldSize}>
-            <InputLabel id="is_active-label">Active</InputLabel>
+            <InputLabel id="is_active-label">{tUi("Active")}</InputLabel>
             <Select
               {...getSelectProps('is_active', 'Active')}
               value={local.is_active || ''}
               onChange={handleSelectChange}
             >
-              <MenuItem value="">Any</MenuItem>
-              <MenuItem value="true">Active</MenuItem>
-              <MenuItem value="false">Inactive</MenuItem>
+              <MenuItem value="">{tUi("Any")}</MenuItem>
+              <MenuItem value="true">{tUi("Active")}</MenuItem>
+              <MenuItem value="false">{tUi("Inactive")}</MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -232,15 +233,15 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         {isFieldVisible('is_online') ? (
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size={fieldSize}>
-            <InputLabel id="is_online-label">Online</InputLabel>
+            <InputLabel id="is_online-label">{tUi("Online")}</InputLabel>
             <Select
               {...getSelectProps('is_online', 'Online')}
               value={local.is_online || ''}
               onChange={handleSelectChange}
             >
-              <MenuItem value="">Any</MenuItem>
-              <MenuItem value="true">Online</MenuItem>
-              <MenuItem value="false">Offline</MenuItem>
+              <MenuItem value="">{tUi("Any")}</MenuItem>
+              <MenuItem value="true">{tUi("Online")}</MenuItem>
+              <MenuItem value="false">{tUi("Offline")}</MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -255,11 +256,9 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
             alignItems="stretch"
           >
             <Button type="submit" variant="contained" color="primary" data-action-priority="primary" fullWidth>
-              Apply Filters
-            </Button>
+              {tUi("Apply Filters")}</Button>
             <Button type="button" variant="outlined" color="secondary" onClick={handleReset} data-action-priority="secondary" fullWidth>
-              Reset Filters
-            </Button>
+              {tUi("Reset Filters")}</Button>
           </Stack>
         </Grid>
       </Grid>

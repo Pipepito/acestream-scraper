@@ -1,4 +1,8 @@
+import { uiEnglish } from './messages/en';
+import { uiSpanish } from './messages/es';
+
 export const en = {
+  ui: uiEnglish,
   common: {
     watch: 'Watch', recordings: 'Recordings', events: 'Events', channels: 'Channels', connections: 'Connections', settings: 'Settings', system: 'System',
     sources: 'Sources', guide: 'Programme guide', streams: 'Advanced streams', search: 'Search', playlists: 'Playlists',
@@ -23,7 +27,8 @@ export const en = {
 } as const;
 
 type TranslationShape<T> = { [K in keyof T]: T[K] extends string ? string : TranslationShape<T[K]> };
-export const es: TranslationShape<typeof en> = {
+export const es: TranslationShape<Omit<typeof en, 'ui'>> & { ui: typeof uiSpanish } = {
+  ui: uiSpanish,
   common: {
     watch: 'Ver', recordings: 'Grabaciones', events: 'Eventos', channels: 'Canales', connections: 'Conexiones', settings: 'Ajustes', system: 'Sistema',
     sources: 'Fuentes', guide: 'Guía de programación', streams: 'Emisiones avanzadas', search: 'Buscar', playlists: 'Listas de reproducción',

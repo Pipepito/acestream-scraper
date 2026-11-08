@@ -1,3 +1,6 @@
+import { uiText } from '../../i18n/text';
+import { getLocale } from '../../i18n/locale';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Box, Button, Checkbox, FormControlLabel, FormGroup, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +17,7 @@ function PermissionFields({ values, onChange, options = Object.keys(permissionLa
 }
 
 function AccountEditor({ initial, saved }: { initial?: Account; saved: () => Promise<void> }) {
+  const tUi = useUiText();
   const [username, setUsername] = useState(initial?.username ?? '');
   const [password, setPassword] = useState('');
   const [administrator, setAdministrator] = useState(initial?.administrator ?? false);
@@ -32,20 +36,21 @@ function AccountEditor({ initial, saved }: { initial?: Account; saved: () => Pro
     } catch (reason) { setError(getAccessErrorMessage(reason)); }
     finally { setBusy(false); }
   };
-  return <Stack component="form" aria-label={initial ? `Edit account ${username}` : 'Create account'} onSubmit={submit} spacing={1.5} sx={{ pb: 2, mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+  return <Stack component="form" aria-label={initial ? tUi("Edit account {{value0}}", { value0: username }) : tUi("Create account")} onSubmit={submit} spacing={1.5} sx={{ pb: 2, mb: 2, borderBottom: 1, borderColor: 'divider' }}>
     {initial ? <Typography component="h3" variant="subtitle1">{username}</Typography> : <>
-      <TextField label="New account username" required value={username} onChange={e => setUsername(e.target.value)} autoComplete="off" inputProps={{ maxLength: 64, pattern: '[a-zA-Z0-9_.\\-]+' }} />
-      <NewPasswordField label="Initial password" value={password} onChange={setPassword} />
+      <TextField label={tUi("New account username")} required value={username} onChange={e => setUsername(e.target.value)} autoComplete="off" inputProps={{ maxLength: 64, pattern: '[a-zA-Z0-9_.\\-]+' }} />
+      <NewPasswordField label={tUi("Initial password")} value={password} onChange={setPassword} />
     </>}
-    <FormGroup row><FormControlLabel label="Administrator" control={<Checkbox checked={administrator} onChange={(_, value) => setAdministrator(value)} />} />
-      {initial ? <FormControlLabel label="Account enabled" control={<Checkbox checked={enabled} onChange={(_, value) => setEnabled(value)} />} /> : null}</FormGroup>
-    {administrator ? <Typography variant="body2">Administrators can manage the installation and use all viewing features.</Typography> : <PermissionFields values={permissions} onChange={setPermissions} />}
+    <FormGroup row><FormControlLabel label={tUi("Administrator")} control={<Checkbox checked={administrator} onChange={(_, value) => setAdministrator(value)} />} />
+      {initial ? <FormControlLabel label={tUi("Account enabled")} control={<Checkbox checked={enabled} onChange={(_, value) => setEnabled(value)} />} /> : null}</FormGroup>
+    {administrator ? <Typography variant="body2">{tUi("Administrators can manage the installation and use all viewing features.")}</Typography> : <PermissionFields values={permissions} onChange={setPermissions} />}
     {error ? <Alert severity="error">{error}</Alert> : null}
-    <Box><Button type="submit" variant={initial ? 'outlined' : 'contained'} disabled={busy}>{initial ? 'Save account' : 'Create account'}</Button></Box>
+    <Box><Button type="submit" variant={initial ? 'outlined' : 'contained'} disabled={busy}>{initial ? tUi("Save account") : tUi("Create account")}</Button></Box>
   </Stack>;
 }
 
 function PolicyForm({ initial }: { initial: AccessPolicy }) {
+  const tUi = useUiText();
   const [draft, setPolicy] = useState<AccessPolicy | null>(null);
   const policy = draft ?? initial;
   const cache = useQueryClient();
@@ -63,24 +68,25 @@ function PolicyForm({ initial }: { initial: AccessPolicy }) {
       cache.setQueryData(['access-policy'], saved);
       setPolicy(null); setLocal(null);
       await cache.invalidateQueries({ queryKey: ['access-status'] });
-      setFeedback({ message: 'Access policy saved.', error: false });
+      setFeedback({ message: uiText("Access policy saved."), error: false });
     }
     catch (reason) { setFeedback({ message: getAccessErrorMessage(reason), error: true }); }
     finally { setBusy(false); }
   };
-  return <ContentSection title="Viewing and network access"><Stack component="form" aria-label="Public viewing and network access" onSubmit={submit} spacing={2}>
-    <Typography component="h3" variant="subtitle1">Public viewing features</Typography>
-    <Typography variant="body2">Selected features are available without signing in. Public pages contain viewing information only.</Typography>
+  return <ContentSection title={tUi("Viewing and network access")}><Stack component="form" aria-label={tUi("Public viewing and network access")} onSubmit={submit} spacing={2}>
+    <Typography component="h3" variant="subtitle1">{tUi("Public viewing features")}</Typography>
+    <Typography variant="body2">{tUi("Selected features are available without signing in. Public pages contain viewing information only.")}</Typography>
     <PermissionFields values={policy.public_features ?? []} onChange={value => setPolicy({ ...policy, public_features: value })} options={['live', 'channels', 'guide', 'events', 'cast']} />
     {checkbox('public_playlists', 'Allow public playlists, guides and media without credentials')}
     {checkbox('local_iptv', 'Allow IPTV without credentials on trusted local networks')}
-    <TextField label="Local IPTV networks" value={local} onChange={e => setLocal(e.target.value)} helperText="Comma-separated client subnets, for example 192.168.1.0/24. A proxy or Docker gateway alone never proves local access." />
+    <TextField label={tUi("Local IPTV networks")} value={local} onChange={e => setLocal(e.target.value)} helperText={tUi("Comma-separated client subnets, for example 192.168.1.0/24. A proxy or Docker gateway alone never proves local access.")} />
     {feedback ? <Alert severity={feedback.error ? 'error' : 'success'}>{feedback.message}</Alert> : null}
-    <Box><Button type="submit" variant="contained" disabled={busy}>Save access policy</Button></Box>
+    <Box><Button type="submit" variant="contained" disabled={busy}>{tUi("Save access policy")}</Button></Box>
   </Stack></ContentSection>;
 }
 
 function CredentialsPanel() {
+  const tUi = useUiText();
   const cache = useQueryClient();
   const query = useQuery({ queryKey: ['access-credentials'], queryFn: accessService.credentials });
   const sessions = useQuery({ queryKey: ['access-sessions'], queryFn: accessService.sessions });
@@ -91,24 +97,25 @@ function CredentialsPanel() {
   const [busy, setBusy] = useState(false);
   const run = async (action: () => Promise<unknown>) => { setBusy(true); setError(''); try { await action(); await cache.invalidateQueries({ queryKey: ['access-credentials'] }); await cache.invalidateQueries({ queryKey: ['access-sessions'] }); } catch (reason) { setError(getAccessErrorMessage(reason)); } finally { setBusy(false); } };
   return <>
-    <ContentSection title="Playback and API credentials" description="Playback credentials can appear in IPTV URLs. Administrative credentials work only in request headers; never share them with players.">
+    <ContentSection title={tUi("Playback and API credentials")} description={tUi("Playback credentials can appear in IPTV URLs. Administrative credentials work only in request headers; never share them with players.")}>
       <Stack spacing={2}>
         <Stack component="form" spacing={2} onSubmit={e => { e.preventDefault(); void run(async () => { const value = await accessService.issueCredential(label, kind); setIssued(value.token); }); }}>
-          <TextField required label="Credential label" value={label} onChange={e => setLabel(e.target.value)} inputProps={{ maxLength: 80 }} />
-          <TextField select label="Credential access" value={kind} onChange={e => setKind(e.target.value as 'admin' | 'playback')}><MenuItem value="playback">Playback only</MenuItem><MenuItem value="admin">Administrative API</MenuItem></TextField>
-          <Box><Button type="submit" disabled={busy}>Create credential</Button></Box>
+          <TextField required label={tUi("Credential label")} value={label} onChange={e => setLabel(e.target.value)} inputProps={{ maxLength: 80 }} />
+          <TextField select label={tUi("Credential access")} value={kind} onChange={e => setKind(e.target.value as 'admin' | 'playback')}><MenuItem value="playback">{tUi("Playback only")}</MenuItem><MenuItem value="admin">{tUi("Administrative API")}</MenuItem></TextField>
+          <Box><Button type="submit" disabled={busy}>{tUi("Create credential")}</Button></Box>
         </Stack>
-        {issued ? <Alert severity="info"><Typography>Save this credential now; it is shown only once.</Typography><TextField label="New credential" value={issued} fullWidth InputProps={{ readOnly: true }} /><Button onClick={() => setIssued('')}>Dismiss credential</Button></Alert> : null}
-        {query.data?.map(item => <Stack direction="row" key={item.id} spacing={2} alignItems="center"><Typography sx={{ flex: 1, overflowWrap: 'anywhere' }}>{item.label} · {item.kind}</Typography><Button disabled={busy} onClick={() => void run(() => accessService.revokeCredential(item.id))}>Revoke</Button></Stack>)}
-        <Typography variant="body2">After rotating a playlist credential, reload Kodi IPTV Simple so it fetches the new URLs.</Typography>
+        {issued ? <Alert severity="info"><Typography>{tUi("Save this credential now; it is shown only once.")}</Typography><TextField label={tUi("New credential")} value={issued} fullWidth InputProps={{ readOnly: true }} /><Button onClick={() => setIssued('')}>{tUi("Dismiss credential")}</Button></Alert> : null}
+        {query.data?.map(item => <Stack direction="row" key={item.id} spacing={2} alignItems="center"><Typography sx={{ flex: 1, overflowWrap: 'anywhere' }}>{item.label} · {item.kind}</Typography><Button disabled={busy} onClick={() => void run(() => accessService.revokeCredential(item.id))}>{tUi("Revoke")}</Button></Stack>)}
+        <Typography variant="body2">{tUi("After rotating a playlist credential, reload Kodi IPTV Simple so it fetches the new URLs.")}</Typography>
         {error || query.isError ? <Alert severity="error">{error || 'Could not load credentials.'}</Alert> : null}
       </Stack>
     </ContentSection>
-    <ContentSection title="Login sessions"><Stack spacing={1}>{sessions.data?.map(item => <Stack key={item.id} direction="row" spacing={2} alignItems="center"><Typography sx={{ flex: 1 }}>{item.username} · last active {new Date(item.last_seen * 1000).toLocaleString()}</Typography><Button disabled={busy} onClick={() => void run(() => accessService.revokeSession(item.id))}>Sign out session</Button></Stack>)}{sessions.isError ? <Alert severity="error">Could not load sessions.</Alert> : null}</Stack></ContentSection>
+    <ContentSection title={tUi("Login sessions")}><Stack spacing={1}>{sessions.data?.map(item => <Stack key={item.id} direction="row" spacing={2} alignItems="center"><Typography sx={{ flex: 1 }}>{item.username} {' '}{tUi("· last active")}{' '}{new Date(item.last_seen * 1000).toLocaleString(getLocale())}</Typography><Button disabled={busy} onClick={() => void run(() => accessService.revokeSession(item.id))}>{tUi("Sign out session")}</Button></Stack>)}{sessions.isError ? <Alert severity="error">{tUi("Could not load sessions.")}</Alert> : null}</Stack></ContentSection>
   </>;
 }
 
 export default function AccessSettings() {
+  const tUi = useUiText();
   const access = useAccess();
   const enabled = access?.status.mode === 'accounts';
   const users = useQuery({ queryKey: ['access-users'], queryFn: accessService.users, enabled });
@@ -127,18 +134,18 @@ export default function AccessSettings() {
   };
   return <>
     <PasswordForm />
-    <ContentSection title="Accounts" description="Changing permissions signs out that account and revokes its API credentials.">
+    <ContentSection title={tUi("Accounts")} description={tUi("Changing permissions signs out that account and revokes its API credentials.")}>
       {users.data?.map(user => <AccountEditor key={user.id} initial={user} saved={async () => { await users.refetch(); }} />)}
-      {users.isError ? <Alert severity="error">Could not load accounts.</Alert> : null}
-      <Typography component="h3" variant="h6" sx={{ mb: 2 }}>Add an account</Typography><AccountEditor saved={async () => { await users.refetch(); }} />
+      {users.isError ? <Alert severity="error">{tUi("Could not load accounts.")}</Alert> : null}
+      <Typography component="h3" variant="h6" sx={{ mb: 2 }}>{tUi("Add an account")}</Typography><AccountEditor saved={async () => { await users.refetch(); }} />
     </ContentSection>
-    {policy.data ? <PolicyForm initial={policy.data} /> : policy.isError ? <Alert severity="error">Could not load access policy.</Alert> : <Typography role="status">Loading access policy…</Typography>}
+    {policy.data ? <PolicyForm initial={policy.data} /> : policy.isError ? <Alert severity="error">{tUi("Could not load access policy.")}</Alert> : <Typography role="status">{tUi("Loading access policy…")}</Typography>}
     <CredentialsPanel />
-    <ContentSection title="Disable user management" description="Accounts and their credentials will be removed. Anyone able to reach the app can manage it, unless the existing deployment API token still protects it.">
+    <ContentSection title={tUi("Disable user management")} description={tUi("Accounts and their credentials will be removed. Anyone able to reach the app can manage it, unless the existing deployment API token still protects it.")}>
       <Stack component="form" onSubmit={disable} spacing={2} sx={{ maxWidth: 560 }}>
-        <FormControlLabel label="I understand that account protection will be removed" control={<Checkbox checked={confirm} onChange={(_, value) => setConfirm(value)} />} />
-        <TextField required type="password" label="Administrator password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
-        {error ? <Alert severity="error">{error}</Alert> : null}<Button type="submit" color="error" disabled={!confirm || busy}>Disable user management</Button>
+        <FormControlLabel label={tUi("I understand that account protection will be removed")} control={<Checkbox checked={confirm} onChange={(_, value) => setConfirm(value)} />} />
+        <TextField required type="password" label={tUi("Administrator password")} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
+        {error ? <Alert severity="error">{error}</Alert> : null}<Button type="submit" color="error" disabled={!confirm || busy}>{tUi("Disable user management")}</Button>
       </Stack>
     </ContentSection>
   </>;

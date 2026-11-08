@@ -1,9 +1,11 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useRef, useState } from 'react';
 import { TextField } from '@mui/material';
 import { TVChannel } from '../types/tvChannelTypes';
 import { normalizeApiError } from '../services/apiErrors';
 
 export default function ChannelNumberField({ channel, onSave, hideLabel = false }: { hideLabel?: boolean; channel: TVChannel; onSave: (channel: TVChannel, value: number | null) => Promise<void> }) {
+  const tUi = useUiText();
   const [value, setValue] = useState(String(channel.channel_number ?? ''));
   const saving = useRef(false);
   const [pending, setPending] = useState(false);
@@ -11,7 +13,7 @@ export default function ChannelNumberField({ channel, onSave, hideLabel = false 
   useEffect(() => { setValue(String(channel.channel_number ?? '')); }, [channel.channel_number]);
   const save = async () => {
     const number = value.trim() === '' ? null : Number(value);
-    if (number !== null && (!Number.isSafeInteger(number) || number < 0)) { setError('Use a whole number of 0 or more.'); return; }
+    if (number !== null && (!Number.isSafeInteger(number) || number < 0)) { setError(tUi("Use a whole number of 0 or more.")); return; }
     if (saving.current || number === (channel.channel_number ?? null)) return;
     saving.current = true;
     setPending(true); setError('');
@@ -19,7 +21,7 @@ export default function ChannelNumberField({ channel, onSave, hideLabel = false 
     catch (e) { setError(normalizeApiError(e).message); }
     finally { saving.current = false; setPending(false); }
   };
-  return <TextField type="number" size="small" label={hideLabel ? undefined : "Number"} value={value} disabled={pending}
+  return <TextField type="number" size="small" label={hideLabel ? undefined : tUi("Number")} value={value} disabled={pending}
     inputProps={{ min: 0, step: 1, 'aria-label': `Channel number for ${channel.name}` }}
     error={Boolean(error)} helperText={error || undefined}
     onChange={e => { setValue(e.target.value); setError(''); }} onBlur={() => void save()}

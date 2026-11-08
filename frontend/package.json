@@ -35,7 +35,10 @@
     "changelog": "node scripts/generate-changelog.js",
     "changelog:check": "node scripts/generate-changelog.js --check",
     "prebuild": "npm run changelog:check",
-    "prestart": "npm run changelog:check"
+    "prestart": "npm run changelog:check",
+    "recipes:messages": "node scripts/sync-recipe-messages.mjs",
+    "recipes:messages:check": "node scripts/sync-recipe-messages.mjs --check",
+    "prebuild:recipes": "npm run recipes:messages:check"
   },
   "devDependencies": {
     "@svta/cml-cmcd": "2.4.0",

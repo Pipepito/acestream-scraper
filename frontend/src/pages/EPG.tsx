@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
@@ -50,6 +52,7 @@ const TAB_LABELS: Record<EPGTab, string> = {
 const isEPGTab = (value: string | null): value is EPGTab => EPG_TABS.includes(value as EPGTab);
 
 const EPG: React.FC = () => {
+  const tUi = useUiText();
   const theme = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -172,9 +175,9 @@ const EPG: React.FC = () => {
 
   const sourceSelect = (
     <FormControl size="small" sx={{ minWidth: 240 }}>
-      <InputLabel id="epg-source-filter-label">EPG Source</InputLabel>
-      <Select labelId="epg-source-filter-label" label="EPG Source" disabled={isApplyingMatches} value={selectedSourceId?.toString() ?? 'all'} onChange={handleSourceFilterChange}>
-        <MenuItem value="all">All sources</MenuItem>
+      <InputLabel id="epg-source-filter-label">{tUi("EPG Source")}</InputLabel>
+      <Select labelId="epg-source-filter-label" label={tUi("EPG Source")} disabled={isApplyingMatches} value={selectedSourceId?.toString() ?? 'all'} onChange={handleSourceFilterChange}>
+        <MenuItem value="all">{tUi("All sources")}</MenuItem>
         {(epgSources || []).map((source) => (
           <MenuItem key={source.id} value={source.id.toString()}>
             {source.name}
@@ -187,23 +190,22 @@ const EPG: React.FC = () => {
   return (
     <Box sx={{ width: '100%', typography: 'body1' }}>
       <PageHeader
-        title="EPG"
-        subtitle="Programme guides for your channels: sources, guide channels, matching rules and the XML export."
+        title={tUi("EPG")}
+        subtitle={tUi("Programme guides for your channels: sources, guide channels, matching rules and the XML export.")}
         actions={
           <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => selectTab('export')}>
-            Export XML
-          </Button>
+            {tUi("Export XML")}</Button>
         }
       />
 
       <StatusLine
-        aria-label="EPG summary"
+        aria-label={tUi("EPG summary")}
         items={[
-          { label: 'Sources', value: `${sourceCount} (${enabledSourceCount} enabled)`, tone: failingSources > 0 ? 'error' : 'default' },
-          { label: 'Guide channels', value: guideChannelTotal === undefined ? '…' : String(guideChannelTotal) },
-          { label: 'Linked to a TV channel', value: tvChannels ? String(linkedCount) : '…' },
-          { label: 'Last refresh', value: formatRelativeTime(lastRefresh), tone: lastRefresh ? 'default' : 'warning' },
-          ...(failingSources > 0 ? [{ label: 'Failing', value: String(failingSources), tone: 'error' as const }] : []),
+          { label: uiText("Sources"), value: `${sourceCount} (${enabledSourceCount} enabled)`, tone: failingSources > 0 ? 'error' : 'default' },
+          { label: uiText("Guide channels"), value: guideChannelTotal === undefined ? '…' : String(guideChannelTotal) },
+          { label: uiText("Linked to a TV channel"), value: tvChannels ? String(linkedCount) : '…' },
+          { label: uiText("Last refresh"), value: formatRelativeTime(lastRefresh), tone: lastRefresh ? 'default' : 'warning' },
+          ...(failingSources > 0 ? [{ label: uiText("Failing"), value: String(failingSources), tone: 'error' as const }] : []),
         ]}
       />
 
@@ -213,7 +215,7 @@ const EPG: React.FC = () => {
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
-        aria-label="EPG sections"
+        aria-label={tUi("EPG sections")}
         sx={{ mb: 2, borderBottom: `1px solid ${theme.appTokens.surface.border}` }}
       >
         {EPG_TABS.map((tab) => (
@@ -224,21 +226,19 @@ const EPG: React.FC = () => {
       <Box role="tabpanel" id={`epg-tabpanel-${activeTab}`} aria-labelledby={`epg-tab-${activeTab}`}>
         {activeTab === 'sources' ? (
           <ContentSection
-            title="Sources"
-            description="Each source is an XMLTV feed. Automatic refresh follows your schedule in Settings; refresh by hand after adding one."
+            title={tUi("Sources")}
+            description={tUi("Each source is an XMLTV feed. Automatic refresh follows your schedule in Settings; refresh by hand after adding one.")}
             actions={
               <>
                 <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleAddSourceClick}>
-                  Add EPG Source
-                </Button>
+                  {tUi("Add EPG Source")}</Button>
                 <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefreshAllClick} disabled={isRefreshingAll}>
-                  Refresh All
-                </Button>
+                  {tUi("Refresh All")}</Button>
               </>
             }
           >
             {isLoadingSources || isRefreshingAll ? <LinearProgress sx={{ mb: 2 }} /> : null}
-            <Button component={RouterLink} to="/settings?tab=automation" sx={{ mb: 1 }}>Edit refresh schedule</Button>
+            <Button component={RouterLink} to="/settings?tab=automation" sx={{ mb: 1 }}>{tUi("Edit refresh schedule")}</Button>
             <EPGSourcesTable
               sources={epgSources}
               refreshingSourceId={refreshingSourceId}
@@ -251,8 +251,8 @@ const EPG: React.FC = () => {
 
         {activeTab === 'channels' ? (
           <ContentSection
-            title="Guide channels"
-            description="Channels found in the sources. Select unlinked ones to create TV channels from them."
+            title={tUi("Guide channels")}
+            description={tUi("Channels found in the sources. Select unlinked ones to create TV channels from them.")}
             actions={
               <Button
                 variant="contained"
@@ -260,7 +260,7 @@ const EPG: React.FC = () => {
                 disabled={!isTVChannelCatalogReady || selectedEPGChannelIds.length === 0}
                 onClick={handleBulkCreateTVChannels}
               >
-                Create TV Channels ({selectedEPGChannelIds.length})
+                {tUi("Create TV Channels (")}{selectedEPGChannelIds.length})
               </Button>
             }
           >
@@ -268,9 +268,9 @@ const EPG: React.FC = () => {
               {sourceSelect}
               <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
                 <Typography variant="body2" color="text.secondary">
-                  {isLoadingChannels && !epgChannelPage ? 'Loading channels…' : totalEPGChannels === 0
-                    ? 'Showing 0-0 of 0 channels'
-                    : `Showing ${(channelPage - 1) * channelPageSize + 1}-${Math.min(channelPage * channelPageSize, totalEPGChannels)} of ${totalEPGChannels} channels`}
+                  {isLoadingChannels && !epgChannelPage ? tUi("Loading channels…") : totalEPGChannels === 0
+                    ? tUi("Showing 0-0 of 0 channels")
+                    : tUi("Showing {{value0}}-{{value1}} of {{value2}} channels", { value0: (channelPage - 1) * channelPageSize + 1, value1: Math.min(channelPage * channelPageSize, totalEPGChannels), value2: totalEPGChannels })}
                 </Typography>
                 <TablePagination
                   component="div"
@@ -288,14 +288,12 @@ const EPG: React.FC = () => {
 
             {isLoadingTVChannelCatalog ? (
               <Alert severity="info" sx={{ mb: 2 }}>
-                Loading TV channels to work out which guide channels are already linked.
-              </Alert>
+                {tUi("Loading TV channels to work out which guide channels are already linked.")}</Alert>
             ) : null}
 
             {!isLoadingTVChannelCatalog && tvChannelCatalogError ? (
               <Alert severity="warning" sx={{ mb: 2 }}>
-                Unable to check which guide channels are linked right now. Try again after the TV channels load.
-              </Alert>
+                {tUi("Unable to check which guide channels are linked right now. Try again after the TV channels load.")}</Alert>
             ) : null}
 
             <EPGChannelInventoryTable
@@ -313,20 +311,19 @@ const EPG: React.FC = () => {
 
         {activeTab === 'matching' ? (
           <ContentSection
-            title="Matching"
-            description="Preview stream assignments, select the guide channels you reviewed, then apply. Existing channel settings are preserved."
+            title={tUi("Matching")}
+            description={tUi("Preview stream assignments, select the guide channels you reviewed, then apply. Existing channel settings are preserved.")}
             actions={
               <>
                 <Button variant="outlined" color="primary" onClick={handleAnalyzeMatches} disabled={isAnalyzingMatches || isApplyingMatches}>
-                  Analyze Matches
-                </Button>
+                  {tUi("Analyze Matches")}</Button>
                 <Button
                   variant="contained"
                   color="primary"
                   disabled={isAnalyzingMatches || isApplyingMatches || !matchAnalysis || selectedMatchRowIds.length === 0}
                   onClick={handleCreateMatchedTVChannels}
                 >
-                  {isApplyingMatches ? 'Applying…' : 'Apply reviewed matches'}
+                  {isApplyingMatches ? tUi("Applying…") : tUi("Apply reviewed matches")}
                 </Button>
               </>
             }
@@ -334,11 +331,11 @@ const EPG: React.FC = () => {
             <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               {sourceSelect}
               <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel id="epg-match-strictness-label">Match Strictness</InputLabel>
-                <Select labelId="epg-match-strictness-label" label="Match Strictness" value={matchStrictness} disabled={isApplyingMatches} onChange={handleMatchStrictnessChange}>
-                  <MenuItem value="loose">Loose</MenuItem>
-                  <MenuItem value="balanced">Balanced</MenuItem>
-                  <MenuItem value="strict">Strict</MenuItem>
+                <InputLabel id="epg-match-strictness-label">{tUi("Match Strictness")}</InputLabel>
+                <Select labelId="epg-match-strictness-label" label={tUi("Match Strictness")} value={matchStrictness} disabled={isApplyingMatches} onChange={handleMatchStrictnessChange}>
+                  <MenuItem value="loose">{tUi("Loose")}</MenuItem>
+                  <MenuItem value="balanced">{tUi("Balanced")}</MenuItem>
+                  <MenuItem value="strict">{tUi("Strict")}</MenuItem>
                 </Select>
               </FormControl>
             </Box>
@@ -356,20 +353,19 @@ const EPG: React.FC = () => {
               />
             ) : (
               <Typography variant="body2" color="text.secondary">
-                Run an analysis to see which scraped streams match unlinked guide channels.
-              </Typography>
+                {tUi("Run an analysis to see which scraped streams match unlinked guide channels.")}</Typography>
             )}
           </ContentSection>
         ) : null}
 
         {activeTab === 'rules' ? (
-          <ContentSection title="Matching rules">
+          <ContentSection title={tUi("Matching rules")}>
             <RulesTab />
           </ContentSection>
         ) : null}
 
         {activeTab === 'export' ? (
-          <ContentSection title="Export XML" description="Download a guide file with only your TV channels, for players that need their own EPG.">
+          <ContentSection title={tUi("Export XML")} description={tUi("Download a guide file with only your TV channels, for players that need their own EPG.")}>
             <EPGXmlOutputPanel onNotify={showSnackbar} />
           </ContentSection>
         ) : null}

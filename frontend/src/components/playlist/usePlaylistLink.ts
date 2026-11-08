@@ -1,3 +1,4 @@
+import { uiText } from '../../i18n/text';
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { useChannelGroups, usePlaylistChannelSummary } from '../../hooks/usePlaylists';
 import { useBaseUrls } from '../../hooks/useBaseUrls';
@@ -78,7 +79,7 @@ export function usePlaylistLink(): PlaylistLink {
   };
   const onlineHelp = summary
     ? `${summary.online} of ${summary.total_channels} channels are online right now`
-    : 'Channels the last status check found online';
+    : uiText("Channels the last status check found online");
 
   return { managed, filters, setFilters, search, setSearch, selectedBaseUrlId, setSelectedBaseUrlId, namedBaseUrls, loadingBaseUrls,
     baseUrlsError: Boolean(baseUrlsError), channelGroups, loadingGroups, selectedFormat, isRelay, playlistUrl, absolutePlaylistUrl,

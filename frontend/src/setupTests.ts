@@ -1,3 +1,4 @@
+import './i18n';
 // React Router 7 uses the browser Encoding API; jsdom needs Node's implementation.
 import { TextDecoder, TextEncoder } from 'node:util';
 

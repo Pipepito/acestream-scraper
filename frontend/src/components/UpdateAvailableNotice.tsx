@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertTitle, Link } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +10,7 @@ const shownThisSession = new Set<string>();
 
 /** Once per published version/browser, including when storage is unavailable. */
 export default function UpdateAvailableNotice() {
+  const tUi = useUiText();
   const [visibleVersion, setVisibleVersion] = useState<string | null>(null);
   const { data } = useQuery({
     queryKey: ['published-release'], queryFn: systemService.getUpdates,
@@ -27,14 +30,13 @@ export default function UpdateAvailableNotice() {
   if (!visibleVersion || !data?.update_available || visibleVersion !== data.latest_version) return null;
   return (
     <Alert severity="info" onClose={() => setVisibleVersion(null)} closeText="Dismiss new version notice" sx={{ mb: 2 }}>
-      <AlertTitle>{visibleVersion} is available</AlertTitle>
+      <AlertTitle>{visibleVersion} {' '}{tUi("is available")}</AlertTitle>
       {data.deployment === 'docker'
-        ? 'To update, pull the new Docker image and recreate your container with your existing configuration and volumes.'
-        : 'To update, download the latest release and update your installation yourself.'}
-      {' The app does not update itself. '}
+        ? tUi("To update, pull the new Docker image and recreate your container with your existing configuration and volumes.")
+        : tUi("To update, download the latest release and update your installation yourself.")}
+      {uiText(" The app does not update itself. ")}
       <Link href={`https://github.com/Pipepito/acestream-scraper/releases/tag/${encodeURIComponent(visibleVersion)}`} target="_blank" rel="noopener noreferrer" color="inherit">
-        View release notes and downloads (opens in a new tab)
-      </Link>
+        {tUi("View release notes and downloads (opens in a new tab)")}</Link>
     </Alert>
   );
 }

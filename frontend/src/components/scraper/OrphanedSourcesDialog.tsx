@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useId, useState } from 'react';
 import { Alert, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControlLabel, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +17,7 @@ const describe = (row: OrphanedSource) => `${row.count} stream${row.count === 1 
 
 /** Streams left behind by sources that were removed; the user ticks which to delete. */
 const OrphanedSourcesDialog: React.FC<OrphanedSourcesDialogProps> = ({ open, onClose, onDone }) => {
+  const tUi = useUiText();
   const titleId = useId();
   const cache = useQueryClient();
   const { confirm, dialog } = useConfirm();
@@ -37,11 +40,11 @@ const OrphanedSourcesDialog: React.FC<OrphanedSourcesDialogProps> = ({ open, onC
   return (
     <Dialog open={open} onClose={cleanup.isPending ? undefined : onClose} aria-labelledby={titleId} maxWidth="sm" fullWidth>
       {dialog}
-      <DialogTitle id={titleId}>Clean up removed sources</DialogTitle>
+      <DialogTitle id={titleId}>{tUi("Clean up removed sources")}</DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ mb: 1.5 }}>Streams from sources that are no longer configured. Tick the ones to remove; catalogue, Telegram, saved-search and manual additions are not listed.</DialogContentText>
-        {rows.isPending ? <CircularProgress aria-label="Loading removed sources" /> : rows.isError ? <Alert severity="error" action={<Button onClick={() => void rows.refetch()}>Retry</Button>}>Could not load removed sources.</Alert>
-          : rows.data.length === 0 ? <Typography>No streams from removed sources.</Typography>
+        <DialogContentText sx={{ mb: 1.5 }}>{tUi("Streams from sources that are no longer configured. Tick the ones to remove; catalogue, Telegram, saved-search and manual additions are not listed.")}</DialogContentText>
+        {rows.isPending ? <CircularProgress aria-label={tUi("Loading removed sources")} /> : rows.isError ? <Alert severity="error" action={<Button onClick={() => void rows.refetch()}>{tUi("Retry")}</Button>}>{tUi("Could not load removed sources.")}</Alert>
+          : rows.data.length === 0 ? <Typography>{tUi("No streams from removed sources.")}</Typography>
           : <Stack spacing={0.5}>
             {rows.data.map((row) => <FormControlLabel key={row.source_url} sx={{ alignItems: 'flex-start', overflowWrap: 'anywhere' }}
               control={<Checkbox checked={selected.includes(row.source_url)} disabled={cleanup.isPending} onChange={(_, checked) => toggle(row.source_url, checked)} />}
@@ -50,11 +53,11 @@ const OrphanedSourcesDialog: React.FC<OrphanedSourcesDialogProps> = ({ open, onC
         {cleanup.isError ? <Alert severity="error" sx={{ mt: 2 }}>{getErrorMessage(cleanup.error)}</Alert> : null}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={cleanup.isPending}>Close</Button>
+        <Button onClick={onClose} disabled={cleanup.isPending}>{tUi("Close")}</Button>
         <Button variant="contained" color="error" disabled={cleanup.isPending || selected.length === 0} onClick={async () => {
           const total = (rows.data ?? []).filter((row) => selected.includes(row.source_url)).reduce((sum, row) => sum + row.count, 0);
-          if (await confirm({ title: 'Remove streams from removed sources?', body: `${total} stream${total === 1 ? '' : 's'} from ${selected.length} source${selected.length === 1 ? '' : 's'} will be deleted, including streams linked to TV channels. TV channels are kept.`, confirmLabel: 'Remove streams', danger: true })) cleanup.mutate(selected);
-        }}>Remove selected</Button>
+          if (await confirm({ title: uiText("Remove streams from removed sources?"), body: `${total} stream${total === 1 ? '' : 's'} from ${selected.length} source${selected.length === 1 ? '' : 's'} will be deleted, including streams linked to TV channels. TV channels are kept.`, confirmLabel: uiText("Remove streams"), danger: true })) cleanup.mutate(selected);
+        }}>{tUi("Remove selected")}</Button>
       </DialogActions>
     </Dialog>
   );

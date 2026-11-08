@@ -143,7 +143,11 @@ the live-stack journeys above for that.
 For concurrent completion checks, set `E2E_MOBILE_BASE_URL` to an owned server
 serving a frozen copy of the production SPA. This bypasses the mobile suite's
 build/preview process, preventing another build from replacing assets mid-run.
-API responses remain intercepted by each test; never use a personal installation.
+Use a separate backend/database from the live-stack journeys. Individual mobile
+tests intercept their feature APIs, but some gate requests still reach the backend;
+concurrent account activation can replace a startup screen with the viewer gate.
+Complete setup and keep this dedicated instance in open mode. Prepare its recording
+directory and use its own `PLAYER_HLS_DIR`. Never use a personal installation.
 
 ## Standalone extraction helper
 

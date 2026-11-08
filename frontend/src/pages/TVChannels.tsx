@@ -1,6 +1,5 @@
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
-import TVChannelReorder from '../components/TVChannelReorder';
 import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -30,6 +29,7 @@ import StatusLine from '../components/StatusLine';
 import { getShellLayout } from '../styles/layout';
 import type { TVBrowseParams } from '../services/tvChannelService';
 
+const TVChannelReorder = lazy(() => import('../components/TVChannelReorder'));
 const TVAutoMatchDialog = lazy(() => import('../components/TVAutoMatchDialog'));
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -262,11 +262,11 @@ const TVChannels: React.FC = () => {
           title={tUi("Channels")}
 
         >
-          {reordering ? completeCatalog.isLoading ? <CircularProgress aria-label={tUi("Loading TV channels")} /> : completeCatalog.isError ? <Alert severity="error" action={<Button onClick={() => void completeCatalog.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load channels.")}<Button onClick={() => setReordering(false)}>{tUi("Cancel")}</Button></Alert> : <TVChannelReorder channels={completeCatalog.data ?? []} onCancel={() => setReordering(false)} onSave={async (ids, expected) => {
+          {reordering ? completeCatalog.isLoading ? <CircularProgress aria-label={tUi("Loading TV channels")} /> : completeCatalog.isError ? <Alert severity="error" action={<Button onClick={() => void completeCatalog.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load channels.")}<Button onClick={() => setReordering(false)}>{tUi("Cancel")}</Button></Alert> : <Suspense fallback={<CircularProgress aria-label={tUi("Loading TV channels")} />}><TVChannelReorder channels={completeCatalog.data ?? []} onCancel={() => setReordering(false)} onSave={async (ids, expected) => {
             await reorderMutation.mutateAsync({ ids, expected });
             setSortModel([]); setFilters({}); setFavoritesOnly(false); setPage(1);
             setReordering(false); setNotice({ message: () => tUi('Channel order and numbers saved.') });
-          }} /> : <>
+          }} /></Suspense> : <>
           <Box sx={{ mb: 2 }}>
             <FormControlLabel
               control={<Switch checked={favoritesOnly} onChange={handleFavoritesOnlyChange} name="favorites_only" color="primary" />}

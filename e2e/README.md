@@ -137,3 +137,14 @@ and different timezones. It verifies guide retry, filters, direct links, browser
 Back, stream selection and viewer release. Traces and screenshots stay under the
 ignored `test-results/` directory. It does not verify actual media decoding; use
 the live-stack journeys above for that.
+
+## Standalone extraction helper
+
+Prepare the shared payload with `bash scripts/ci/prepare_pages.sh` from the
+repository root. From `e2e/`, run
+`npx playwright test --config playwright.standalone.config.ts`. This serves the
+committed `docs/recipes/` payload on loopback port 3011 and exercises all three
+starter templates in Chromium, Firefox and WebKit, EN/ES, both themes and
+320/390/1440 px layouts. Each case compares the actual downloaded recipe with its
+source fixture, checks extracted names/IDs and rejects external or installation
+requests. It uses the same installed browser revisions as the other Node suites.

@@ -335,6 +335,9 @@ previews consecutive numbers. Save order uses `POST /api/v1/tv-channels/reorder`
 with the complete desired IDs and original order; the backend commits all numbers
 atomically and rejects stale/incomplete inventories. Cancel leaves stored numbers
 unchanged. Number edits remain available outside reorder mode.
+Above 100 channels, reorder renders a measured virtual window while retaining the
+complete draft and original order. Keep stable channel keys, focused/dragged rows,
+full names and list positions. Home/End/Page Up/Page Down move focus; arrows reorder.
 
 
 Engines are optional. Settings → Automation stores external checker selection via

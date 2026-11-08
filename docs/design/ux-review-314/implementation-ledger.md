@@ -538,3 +538,37 @@ final repeated interaction/media/memory and full validation remain outstanding.
   and three-preset contract. The production component catalogue maps shared owners,
   real usage sites, state tests, exceptions and add-a-feature-once steps. It does
   not claim complete native accessibility or participant acceptance.
+
+### Full public gate and measured reorder correction
+
+- Full gate completed with backend source unchanged from `abee85b2` and frontend
+  through `de78a0f9`: **2,617 backend tests; 121 frontend suites / 746 tests**,
+  no failed/skipped tests or test warnings. Schema/client drift, lint/types,
+  production build and standalone payload drift passed. Private report normalization
+  passed using the real `/private/tmp` path: backend 86.2% total / 78.64% changed
+  lines; frontend 78.42% total / 79.8% changed lines. Coverage goals are advisory.
+- Fresh strict Firefox at frozen `de78a0f9`: **61 passed**, no skips, 5.2 minutes.
+  The repaired assignment and dependent playlist journeys now pass.
+- Standalone committed payload: **36 browser/language/theme/width combinations**,
+  108 actual template tests and exports, no external/installation requests,
+  page errors, warnings or overflow. This includes Chromium/Firefox/WebKit and
+  320/390/1440 px. Initial Python runner could not find its mismatched Firefox;
+  the maintained Node suite uses the project's installed browser revisions.
+- Private Jest reproduction remains blocked: policy `0955626` lacks the new WOFF2
+  module mapping and Node-native browser test environment. Its unchanged config
+  fails while importing `theme.ts`. Public full-gate success is not a private-policy
+  CI pass. A maintainer policy update is required; no private files were changed.
+- Initial 10,000-channel reorder measurement exposed 150,226 DOM elements,
+  approximately 793 MB browser-reported heap and 4.47 seconds to open. The editor
+  now loads lazily and uses the React-18-compatible maintained TanStack Virtual
+  3.14.26 adapter above 100 rows. All IDs and the original order remain in the
+  controller; measured rows preserve full names, focused/dragged nodes and positions.
+- Focused reorder tests: **25 passed**. Large-order browser matrix: **48 passed**
+  across all presets, EN/ES, both themes and four browser/viewports. End focuses
+  row 10,000; moving it retains focus; Home/Page Down navigate without reordering;
+  Save sends the exact complete 10,000-ID desired and expected arrays once.
+  Repeated before/after timing and precise CDP heap evidence is being collected.
+- The virtualizer changes dependencies and application code after the full gate
+  above. Repeat final full application/image/browser checks before acceptance.
+  Existing npm audit findings remain 4 low / 22 moderate, zero high/critical;
+  installer deprecation notices are retained in Docker build logs, not suppressed.

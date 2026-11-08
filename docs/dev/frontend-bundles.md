@@ -60,3 +60,19 @@ entry and MUI chunks within the unchanged 500 KB warning limit as localization
 grows, without splitting MUI/Emotion/transitions or React/scheduler. Both language
 catalogues are ready synchronously so a preference change never resets an editor
 or delays a pending confirmation behind a second language fetch.
+
+The complete-catalogue reorder editor is loaded only when requested. Above 100
+channels it uses `@tanstack/react-virtual` 3.14.26, whose peer contract includes
+React 18. The maintained [React adapter](https://tanstack.com/virtual/latest/docs/framework/react/react-virtual)
+handles measured row heights and scroll ranges. The controller still retains every
+ID and the original expected order. Visible rows include overscan plus the focused
+or dragged row; stable channel keys retain those nodes. Home/End and Page Up/Down
+move focus without changing order; Arrow Up/Down preview changes. Dynamic height
+measurement preserves complete wrapped names rather than imposing truncation.
+
+The measured 10,000-row pre-optimization view rendered 150,226 DOM elements and
+about 793 MB of JavaScript heap. Use `e2e/scripts/measure-reorder.py` to compare
+fixed before/after builds with identical owned fixture databases; this script never
+saves the draft. The 48-case `mobile/large-reorder.spec.ts` matrix checks bounded
+DOM, focus and exact complete save payloads. Native assistive-technology review
+remains separate from these automated semantics checks.

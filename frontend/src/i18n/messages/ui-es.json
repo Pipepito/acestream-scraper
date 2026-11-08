@@ -2660,5 +2660,6 @@
   "Assign {{folder}} to {{channel}}": "Asignar {{folder}} a {{channel}}",
   "Create TV channel {{name}}": "Crear canal de TV {{name}}",
   "Create TV channel '{{name}}'": "Crear canal de TV «{{name}}»",
-  "No category": "Sin categoría"
+  "No category": "Sin categoría",
+  "On a drag handle, Home and End focus the first and last channels; Page Up and Page Down move focus ten rows. Arrow keys change the order.": "En un asa de arrastre, Inicio y Fin enfocan el primer y el último canal; Re Pág y Av Pág desplazan el foco diez filas. Las flechas cambian el orden."
 }

@@ -444,3 +444,34 @@ final repeated interaction/media/memory and full validation remain outstanding.
   browser combinations (3 presets × EN/ES × both themes × 4 browser/viewports)
   passed label-bound checks, Home/End keyboard focus, zero-write and overflow
   assertions; selected-state screenshots were inspected.
+
+### Editor, artwork and translation-data follow-up
+
+- Channel number and detail editors retain drafts through refreshes; zero is a
+  number, blank sends null, pending submits are guarded immediately. Saved searches
+  retain the reviewed revision and project only writable fields. Dirty close asks
+  before discarding. Stream assignment retains failed selections and removes only
+  successful assignments from a retry, preventing duplicate writes.
+- Retained inventory/import/service feedback resolves translations at render time.
+  Services keep original responses in explicitly labelled technical details.
+  Pure feature catalogues now live in typed JSON data, avoiding Babel coverage
+  instrumentation of thousands of translation literals without warning suppression.
+- Approved Football/Tennis imagery follows actual event sport metadata and carries
+  a generic-illustration caption. Coastline decoration is visibly labelled. These
+  never imply verified signal or replace guarded event artwork. A changed event
+  revision requires another explicit artwork request.
+- Focused editor/artwork checks: 69 passed; services/editor/language follow-up:
+  34 passed. Full coverage and final integrated checks are still in progress.
+  The first coverage attempt was blocked by loopback sandbox permissions and
+  exposed a lazy catalogue assertion's short wait; it is not passing evidence.
+- Full Docker packaging/service/media suite completed: **60 passed, 0 skipped**
+  in 1,624.28 seconds, no warning summary. Command used the task-owned buildx
+  builder and the already built ARM64 scraper security image. This does not waive
+  the separate AMD64 runtime-validator defect or final-revision image checks.
+- Completed frontend follow-up: **119 suites / 735 tests passed** with coverage
+  in 79.333 seconds. No Babel deoptimization notes or warnings after the pure-data
+  conversion. TypeScript, ESLint (zero warnings), production build and standalone
+  helper message drift also passed. Helper output remained byte-identical.
+- Saved-search regression covers stale server revision, pending repeated clicks,
+  rejected save, retained draft and confirmed discard. Two more actual-wire
+  requests validate saved-search create/update projection (35 requests total).

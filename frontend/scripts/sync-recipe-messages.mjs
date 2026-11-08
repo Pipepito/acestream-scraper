@@ -4,12 +4,9 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src');
-const readMessages = (name) => {
-  const source = fs.readFileSync(path.join(root, 'i18n/messages', name), 'utf8');
-  return JSON.parse(source.slice(source.indexOf('{', source.indexOf(' = ')), source.lastIndexOf('}') + 1));
-};
-const en = readMessages('en.ts');
-const es = readMessages('es.ts');
+const readMessages = (name) => JSON.parse(fs.readFileSync(path.join(root, 'i18n/messages', name), 'utf8'));
+const en = readMessages('ui-en.json');
+const es = readMessages('ui-es.json');
 const keys = new Set(['Language', 'English', 'Español', 'Your language could not be remembered in this browser.']);
 for (const name of fs.readdirSync(path.join(root, 'recipes'))) {
   if (!/\.tsx?$/.test(name) || name === 'messages.generated.ts') continue;

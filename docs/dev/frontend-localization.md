@@ -7,8 +7,9 @@ wins; otherwise Spanish browser languages select Spanish, with English as fallba
 Storage failures leave the current session usable and offer retry in the selector.
 No preference changes a React key, router, query client or media owner.
 
-`src/i18n/resources.ts` owns navigation/core messages. `src/i18n/messages/en.ts`
-and `es.ts` own feature copy. English source text is the typed key; keys may contain
+`src/i18n/resources.ts` owns navigation/core messages. `src/i18n/messages/ui-en.json`
+and `ui-es.json` own feature copy; `en.ts` and `es.ts` expose their typed keys.
+These pure data files do not need executable-code coverage instrumentation. English source text is the typed key; keys may contain
 punctuation because namespace/key separators are disabled. Spanish must provide
 every key. `useUiText` subscribes components to language changes. `uiText` reads the
 current language for formatters and event handlers. Do not translate user names,

@@ -1,10 +1,10 @@
+import { Box,Button,Chip,Typography } from '@mui/material';
+import { useMutation } from '@tanstack/react-query';
+import React from 'react';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
-import React from 'react';
-import { Box, Button, Chip, Typography } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
-import { SearchResultItem, searchService } from '../services/searchService';
-import { normalizeApiError } from '../services/apiErrors';
+import { SearchResultItem,searchService } from '../services/searchService';
+import { getErrorMessage } from '../utils/errorUtils';
 import { formatRelativeTime } from '../utils/format';
 
 interface Props {
@@ -32,7 +32,7 @@ const SearchBroadcastStatus: React.FC<Props> = ({ channel }) => {
         {probe.isPending ? (
           <Typography variant="caption">{tUi("Checking broadcast…")}</Typography>
         ) : probe.isError ? (
-          <Typography variant="caption" color="error">{tUi("Check failed:")}{' '}{normalizeApiError(probe.error).message}</Typography>
+          <Typography variant="caption" color="error">{tUi("Check failed:")}{' '}{getErrorMessage(probe.error)}</Typography>
         ) : probe.data ? (
           <>
             <Chip

@@ -1,4 +1,4 @@
-import { uiText } from '../i18n/text';
+import { uiText, translateKnown } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -31,7 +31,7 @@ import { useTheme } from '@mui/material/styles';
 import { useControlEngine, useRestartService, useSystemServices } from '../hooks/useSystemServices';
 import type { ServiceState, ServiceStatus } from '../services/systemService';
 import { useSnackbar } from '../hooks/useSnackbar';
-import { normalizeApiError } from '../services/apiErrors';
+import { getErrorMessage } from '../utils/errorUtils';
 import { Link as RouterLink } from 'react-router-dom';
 
 interface StateMeta {
@@ -91,6 +91,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
   const { data, isLoading, error, refetch, isFetching } = useSystemServices({
     refetchInterval: watch ? 3_000 : pollIntervalMs,
   });
+  const operation = useRef(false);
   const restart = useRestartService();
   const control = useControlEngine();
   const showSnackbarRef = useRef(showSnackbar);
@@ -103,13 +104,13 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     if (!current) return;
     const relaunched = current.pid !== null && current.pid !== watch.previousPid;
     if (watch.action === 'stop' && current.stopped_by_user && current.pid === null) {
-      showSnackbarRef.current(`${watch.label} is stopped. Select Start to resume.`, 'success');
+      showSnackbarRef.current(() => uiText('{{name}} is stopped. Select Start to resume.', { name: translateKnown(watch.label) }), 'success');
       setWatch(null);
     } else if (watch.action !== 'stop' && relaunched && current.state === 'running') {
-      showSnackbarRef.current(`${watch.label} is back: ${current.message}`, 'success');
+      showSnackbarRef.current(() => uiText('{{name}} is running again.', { name: translateKnown(watch.label) }), 'success');
       setWatch(null);
     } else if (Date.now() - watch.startedAt > RESTART_TIMEOUT_MS) {
-      showSnackbarRef.current(`${watch.label} has not completed the requested action yet. Check the container logs.`, 'warning');
+      showSnackbarRef.current(() => uiText('{{name}} has not completed the requested action yet. Check the container logs.', { name: translateKnown(watch.label) }), 'warning');
       setWatch(null);
     }
   }, [data, watch]);
@@ -118,29 +119,30 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
   const supervised = data?.supervised ?? false;
 
   const handleConfirmRestart = async () => {
-    if (!confirming) return;
+    if (!confirming || operation.current) return;
+    operation.current = true;
     const target = confirming;
     setConfirming(null);
     try {
-      const result = await restart.mutateAsync(target.name);
-      showSnackbar(() => (result.message || `Restart requested for ${target.label}.`), 'info');
+      await restart.mutateAsync(target.name);
+      showSnackbar(() => uiText('Restart requested for {{name}}.', { name: translateKnown(target.label) }), 'info');
       setWatch({ name: target.name, label: target.label, previousPid: target.pid, startedAt: Date.now() });
     } catch (err) {
-      const normalized = normalizeApiError(err);
-      showSnackbar(() => (`Could not restart ${target.label}: ${normalized.message}`), 'error');
-    }
+      showSnackbar(() => uiText('Could not restart {{name}}: {{reason}}', { name: translateKnown(target.label), reason: getErrorMessage(err) }), 'error');
+    } finally { operation.current = false; }
   };
 
   const handleEngineControl = async (target: ServiceStatus) => {
-    if (target.name !== 'acestream' && target.name !== 'acestream-check') return;
+    if (operation.current || (target.name !== 'acestream' && target.name !== 'acestream-check')) return;
+    operation.current = true;
     const action = target.stopped_by_user ? 'start' : 'stop';
     try {
-      const result = await control.mutateAsync({ action, name: target.name });
-      showSnackbar(() => (result.message), 'info');
+      await control.mutateAsync({ action, name: target.name });
+      showSnackbar(() => uiText(action === 'start' ? 'Start requested for {{name}}.' : 'Stop requested for {{name}}.', { name: translateKnown(target.label) }), 'info');
       setWatch({ name: target.name, label: target.label, previousPid: target.pid, action, startedAt: Date.now() });
     } catch (err) {
-      showSnackbar(() => (`Could not ${action} ${target.label}: ${normalizeApiError(err).message}`), 'error');
-    }
+      showSnackbar(() => uiText(action === 'start' ? 'Could not start {{name}}: {{reason}}' : 'Could not stop {{name}}: {{reason}}', { name: translateKnown(target.label), reason: getErrorMessage(err) }), 'error');
+    } finally { operation.current = false; }
   };
 
   if (isLoading) {
@@ -161,7 +163,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
             {tUi("Retry")}</Button>
         }
       >
-        {tUi("Could not load the services status:")}{' '}{normalizeApiError(error).message}
+        {tUi("Could not load the services status:")}{' '}{getErrorMessage(error)}
       </Alert>
     );
   }
@@ -183,7 +185,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
               <Paper
                 variant="outlined"
                 role="group"
-                aria-label={tUi("Service {{value0}}", { value0: service.label })}
+                aria-label={tUi("Service {{value0}}", { value0: translateKnown(service.label) })}
                 sx={{
                   p: 2,
                   height: '100%',
@@ -197,26 +199,33 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
                   <Box>
                     <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 600 }}>
-                      {service.label}
+                      {translateKnown(service.label)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {service.description}
+                      {translateKnown(service.description)}
                     </Typography>
                   </Box>
                   <Chip
                     size="small"
                     color={service.stopped_by_user ? 'default' : meta.color}
                     icon={meta.icon}
-                    label={restarting ? (watch.action === 'stop' ? tUi("Stopping…") : watch.action === 'start' ? tUi("Starting…") : tUi("Restarting…")) : meta.label}
+                    label={restarting ? (watch.action === 'stop' ? tUi("Stopping…") : watch.action === 'start' ? tUi("Starting…") : tUi("Restarting…")) : translateKnown(meta.label)}
                     data-state={service.state}
                   />
                 </Stack>
                 <Typography variant="body2" sx={{ mt: 0.5 }}>
-                  {service.message}
+                  {service.stopped_by_user ? tUi('Stopped by you. Select Start to resume automatic recovery.')
+                    : service.state === 'running' ? tUi('The service is responding.')
+                    : service.state === 'unhealthy' ? tUi('The service is not responding correctly. Check its logs and configuration.')
+                    : service.state === 'external' ? tUi('This service runs outside this container.')
+                    : service.state === 'not-installed' ? tUi('Not included in this image flavor.')
+                    : service.state === 'disabled' ? tUi('This service is turned off. Review its configuration before enabling it.')
+                    : tUi('The service is enabled but is not running. Check its logs.')}
                 </Typography>
+                {service.message ? <Box component="details" sx={{ overflowWrap: 'anywhere' }}><Box component="summary" sx={{ cursor: 'pointer', typography: 'caption' }}>{tUi('Technical details (original service response)')}</Box><Typography variant="body2">{service.message}</Typography></Box> : null}
                 {service.stream_count_scope ? <Box>
                   <Typography variant="body2">
-                    {service.stream_count_scope === 'app' ? tUi("Open streams through this app") : tUi("Open streams through Acexy")}: {service.open_streams ?? 'Unavailable'}
+                    {service.stream_count_scope === 'app' ? tUi("Open streams through this app") : tUi("Open streams through Acexy")}: {service.open_streams ?? tUi('Unavailable')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {service.stream_count_scope === 'app'
@@ -252,7 +261,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                         size="small"
                         variant="outlined"
                         startIcon={<RestartAltIcon />}
-                        aria-label={tUi("Restart {{value0}}", { value0: service.label })}
+                        aria-label={tUi("Restart {{value0}}", { value0: translateKnown(service.label) })}
                         disabled={Boolean(disabledReason) || restarting || restart.isPending || control.isPending}
                         onClick={() => setConfirming(service)}
                       >
@@ -263,7 +272,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                     <Button
                       size="small"
                       variant="outlined"
-                      aria-label={tUi("{{value0}} {{value1}}", { value0: service.stopped_by_user ? 'Start' : 'Stop', value1: service.label })}
+                      aria-label={tUi("{{value0}} {{value1}}", { value0: service.stopped_by_user ? tUi('Start') : tUi('Stop'), value1: translateKnown(service.label) })}
                       disabled={restarting || restart.isPending || control.isPending}
                       onClick={() => handleEngineControl(service)}
                     >
@@ -290,7 +299,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
       ) : null}
 
       <Dialog open={Boolean(confirming)} onClose={() => setConfirming(null)} aria-labelledby="restart-service-title">
-        <DialogTitle id="restart-service-title">{tUi("Restart")}{' '}{confirming?.label}?</DialogTitle>
+        <DialogTitle id="restart-service-title">{tUi("Restart")}{' '}{confirming ? translateKnown(confirming.label) : ''}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
             {tUi("The service stops for a few seconds and the container supervisor starts it again. Anything using it right now, such as an open stream, is interrupted.")}</DialogContentText>

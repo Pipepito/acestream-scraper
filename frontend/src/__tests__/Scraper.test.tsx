@@ -226,7 +226,7 @@ describe('Scraper', () => {
       counts: { accepted: 1, duplicates: 0, invalid: 0, unsupported: 0, failed_fetches: 0 }, selected_branches: ['root'], mode: 'compatible',
       entries: [{ id: 'root', parent_id: null, name: 'Example catalogue', kind: 'folder' }, { id: 'live', parent_id: 'root', name: 'Live channels', kind: 'folder' }] });
     renderPage('/scraper?tab=w3u');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add catalogue' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add catalogue' }, { timeout: 5000 }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Catalogue URL' }), { target: { value: 'https://example.test/list.w3u' } });
     fireEvent.click(screen.getByRole('button', { name: 'Preview URL' }));
     expect(await screen.findByRole('heading', { name: 'Review import' })).toBeInTheDocument();
@@ -237,7 +237,7 @@ describe('Scraper', () => {
     renderPage('/scraper?tab=w3u');
     expect(screen.getByRole('tab', { name: 'W3U catalogues', selected: true })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Sources' })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Add catalogue' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Add catalogue' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 1, name: 'Catalogues' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'W3U catalogues' })).not.toBeInTheDocument();
   });

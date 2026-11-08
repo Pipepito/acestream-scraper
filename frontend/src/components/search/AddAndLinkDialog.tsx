@@ -1,11 +1,11 @@
+import { Alert,Button,Dialog,DialogActions,DialogContent,DialogTitle,Stack,Typography,useMediaQuery,useTheme } from '@mui/material';
+import { useMutation,useQueryClient } from '@tanstack/react-query';
+import React,{ useState } from 'react';
 import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
-import React, { useState } from 'react';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { searchService,type SearchResultItem } from '../../services/searchService';
+import { getErrorMessage } from '../../utils/errorUtils';
 import TVChannelLinkField from '../TVChannelLinkField';
-import { searchService, type SearchResultItem } from '../../services/searchService';
-import { normalizeApiError } from '../../services/apiErrors';
 
 interface AddAndLinkDialogProps {
   stream: SearchResultItem;
@@ -35,7 +35,7 @@ export default function AddAndLinkDialog({ stream, onClose, onAdded }: AddAndLin
       <Typography sx={{ overflowWrap: 'anywhere' }}>{stream.name}</Typography>
       <TVChannelLinkField value={target} onChange={setTarget} required disabled={save.isPending} />
       <Typography variant="body2" color="text.secondary">{tUi("Add this stream directly to a TV channel. An existing link to another channel will be preserved.")}</Typography>
-      {save.isError ? <Alert severity="error">{normalizeApiError(save.error).message}</Alert> : null}
+      {save.isError ? <Alert severity="error">{getErrorMessage(save.error)}</Alert> : null}
     </Stack></DialogContent>
     <DialogActions><Button disabled={save.isPending} onClick={onClose}>{tUi("Cancel")}</Button><Button variant="contained" disabled={!target || save.isPending} onClick={() => save.mutate()}>{save.isPending ? tUi("Adding and linking…") : tUi("Add and Link")}</Button></DialogActions>
   </Dialog>;

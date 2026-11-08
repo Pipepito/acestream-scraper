@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createAppTheme } from '../theme';
+import EventArtwork from '../components/events/EventArtwork';
 import Events from '../pages/Events';
 import EventAgenda from '../components/events/EventAgenda';
 import channelService from '../services/channelService';
@@ -449,4 +450,20 @@ it('retains a correction and its reviewed revision across query refresh and lang
     expect(screen.getByLabelText('Título')).toBe(title);
     expect(title).toHaveValue('My correction');
   } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
+});
+
+it('requires a new explicit artwork request when the reviewed event revision changes', async () => {
+  service.artwork.mockRejectedValue(new Error('unavailable'));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const tree = (revision: number) => <QueryClientProvider client={client}><EventArtwork event={{ ...event, revision }} /></QueryClientProvider>;
+  const { rerender } = render(tree(1));
+  fireEvent.click(screen.getByRole('button', { name: 'Load event artwork' }));
+  await screen.findByText(/Artwork is unavailable/);
+  expect(service.artwork).toHaveBeenCalledTimes(1);
+  rerender(tree(2));
+  expect(screen.getByRole('button', { name: 'Load event artwork' })).toBeEnabled();
+  expect(service.artwork).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Load event artwork' }));
+  await waitFor(() => expect(service.artwork).toHaveBeenCalledTimes(2));
+  await screen.findByText(/Artwork is unavailable/);
 });

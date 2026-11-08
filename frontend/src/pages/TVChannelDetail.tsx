@@ -1,61 +1,62 @@
-import { uiText } from '../i18n/text';
-import { useUiText } from '../i18n/useUiText';
-import React, { useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  Chip,
-  Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  IconButton,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import {
-  Add as AddIcon,
-  ArrowBack as BackIcon,
-  ArrowDownward,
-  ArrowUpward,
-  Delete as DeleteIcon,
-  DragIndicator,
-  Edit as EditIcon,
-  ExpandLess,
-  ExpandMore,
-  Save as SaveIcon,
+Add as AddIcon,
+ArrowDownward,
+ArrowUpward,
+ArrowBack as BackIcon,
+Delete as DeleteIcon,
+DragIndicator,
+Edit as EditIcon,
+ExpandLess,
+ExpandMore,
+Save as SaveIcon,
 } from '@mui/icons-material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
-import { Link as RouterLink } from 'react-router-dom';
+import {
+Alert,
+Box,
+Button,
+Checkbox,
+Chip,
+Collapse,
+Dialog,
+DialogActions,
+DialogContent,
+DialogTitle,
+FormControlLabel,
+IconButton,
+LinearProgress,
+List,
+ListItem,
+ListItemText,
+Stack,
+TextField,
+Tooltip,
+Typography,
+} from '@mui/material';
+import React,{ useRef,useState } from 'react';
+import { Link as RouterLink,useNavigate,useParams } from 'react-router-dom';
 import BatchAcestreamAssignment from '../components/BatchAcestreamAssignment';
+import { useConfirm } from '../components/ConfirmDialog';
 import ScheduleView from '../components/epg/ScheduleView';
 import ContentSection from '../components/layout/ContentSection';
 import PageHeader from '../components/layout/PageHeader';
 import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
-import { useConfirm } from '../components/ConfirmDialog';
-import { normalizeApiError } from '../services/apiErrors';
-import { AcestreamChannel } from '../types/channelTypes';
+import { useUnsavedChanges } from '../components/UnsavedChanges';
 import { useAcestreamChannels } from '../hooks/useChannels';
 import { useResolveEPGChannel } from '../hooks/useEPG';
+import { resolveSnackbarMessage,type SnackbarMessage } from '../hooks/useSnackbar';
 import {
-  useAssociateAcestream,
-  useReorderTVChannelAcestreams,
-  useRemoveAcestreamAssociation,
-  useTVChannel,
-  useTVChannelAcestreams,
-  useUpdateTVChannel,
+useAssociateAcestream,
+useRemoveAcestreamAssociation,
+useReorderTVChannelAcestreams,
+useTVChannel,
+useTVChannelAcestreams,
+useUpdateTVChannel,
 } from '../hooks/useTVChannels';
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
+import { AcestreamChannel } from '../types/channelTypes';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface EditFormData {
   name: string;
@@ -97,6 +98,12 @@ const TVChannelDetail: React.FC = () => {
   const orderedStreams = draft?.streams ?? channel?.acestream_channels ?? [];
   const isOrderModified = draft !== null && orderedStreams.some((stream, index) => stream.id !== draft.expectedOrder[index]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const savingOrder = useRef(false);
+  const savingEdit = useRef(false);
+  const assigning = useRef(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const removing = useRef(new Set<string>());
+  const editBaseline = useRef('');
   const draggedStreamId = useRef<string | null>(null);
   const [dragOverStreamId, setDragOverStreamId] = useState<string | null>(null);
 
@@ -121,8 +128,8 @@ const TVChannelDetail: React.FC = () => {
   };
 
   const handleSaveOrder = async () => {
-    if (!channel || !draft || orderedStreams.length < 2 || !isOrderModified || isSavingOrder) return;
-    setIsSavingOrder(true);
+    if (!channel || !draft || orderedStreams.length < 2 || !isOrderModified || savingOrder.current) return;
+    savingOrder.current = true; setIsSavingOrder(true);
     try {
       await reorderStreamsMutation.mutateAsync({
         tvChannelId: channelId,
@@ -130,11 +137,11 @@ const TVChannelDetail: React.FC = () => {
         expectedOrder: draft.expectedOrder,
       });
       setOrderDraft(null);
-      setNotice({ message: uiText("Stream preference order saved successfully."), severity: 'success' });
+      setNotice({ message: () => uiText("Stream preference order saved successfully."), severity: 'success' });
     } catch (err) {
-      setNotice({ message: normalizeApiError(err).message || 'Failed to save stream order.', severity: 'error' });
+      setNotice({ message: () => getErrorMessage(err), severity: 'error' });
     } finally {
-      setIsSavingOrder(false);
+      savingOrder.current = false; setIsSavingOrder(false);
     }
   };
 
@@ -144,7 +151,7 @@ const TVChannelDetail: React.FC = () => {
   const [selectedAcestreams, setSelectedAcestreams] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [moreFieldsOpen, setMoreFieldsOpen] = useState(false);
-  const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
+  const [notice, setNotice] = useState<{ message: SnackbarMessage; severity: 'success' | 'error' } | null>(null);
   const [playerTarget, setPlayerTarget] = useState<{ contentId: string; title: string } | null>(null);
   const [editFormData, setEditFormData] = useState<EditFormData>({
     name: '',
@@ -173,7 +180,7 @@ const TVChannelDetail: React.FC = () => {
 
   const handleEdit = () => {
     if (!channel) return;
-    setEditFormData({
+    const fields: EditFormData = {
       name: channel.name,
       logo_url: channel.logo_url || '',
       description: channel.description || '',
@@ -182,10 +189,12 @@ const TVChannelDetail: React.FC = () => {
       language: channel.language || '',
       website: channel.website || '',
       epg_id: channel.epg_id || '',
-      channel_number: channel.channel_number || '',
+      channel_number: channel.channel_number ?? '',
       is_active: channel.is_active,
       is_favorite: channel.is_favorite,
-    });
+    };
+    editBaseline.current = JSON.stringify(fields);
+    setEditFormData(fields);
     setMoreFieldsOpen(Boolean(channel.description || channel.logo_url || channel.website || channel.language || channel.country));
     setIsEditing(true);
   };
@@ -195,7 +204,20 @@ const TVChannelDetail: React.FC = () => {
     setEditFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  const editDirty = isEditing && JSON.stringify(editFormData) !== editBaseline.current;
+  useUnsavedChanges(editDirty || isOrderModified || selectedAcestreams.length > 0, isSavingOrder || updateChannelMutation.isPending || isAssigning);
+  const cancelEdit = async () => {
+    if (savingEdit.current) return;
+    if (editDirty && !await confirm(() => ({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return;
+    setIsEditing(false);
+  };
   const handleSaveEdit = async () => {
+    if (savingEdit.current) return;
+    const number = editFormData.channel_number === '' ? null : Number(editFormData.channel_number);
+    if (number !== null && (!Number.isSafeInteger(number) || number < 0)) {
+      setNotice({ message: () => tUi('Use a whole number of 0 or more.'), severity: 'error' }); return;
+    }
+    savingEdit.current = true;
     try {
       await updateChannelMutation.mutateAsync({
         id: channelId,
@@ -208,19 +230,20 @@ const TVChannelDetail: React.FC = () => {
           language: editFormData.language,
           website: editFormData.website,
           epg_id: editFormData.epg_id,
-          channel_number: editFormData.channel_number ? Number(editFormData.channel_number) : undefined,
+          channel_number: number,
           is_active: editFormData.is_active,
           is_favorite: editFormData.is_favorite,
         },
       });
       setIsEditing(false);
-      setNotice({ message: uiText("TV channel updated successfully."), severity: 'success' });
-    } catch {
-      setNotice({ message: uiText("Failed to update TV channel."), severity: 'error' });
-    }
+      setNotice({ message: () => uiText("TV channel updated successfully."), severity: 'success' });
+    } catch (error) {
+      setNotice({ message: () => getErrorMessage(error), severity: 'error' });
+    } finally { savingEdit.current = false; }
   };
 
   const handleRemoveAcestream = async (aceStreamId: string) => {
+    if (removing.current.has(aceStreamId)) return;
     const stream = channel?.acestream_channels.find((item) => item.id === aceStreamId);
     const ok = await confirm(() => ({
       title: uiText("Remove {{name}} from this channel?", { name: stream?.name || aceStreamId }),
@@ -228,28 +251,35 @@ const TVChannelDetail: React.FC = () => {
       confirmLabel: uiText("Remove"),
       danger: true,
     }));
-    if (!ok) return;
+    if (!ok || removing.current.has(aceStreamId)) return;
+    removing.current.add(aceStreamId);
     try {
       await removeAcestreamMutation.mutateAsync({ tvChannelId: channelId, aceStreamId });
-      setNotice({ message: `Removed acestream ${stream?.name || aceStreamId} successfully.`, severity: 'success' });
+      setNotice({ message: () => uiText('Removed {{name}} from this channel.', { name: stream?.name || aceStreamId }), severity: 'success' });
     } catch {
-      setNotice({ message: uiText("Failed to remove acestream."), severity: 'error' });
-    }
+      setNotice({ message: () => uiText("Failed to remove acestream."), severity: 'error' });
+    } finally { removing.current.delete(aceStreamId); }
   };
 
+  const closeAssociation = async () => {
+    if (assigning.current) return;
+    if (selectedAcestreams.length && !await confirm(() => ({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return;
+    setSelectedAcestreams([]); setOpenAssociateDialog(false);
+  };
   const handleAssociateSelected = async () => {
-    const assignedCount = selectedAcestreams.length;
-    for (const aceStreamId of selectedAcestreams) {
-      try {
+    if (assigning.current || !selectedAcestreams.length) return;
+    assigning.current = true; setIsAssigning(true);
+    const selected = [...selectedAcestreams];
+    try {
+      for (const aceStreamId of selected) {
         await associateAcestreamMutation.mutateAsync({ tvChannelId: channelId, aceStreamId });
-      } catch {
-        setNotice({ message: uiText("Failed to assign selected acestream sources."), severity: 'error' });
-        return;
+        setSelectedAcestreams(current => current.filter(id => id !== aceStreamId));
       }
-    }
-    setOpenAssociateDialog(false);
-    setSelectedAcestreams([]);
-    setNotice({ message: `Assigned ${assignedCount} acestream source${assignedCount === 1 ? '' : 's'} successfully.`, severity: 'success' });
+      setOpenAssociateDialog(false);
+      setNotice({ message: () => uiText('assignedStreamCount', { count: selected.length }), severity: 'success' });
+    } catch (error) {
+      setNotice({ message: () => getErrorMessage(error), severity: 'error' });
+    } finally { assigning.current = false; setIsAssigning(false); }
   };
 
   if (isLoading) {
@@ -274,7 +304,7 @@ const TVChannelDetail: React.FC = () => {
   }
 
   const streamCount = channel.acestream_channels.length;
-  const subtitle = [channel.category, channel.channel_number ? `Channel ${channel.channel_number}` : null].filter(Boolean).join(' · ') || undefined;
+  const subtitle = [channel.category, channel.channel_number != null ? tUi('Channel {{number}}', { number: channel.channel_number }) : null].filter(Boolean).join(' · ') || undefined;
 
   return (
     <Box sx={{ width: '100%', typography: 'body1' }}>
@@ -303,7 +333,7 @@ const TVChannelDetail: React.FC = () => {
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label={tUi("Channel summary")} sx={{ mb: 2 }}>
         <Chip label={channel.is_active ? tUi("Active") : tUi("Hidden")} color={channel.is_active ? 'success' : 'default'} size="small" variant="outlined" />
         {channel.is_favorite ? <Chip label={tUi("Favorite")} color="warning" size="small" variant="outlined" /> : null}
-        <Chip label={tUi("{{value0}} stream{{value1}}", { value0: streamCount, value1: streamCount === 1 ? '' : 's' })} size="small" variant="outlined" color={streamCount === 0 ? 'warning' : 'default'} />
+        <Chip label={tUi('streamCount', { count: streamCount })} size="small" variant="outlined" color={streamCount === 0 ? 'warning' : 'default'} />
         <Chip label={channel.epg_id ? tUi("EPG: {{value0}}", { value0: channel.epg_id }) : tUi("EPG: not mapped")} size="small" variant="outlined" color={channel.epg_id ? 'default' : 'warning'} sx={{ fontFamily: channel.epg_id ? 'monospace' : undefined }} />
         {epgChannel ? (
           <Chip
@@ -320,13 +350,13 @@ const TVChannelDetail: React.FC = () => {
 
       {notice ? (
         <Alert severity={notice.severity} sx={{ mb: 2 }} onClose={() => setNotice(null)}>
-          {notice.message}
+          {resolveSnackbarMessage(notice.message)}
         </Alert>
       ) : null}
 
       {isEditing ? (
         <ContentSection title={tUi("Edit channel")}>
-          <Stack spacing={2} component="form" onSubmit={(event) => { event.preventDefault(); void handleSaveEdit(); }}>
+          <Box component="form" onSubmit={(event) => { event.preventDefault(); void handleSaveEdit(); }}><Stack component="fieldset" disabled={updateChannelMutation.isPending} spacing={2} sx={{ p: 0, m: 0, border: 0, minWidth: 0 }}>
             <TextField name="name" label={tUi("Name")} value={editFormData.name} onChange={handleEditFormChange} required fullWidth />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField name="category" label={tUi("Category")} value={editFormData.category} onChange={handleEditFormChange} fullWidth />
@@ -367,9 +397,9 @@ const TVChannelDetail: React.FC = () => {
             <Stack direction="row" spacing={1}>
               <Button type="submit" variant="contained">
                 {tUi("Save")}</Button>
-              <Button onClick={() => setIsEditing(false)}>{tUi("Cancel")}</Button>
+              <Button onClick={() => void cancelEdit()}>{tUi("Cancel")}</Button>
             </Stack>
-          </Stack>
+          </Stack></Box>
         </ContentSection>
       ) : null}
 
@@ -549,11 +579,12 @@ const TVChannelDetail: React.FC = () => {
         )}
       </ContentSection>
 
-      <Dialog open={openAssociateDialog} onClose={() => setOpenAssociateDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={openAssociateDialog} onClose={() => void closeAssociation()} maxWidth="md" fullWidth>
         <DialogTitle>{tUi("Add a stream")}</DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
+            disabled={isAssigning}
             label={tUi("Search by name, group, or ID")}
             fullWidth
             value={searchTerm}
@@ -575,12 +606,12 @@ const TVChannelDetail: React.FC = () => {
           <Alert severity="info" sx={{ mb: 2 }} role="status">
             {selectedAcestreams.length === 0
               ? tUi("Select one or more Acestream sources before assigning them.")
-              : tUi("{{value0}} acestream selected for assignment.", { value0: selectedAcestreams.length })}
+              : tUi('selectedStreamCount', { count: selectedAcestreams.length })}
           </Alert>
           <List sx={{ maxHeight: 350, overflow: 'auto' }}>
             {isErrorLoadingAcestreamCandidates ? null : acestreamCandidateItems.length === 0 ? (
               <ListItem>
-                <ListItemText primary="No Acestream channels found." />
+                <ListItemText primary={tUi("No Acestream channels found.")} />
               </ListItem>
             ) : (
               acestreamCandidateItems.map((acestream) => (
@@ -591,7 +622,8 @@ const TVChannelDetail: React.FC = () => {
                     <Checkbox
                       edge="end"
                       color="primary"
-                      inputProps={{ 'aria-label': `Select acestream ${acestream.name}` }}
+                      inputProps={{ 'aria-label': tUi('Select stream {{name}}', { name: acestream.name }) }}
+                      disabled={isAssigning}
                       checked={selectedAcestreams.includes(acestream.id)}
                       onChange={(_event, checked) => {
                         setSelectedAcestreams((prev) => (checked ? [...prev, acestream.id] : prev.filter((item) => item !== acestream.id)));
@@ -599,16 +631,16 @@ const TVChannelDetail: React.FC = () => {
                     />
                   }
                 >
-                  <ListItemText primary={acestream.name} secondary={`ID: ${acestream.id} | Group: ${acestream.group || 'None'}`} />
+                  <ListItemText primary={acestream.name} secondary={tUi('ID: {{id}} · Group: {{group}}', { id: acestream.id, group: acestream.group || tUi('None') })} />
                 </ListItem>
               ))
             )}
           </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenAssociateDialog(false)} color="inherit">
+          <Button disabled={isAssigning} onClick={() => void closeAssociation()} color="inherit">
             {tUi("Cancel")}</Button>
-          <Button onClick={handleAssociateSelected} color="primary" variant="contained" disabled={selectedAcestreams.length === 0}>
+          <Button onClick={handleAssociateSelected} color="primary" variant="contained" disabled={isAssigning || selectedAcestreams.length === 0}>
             {tUi("Assign Selected")}</Button>
         </DialogActions>
       </Dialog>

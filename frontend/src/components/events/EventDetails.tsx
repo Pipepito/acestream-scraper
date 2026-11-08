@@ -8,6 +8,7 @@ import { type SportingEvent, type EventFields, type EventUpdate } from '../../se
 import { EventChannelName } from './EventAgenda';
 import EventGuideOverlay from './EventGuideOverlay';
 import EventArtwork from './EventArtwork';
+import SportIllustration from './SportIllustration';
 import EventBroadcastMapper from './EventBroadcastMapper';
 import { useUnsavedChanges } from '../UnsavedChanges';
 import { useConfirm } from '../ConfirmDialog';
@@ -37,6 +38,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
   return <ContentSection title={event.title}>
     {dialog}
     <Stack spacing={2}>
+      <SportIllustration sport={event.sport} />
       <Typography variant="body2" color="text.secondary">{[event.competition, event.sport].filter(Boolean).join(' · ')}</Typography>
       <Typography fontWeight={600}>{event.starts_at ? new Date(event.starts_at).toLocaleString(getLocale(), { timeZone: zone, weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : event.scheduled_date ? tUi("{{value0}} · Time to be confirmed", { value0: event.scheduled_date }) : tUi("Date and time to be confirmed")}</Typography>
       <Stack direction="row" flexWrap="wrap" gap={1}>

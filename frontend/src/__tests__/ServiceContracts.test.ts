@@ -93,3 +93,15 @@ it('validates canonical source, guide and integration serializers with scoped cr
   });
   expect(result).toContain('Validated 20 actual consumer requests');
 });
+
+it('projects saved-search writes while retaining the reviewed revision and false/empty fields', async () => {
+  const { savedSearchService } = await import('../services/savedSearchService');
+  const start = exchanges.length;
+  const row = { id: 7, revision: 3, name: 'Original name', query: 'Sports', category: '', refresh_enabled: false, created_at: '2030-01-01T00:00:00Z', updated_at: '2030-01-01T00:00:00Z' };
+  await savedSearchService.save(row);
+  await savedSearchService.save(row, row);
+  expect(JSON.parse(exchanges[start].body)).toEqual({ name: row.name, query: row.query, category: '', refresh_enabled: false });
+  expect(JSON.parse(exchanges[start + 1].body)).toEqual({ name: row.name, query: row.query, category: '', refresh_enabled: false, expected_revision: 3 });
+  const result = execFileSync(path.resolve('../backend/venv/bin/python'), [path.resolve('../backend/scripts/validate_api_contracts.py')], { input: JSON.stringify(exchanges.slice(start)), encoding: 'utf8' });
+  expect(result).toContain('Validated 2 actual consumer requests');
+});

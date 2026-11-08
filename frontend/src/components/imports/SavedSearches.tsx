@@ -1,17 +1,17 @@
+import { Alert,Box,Button,Chip,Dialog,DialogActions,DialogContent,DialogTitle,LinearProgress,Pagination,Stack,Switch,Typography } from '@mui/material';
+import { useMutation,useQuery,useQueryClient } from '@tanstack/react-query';
+import React,{ useEffect,useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { statusLabel } from '../../i18n/status';
 import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
-import React, { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress, Pagination, Stack, Switch, Typography } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import ContentSection from '../layout/ContentSection';
-import StatusLine from '../StatusLine';
-import RowActionsMenu from '../RowActionsMenu';
-import { useConfirm } from '../ConfirmDialog';
-import { normalizeApiError } from '../../services/apiErrors';
-import { savedSearchService as service, SavedSearch, SavedSearchPreview, SavedSearchResult } from '../../services/savedSearchService';
+import { SavedSearch,SavedSearchPreview,SavedSearchResult,savedSearchService as service } from '../../services/savedSearchService';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { formatRelativeTime } from '../../utils/format';
+import { useConfirm } from '../ConfirmDialog';
+import ContentSection from '../layout/ContentSection';
+import RowActionsMenu from '../RowActionsMenu';
+import StatusLine from '../StatusLine';
 import SavedSearchDialog from './SavedSearchDialog';
 
 export const searchCounts = (r: SavedSearchResult) => `${r.added} added · ${r.existing} existing · ${r.excluded_candidates} excluded · ${r.unresolved_candidates} unresolved · ${r.deferred_candidates} deferred`;
@@ -36,7 +36,7 @@ export default function SavedSearches() {
     <StatusLine items={[{ label: uiText("Saved searches"), value: list.data?.total ?? '—' }]} />
     <ContentSection title={tUi("Saved searches")} actions={<Button variant="contained" onClick={() => setEditing(null)}>{tUi("Create search")}</Button>}>
       <Typography sx={{ mb: 2 }}>{tUi("Import matching results on the source refresh schedule.")}{' '}<Button component={RouterLink} to="/settings?tab=automation">{tUi("Edit schedule")}</Button></Typography>
-      {error ? <Alert severity="error">{normalizeApiError(error).message} <Button component={RouterLink} to="/settings?tab=playback">{tUi("Engine settings")}</Button></Alert> : null}
+      {error ? <Alert severity="error">{getErrorMessage(error)} <Button component={RouterLink} to="/settings?tab=playback">{tUi("Engine settings")}</Button></Alert> : null}
       {list.isLoading || inspect.isPending ? <LinearProgress aria-label={inspect.isPending ? tUi("Previewing search") : tUi("Loading saved searches")} /> : null}
       {list.data?.total === 0 ? <Typography color="text.secondary">{tUi("Create a query here or save your last submitted query from")}{' '}<Button component={RouterLink} to="/search">{tUi("Search")}</Button>{tUi(". Automatic refresh starts off.")}</Typography> : null}
       {list.data?.items.map(row => <Stack key={row.id} direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }} alignItems={{ md: 'center' }}>
@@ -59,7 +59,7 @@ export default function SavedSearches() {
         <Typography>{tUi("Import this preview uses only these results. Preview expires after five minutes.")}</Typography>
         {(preview.view.result.samples ?? []).map((item, i) => <Typography variant="body2" key={`${item.infohash}-${i}`} sx={{ overflowWrap: 'anywhere' }}>{item.content_id || item.infohash} · {item.outcome}{item.rule_ids?.length ? <Button component={RouterLink} to={`/scraper?tab=exclusions#rule-${item.rule_ids[0]}`}>{tUi("Exclusion rule")}</Button> : null}</Typography>)}
         {preview.view.result.samples_truncated ? <Typography>{tUi("Showing the first 100 outcomes.")}</Typography> : null}
-        {run.error ? <Alert severity="error">{normalizeApiError(run.error).message}</Alert> : null}</Stack> : null}
+        {run.error ? <Alert severity="error">{getErrorMessage(run.error)}</Alert> : null}</Stack> : null}
     </DialogContent><DialogActions><Button onClick={() => setPreview(undefined)}>{tUi("Close")}</Button><Button variant="contained" disabled={!preview || run.isPending || ['failed', 'skipped'].includes(preview?.view.result.outcome || '')} onClick={() => { if (preview) run.mutate({ row: preview.row, token: preview.view.preview_token }); }}>{tUi("Import this preview")}</Button></DialogActions></Dialog>
     {dialog}
   </>;

@@ -1,16 +1,16 @@
+import { Alert,Box,Button,Chip,Dialog,DialogActions,DialogContent,DialogTitle,FormControlLabel,LinearProgress,MenuItem,Pagination,Stack,Switch,TextField,Typography } from '@mui/material';
+import { useMutation,useQuery,useQueryClient } from '@tanstack/react-query';
+import React,{ useState } from 'react';
+import { Link as RouterLink,useLocation } from 'react-router-dom';
 import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
-import React, { useState } from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, LinearProgress, MenuItem, Pagination, Stack, Switch, TextField, Typography } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import ContentSection from '../layout/ContentSection';
-import StatusLine from '../StatusLine';
-import RowActionsMenu from '../RowActionsMenu';
-import { useConfirm } from '../ConfirmDialog';
-import { normalizeApiError } from '../../services/apiErrors';
-import { importExclusionService as service, ExclusionInput, ExclusionRule, ExclusionPreview } from '../../services/importExclusionService';
+import { ExclusionInput,ExclusionPreview,ExclusionRule,importExclusionService as service } from '../../services/importExclusionService';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { formatRelativeTime } from '../../utils/format';
+import { useConfirm } from '../ConfirmDialog';
+import ContentSection from '../layout/ContentSection';
+import RowActionsMenu from '../RowActionsMenu';
+import StatusLine from '../StatusLine';
 
 const labels = { name_contains: 'Name contains', name_equals: 'Name equals', stream_id_equals: 'Stream ID equals' };
 const initial: ExclusionInput = { kind: 'name_contains', value: '', enabled: true, note: '' };
@@ -37,7 +37,7 @@ export default function ImportExclusions() {
     <ContentSection title={tUi("Import exclusions")} actions={<Button variant="contained" onClick={() => edit()}>{tUi("Add exclusion")}</Button>}>
       <Typography sx={{ mb: 2 }}>{tUi("Skips future imports. Existing channels stay.")}</Typography>
       {ruleId ? <Alert severity="info">{tUi("Showing rule #")}{ruleId}. <Button component={RouterLink} to="/scraper?tab=exclusions">{tUi("Show all rules")}</Button></Alert> : null}
-      {error ? <Alert severity="error">{normalizeApiError(error).message}</Alert> : null}
+      {error ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
       {list.isLoading ? <LinearProgress aria-label={tUi("Loading exclusions")} /> : null}
       {list.data?.total === 0 ? <Typography color="text.secondary">{ruleId ? tUi("This exclusion no longer exists.") : tUi("Add a name or stream ID rule to skip unwanted discoveries across your import sources.")}</Typography> : null}
       {list.data?.items.map(row => <Stack key={row.id} id={`rule-${row.id}`} direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }} alignItems={{ sm: 'center' }}>
@@ -58,7 +58,7 @@ export default function ImportExclusions() {
         <Button disabled={!form.value.trim() || inspect.isPending} onClick={() => inspect.mutate(form)}>{tUi("Preview matches")}</Button>
         {preview ? <Alert severity="info">{preview.complete ? '' : tUi("At least ")}{preview.matched} {' '}{tUi("matches in")}{' '}{preview.scanned} {' '}{tUi("current channels.")}{' '}{preview.complete ? '' : tUi("Preview stopped at its scan limit. ")}{tUi("Future publisher names may differ.")}{preview.examples.map(item => <Typography key={item.channel_id} variant="body2" sx={{ overflowWrap: 'anywhere' }}>{item.name}</Typography>)}
         </Alert> : null}
-        {save.error || inspect.error ? <Alert severity="error">{normalizeApiError(save.error || inspect.error).message}</Alert> : null}
+        {save.error || inspect.error ? <Alert severity="error">{getErrorMessage(save.error || inspect.error)}</Alert> : null}
       </Stack></DialogContent>
       <DialogActions><Button onClick={() => setOpen(false)}>{tUi("Cancel")}</Button><Button variant="contained" disabled={!form.value.trim() || save.isPending} onClick={() => save.mutate({ data: form, row: editing })}>{tUi("Save exclusion")}</Button></DialogActions>
     </Dialog>{dialog}

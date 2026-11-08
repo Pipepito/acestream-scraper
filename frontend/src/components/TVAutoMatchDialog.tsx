@@ -1,9 +1,9 @@
+import { Alert,Box,Button,Checkbox,CircularProgress,Collapse,Dialog,DialogActions,DialogContent,DialogTitle,FormControlLabel,MenuItem,Stack,TablePagination,TextField,Typography,useMediaQuery,useTheme } from '@mui/material';
+import { useMutation,useQueryClient } from '@tanstack/react-query';
+import React,{ useMemo,useState } from 'react';
 import { useUiText } from '../i18n/useUiText';
-import React, { useMemo, useState } from 'react';
-import { Alert, Box, Button, Checkbox, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Stack, TablePagination, TextField, MenuItem, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { tvChannelService, TVMatchPreview, TVMatchOptions } from '../services/tvChannelService';
-import { normalizeApiError } from '../services/apiErrors';
+import { tvChannelService,TVMatchOptions,TVMatchPreview } from '../services/tvChannelService';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const COUNTRY_OPTIONS: Array<{ value: NonNullable<TVMatchOptions['assumed_country']>; label: string }> = [
   { value: 'ES', label: 'Spain' }, { value: 'PT', label: 'Portugal' },
@@ -106,7 +106,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
           <FormControlLabel control={<Checkbox checked={includeSimilar} disabled={busy} onChange={(_, checked) => { setIncludeSimilar(checked); setPreview(null); setSelected(new Map()); analyze.reset(); apply.reset(); }} />} label={tUi("Include similar names for review")} />
           <Button variant="outlined" disabled={busy} onClick={() => analyze.mutate({ assumed_country: assumedCountry || null, include_similar: includeSimilar })}>{preview ? tUi("Analyze again") : tUi("Find matches")}</Button>
           {busy ? <CircularProgress size={24} aria-label={analyze.isPending ? tUi("Finding matches") : tUi("Assigning streams")} /> : null}
-          {error ? <Alert severity="error">{normalizeApiError(error).message}</Alert> : null}
+          {error ? <Alert severity="error">{getErrorMessage(error)}</Alert> : null}
           {apply.data ? <Alert severity="success">{apply.data.assigned_count} {' '}{tUi("streams assigned.")}{' '}{apply.data.skipped_count} {' '}{tUi("skipped because they changed or were already assigned.")}</Alert> : null}
           {preview ? <>
             <Typography role="status">{stations.length} {' '}{tUi("TV channels with")}{' '}{preview.candidates.length} {' '}{tUi("suggestions. Checked")}{' '}{preview.tv_channels} {' '}{tUi("TV channels and")}{' '}{preview.unassigned_streams} {' '}{tUi("unassigned streams.")}{' '}{preview.ambiguous_streams} {' '}{tUi("ambiguous;")}{' '}{preview.unmatched_streams} {' '}{tUi("without a match.")}</Typography>

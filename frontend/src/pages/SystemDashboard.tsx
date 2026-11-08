@@ -1,23 +1,23 @@
-import { uiText } from '../i18n/text';
-import { useUiText } from '../i18n/useUiText';
-import RecordingOverview from '../components/recordings/RecordingOverview';
-import { Link as RouterLink } from 'react-router-dom';
-import React from 'react';
-import { useTheme } from '@mui/material/styles';
-import { Alert, Box, Button, Chip, Typography } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import PageHeader from '../components/layout/PageHeader';
-import ContentSection from '../components/layout/ContentSection';
-import ServicesPanel from '../components/ServicesPanel';
+import { Alert,Box,Button,Chip,Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import DiagnosticsDownload from '../components/DiagnosticsDownload';
-import StatusLine from '../components/StatusLine';
-import StoragePanel from '../components/overview/StoragePanel';
+import ContentSection from '../components/layout/ContentSection';
+import PageHeader from '../components/layout/PageHeader';
 import ScheduledJobs from '../components/overview/ScheduledJobs';
-import { useSystemServices } from '../hooks/useSystemServices';
+import StoragePanel from '../components/overview/StoragePanel';
+import RecordingOverview from '../components/recordings/RecordingOverview';
+import ServicesPanel from '../components/ServicesPanel';
+import StatusLine from '../components/StatusLine';
 import { useHealth } from '../hooks/useConfig';
 import { useBackgroundTaskStatus } from '../hooks/useDashboard';
-import { normalizeApiError } from '../services/apiErrors';
+import { useSystemServices } from '../hooks/useSystemServices';
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const REFRESH_MS = 30_000;
 
@@ -85,7 +85,7 @@ const SystemDashboard: React.FC = () => {
       />
 
       {health.error ? <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" onClick={() => void health.refetch()}>{tUi("Retry health")}</Button>}>
-        {tUi("Could not load system health:")}{' '}{normalizeApiError(health.error).message}
+        {tUi("Could not load system health:")}{' '}{getErrorMessage(health.error)}
       </Alert> : !health.data ? <Typography role="status">{tUi("Checking system health…")}</Typography> : null}
 
       {!services.error && attention.length > 0 ? (
@@ -104,7 +104,7 @@ const SystemDashboard: React.FC = () => {
 
       <Box id="scheduled-jobs" sx={{ scrollMarginTop: 90 }}><ContentSection actions={<Button component={RouterLink} to="/settings?tab=automation">{tUi("Edit schedules")}</Button>} title={tUi("Scheduled jobs")} description={tUi("What ran last, what it did, and when it runs again.")}>
         {tasks.error ? (
-          <Alert severity="error" action={<Button color="inherit" onClick={() => void tasks.refetch()}>{tUi("Retry jobs")}</Button>}>{tUi("Could not load the scheduler status:")}{' '}{normalizeApiError(tasks.error).message}</Alert>
+          <Alert severity="error" action={<Button color="inherit" onClick={() => void tasks.refetch()}>{tUi("Retry jobs")}</Button>}>{tUi("Could not load the scheduler status:")}{' '}{getErrorMessage(tasks.error)}</Alert>
         ) : !tasks.data ? <Typography role="status">{tUi("Loading scheduled jobs…")}</Typography> : (
           <ScheduledJobs tasks={tasks.data ?? []} />
         )}

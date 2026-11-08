@@ -101,3 +101,8 @@ The large-reorder browser regression observes beyond WebKit's delayed warning
 window once per browser. This uses Vite's documented
 [dependency resolver](https://vite.dev/config/build-options.html#build-modulepreload);
 console warning checks remain enabled.
+
+The production backend serves the root `manifest.json` and `favicon.ico` as
+explicit static responses with revalidation. Missing root assets return 404,
+never the SPA fallback HTML. Verify through FastAPI as well as Vite preview:
+WebKit reports an invalid manifest if a static URL falls through to client routing.

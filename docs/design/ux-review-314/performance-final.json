@@ -1,9 +1,9 @@
 {
-  "revision": "cebf5422",
+  "revision": "0e10d63e",
   "date": "2026-11-08",
   "browser": "149.0.7827.55",
   "method": "Fresh isolated SQLite fixture; 100 and 10000 channels, five routes, five repeats, cold/warm loads. Settled includes 500ms network idle. Same host/browser as baseline; concurrent validation can affect wall time. No media playback.",
-  "command": "python3 e2e/scripts/measure-production.py --base-url <owned-loopback> --database <temporary-db> --output <temporary-output> --revision cebf5422",
+  "command": "python3 e2e/scripts/measure-production.py --base-url <owned-loopback> --database <temporary-db> --output <temporary-output> --revision 0e10d63e",
   "pageErrors": [],
   "results": [
     {
@@ -11,7 +11,7 @@
       "route": "/",
       "cache": "cold",
       "samples": 5,
-      "medianSettledMs": 1080,
+      "medianSettledMs": 1040,
       "apiRequestCounts": [
         11,
         11,
@@ -25,7 +25,7 @@
       "route": "/",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 719,
+      "medianSettledMs": 705,
       "apiRequestCounts": [
         11,
         11,
@@ -37,66 +37,66 @@
     {
       "catalogueSize": 100,
       "route": "/settings",
-      "cache": "cold",
-      "samples": 5,
-      "medianSettledMs": 669,
-      "apiRequestCounts": [
-        4,
-        4,
-        4,
-        4,
-        4
-      ]
-    },
-    {
-      "catalogueSize": 100,
-      "route": "/settings",
-      "cache": "warm",
-      "samples": 5,
-      "medianSettledMs": 576,
-      "apiRequestCounts": [
-        4,
-        4,
-        4,
-        4,
-        4
-      ]
-    },
-    {
-      "catalogueSize": 100,
-      "route": "/tv-channels",
-      "cache": "cold",
-      "samples": 5,
-      "medianSettledMs": 763,
-      "apiRequestCounts": [
-        6,
-        6,
-        6,
-        6,
-        6
-      ]
-    },
-    {
-      "catalogueSize": 100,
-      "route": "/tv-channels",
-      "cache": "warm",
-      "samples": 5,
-      "medianSettledMs": 660,
-      "apiRequestCounts": [
-        6,
-        6,
-        6,
-        6,
-        6
-      ]
-    },
-    {
-      "catalogueSize": 100,
-      "route": "/live-tv",
       "cache": "cold",
       "samples": 5,
       "medianSettledMs": 705,
       "apiRequestCounts": [
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/settings",
+      "cache": "warm",
+      "samples": 5,
+      "medianSettledMs": 595,
+      "apiRequestCounts": [
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/tv-channels",
+      "cache": "cold",
+      "samples": 5,
+      "medianSettledMs": 897,
+      "apiRequestCounts": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/tv-channels",
+      "cache": "warm",
+      "samples": 5,
+      "medianSettledMs": 618,
+      "apiRequestCounts": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/live-tv",
+      "cache": "cold",
+      "samples": 5,
+      "medianSettledMs": 1060,
+      "apiRequestCounts": [
         5,
         5,
         5,
@@ -109,7 +109,7 @@
       "route": "/live-tv",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 578,
+      "medianSettledMs": 715,
       "apiRequestCounts": [
         5,
         5,
@@ -123,7 +123,7 @@
       "route": "/scraper/builder",
       "cache": "cold",
       "samples": 5,
-      "medianSettledMs": 635,
+      "medianSettledMs": 940,
       "apiRequestCounts": [
         4,
         4,
@@ -137,7 +137,7 @@
       "route": "/scraper/builder",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 575,
+      "medianSettledMs": 667,
       "apiRequestCounts": [
         4,
         4,
@@ -151,7 +151,7 @@
       "route": "/",
       "cache": "cold",
       "samples": 5,
-      "medianSettledMs": 716,
+      "medianSettledMs": 1140,
       "apiRequestCounts": [
         11,
         11,
@@ -165,7 +165,7 @@
       "route": "/",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 615,
+      "medianSettledMs": 695,
       "apiRequestCounts": [
         11,
         11,
@@ -179,7 +179,7 @@
       "route": "/settings",
       "cache": "cold",
       "samples": 5,
-      "medianSettledMs": 621,
+      "medianSettledMs": 725,
       "apiRequestCounts": [
         4,
         4,
@@ -193,7 +193,7 @@
       "route": "/settings",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 567,
+      "medianSettledMs": 603,
       "apiRequestCounts": [
         4,
         4,
@@ -207,7 +207,7 @@
       "route": "/tv-channels",
       "cache": "cold",
       "samples": 5,
-      "medianSettledMs": 686,
+      "medianSettledMs": 938,
       "apiRequestCounts": [
         6,
         6,
@@ -221,7 +221,7 @@
       "route": "/tv-channels",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 579,
+      "medianSettledMs": 627,
       "apiRequestCounts": [
         6,
         6,
@@ -235,7 +235,7 @@
       "route": "/live-tv",
       "cache": "cold",
       "samples": 5,
-      "medianSettledMs": 659,
+      "medianSettledMs": 764,
       "apiRequestCounts": [
         5,
         5,
@@ -249,7 +249,7 @@
       "route": "/live-tv",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 581,
+      "medianSettledMs": 585,
       "apiRequestCounts": [
         5,
         5,
@@ -263,7 +263,7 @@
       "route": "/scraper/builder",
       "cache": "cold",
       "samples": 5,
-      "medianSettledMs": 614,
+      "medianSettledMs": 768,
       "apiRequestCounts": [
         4,
         4,
@@ -277,7 +277,7 @@
       "route": "/scraper/builder",
       "cache": "warm",
       "samples": 5,
-      "medianSettledMs": 575,
+      "medianSettledMs": 617,
       "apiRequestCounts": [
         4,
         4,

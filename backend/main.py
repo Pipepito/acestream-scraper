@@ -396,6 +396,17 @@ for dirname in ["static", "assets"]:
 for dirname in static_dirs:
     app.mount(f"/{dirname}", StaticFiles(directory=os.path.join(frontend_dir, dirname)), name=dirname)
 
+# Root assets referenced by index.html must not fall through to SPA HTML.
+@app.get("/manifest.json", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
+def frontend_root_asset(request: Request):
+    filename = "manifest.json" if request.url.path.endswith("/manifest.json") else "favicon.ico"
+    path = os.path.join(frontend_dir, filename)
+    if not os.path.isfile(path):
+        raise StarletteHTTPException(status_code=404, detail="Frontend asset not found")
+    media_type = "application/manifest+json" if filename == "manifest.json" else "image/x-icon"
+    return FileResponse(path, media_type=media_type, headers={"Cache-Control": "no-cache"})
+
 # Public playlist route for user-friendly URLs (no /api prefix)
 @app.get("/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
 async def public_m3u_playlist(
@@ -613,7 +624,9 @@ async def legacy_epg_xml(
 async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
-    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner", "/live/")):
+    if (exc.status_code == 404
+            and request.url.path not in {"/manifest.json", "/favicon.ico"}
+            and not request.url.path.startswith(("/api", "/tuner", "/live/"))):
         # Exported image timestamps are normalized; HTML must not acquire a
         # long heuristic cache lifetime from its old Last-Modified timestamp.
         return FileResponse(os.path.join(frontend_dir, "index.html"), headers={"Cache-Control": "no-store"})

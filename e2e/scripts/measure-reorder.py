@@ -24,6 +24,9 @@ def main():
         if urlsplit(url).hostname != '127.0.0.1':
             parser.error('Use isolated loopback backends')
     args.output.mkdir(parents=True, exist_ok=True)
+    # The intentionally slow unvirtualized baseline can exceed five seconds on
+    # a busy validation host. Record the actual latency; do not cap the measurement.
+    expect.set_options(timeout=30_000)
     results, errors, writes = [], [], []
     with sync_playwright() as p:
         browser = p.chromium.launch()

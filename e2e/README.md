@@ -140,6 +140,11 @@ Back, stream selection and viewer release. Traces and screenshots stay under the
 ignored `test-results/` directory. It does not verify actual media decoding; use
 the live-stack journeys above for that.
 
+For concurrent completion checks, set `E2E_MOBILE_BASE_URL` to an owned server
+serving a frozen copy of the production SPA. This bypasses the mobile suite's
+build/preview process, preventing another build from replacing assets mid-run.
+API responses remain intercepted by each test; never use a personal installation.
+
 ## Standalone extraction helper
 
 Prepare the shared payload with `bash scripts/ci/prepare_pages.sh` from the

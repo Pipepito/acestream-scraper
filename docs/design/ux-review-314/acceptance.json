@@ -1,0 +1,818 @@
+{
+  "snapshotDate": "2026-11-08",
+  "baseline": "cf952afc6b4489c02b7a675ff3d634cc13d98e0b",
+  "tasks": [
+    {
+      "issue": 315,
+      "title": "[UX-01] Fix the LAN recording crash and confirmed accessibility regressions",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/315",
+      "criteria": [
+        {
+          "id": "315-1",
+          "requirement": "Record now, guide scheduling and recording edit open on private HTTP and HTTPS without an uncaught render error; opening/cancelling alone creates no recording.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-2",
+          "requirement": "A mocked missing randomUUID path exercises the actual fallback. Repeated submit/retry retains a key; separate intents get different keys. Missing cryptographic capability produces contained feedback, not an application-wide crash.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-3",
+          "requirement": "In isolated E2E data, duplicate submission does not create duplicate recordings; cancelling and navigation do not leak playback/session resources.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-4",
+          "requirement": "Contrast measurements include exact colors, text size, both themes and representative status states. New pairings are suitable for later semantic-token adoption.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-5",
+          "requirement": "Network and all other settings tabs are reachable at 320/390 px; pagination stays within its content region with English, long labels and zoom.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-6",
+          "requirement": "Keyboard focus returns correctly after modal close; recovery is announced and actionable. Confirmed violations are fixed and unconfirmed scanner candidates are documented separately.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-7",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-8",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "315-9",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 316,
+      "title": "[UX-02] Define the information architecture and professional TV design system",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/316",
+      "criteria": [
+        {
+          "id": "316-1",
+          "requirement": "A route/surface inventory, setting-owner map, bilingual terminology draft and decision log are committed to appropriate design documentation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-2",
+          "requirement": "Representative designs and their rationale are reviewed; unresolved choices are explicitly marked before dependent migration starts.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-3",
+          "requirement": "Semantic tokens cover both themes, measured contrast and all component states; application code uses the agreed typed API.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-4",
+          "requirement": "Typography/font files, licensing, fallback behavior and loading strategy are documented; missing assets do not block legible rendering.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-5",
+          "requirement": "The component catalog demonstrates actual reusable components, full states, keyboard/focus, 320/390 px layouts and Spanish expansion.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-6",
+          "requirement": "Existing design context and developer checklists agree with the accepted direction.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-7",
+          "requirement": "Downstream tasks can implement a page without inventing spacing, copy hierarchy, save behavior or control patterns.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-8",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-9",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "316-10",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 317,
+      "title": "[UX-03] Build English/Spanish i18n, formatting and translation quality foundations",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/317",
+      "criteria": [
+        {
+          "id": "317-1",
+          "requirement": "Language resolution, persistence failure, English fallback, first-render gates and namespace failures have behavioral coverage.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-2",
+          "requirement": "Switching EN/ES during playback and a dirty form preserves sessions and values; document language and accessible text update.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-3",
+          "requirement": "Date/number/plural examples pass both locales, regional fallback and independent timezone/DST cases.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-4",
+          "requirement": "Common API failures, unknown failures and status/reason labels show localized safe feedback without message-string matching.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-5",
+          "requirement": "Typed keys, resource checks, translation ownership inventory and pseudo-locale are available to each feature task.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-6",
+          "requirement": "The standalone recipe entry can use shared resources without loading the main application or contacting an installation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-7",
+          "requirement": "Dependency compatibility and warning-free tests/build are recorded; API/client drift checks run for any contract change.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-8",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-9",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "317-10",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 318,
+      "title": "[UX-04] Simplify navigation, settings, accounts and first-run setup",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/318",
+      "criteria": [
+        {
+          "id": "318-1",
+          "requirement": "Every current route/hidden entry and settings deep link appears in the coverage map; aliases and query parameters still resolve.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-2",
+          "requirement": "A user can find playback, schedules, stream formats, accounts, recording defaults and player address from both Settings and the relevant feature.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-3",
+          "requirement": "Each owned field has help, correct units/default/effective-source information, save semantics and accurate restart consequences.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-4",
+          "requirement": "Save failure retains inputs; Cancel restores the saved baseline; dirty navigation is handled; no duplicate requests occur on repeated clicks.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-5",
+          "requirement": "Schedule display preserves queue ordering, DST rules, opt-in automatic guide matching and independent engine health.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-6",
+          "requirement": "Fresh install, existing configured install, engine-free install, enabled/disabled accounts and startup recovery have EN/ES journeys.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-7",
+          "requirement": "Language/theme changes preserve form and playback state; navigation is operable at 320/390 px and by keyboard.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-8",
+          "requirement": "No account/network/casting authorization policy is weakened by the UI simplification.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-9",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-10",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "318-11",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 319,
+      "title": "[UX-05] Make watching, events and recordings simple in English and Spanish",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/319",
+      "criteria": [
+        {
+          "id": "319-1",
+          "requirement": "On a 390 px phone, the main viewing action/catalogue is prominent and management controls do not dominate the first screen.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-2",
+          "requirement": "Search/filter/language/theme changes do not interrupt active viewing; Stop/channel change tears down only the intended viewer.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-3",
+          "requirement": "Dashboard partial failures do not blank other sections; missing data stays unknown.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-4",
+          "requirement": "Event timezone, following scope, missing mappings and date transitions are understandable in EN/ES without changing stored times.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-5",
+          "requirement": "Users can schedule, locate, play and manage a recording through clear states; deleted records are separated from playable content.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-6",
+          "requirement": "Disabling, stopping, cancelling, deleting and converting have distinct, accurate consequences and meaningful pending/error states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-7",
+          "requirement": "DST duplicate/nonexistent times, no guide, no engine, no storage, interrupted/failed recording, empty history and long titles are covered.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-8",
+          "requirement": "Full UI/aria/help/error text is in EN/ES resources; both themes, keyboard, reduced motion and narrow layouts use shared patterns.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-9",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-10",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "319-11",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 320,
+      "title": "[UX-06] Simplify channels, programme-guide setup and playlist export",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/320",
+      "criteria": [
+        {
+          "id": "320-1",
+          "requirement": "A user can explain and navigate source → stream → TV channel → guide → playlist through concise in-context help.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-2",
+          "requirement": "All existing filters, dedicated controls, detail/row actions and catalogue-wide ordering semantics survive desktop/phone redesign.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-3",
+          "requirement": "Reorder works with keyboard, stale inventory is handled without partial writes, and Cancel leaves persisted order unchanged.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-4",
+          "requirement": "Guide preview never changes data; explicit apply handles stale/ambiguous/source-qualified cases safely; automatic matching remains opt-in.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-5",
+          "requirement": "No-guide, disabled/failed source, conflicting/unknown IDs, missing signal and partial check results remain truthful and actionable.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-6",
+          "requirement": "Editing a format from Settings or Playlist produces the same saved result and preserves playlist options.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-7",
+          "requirement": "Export fixtures are unchanged apart from explicitly intended behavior; switching language cannot change machine identifiers, URLs or token propagation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-8",
+          "requirement": "Tables/cards, dialogs and advanced controls support EN/ES, both themes, keyboard and 320/390 px without panel overflow.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-9",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-10",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "320-11",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 321,
+      "title": "[UX-07] Unify source setup, search and extraction tools in English and Spanish",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/321",
+      "criteria": [
+        {
+          "id": "321-1",
+          "requirement": "First-run and later source addition share form/service behavior and distinguish Save from Add and find channels.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-2",
+          "requirement": "Invalid/unreachable URLs, partial imports, duplicate sources, empty results and stale existing channels have accurate next steps.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-3",
+          "requirement": "Queue/running feedback avoids duplicate operations; interruption/retry does not silently replace sources or drop channels.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-4",
+          "requirement": "Search preserves stream identity and clearly distinguishes added from verified/playable.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-5",
+          "requirement": "Existing W3U/catalogue, custom recipes, visual/JSON pickers and manual paths retain functionality.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-6",
+          "requirement": "Installed and standalone builders have complete EN/ES UI, matching component behavior, responsive keyboard access and both themes.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-7",
+          "requirement": "Public-helper network tests prove no installation calls; translated UI does not change generated recipes or exported data.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-8",
+          "requirement": "Hostile/large input, malformed JSON, regex timeout and preview limits retain bounded handling and useful localized errors.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-9",
+          "requirement": "The generated docs/recipes payload matches shared sources and includes only appropriate standalone assets.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-10",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-11",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "321-12",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 322,
+      "title": "[UX-08] Clarify player connections, notifications and system diagnostics",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/322",
+      "criteria": [
+        {
+          "id": "322-1",
+          "requirement": "A user can select the correct viewing destination, reach its existing page directly and understand what must be configured.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-2",
+          "requirement": "One effective-address editor remains; saved/environment overrides and proxy-prefix behavior are accurate across Settings, Playlist and connections.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-3",
+          "requirement": "Casting, remote-control and IPTV/account trust distinctions survive EN/ES copy simplification and permission tests.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-4",
+          "requirement": "Device discovery, reconnect, unavailable capabilities, missing external apps and invalid addresses have bounded, actionable states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-5",
+          "requirement": "Notification settings and source ingestion remain distinct; tests cannot send real owner messages.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-6",
+          "requirement": "System/WARP/checker/queue/storage states remain truthful and independent; diagnostics continue to work during startup failure.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-7",
+          "requirement": "Each page uses shared responsive/forms/status patterns, both themes and complete EN/ES accessibility text.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-8",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-9",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "322-10",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 323,
+      "title": "[UX-09] Reduce initial UI cost and keep localization and navigation fast",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/323",
+      "criteria": [
+        {
+          "id": "323-1",
+          "requirement": "Before/after evidence is reproducible and distinguishes app payload from media, API data, external caching and environment noise.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-2",
+          "requirement": "Dashboard/Settings initial loads do not eagerly initialize player/extraction/table engines they do not use; justified shared exceptions are documented.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-3",
+          "requirement": "Route transitions show localized accessible loading/error states without blank screens or lost focus.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-4",
+          "requirement": "Production builds work after cache refresh, deep-link reload and navigation across all route groups; no circular initialization errors.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-5",
+          "requirement": "English/Spanish switching during playback and dirty forms causes no session restart, draft loss or query-cache reset.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-6",
+          "requirement": "Font/locale payloads meet documented budgets, and the standalone helper remains independent.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-7",
+          "requirement": "Large catalogue filtering/scrolling remains responsive with keyboard/assistive access intact; no new unbounded data fetch/render.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-8",
+          "requirement": "Final measurements are repeated on the completed page migrations before closure, not just an intermediate branch.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-9",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-10",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "323-11",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 324,
+      "title": "[UX-10] Validate bilingual UX, accessibility and the complete design-system rollout",
+      "url": "https://github.com/Pipepito/acestream-scraper/issues/324",
+      "criteria": [
+        {
+          "id": "324-1",
+          "requirement": "The route/state/locale/theme matrix has no unowned surfaces and all critical user journeys pass EN/ES.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-2",
+          "requirement": "Translation review and exceptions are documented; language switching preserves media and drafts.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-3",
+          "requirement": "Confirmed accessibility blockers are resolved; manual checks and scanner triage are recorded without overstated claims.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-4",
+          "requirement": "Design-system compliance and responsive/long-content states are evidenced with sanitized artifacts.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-5",
+          "requirement": "Usability sessions have recorded outcomes, or an explicit owner decision about the remaining research requirement; no invented results.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-6",
+          "requirement": "Documentation matches final behavior; public Spanish availability has been verified.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-7",
+          "requirement": "Complete final integrated validation is recorded with no hidden failures/skips or outstanding unwaived requirements.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-8",
+          "requirement": "Epic checklist and linked tasks reflect actual delivered scope; no unrelated feature issue is closed as a side effect.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-9",
+          "requirement": "Add this capability once in the shared controller/editor/service/message layers; all three presentation presets retain identical permissions, requests, saved behavior and consequential states.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-10",
+          "requirement": "Validate actual consumer requests and provider responses against the current OpenAPI schema, with semantic/security/ownership tests that schema validation cannot replace. Preserve independent transactions.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        },
+        {
+          "id": "324-11",
+          "requirement": "Resolve the task-owned findings and manual evidence in [current ownership](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/task-refinements-06.md) and [acceptance protocols](https://github.com/Pipepito/acestream-scraper/blob/de69e644428abe5d0e4149b4e437d37996c4b769/docs/design/ux-review-314/acceptance-protocols.md); recheck current source before implementation.",
+          "implementation": "pending",
+          "tests": [],
+          "acceptance": "pending"
+        }
+      ]
+    }
+  ]
+}

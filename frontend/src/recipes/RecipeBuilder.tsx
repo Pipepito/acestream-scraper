@@ -27,6 +27,7 @@ function download(name: string, data: unknown) {
 }
 export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, fetchSample, onSave, onDraftState }: Props) {
   const tUi = useUiText();
+  const pasteId = React.useId();
   const [recipe, setRecipe] = useState<ExtractionRecipe>(initialRecipe ?? newRecipe());
   const [sample, setSample] = useState('');
   const [pastedRecipe, setPastedRecipe] = useState('');
@@ -123,7 +124,7 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
           <Button variant="outlined" onClick={() => recipeInput.current?.click()}>{tUi("Import recipe")}</Button>
         </Stack>
         <Accordion disableGutters elevation={0}>
-          <AccordionSummary><Typography>{tUi("Paste a recipe")}</Typography></AccordionSummary>
+          <AccordionSummary id={`${pasteId}-label`} aria-controls={`${pasteId}-content`}><Typography>{tUi("Paste a recipe")}</Typography></AccordionSummary>
           <AccordionDetails><Stack spacing={1}><TextField label={tUi("Recipe JSON")} multiline minRows={4} maxRows={12} value={pastedRecipe} onChange={e => setPastedRecipe(e.target.value)} fullWidth /><Button disabled={!pastedRecipe} onClick={() => void run(async () => { if (new Blob([pastedRecipe]).size > MAX_RECIPE_BYTES) throw new Error('Recipe exceeds 512 KiB'); changeRecipe(validateRecipe(JSON.parse(pastedRecipe))); setPastedRecipe(''); setNotice('Recipe imported. Test it against your sample or source URL.'); })}>{tUi("Load pasted recipe")}</Button></Stack></AccordionDetails>
         </Accordion>
         <input ref={sampleInput} type="file" accept=".html,.htm,.txt,.json" hidden onChange={e => { void readFile(e.target.files?.[0], false); e.target.value = ''; }} />

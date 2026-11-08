@@ -68,6 +68,10 @@ for (const preset of ['lime', 'coral', 'cyan']) {
         expect(payloads).toEqual([{ channel_ids: expected, expected_order: original }]);
         expect(order).toEqual(expected);
         expect(writes).toEqual(['/api/v1/tv-channels/reorder']);
+        // WebKit reports unused preloads several seconds after load. Observe
+        // beyond that window once per browser instead of letting a fast pass
+        // close the context before a late bundle warning can surface.
+        if (preset === 'cyan' && language === 'en' && mode === 'light') await page.waitForTimeout(6500);
         expect(errors).toEqual([]);
       });
     }

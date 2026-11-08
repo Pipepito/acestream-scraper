@@ -249,7 +249,7 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', la
         main: appTokens.action.secondaryText,
         dark: appTokens.action.primaryHover,
         light: mode === 'light' ? '#14b8a6' : '#5eead4',
-        contrastText: appTokens.action.primaryText,
+        contrastText: mode === 'light' ? '#ffffff' : appTokens.text.inverse,
       },
       secondary: {
         main: appTokens.action.secondaryText,

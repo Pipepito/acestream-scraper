@@ -113,7 +113,7 @@ export default function Events() {
         </Box>
       </Stack> : null}
       {list.isPending ? <CircularProgress aria-label={tUi("Loading events")} /> : list.isError ? <Alert severity="error" action={<Button onClick={() => void list.refetch()}>{tUi("Retry")}</Button>}>{tUi("Events could not be loaded.")}</Alert> : !events.length ? <Stack spacing={1} sx={{ py: 3 }}>
-        <Typography variant="h6">{tUi("No events in this view")}</Typography>
+        <Typography variant="h6" component="h2">{tUi("No events in this view")}</Typography>
         <Typography color="text.secondary">{tUi("Add an event or import a schedule. Events without a date appear in the upcoming schedule and All saved events.")}</Typography>
         <Box><Button onClick={resetFilters}>{tUi("Show all events")}</Button><Button onClick={() => setAdding(true)}>{tUi("Add events")}</Button></Box>
       </Stack> : <EventAgenda events={events} zone={zone} today={today(zone)} onSelect={setSelected} />}

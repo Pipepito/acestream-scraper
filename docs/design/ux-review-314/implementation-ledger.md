@@ -634,3 +634,33 @@ evidence remains explicitly unaccepted and requires the stated external owners.
   final fresh fixture uses its own HLS directory. Complete Firefox rerun retains
   all assertions and strict API/console/backend monitoring. Docker backends have
   separate container namespaces and explicit task HLS directories.
+
+### Rendered accessibility and delayed preload corrections
+
+- A production axe-core 4.14.0 scan covered 21 routes × three combinations:
+  Lime/Spanish/dark/320px, Coral/English/light/390px, Cyan/Spanish/light/1440px.
+  It found 12 violation instances: filled primary Chip contrast, heading-order
+  jumps, pagination controls directly inside the grid role, and unnamed recipe
+  accordion regions. Shared fixes removed all 12 in the same 63-state rescan.
+  Retained 85 incomplete rule instances are explicitly triaged in
+  `a11y-browser-evidence.json`; they are not counted as passes or native AT evidence.
+- Shared pagination now sits outside the desktop grid and retains the same DOM
+  control across paging; a regression verifies retained keyboard focus. Event and
+  schedule headings use the appropriate semantic levels. Recipe accordion names
+  and controls use stable React IDs in both installed and standalone entries.
+- Filled palette-primary controls use contrast text for their actual background;
+  primary action buttons retain their own action tokens. Six-theme coverage now
+  records 288 exact contrast pairings. Focused fixes passed 69 tests; the final
+  pagination/focus suite separately passed 19 tests, with no warnings.
+- A slower WebKit run exposed delayed unused-preload warnings for the already
+  executed entry module. Vite now excludes only that redundant late preload hint;
+  native imports and other preloads stay intact. All 48 reorder combinations
+  passed, including observation beyond the delayed warning window in each browser.
+  The interrupted earlier responsive run remains failed/incomplete, not a pass.
+- `2b55a46e` strict local Firefox passed 61/61. `cebf5422` Docker-on and Docker-off
+  each passed 61/61 with strict monitoring; managed engine restart and external
+  disabled-service behavior both ran. Final source changes above require affected
+  application/browser/image reruns. The standalone checkpoint passed 36/36.
+- Runtime contract initially failed because the sandbox denied `/dev/fd` process
+  substitution. Its permitted rerun is being checked; the earlier blanket
+  nine-stage statement must be read with this correction until that result is recorded.

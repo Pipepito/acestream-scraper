@@ -51,7 +51,7 @@ The exact revision and results belong in the epic implementation ledger.
 
 | Owner | Reason and variable presentation | Invariants and parity evidence |
 | --- | --- | --- |
-| `styles/presets.ts`, `theme.ts` | Palette, density, section spacing, radii and Lime headings distinguish the approved interfaces | Same typed tokens/controls; six-theme tests and 282 contrast pairings |
+| `styles/presets.ts`, `theme.ts` | Palette, density, section spacing, radii and Lime headings distinguish the approved interfaces | Same typed tokens/controls; six-theme tests and 288 contrast pairings |
 | Watch composition | Approved coastline imagery has different prominence; compact Lime/phone layouts prioritize catalogue and player | Generic caption, no signal claim; same catalogue, filters and viewer owner; Live TV/media journeys |
 | `SportIllustration` | Relevant sport imagery adapts crop/prominence to the preset | Actual sport metadata chooses assets; generic caption; same event and explicitly requested event artwork; 48 browser combinations |
 

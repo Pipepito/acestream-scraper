@@ -1,6 +1,6 @@
 {
-  "sourceBase": "884e8946",
-  "scope": "Theme semantic pairs after contrast correction; not a whole-page accessibility audit",
+  "sourceBase": "2b55a46e",
+  "scope": "Theme semantic pairs including the subsequent filled-primary contrast correction; not whole-page or native accessibility acceptance",
   "measurement": "MUI WCAG relative-luminance contrast; normal text >=4.5, essential controls/icons >=3. Disabled controls excluded.",
   "reports": [
     {
@@ -328,6 +328,13 @@
           "background": "#f3976c",
           "minimum": 4.5,
           "ratio": 6.955882352941176
+        },
+        {
+          "role": "primary-filled-control",
+          "foreground": "#202336",
+          "background": "#ffad87",
+          "minimum": 4.5,
+          "ratio": 8.514705882352942
         },
         {
           "role": "secondary-button",
@@ -679,6 +686,13 @@
           "ratio": 6.955882352941176
         },
         {
+          "role": "primary-filled-control",
+          "foreground": "#ffffff",
+          "background": "#953d1b",
+          "minimum": 4.5,
+          "ratio": 7.094594594594594
+        },
+        {
           "role": "secondary-button",
           "foreground": "#ffffff",
           "background": "#953d1b",
@@ -1026,6 +1040,13 @@
           "background": "#35c8ac",
           "minimum": 4.5,
           "ratio": 6.944444444444444
+        },
+        {
+          "role": "primary-filled-control",
+          "foreground": "#102e29",
+          "background": "#55dfc4",
+          "minimum": 4.5,
+          "ratio": 8.847222222222221
         },
         {
           "role": "secondary-button",
@@ -1377,6 +1398,13 @@
           "ratio": 6.944444444444444
         },
         {
+          "role": "primary-filled-control",
+          "foreground": "#ffffff",
+          "background": "#146352",
+          "minimum": 4.5,
+          "ratio": 7.142857142857142
+        },
+        {
           "role": "secondary-button",
           "foreground": "#ffffff",
           "background": "#146352",
@@ -1726,6 +1754,13 @@
           "ratio": 8.465753424657533
         },
         {
+          "role": "primary-filled-control",
+          "foreground": "#222d16",
+          "background": "#c0ef54",
+          "minimum": 4.5,
+          "ratio": 10.767123287671232
+        },
+        {
           "role": "secondary-button",
           "foreground": "#222d16",
           "background": "#c0ef54",
@@ -2073,6 +2108,13 @@
           "background": "#a8d63f",
           "minimum": 4.5,
           "ratio": 8.465753424657533
+        },
+        {
+          "role": "primary-filled-control",
+          "foreground": "#ffffff",
+          "background": "#425b16",
+          "minimum": 4.5,
+          "ratio": 7.664233576642335
         },
         {
           "role": "secondary-button",

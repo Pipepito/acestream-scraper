@@ -504,4 +504,19 @@ describe('TVChannelsTable', () => {
     expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeEnabled();
     expect(screen.getByLabelText('Rows per page')).toBeInTheDocument();
   });
+  it('keeps shared pagination outside the desktop grid and retains focus after paging', async () => {
+    function PagingTable() {
+      const [page, setPage] = React.useState(0);
+      return <TVChannelsTable {...baseProps} channels={[channelWithStreams]} totalCount={100}
+        page={page} pageSize={10} onPageChange={setPage} />;
+    }
+    renderTable(<PagingTable />);
+    const grid = screen.getByRole('grid');
+    expect(within(grid).queryByRole('combobox', { name: 'Rows per page' })).not.toBeInTheDocument();
+    const next = screen.getByRole('button', { name: 'Go to next page' });
+    await userEvent.click(next);
+    expect(screen.getByText('Page 2 of 10')).toBeVisible();
+    expect(next).toHaveFocus();
+  });
+
 });

@@ -92,3 +92,12 @@ fewer than 40 mounted reorder rows at the supported viewport sizes, complete sav
 arrays and retained focus. Fonts remain below 400,000 source bytes; the unchanged
 500 KB per-chunk build warning threshold remains active. No budget permits dropping
 catalogue entries, permissions, translations or media functionality.
+
+Vite names the HTML entry `app-entry-[hash].js`. Its dynamic-preload dependency
+resolver omits that already-executed entry from late preload hints while retaining
+its native module imports and every other dependency/CSS preload. This removes a
+redundant fetch hint that WebKit reported as unused during slower interactions.
+The large-reorder browser regression observes beyond WebKit's delayed warning
+window once per browser. This uses Vite's documented
+[dependency resolver](https://vite.dev/config/build-options.html#build-modulepreload);
+console warning checks remain enabled.

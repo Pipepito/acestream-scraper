@@ -241,7 +241,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     </Box>
   ); };
 
-  const MobilePagination = () => { const tUi = useUiText(); return (
+  const renderPagination = () => (
     <Paper
       variant="outlined"
       sx={{
@@ -291,12 +291,12 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         </Stack>
       </Stack>
     </Paper>
-  ); };
+  );
 
   const renderMobileMetadata = (channel: TVChannel) => {
     const secondaryMetadata = [
-      channel.language ? `Language: ${channel.language}` : null,
-      channel.country ? `Country: ${channel.country}` : null,
+      channel.language ? tUi('Language: {{value0}}', { value0: channel.language }) : null,
+      channel.country ? `${tUi('Country')}: ${channel.country}` : null,
     ].filter(Boolean);
 
     if (secondaryMetadata.length === 0) {
@@ -458,7 +458,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
               {tUi("Move between pages to keep browsing the list.")}</Typography>
           </Paper>
         )}
-        {totalCount > 0 ? <MobilePagination /> : null}
+        {totalCount > 0 ? renderPagination() : null}
       </Stack>
     );
   }
@@ -491,6 +491,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         disableVirtualization={shouldDisableGridVirtualization({ mode: process.env.NODE_ENV })}
         getRowHeight={() => 'auto'}
         autoHeight
+        hideFooter
         pagination
         paginationMode="server"
         rowCount={totalCount}
@@ -531,6 +532,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
         }}
       />
       ) : null}
+      {totalCount > 0 ? renderPagination() : null}
     </Paper>
   );
 };

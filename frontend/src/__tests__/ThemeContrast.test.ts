@@ -26,6 +26,7 @@ for (const preset of ['lime', 'coral', 'cyan'] as const) for (const mode of ['li
     }
     check('primary-button', t.action.primaryText, t.action.primaryBg);
     check('primary-button-hover', t.action.primaryText, t.action.primaryHover);
+    check('primary-filled-control', palette.primary.contrastText, palette.primary.main);
     check('secondary-button', palette.secondary.contrastText, palette.secondary.main);
     check('danger-button', t.action.dangerText, t.action.dangerBg);
     check('selected-navigation', t.shell.activeNavText, t.shell.activeNavBg);

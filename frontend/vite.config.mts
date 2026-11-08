@@ -25,8 +25,17 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: 'dist',
+    modulePreload: {
+      // Every lazy import runs after the HTML entry has executed. Its shared
+      // exports can remain imports, but preloading that entry again is redundant
+      // and WebKit reports the late preload as unused. Keep all other preloads.
+      resolveDependencies: (_url, dependencies, { hostType }) => hostType === 'js'
+        ? dependencies.filter(dependency => !dependency.startsWith('assets/app-entry-'))
+        : dependencies,
+    },
     rolldownOptions: {
       output: {
+        entryFileNames: 'assets/app-entry-[hash].js',
         codeSplitting: {
           // Assign dependency modules once; otherwise overlapping groups can
           // create initialization cycles between MUI, React and their helpers.

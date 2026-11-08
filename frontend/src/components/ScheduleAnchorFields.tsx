@@ -32,7 +32,7 @@ export default function ScheduleAnchorFields() {
     event.preventDefault();
     save.mutate(config);
   }}>
-    <Typography variant="subtitle2">{tUi("Schedule start times")}</Typography>
+    <Typography variant="subtitle2" component="h3">{tUi("Schedule start times")}</Typography>
     <Typography variant="body2" color="text.secondary">{tUi("Jobs repeat at the intervals above. Leave a start time blank to count from application startup. Due maintenance jobs wait their turn, so a long run can delay the next job.")}</Typography>
     <TextField label={tUi("Schedule timezone")} size="small" required value={config.timezone} onChange={event => change({ timezone: event.target.value })} disabled={save.isPending} helperText={tUi("For example: Europe/Madrid or UTC. Intervals that divide evenly into an hour or day keep local clock times. Other intervals use elapsed time and can shift with daylight saving.")} />
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>

@@ -13,6 +13,8 @@ import '@testing-library/jest-dom';
 // stub that returns undefined and logs to the virtual console. Components
 // that autoplay a <video> (the stream player) would fill the test output
 // with those traces, so resolve playback quietly instead.
-window.HTMLMediaElement.prototype.play = function play(): Promise<void> {
-  return Promise.resolve();
-};
+if (typeof window !== 'undefined') {
+  window.HTMLMediaElement.prototype.play = function play(): Promise<void> {
+    return Promise.resolve();
+  };
+}

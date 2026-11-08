@@ -103,7 +103,8 @@ class TVChannelService:
                 by_channel.setdefault(program.epg_channel_id, []).append(program)
 
         def slot(program):
-            return GuideSlot(title=program.title, start=program.start_time, end=program.end_time) if program else None
+            return GuideSlot(title=program.title, start=program.start_time, end=program.end_time,
+                             image_url=program.image_url) if program else None
 
         rows = []
         for tv, epg in mapped:

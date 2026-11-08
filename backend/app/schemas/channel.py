@@ -338,6 +338,7 @@ class GuideSlot(BaseModel):
     title: str
     start: datetime
     end: datetime
+    image_url: Optional[str] = None
 
 
 class TVChannelNowNext(BaseModel):

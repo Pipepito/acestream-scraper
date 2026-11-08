@@ -83,6 +83,10 @@ fi
 echo "Refreshing OpenAPI schema for codegen..."
 PYTHONPATH=backend "$BACKEND_PYTEST" --version >/dev/null 2>&1 || true
 PYTHONPATH=backend backend/venv/bin/python backend/scripts/dump_openapi.py
+if ! git diff --exit-code -- backend/openapi.json; then
+  echo "ERROR: OpenAPI snapshot diverges from the application. Regenerate and commit backend/openapi.json."
+  exit 1
+fi
 
 echo "Running canonical frontend suite ($PROFILE)..."
 (

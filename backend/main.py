@@ -326,10 +326,11 @@ async def startup_readiness(request: Request, call_next):
     path = route_path(request.scope)
     if startup_service.active and startup_service.status != 'ready':
         spa_paths = {'/', '/startup', '/live-tv', '/tv-channels', '/acestream-channels',
-                     '/recordings', '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
+                     '/recordings', '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings',
+                     '/connections', '/system', '/events'}
         allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup', '/api/v1/auth/'))
         allowed = allowed or path in ('/login', '/watch', '/setup')
-        allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/'))
+        allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/', '/connections/', '/system/', '/integrations/', '/scraper/'))
         allowed = allowed or path in {'/favicon.ico', '/manifest.json', '/robots.txt'}
         allowed = allowed or path == '/api/v1/system/diagnostics'
         if not allowed and request.method != 'OPTIONS':
@@ -633,6 +634,9 @@ async def read_index():
     except FileNotFoundError:
         # If frontend build doesn't exist yet, return a placeholder
         return HTMLResponse(content="<html><body><h1>Acestream Scraper</h1><p>Frontend not built yet. Please run 'npm run build' in the frontend directory.</p></body></html>")
+
+from app.api.openapi_contract import installation_openapi
+app.openapi = lambda: installation_openapi(app)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, proxy_headers=False, timeout_graceful_shutdown=3)

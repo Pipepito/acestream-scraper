@@ -12,7 +12,9 @@ Run from the repo root:
     PYTHONPATH=backend backend/venv/bin/python backend/scripts/dump_openapi.py
 """
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -28,10 +30,13 @@ def main() -> int:
     # Importing main pulls in settings/database/lifespan but does not invoke
     # the lifespan context manager (TestClient does that), so this stays a
     # lightweight build-time operation.
-    from main import app
-
+    # Schema generation must not read an installation's DB/runtime configuration.
+    with tempfile.TemporaryDirectory(prefix="scraper-openapi-") as temporary:
+        os.environ['DATABASE_URL'] = f'sqlite:///{temporary}/schema.db'
+        os.environ['LEGACY_DATABASE_URL'] = f'sqlite:///{temporary}/legacy.db'
+        from main import app
+        schema = app.openapi()
     target = Path(__file__).resolve().parents[1] / "openapi.json"
-    schema = app.openapi()
     target.write_text(json.dumps(schema, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote OpenAPI schema to {target}")
     return 0

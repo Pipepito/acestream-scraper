@@ -25,6 +25,7 @@ beforeEach(() => {
   jest.mocked(setupService.get).mockResolvedValue(initial);
   jest.mocked(setupService.save).mockResolvedValue({ ...initial, setup_complete: true });
   jest.mocked(scraperService.getURLs).mockResolvedValue([]);
+  jest.mocked(scraperService.getProviders).mockResolvedValue([]);
   jest.mocked(epgService.getSources).mockResolvedValue([]);
 });
 it('adds and imports a source, then permits skipping the guide without changing runtime settings', async () => {

@@ -96,7 +96,7 @@ const App: React.FC = () => {
         <Route path="/tv-channels" element={<TVChannels />} />
         <Route path="/tv-channels/:id" element={<TVChannelDetail />} />
         <Route path="/scraper" element={<Scraper />} />
-        <Route path="/scraper/builder" element={<React.Suspense fallback={<p>{tUi("Loading extraction builder…")}</p>}><ExtractionBuilder /></React.Suspense>} />
+        <Route path="/scraper/builder" element={<React.Suspense fallback={<p role="status">{tUi("Loading extraction builder…")}</p>}><ExtractionBuilder /></React.Suspense>} />
         <Route path="/epg" element={<EPG />} />
         <Route path="/epg/channels/:id" element={<EPGChannelDetail />} />
         <Route path="/playlist" element={<Playlist />} />

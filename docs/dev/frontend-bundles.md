@@ -41,3 +41,9 @@ When upgrading HLS:
 
 From `frontend/`, run `npm run build:backend` to build and copy the SPA for backend
 journeys. Follow `e2e/README.md` for isolated Firefox, mobile and monitor suites.
+
+`StreamPlayerDialog` requests HLS through `loadHls()` only while open. Keep the
+existing controller/media chunk boundary and one viewer lifecycle. A late module
+load after close must not create an HLS instance; language, theme and presentation
+changes must not reload the decoder or replace the video element. The loaded
+constructor is cached by the module loader, while instances remain viewer-owned.

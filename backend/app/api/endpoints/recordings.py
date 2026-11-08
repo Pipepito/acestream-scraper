@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.schemas.recordings import (RecordingCreate, RecordingEdit, RecordingView, RecordingList,
-    RecordingSettings, RecordingCapabilities, RecordingConversion, RecordingFile, RecordingState)
+    RecordingSettings, RecordingCapabilities, RecordingConversion, RecordingFile, RecordingState, RecordingCollection)
 from app.services.recording_service import RecordingService
 from app.services.recording_files import file_response
 
@@ -37,9 +37,9 @@ def create(data: RecordingCreate, svc: RecordingService = Depends(service)):
 
 @router.get('', response_model=RecordingList)
 def listing(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
-            state: RecordingState | None = None, search: str | None = Query(None, max_length=200),
+            collection: RecordingCollection = 'all', state: RecordingState | None = None, search: str | None = Query(None, max_length=200),
             tv_channel_id: int | None = None, svc: RecordingService = Depends(service)):
-    return svc.list(offset, limit, state=state, search=search, tv_channel_id=tv_channel_id)
+    return svc.list(offset, limit, collection=collection, state=state, search=search, tv_channel_id=tv_channel_id)
 
 
 from app.schemas.recordings import ProgrammeSelection

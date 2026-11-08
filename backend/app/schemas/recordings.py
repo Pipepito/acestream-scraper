@@ -4,6 +4,8 @@ from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
+RecordingCollection = Literal['all', 'library', 'upcoming', 'history']
+
 RecordingState = Literal['scheduled', 'starting', 'recording', 'recovering', 'finalizing',
                          'completed', 'partial', 'failed', 'missed', 'cancelled', 'deleting', 'deleted']
 

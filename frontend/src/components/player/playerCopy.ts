@@ -114,3 +114,15 @@ export const describeRemotePlayerProbe = (probe: RemotePlayerProbe): ProbeVerdic
     text: [connected, access].filter(Boolean).join(' '),
   };
 };
+
+/** Keep the admission reason and numeric capacity separate from server wording. */
+export function describePlayerStartError(error: unknown): string {
+  if (error && typeof error === 'object' && 'code' in error && error.code === 'PLAYER_LIMIT_REACHED') {
+    const context = 'context' in error ? error.context : null;
+    const limit = context && typeof context === 'object' && 'limit' in context ? context.limit : null;
+    return typeof limit === 'number' && Number.isFinite(limit) && limit > 0
+      ? uiText('Too many channels are playing at once (limit {{limit}}). Close another player and try again.', { limit })
+      : uiText('Too many channels are playing at once. Close another player and try again.');
+  }
+  return getErrorMessage(error);
+}

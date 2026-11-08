@@ -20,7 +20,8 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
+import { loadHls } from './loadHls';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import { usePlayerSessionStatus, useStartPlayerSession } from '../../hooks/usePlayer';
 import { usePublicUrl } from '../../hooks/useSystemServices';
@@ -28,9 +29,8 @@ import { playerService } from '../../services/playerService';
 import { getApiToken } from '../../services/apiToken';
 import { accessSession } from '../../services/accessSession';
 import { buildPublicUrl } from '../../services/playlistService';
-import { getErrorMessage } from '../../utils/errorUtils';
 import { formatBitrate } from '../../utils/format';
-import { describePlayerError } from './playerCopy';
+import { describePlayerStartError, describePlayerError } from './playerCopy';
 import CastControls from './CastControls';
 import { useAccess } from '../access/AccessContext';
 
@@ -84,9 +84,11 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
   // open/contentId effect's cleanup would otherwise close over the id as it
   // was when the effect ran (null) and never release the session.
   const sessionIdRef = useRef<string | null>(null);
-  const [startError, setStartError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<unknown>(null);
+  const [hlsConstructor, setHlsConstructor] = useState<typeof Hls | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [hlsCodecError, setHlsCodecError] = useState(false);
-  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [playbackError, setPlaybackError] = useState<'stopped' | 'load' | null>(null);
   const [mediaState, setMediaState] = useState<'buffering' | 'playing' | 'paused'>('buffering');
   // Bounded so a permanently broken stream surfaces instead of retrying forever.
   const recoveries = useRef(0);
@@ -114,6 +116,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
     // Retry after an error: release the session we are replacing first.
     leave();
     setStartError(null);
+    setLoadAttempt(attempt => attempt + 1);
     setHlsCodecError(false);
     setPlaybackError(null);
     setMediaState('buffering');
@@ -137,17 +140,18 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         setSessionId(session.id);
       }, (err) => {
         if (generation !== requestGeneration.current) return;
-        if (err.code === 'PLAYER_LIMIT_REACHED') {
-          const limit = (err.context as { limit?: number } | undefined)?.limit;
-          setStartError(
-            `Too many channels are playing at once${limit ? ` (limit ${limit})` : ''}. Close another player and try again.`
-          );
-        } else {
-          setStartError(getErrorMessage(err));
-        }
+        setStartError(err);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentId, audioIndex, subtitleIndex, leave]);
+
+  useEffect(() => {
+    if (!open || hlsConstructor) return;
+    let cancelled = false;
+    void loadHls().then(constructor => { if (!cancelled) setHlsConstructor(() => constructor); },
+      () => { if (!cancelled) setPlaybackError('load'); });
+    return () => { cancelled = true; };
+  }, [open, hlsConstructor, loadAttempt]);
 
   useEffect(() => {
     if (open && contentId) startSession();
@@ -188,7 +192,8 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       }
       return;
     }
-    if (!video || !status || !status.hls_ready || attachedUrl.current === status.playlist_url) return;
+    if (!video || !status || !status.hls_ready || !hlsConstructor || attachedUrl.current === status.playlist_url) return;
+    const Hls = hlsConstructor;
     attachedUrl.current = status.playlist_url;
     hlsRef.current?.destroy();
     hlsRef.current = null;
@@ -223,7 +228,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
         }
         hls.destroy();
         if (hlsRef.current === hls) hlsRef.current = null;
-        setPlaybackError('Playback stopped in your browser. Try again.');
+        setPlaybackError('stopped');
       });
       hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
         hls.subtitleTrack = status.subtitle_index != null ? 0 : -1;
@@ -237,7 +242,7 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
       video.src = withToken(status.playlist_url);
     }
     startPlayback(video);
-  }, [status, statusError]);
+  }, [status, statusError, hlsConstructor]);
 
   const isHttpStream = contentId?.startsWith('url:') ?? false;
   const streamLink = contentId && !isHttpStream ? buildPublicUrl(`/tuner/stream/${contentId}.ts`, publicUrl?.url) : '';
@@ -258,13 +263,13 @@ const StreamPlayerDialog: React.FC<StreamPlayerDialogProps> = ({ open, contentId
 
   const gone = Boolean(statusError && statusError.status === 404);
   const backendProblem = gone ? uiText("The stream ended.") : statusError ? uiText("Could not check the stream status. Check your connection and access token, then retry.") : status ? describePlayerError(status, hlsCodecError) : null;
-  const problem = startError ?? backendProblem ?? playbackError;
+  const problem = startError ? describePlayerStartError(startError) : backendProblem ?? (playbackError === 'load' ? tUi('The browser player could not load. Check your connection and try again.') : playbackError === 'stopped' ? tUi('Playback stopped in your browser. Try again.') : null);
   const stats = status?.stats;
   const statusText =
     status?.state === 'ready'
       ? mediaState === 'playing' ? uiText("Playing") : mediaState === 'paused' ? uiText("Paused") : uiText("Buffering…")
       : status?.state === 'starting'
-        ? `Starting… ${stats ? `${stats.peers} peers · ${formatBitrate(stats.speed_down * 8000)}` : isHttpStream ? uiText("opening the HTTP stream") : 'contacting the engine'}`
+        ? tUi('Starting… {{details}}', { details: stats ? tUi('{{count}} peers · {{rate}}', { count: stats.peers, rate: formatBitrate(stats.speed_down * 8000) }) : isHttpStream ? uiText('opening the HTTP stream') : tUi('contacting the engine') })
         : start.isPending
           ? uiText("Starting…")
           : '';

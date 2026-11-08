@@ -25904,6 +25904,22 @@
           },
           {
             "in": "query",
+            "name": "collection",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "library",
+                "upcoming",
+                "history"
+              ],
+              "title": "Collection",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "state",
             "required": false,
             "schema": {

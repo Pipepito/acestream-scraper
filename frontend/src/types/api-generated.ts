@@ -16935,6 +16935,7 @@ export interface operations {
             query?: {
                 offset?: number;
                 limit?: number;
+                collection?: "all" | "library" | "upcoming" | "history";
                 state?: ("scheduled" | "starting" | "recording" | "recovering" | "finalizing" | "completed" | "partial" | "failed" | "missed" | "cancelled" | "deleting" | "deleted") | null;
                 search?: string | null;
                 tv_channel_id?: number | null;

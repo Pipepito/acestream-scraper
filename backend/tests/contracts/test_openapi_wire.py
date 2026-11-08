@@ -88,3 +88,13 @@ def test_real_empty_bulk_edit_contract(client, contract):
     request = request_adapter({'method': 'PUT', 'url': url, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(body)})
     contract.validate_request(request)
     validate_response(contract, request, response.status_code, response.headers, response.content)
+
+
+@pytest.mark.parametrize('collection', ['all', 'library', 'upcoming', 'history'])
+def test_real_recording_collection_contract(client, contract, collection):
+    url = f'http://testserver/api/v1/recordings?collection={collection}&offset=0&limit=50'
+    response = client.get(url)
+    assert response.status_code == 200
+    request = request_adapter({'method': 'GET', 'url': url})
+    contract.validate_request(request)
+    validate_response(contract, request, response.status_code, response.headers, response.content)

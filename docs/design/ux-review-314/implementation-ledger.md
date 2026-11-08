@@ -254,3 +254,29 @@ three presets, two themes, widths 320/390/1440 and Watch/Network/XML export; zer
 page errors or document overflow. Screenshots/results are under
 `/tmp/ux314-evidence/current/spanish-fonts-feedback/`. These are browser smoke
 checks, not claims of full visual, screen-reader or human acceptance.
+
+### Recording collections and deferred HLS checkpoint
+
+Recordings now separates saved Library, Upcoming and active, and History through
+one canonical list/controller. Backend filters precede count/pagination and preserve
+legacy `collection=all`; new values are documented/generated in OpenAPI. Multipart
+and missing/deleted-file cases retain history, while deleted/deleting rows expose
+no media actions. Part labels track the original when derivatives are added.
+Conversion and removal of protection have distinct confirmations and pending gates.
+The list batches artifacts/attempts: a regression asserts four SQL reads for a page.
+
+HLS code now loads only when a viewer opens. Built Chromium network evidence shows
+zero media-bundle requests before opening Watch, then exactly the two existing HLS
+chunks. No playback controller/provider was replaced. Regression tests cover a
+late decoder load after close and retaining the exact video/HLS/viewer across
+language/theme changes. Real playback and complete performance acceptance remain
+separate outstanding checks.
+
+Focused results: 35 backend recording/wire tests; 40 frontend tests in five suites;
+typecheck, zero-warning lint and production build passed. Logs are under
+`/tmp/ux314-evidence/recording-*`, `deferred-player-*`; the initial browser locator
+was corrected to the channel-specific accessible Watch name before rerunning.
+FFmpeg and ffprobe 9.0.2 for arm64 are prepared in `/tmp/ux314-tools/media-bin`,
+verified against the publisher's SHA-256 values and executable locally. Provenance:
+`/tmp/ux314-evidence/media-tool-provenance.json`; publisher
+https://www.osxexperts.net/. No global installation or application dependency changed.

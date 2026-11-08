@@ -39,6 +39,8 @@ it('validates production serializers after transport, including false, empty, ze
   expect(JSON.parse(exchanges[0].body)).toEqual({ acestreamchannel_ids: ['one', 'two'], fields: { group: '', is_active: false } });
   expect(exchanges[2].url).toContain('offset=0');
   expect(exchanges[2].url).not.toContain('state=');
+  for (const collection of ['library', 'upcoming', 'history'] as const) await recordingService.list(undefined, 50, 'Evening', collection);
+  expect(exchanges[7].url).toContain('collection=library');
   const result = execFileSync(path.resolve('../backend/venv/bin/python'), [path.resolve('../backend/scripts/validate_api_contracts.py')], { input: JSON.stringify(exchanges), encoding: 'utf8' });
-  expect(result).toContain('Validated 7 actual consumer requests');
+  expect(result).toContain('Validated 10 actual consumer requests');
 });

@@ -1,3 +1,4 @@
+import * as hlsLoader from '../components/player/loadHls';
 import React from 'react';
 import Hls from 'hls.js';
 import { ThemeProvider } from '@mui/material/styles';
@@ -78,6 +79,42 @@ describe('StreamPlayerDialog', () => {
     hlsInstances.length = 0;
     mockPublicUrl.mockReturnValue({ data: { url: 'http://scraper.lan:8000', source: 'setting', warnings: [] } });
     mockStart.mockResolvedValue({ id: 's1' });
+  });
+
+  it('does not load HLS while closed and discards a late load after closing', async () => {
+    let complete!: (constructor: typeof Hls) => void;
+    const loader = jest.spyOn(hlsLoader, 'loadHls').mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+    mockStatus.mockReturnValue(readySession);
+    try {
+      const view = await renderDialog({ open: false });
+      expect(loader).not.toHaveBeenCalled();
+      expect(mockStart).not.toHaveBeenCalled();
+      view.rerender(<ThemeProvider theme={createAppTheme('light')}><StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} /></ThemeProvider>);
+      await act(async () => { await Promise.resolve(); });
+      expect(loader).toHaveBeenCalled();
+      expect(hlsInstances).toHaveLength(0);
+      view.unmount();
+      await act(async () => { complete(Hls); await Promise.resolve(); });
+      expect(hlsInstances).toHaveLength(0);
+      expect(mockLeave).toHaveBeenCalledTimes(1);
+    } finally { loader.mockRestore(); }
+  });
+
+  it('keeps the video, HLS instance and viewer when language and theme change', async () => {
+    const i18next = (await import('i18next')).default;
+    mockStatus.mockReturnValue(readySession);
+    const view = await renderDialog();
+    const video = screen.getByLabelText('Video player for Arena TV');
+    const hls = hlsInstances[0];
+    try {
+      await act(async () => { await i18next.changeLanguage('es'); });
+      view.rerender(<ThemeProvider theme={createAppTheme('dark', 'lime', 'es')}><StreamPlayerDialog open contentId={'a'.repeat(40)} title="Arena TV" onClose={jest.fn()} /></ThemeProvider>);
+      expect(screen.getByLabelText(i18next.t('Video player for {{value0}}', { ns: 'ui', value0: 'Arena TV' }))).toBe(video);
+      expect(hlsInstances).toHaveLength(1);
+      expect(hls.destroy).not.toHaveBeenCalled();
+      expect(mockStart).toHaveBeenCalledTimes(1);
+      expect(mockLeave).not.toHaveBeenCalled();
+    } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
   });
 
   it.each([true, false])('keeps legacy credentials out of account media (hls.js: %s)', async (supported) => {

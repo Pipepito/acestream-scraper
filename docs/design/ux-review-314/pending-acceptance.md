@@ -1,6 +1,6 @@
 # Remaining acceptance and external owners
 
-Application snapshot: `7f5ce82d`, 2026-11-08. This is an outstanding-work register,
+Application snapshot: `e40dc853`, 2026-11-08. This is an outstanding-work register,
 not a waiver. PR #325 remains draft and issues #314–#324 stay open. Passing local
 checks cannot substitute for the evidence below. The per-criterion scope is in
 `acceptance.json`; exact automated outcomes and earlier failures are in

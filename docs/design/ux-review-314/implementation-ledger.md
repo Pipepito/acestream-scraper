@@ -731,3 +731,47 @@ evidence remains explicitly unaccepted and requires the stated external owners.
   Actual serializer contracts pass 3/3 after the fixture change. Integrated
   validation is repeated for the import-order correction; historical scanner
   classification requires owner triage and is not silently counted as clean.
+
+### Scan-corrected application `e40dc853`
+
+- The unchanged pinned source/security scanner completed: 391 findings, one new
+  historical synthetic-UUID classification, **zero new current-tree findings**.
+  Both Ruff corrections and the current test fixture pass the scan. The historical
+  false positive stays visible for owner triage; no private exception or history
+  rewriting was used. Focused provider/static contracts passed 33 tests and actual
+  consumer serializers passed 3 tests before the full rerun.
+- Actual private HTTP and HTTPS recording checks passed on this exact backend.
+  All nine public contracts passed. Frontend production assets remain identical
+  to `0e10d63e`; the source correction moves an import and clarifies test data.
+- At the preceding `7f5ce82d` checkpoint, all 15 image builds passed, all five native
+  ARM64 runtime probes passed and the ARMv7 layout probe passed. The private AMD64
+  wrapper failed its ARM-layout assumption; the separate full AMD64 emulated probe
+  passed. All seven image security comparisons completed with zero new findings
+  (427 existing findings per ARM64 image, 431 AMD64, 358 ARMv7). The first scraper scan was
+  incomplete and its same-policy diagnostic retry succeeded; its cause was not
+  reproduced. Final images/scans are repeated for `e40dc853`.
+
+### Final screenshot and account-race corrections
+
+- Direct inspection of 320px WebKit screenshots found reorder names squeezed into
+  a few letters per line despite passing overflow checks. Phone rows now reserve
+  the upper row for the complete name and put numbering/arrow controls below.
+  Desktop layout and full-order semantics are unchanged. A regression requires an
+  ordinary 23-character name to fit within two lines at 320/390px, alongside the
+  existing virtualized focus and exact 10,000-ID submission assertions. Curated
+  synthetic before/after crops are under `screenshots/reorder-320-*.png`.
+- The `e40dc853` local strict run had 60 passes and one unexpected policy 403.
+  Its trace showed GET `/auth/policy` beginning before POST `/auth/disable` but
+  completing after protection was disabled. Administrative reads now consume query
+  AbortSignals and are cancelled before disabling; new reads and editor actions
+  pause during submission. Failure retains the form and resumes reads. A deterministic
+  regression verifies abort-before-mutation, blocked concurrent edits and retained
+  password/confirmation after rejection. Focused Access/reorder tests pass 20/20;
+  frontend types, warning-free lint and production builds pass.
+- The preceding Docker-off run had 60 passes and one navigation readiness timeout
+  under concurrent build load; no timeout or error-monitor allowance was widened.
+  The following run was interrupted by the session/environment restart. Docker's
+  socket was then absent; the maintainer restarted Docker Desktop and its permitted
+  availability check now succeeds. Incomplete application/image/packaging runs and
+  the partial 48-case phone fix run are not counted as passes. Resume final checks
+  from frozen sources, keeping heavy builds separate from browser timing checks.

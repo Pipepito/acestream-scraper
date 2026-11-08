@@ -43,6 +43,12 @@ for (const preset of ['lime', 'coral', 'cyan']) {
         const list = page.getByRole('list', { name: text['Channel order'], exact: true });
         const first = page.getByRole('button', { name: handleName(1), exact: true });
         await expect(first).toBeVisible();
+        if ((page.viewportSize()?.width ?? 1000) <= 390) {
+          // An ordinary 23-character name must remain readable beside controls,
+          // not wrap a few letters per line despite technically fitting the page.
+          const name = list.getByText(channel(1, 0).name, { exact: true });
+          expect(await name.evaluate(node => node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight))).toBeLessThanOrEqual(2.1);
+        }
         expect(await list.getByRole('listitem').count()).toBeLessThan(40);
         await first.focus();
         await first.press('End');

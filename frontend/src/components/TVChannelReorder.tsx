@@ -106,8 +106,8 @@ export default function TVChannelReorder({ channels, onSave, onCancel }: {
         onBlurCapture={event => { if (!scrollElement.current?.contains(event.relatedTarget as Node | null)) setFocusedId(null); }}
         onDragOver={e => { if (!pending && dragged.current !== null) { e.preventDefault(); setOver(channel.id); e.dataTransfer.dropEffect = 'move'; } }}
         onDrop={e => { e.preventDefault(); if (dragged.current !== null) move(dragged.current, channel.id); dragged.current = null; setDraggedId(null); setOver(null); }}
-        sx={{ ...(virtualized ? { position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${item.start}px)` } : {}), display: 'flex', alignItems: 'center', gap: 1, p: 1, borderBottom: 1, borderColor: 'divider', bgcolor: over === channel.id ? 'action.selected' : 'transparent' }}>
-        <IconButton data-drag-handle draggable={!pending} disabled={pending} aria-label={tUi("Drag {{value0}}", { value0: channel.name })} sx={{ cursor: 'grab' }}
+        sx={{ ...(virtualized ? { position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${item.start}px)` } : {}), display: { xs: 'grid', sm: 'flex' }, gridTemplateColumns: '44px minmax(0, 1fr) 44px 44px', gridTemplateAreas: '"handle name name name" "number . up down"', alignItems: 'center', gap: 1, p: 1, borderBottom: 1, borderColor: 'divider', bgcolor: over === channel.id ? 'action.selected' : 'transparent' }}>
+        <IconButton data-drag-handle draggable={!pending} disabled={pending} aria-label={tUi("Drag {{value0}}", { value0: channel.name })} sx={{ cursor: 'grab', gridArea: 'handle' }}
           onDragStart={e => { dragged.current = channel.id; setDraggedId(channel.id); e.dataTransfer.setData('text/plain', String(channel.id)); e.dataTransfer.effectAllowed = 'move'; }}
           onDragEnd={() => { dragged.current = null; setDraggedId(null); setOver(null); }}
           onKeyDown={e => {
@@ -118,10 +118,10 @@ export default function TVChannelReorder({ channels, onSave, onCancel }: {
               focusRow(e.key === 'Home' ? 0 : e.key === 'End' ? ordered.length - 1 : Math.max(0, Math.min(ordered.length - 1, index + (e.key === 'PageUp' ? -10 : 10))));
             }
           }}><DragIndicator /></IconButton>
-        <Typography aria-label={tUi("Number {{value0}}", { value0: index + 1 })} sx={{ minWidth: 32 }}>{index + 1}</Typography>
-        <Typography sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{channel.name}</Typography>
-        <IconButton aria-label={tUi("Move {{value0}} up", { value0: channel.name })} disabled={pending || index === 0} onClick={() => move(channel.id, ordered[index - 1].id)}><ArrowUpward /></IconButton>
-        <IconButton aria-label={tUi("Move {{value0}} down", { value0: channel.name })} disabled={pending || index === ordered.length - 1} onClick={() => move(channel.id, ordered[index + 1].id)}><ArrowDownward /></IconButton>
+        <Typography aria-label={tUi("Number {{value0}}", { value0: index + 1 })} sx={{ minWidth: 32, gridArea: 'number' }}>{index + 1}</Typography>
+        <Typography sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', gridArea: 'name' }}>{channel.name}</Typography>
+        <IconButton sx={{ gridArea: 'up' }} aria-label={tUi("Move {{value0}} up", { value0: channel.name })} disabled={pending || index === 0} onClick={() => move(channel.id, ordered[index - 1].id)}><ArrowUpward /></IconButton>
+        <IconButton sx={{ gridArea: 'down' }} aria-label={tUi("Move {{value0}} down", { value0: channel.name })} disabled={pending || index === ordered.length - 1} onClick={() => move(channel.id, ordered[index + 1].id)}><ArrowDownward /></IconButton>
       </Box>;
       })}
     </Box>

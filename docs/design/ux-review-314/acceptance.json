@@ -16,7 +16,7 @@
             "frontend/src/__tests__/RecordingIntent.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "7f5ce82d"
+          "evidenceRevision": "e40dc853"
         },
         {
           "id": "315-2",
@@ -39,7 +39,7 @@
             "e2e/tests/11-live-tv.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "7f5ce82d"
+          "evidenceRevision": "e40dc853"
         },
         {
           "id": "315-4",

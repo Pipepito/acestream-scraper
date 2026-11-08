@@ -1,7 +1,7 @@
 [
   {
     "origin": "http private IPv4",
-    "revision": "7f5ce82d",
+    "revision": "e40dc853",
     "browser": "149.0.7827.55",
     "capabilities": {
       "secure": false,
@@ -19,7 +19,7 @@
   },
   {
     "origin": "https private IPv4",
-    "revision": "7f5ce82d",
+    "revision": "e40dc853",
     "browser": "149.0.7827.55",
     "capabilities": {
       "secure": true,

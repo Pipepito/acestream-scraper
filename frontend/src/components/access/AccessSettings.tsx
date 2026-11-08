@@ -1,6 +1,7 @@
 import { Alert,Box,Button,Checkbox,FormControlLabel,FormGroup,MenuItem,Stack,TextField,Typography } from '@mui/material';
 import { useQuery,useQueryClient } from '@tanstack/react-query';
 import React,{ useRef,useState } from 'react';
+import { flushSync } from 'react-dom';
 import { getLocale } from '../../i18n/locale';
 import { translateKnown } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
@@ -104,11 +105,11 @@ function PolicyForm({ initial }: { initial: AccessPolicy }) {
   </Stack></ContentSection>;
 }
 
-function CredentialsPanel() {
+function CredentialsPanel({ enabled }: { enabled: boolean }) {
   const tUi = useUiText();
   const cache = useQueryClient();
-  const query = useQuery({ queryKey: ['access-credentials'], queryFn: accessService.credentials });
-  const sessions = useQuery({ queryKey: ['access-sessions'], queryFn: accessService.sessions });
+  const query = useQuery({ queryKey: ['access-credentials'], queryFn: ({ signal }) => accessService.credentials(signal), enabled });
+  const sessions = useQuery({ queryKey: ['access-sessions'], queryFn: ({ signal }) => accessService.sessions(signal), enabled });
   const [label, setLabel] = useState('');
   const [kind, setKind] = useState<'admin' | 'playback'>('playback');
   const [issued, setIssued] = useState('');
@@ -139,25 +140,30 @@ export default function AccessSettings() {
   const tUi = useUiText();
   const access = useAccess();
   const enabled = access?.status.mode === 'accounts';
-  const users = useQuery({ queryKey: ['access-users'], queryFn: accessService.users, enabled });
-  const policy = useQuery({ queryKey: ['access-policy'], queryFn: accessService.policy, enabled });
+  const cache = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const users = useQuery({ queryKey: ['access-users'], queryFn: ({ signal }) => accessService.users(signal), enabled: enabled && !busy });
+  const policy = useQuery({ queryKey: ['access-policy'], queryFn: ({ signal }) => accessService.policy(signal), enabled: enabled && !busy });
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const submitting = useRef(false);
-  const [busy, setBusy] = useState(false);
   useUnsavedChanges(Boolean(password || confirm), busy);
   if (!access) return null;
   if (!enabled) return <AccountSetup />;
   const disable = async (event: React.FormEvent) => {
     event.preventDefault();
     if (submitting.current || !confirm) return;
-    submitting.current = true; setBusy(true); setError(null);
-    try { await accessService.disable(password); setPassword(''); await access.refresh(); }
+    submitting.current = true; flushSync(() => setBusy(true)); setError(null);
+    try {
+      // Stop old administrative reads before revoking their authorization.
+      await cache.cancelQueries({ predicate: query => ['access-users', 'access-policy', 'access-credentials', 'access-sessions'].includes(String(query.queryKey[0])) });
+      await accessService.disable(password); setPassword(''); await access.refresh();
+    }
     catch (reason) { setError(reason); }
     finally { submitting.current = false; setBusy(false); }
   };
-  return <>
+  return <Box component="fieldset" aria-label={tUi("Access")} aria-busy={busy} disabled={busy} sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}>
     <PasswordForm />
     <ContentSection title={tUi("Accounts")} description={tUi("Changing permissions signs out that account and revokes its API credentials.")}>
       {users.data?.map(user => <AccountEditor key={user.id} initial={user} saved={async () => { await users.refetch(); }} />)}
@@ -165,7 +171,7 @@ export default function AccessSettings() {
       <Typography component="h3" variant="h6" sx={{ mb: 2 }}>{tUi("Add an account")}</Typography><AccountEditor saved={async () => { await users.refetch(); }} />
     </ContentSection>
     {policy.data ? <PolicyForm initial={policy.data} /> : policy.isError ? <Alert severity="error">{tUi("Could not load access policy.")}</Alert> : <Typography role="status">{tUi("Loading access policy…")}</Typography>}
-    <CredentialsPanel />
+    <CredentialsPanel enabled={!busy} />
     <ContentSection title={tUi("Disable user management")} description={tUi("Accounts and their credentials will be removed. Anyone able to reach the app can manage it, unless the existing deployment API token still protects it.")}>
       <Stack component="form" onSubmit={disable} spacing={2} sx={{ maxWidth: 560 }}>
         <FormControlLabel label={tUi("I understand that account protection will be removed")} control={<Checkbox disabled={busy} checked={confirm} onChange={(_, value) => setConfirm(value)} />} />
@@ -173,5 +179,5 @@ export default function AccessSettings() {
         {error ? <Alert severity="error">{getAccessErrorMessage(error)}</Alert> : null}<Button type="submit" color="error" disabled={!confirm || busy}>{tUi("Disable user management")}</Button>
       </Stack>
     </ContentSection>
-  </>;
+  </Box>;
 }

@@ -90,3 +90,10 @@ timezone register as a dirty draft and require explicit discard on close. Save
 disables every time/ambiguity control until settlement; rejection retains values
 and the original creation intent key, with feedback in the currently selected
 language. Opening or cancelling an untouched dialog performs no recording write.
+
+Disabling account protection first pauses the Access editor's administrative
+queries and aborts their in-flight requests, then submits the disable operation.
+The whole editor is disabled while it runs. A rejected disable retains its password,
+confirmation and other drafts, and resumes reads; only success refreshes the access
+gate. Keep the query AbortSignals attached to users, policy, credentials and sessions.
+This prevents a delayed old read from arriving after its authorization is revoked.

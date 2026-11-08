@@ -1,63 +1,44 @@
-import { uiText } from '../i18n/text';
-import { useUiText } from '../i18n/useUiText';
-import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
-import { responsiveTableSx } from '../styles/responsiveTable';
-import React, { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Add as AddIcon,PlayArrow as PlayArrowIcon,Refresh as RefreshIcon } from '@mui/icons-material';
 import {
-  Box,
-  Tabs,
-  Tab,
-  Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  LinearProgress,
-  Alert,
-  Snackbar,
-  SelectChangeEvent,
-  Stack,
-  Switch,
-  FormControlLabel,
-  FormHelperText,
-  Tooltip,
-  Typography,
+Alert,
+Box,
+Button,
+Chip,
+LinearProgress,
+Snackbar,
+Stack,
+Switch,
+Tab,
+Table,
+TableBody,
+TableCell,
+TableContainer,
+TableHead,
+TableRow,
+Tabs,
+Tooltip,
+Typography
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon, PlayArrow as PlayArrowIcon } from '@mui/icons-material';
-import { useURLs, useCreateURL, useUpdateURL, usePatchURL, useDeleteURL, useScrapeAllURLs } from '../hooks/useScrapers';
-import { CreateURLDTO, UpdateURLDTO, ScrapedURL, scraperService } from '../services/scraperService';
-import PageHeader from '../components/layout/PageHeader';
-import ContentSection from '../components/layout/ContentSection';
+import { useQueryClient } from '@tanstack/react-query';
+import React,{ useMemo,useState } from 'react';
+import { Link as RouterLink,useNavigate,useSearchParams } from 'react-router-dom';
+import { useConfirm } from '../components/ConfirmDialog';
 import ImportExclusions from '../components/imports/ImportExclusions';
 import SavedSearches from '../components/imports/SavedSearches';
-import StatusLine from '../components/StatusLine';
+import ContentSection from '../components/layout/ContentSection';
+import PageHeader from '../components/layout/PageHeader';
 import RowActionsMenu from '../components/RowActionsMenu';
-import { useConfirm } from '../components/ConfirmDialog';
 import DeleteSourceDialog from '../components/scraper/DeleteSourceDialog';
 import OrphanedSourcesDialog from '../components/scraper/OrphanedSourcesDialog';
+import SourceEditor from '../components/scraper/SourceEditor';
+import StatusLine from '../components/StatusLine';
+import { useDeleteURL,usePatchURL,useScrapeAllURLs,useURLs } from '../hooks/useScrapers';
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
+import { ScrapedURL,scraperService } from '../services/scraperService';
+import { responsiveTableSx } from '../styles/responsiveTable';
 import { formatRelativeTime } from '../utils/format';
 import { formatDateTime } from '../utils/formatters';
-
-interface URLFormData {
-  name: string;
-  url: string;
-  url_type: string;
-  enabled: boolean;
-  scrape_bare_ids: boolean;
-}
 
 export const URL_TYPE_LABELS: Record<string, string> = {
   broadcaster: 'Built-in broadcaster',
@@ -92,31 +73,16 @@ const renderScrapeResult = (url: { status?: string | null }) => {
   );
 };
 
-const initialFormData: URLFormData = {
-  name: '',
-  url: '',
-  url_type: 'auto',
-  enabled: true,
-  scrape_bare_ids: false
-};
-
 const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation }) => {
   const tUi = useUiText();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirm();
-  const [openDialog, setOpenDialog] = useState(false);
-  const [isEdit, setIsEdit] = useState(false);
-  const [currentId, setCurrentId] = useState<number | null>(null);
-
-  const [formData, setFormData] = useState<URLFormData>(initialFormData);
+  const [editingSource, setEditingSource] = useState<ScrapedURL | 'new' | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   // Queries and mutations
   const { data: urls, isLoading, refetch } = useURLs();
-  const providers = useQuery({ queryKey: ['builtin-providers'], queryFn: scraperService.getProviders, enabled: openDialog });
-  const createURL = useCreateURL();
-  const updateURL = useUpdateURL(currentId || 0);
   const patchURL = usePatchURL();
   const deleteURL = useDeleteURL();
   const scrapeAllURLs = useScrapeAllURLs();
@@ -143,85 +109,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
     }, null);
   }, [urls]);
 
-  const handleOpenDialog = (edit = false, url?: ScrapedURL) => {
-    setIsEdit(edit);
-    if (edit && url) {
-      setFormData({
-        name: url.name ?? '',
-        url: url.url,
-        url_type: url.url_type,
-        enabled: url.enabled,
-        scrape_bare_ids: url.scrape_bare_ids ?? false
-      });
-      setCurrentId(url.id);
-    } else {
-      setFormData(initialFormData);
-      setCurrentId(null);
-    }
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.name as keyof URLFormData;
-    const value = e.target.value;
-
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
-    const name = e.target.name as keyof URLFormData;
-    const value = e.target.value;
-
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleEnabledChange = (e: SelectChangeEvent<string>) => {
-    const value = e.target.value === 'true';
-
-    setFormData({
-      ...formData,
-      enabled: value
-    });
-  };
-
-  const handleSubmit = async () => {
-    try {
-      if (isEdit && currentId) {
-        const updateData: UpdateURLDTO = { ...formData };
-        await updateURL.mutateAsync(updateData);
-        setSnackbar({
-          open: true,
-          message: uiText("URL updated successfully"),
-          severity: 'success'
-        });
-      } else {
-        const createData: CreateURLDTO = { ...formData };
-        await createURL.mutateAsync(createData);
-        setSnackbar({
-          open: true,
-          message: uiText("URL added successfully"),
-          severity: 'success'
-        });
-      }
-      handleCloseDialog();
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Error: ${(error as Error).message}`,
-        severity: 'error'
-      });
-    }
-  };
+  const handleOpenDialog = (edit = false, source?: ScrapedURL) => setEditingSource(edit && source ? source : 'new');
 
   const [deletingSource, setDeletingSource] = useState<ScrapedURL | null>(null);
   const [cleanupOpen, setCleanupOpen] = useState(false);
@@ -336,12 +224,12 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
   return (
     <Box>
       <PageHeader
-        title={tUi("Scraper")}
+        title={tUi("Sources")}
         subtitle={tUi("Source URLs and the channels each one yields.")}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog(false)}>
-              {tUi("Add URL")}</Button>
+              {tUi('Add source')}</Button>
             <Button
               variant="outlined"
               color="secondary"
@@ -411,9 +299,9 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                           startIcon={<PlayArrowIcon />}
                           onClick={() => handleScrape(url.id)}
                           disabled={scrapingId === url.id || !url.enabled}
-                          aria-label={tUi("Scrape URL {{value0}}", { value0: url.url })}
+                          aria-label={tUi("Find channels in {{source}}", { source: url.name || url.url })}
                         >
-                          {tUi("Scrape")}</Button>
+                          {tUi("Find channels")}</Button>
                         <RowActionsMenu
                           label={tUi("More actions for {{value0}}", { value0: url.url })}
                           actions={[
@@ -443,99 +331,8 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
         </TableContainer>
       </ContentSection>
 
-      {/* URL Form Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{isEdit ? tUi("Edit URL") : tUi("Add URL")}</DialogTitle>
-        <DialogContent>
-          {providers.isError ? <Alert severity="error" action={<Button onClick={() => void providers.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load built-in providers.")}</Alert> : null}
-          {!isEdit ? <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
-            <InputLabel id="builtin-provider-label">{tUi("Built-in provider")}</InputLabel>
-            <Select labelId="builtin-provider-label" label={tUi("Built-in provider")}
-              value={formData.url_type === 'broadcaster' ? providers.data?.find(provider => provider.url === formData.url)?.id ?? '' : ''}
-              onChange={event => {
-                const provider = providers.data?.find(item => item.id === event.target.value);
-                setFormData(previous => {
-                  const previousProvider = providers.data?.find(item => item.url === previous.url);
-                  const customName = previous.name && previous.name !== previousProvider?.name;
-                  return provider
-                    ? { ...previous, url: provider.url, url_type: 'broadcaster', name: customName ? previous.name : provider.name, scrape_bare_ids: false }
-                    : { ...previous, url: '', url_type: 'auto', name: customName ? previous.name : '' };
-                });
-              }}>
-              <MenuItem value="">{tUi("Custom source URL")}</MenuItem>
-              {providers.data?.map(provider => <MenuItem key={provider.id} value={provider.id}>{provider.name}</MenuItem>)}
-            </Select>
-            <FormHelperText>{tUi("Built-in broadcasters import channels directly through their adapter. Saving does not import channels.")}</FormHelperText>
-          </FormControl> : null}
-          <TextField label={tUi("Friendly name (optional)")} name="name" fullWidth value={formData.name} onChange={handleChange} inputProps={{ maxLength: 255 }} helperText={tUi("Shown in the source list and channel filters.")} sx={{ mb: 2 }} />
-          <TextField
-            margin="dense"
-            name="url"
-            label={tUi("URL")}
-            type="text"
-            fullWidth
-            value={formData.url}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="scraper-url-type-label">{tUi("URL Type")}</InputLabel>
-            <Select
-              id="scraper-url-type"
-              labelId="scraper-url-type-label"
-              name="url_type"
-              value={formData.url_type}
-              label={tUi("URL Type")}
-              onChange={handleSelectChange}
-            >
-              <MenuItem value="broadcaster">{tUi("Built-in broadcaster")}</MenuItem>
-              <MenuItem value="auto">{tUi("Auto-detect")}</MenuItem>
-              <MenuItem value="regular">{tUi("Regular HTTP")}</MenuItem>
-              <MenuItem value="zeronet">{tUi("ZeroNet")}</MenuItem>
-              <MenuItem value="ipfs">{tUi("IPFS")}</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel id="scraper-status-label">{tUi("Status")}</InputLabel>
-            <Select
-              id="scraper-status"
-              labelId="scraper-status-label"
-              name="enabled"
-              value={formData.enabled ? 'true' : 'false'}
-              label={tUi("Status")}
-              onChange={handleEnabledChange}
-            >
-              <MenuItem value="true">{tUi("Enabled")}</MenuItem>
-              <MenuItem value="false">{tUi("Disabled")}</MenuItem>
-            </Select>
-          </FormControl>
-          <Box sx={{ mt: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  disabled={formData.url_type === 'broadcaster'}
-                  checked={formData.scrape_bare_ids}
-                  onChange={(e) => setFormData({ ...formData, scrape_bare_ids: e.target.checked })}
-                />
-              }
-              label={tUi("Harvest bare content IDs")}
-            />
-            <FormHelperText sx={{ ml: 0 }}>
-              {tUi("Also collect raw 40-character acestream hashes from pages that don't use acestream:// links.")}</FormHelperText>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>{tUi("Cancel")}</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            color="primary"
-            disabled={!formData.url || createURL.isPending || updateURL.isPending}
-          >
-            {isEdit ? tUi("Update") : tUi("Add")}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {editingSource ? <SourceEditor source={editingSource === 'new' ? undefined : editingSource} onClose={() => setEditingSource(null)}
+        onSaved={() => { setEditingSource(null); setSnackbar({ open: true, message: editingSource === 'new' ? tUi('Source added. Choose Find channels to import it.') : tUi('Source saved.'), severity: 'success' }); }} /> : null}
 
       <Snackbar
         open={snackbar.open}
@@ -565,7 +362,7 @@ const Scraper: React.FC = () => {
     <Tab value="sources" label={tUi("Sources")} /><Tab value="w3u" label={tUi("W3U catalogues")} /><Tab value="searches" label={tUi("Saved searches")} /><Tab value="exclusions" label={tUi("Import exclusions")} />
   </Tabs>;
   return <Box>
-    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title={tUi("Scraper")} subtitle={tUi("Manage discoveries and future imports.")} />{navigation}
+    {tab === 'sources' ? <ScraperSources navigation={navigation} /> : <><PageHeader title={tUi("Sources")} subtitle={tUi("Manage discoveries and future imports.")} />{navigation}
       {tab === 'w3u' ? <React.Suspense fallback={<p role="status">{tUi("Loading catalogues…")}</p>}><Catalogues embedded /></React.Suspense> : tab === 'searches' ? <SavedSearches /> : <ImportExclusions />}</>}
   </Box>;
 };

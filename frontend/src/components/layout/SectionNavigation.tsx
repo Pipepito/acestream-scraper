@@ -7,6 +7,7 @@ import type { CommonLabel } from '../../i18n/resources';
 export interface SectionLink { label: CommonLabel; to: string }
 export const channelLinks: SectionLink[] = [
   { label: 'tvChannels', to: '/tv-channels' }, { label: 'sources', to: '/scraper' },
+  { label: 'telegram', to: '/scraper/telegram' },
   { label: 'guide', to: '/epg' }, { label: 'streams', to: '/acestream-channels' }, { label: 'search', to: '/search' },
 ];
 export const connectionLinks: SectionLink[] = [

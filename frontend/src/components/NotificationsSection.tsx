@@ -1,11 +1,12 @@
+import { Alert,Button,Stack,TextField } from '@mui/material';
+import { useQuery,useQueryClient } from '@tanstack/react-query';
+import React,{ useState } from 'react';
+import { useSettingDraft } from '../hooks/useSettingDraft';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
-import React, { useEffect, useState } from 'react';
-import { Alert, Button, Stack, TextField } from '@mui/material';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import ContentSection from './layout/ContentSection';
 import { configService } from '../services/configService';
 import { getErrorMessage } from '../utils/errorUtils';
+import ContentSection from './layout/ContentSection';
 
 export const NOTIFICATION_WEBHOOK_QUERY_KEY = ['notificationWebhookUrl'];
 
@@ -21,17 +22,20 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
     queryKey: NOTIFICATION_WEBHOOK_QUERY_KEY,
     queryFn: configService.getNotificationWebhookUrl,
   });
-  const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const invalidSavedUrl = saved === '•••';
 
-  useEffect(() => setValue(saved), [saved]);
+  const draft = useSettingDraft(saved, '', busy);
+  const value = draft.value;
+  const setValue = draft.change;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (busy) return;
     setBusy(true);
     try {
       await configService.updateNotificationWebhookUrl(value.trim());
+      draft.saved(value.trim());
       notify(value.trim() ? uiText("Notification webhook saved.") : uiText("Notifications turned off."), 'success');
       await queryClient.invalidateQueries({ queryKey: NOTIFICATION_WEBHOOK_QUERY_KEY });
     } catch (err) {
@@ -42,6 +46,7 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
   };
 
   const test = async () => {
+    if (busy) return;
     setBusy(true);
     try {
       await configService.testNotificationWebhook();
@@ -77,11 +82,12 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
             label={tUi("Webhook URL")}
             placeholder={tUi("https://gotify.example/message?token=…")}
             value={value}
+            disabled={busy || isError}
             onChange={(event) => setValue(event.target.value)}
             inputProps={{ 'aria-label': uiText("Webhook URL") }}
             helperText={tUi("Leave empty to turn notifications off.")}
           />
-          <Button type="submit" variant="contained" disabled={busy || value.trim() === saved}>
+          <Button type="submit" variant="contained" disabled={busy || isError || value.trim() === saved}>
             {tUi("Save")}</Button>
           <Button variant="outlined" disabled={busy || !saved || invalidSavedUrl || value.trim() !== saved} onClick={() => void test()}>
             {tUi("Send test")}</Button>

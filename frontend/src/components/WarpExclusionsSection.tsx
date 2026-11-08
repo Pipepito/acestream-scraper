@@ -1,3 +1,5 @@
+import { useUnsavedChanges } from './UnsavedChanges';
+import { translateKnown } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Button, Stack, TextField, Typography } from '@mui/material';
@@ -25,6 +27,7 @@ export default function WarpExclusionsSection() {
       setEditingRevision(null);
     },
   });
+  useUnsavedChanges(draft !== null, mutation.isPending);
   const value = draft ?? query.data?.hosts.join('\n') ?? '';
   const change = (text: string) => {
     setEditingRevision(previous => previous ?? query.data?.revision ?? null);
@@ -39,7 +42,7 @@ export default function WarpExclusionsSection() {
       {query.isError ? <Alert severity="error">{getErrorMessage(query.error)} <Button onClick={() => query.refetch()}>{tUi("Retry loading exclusions")}</Button></Alert> : null}
       {query.data ? <>
         {query.data.applied ? <Alert severity="success">{mutation.isSuccess ? tUi("Exclusions saved and applied.") : tUi("Saved exclusions are applied.")}</Alert>
-          : <Alert severity="warning">{tUi("Saved exclusions are not applied.")}{' '}{query.data.error || 'Save and apply to update WARP.'}</Alert>}
+          : <Alert severity="warning">{tUi("Saved exclusions are not applied.")}{' '}{translateKnown(query.data.error || 'Save and apply to update WARP.')}</Alert>}
         <TextField label={tUi("Hosts to exclude")} multiline minRows={3} fullWidth value={value}
           disabled={mutation.isPending} onChange={event => change(event.target.value)}
           inputProps={{ maxLength: 16384, spellCheck: false, autoCapitalize: 'none' }}

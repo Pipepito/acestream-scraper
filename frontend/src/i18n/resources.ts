@@ -14,7 +14,7 @@ export const en = {
   status: statusEnglish,
   common: {
     watch: 'Watch', recordings: 'Recordings', events: 'Events', channels: 'Channels', connections: 'Connections', settings: 'Settings', system: 'System',
-    sources: 'Sources', guide: 'Programme guide', streams: 'Advanced streams', search: 'Search', playlists: 'Playlists',
+    telegram: 'Telegram', sources: 'Sources', guide: 'Programme guide', streams: 'Advanced streams', search: 'Search', playlists: 'Playlists',
     interface: 'Interface', language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark',
     lime: 'Lime', coral: 'Coral / navy', cyan: 'Immersive',
     limeDescription: 'Compact rows and bold headings. More information at a glance.',
@@ -43,7 +43,7 @@ export const es: TranslationShape<Omit<typeof en, 'ui'>> & { ui: typeof uiSpanis
   status: statusSpanish,
   common: {
     watch: 'Ver', recordings: 'Grabaciones', events: 'Eventos', channels: 'Canales', connections: 'Conexiones', settings: 'Ajustes', system: 'Sistema',
-    sources: 'Fuentes', guide: 'Guía de programación', streams: 'Emisiones avanzadas', search: 'Buscar', playlists: 'Listas de reproducción',
+    telegram: 'Telegram', sources: 'Fuentes', guide: 'Guía de programación', streams: 'Emisiones avanzadas', search: 'Buscar', playlists: 'Listas de reproducción',
     interface: 'Interfaz', language: 'Idioma', theme: 'Tema', light: 'Claro', dark: 'Oscuro',
     lime: 'Lima', coral: 'Coral / azul marino', cyan: 'Inmersiva',
     limeDescription: 'Filas compactas y títulos destacados. Más información de un vistazo.',

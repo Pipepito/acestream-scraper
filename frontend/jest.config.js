@@ -6,6 +6,7 @@ module.exports = {
   // Share RTL's DOM event/async wrappers with user-event even when npm installs
   // two DOM Testing Library versions. Otherwise React updates escape act().
   moduleNameMapper: {
+    '\\.(woff2)$': '<rootDir>/src/testUtils/fontAsset.ts',
     '^@testing-library/dom$': require.resolve('@testing-library/dom', {
       paths: [require.resolve('@testing-library/react')],
     }),

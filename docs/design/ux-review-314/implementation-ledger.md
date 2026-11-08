@@ -189,3 +189,27 @@ these foundations. All task acceptance and final full validation remain open.
 - Final focused verification for this checkpoint: 13 suites / 98 tests passed;
   TypeScript and lint passed without warnings. Complete application, Docker,
   browser/E2E and external participant/device acceptance remain outstanding.
+
+### Source/guide and font checkpoint
+
+- Source creation/editing now uses the same SourceEditor in first-run setup and
+  Sources, including provider fills, advanced options, independent save, inline
+  failures, dirty close and duplicate-submit guards. Setup explicitly imports
+  after saving and reuses an existing source on retry. Saved recipe state is not
+  overwritten. Telegram is discoverable from Channels section navigation.
+- Guide setup/management share GuideSourceFields and the canonical create hook.
+  Guide management now protects in-flight saves and dirty local close, shows
+  inline errors, and uses the shared delete confirmation instead of window.confirm.
+- Runtime and WARP drafts register with navigation protection; Runtime also guards
+  local close. Public-address and notification drafts survive query refreshes.
+- Converted the approved full-glyph fonts to WOFF2: 986,004 bytes -> 389,596 bytes
+  combined (60.5% smaller), with source/output hashes and licences retained.
+  Found and fixed a real CssBaseline registration bug: the object-array font-face
+  declaration overwrote Inter with Barlow. A CSSOM regression test covers both faces.
+  Vite asset imports also fix fonts under a nested standalone-helper deployment.
+- TypeScript, lint and production app/helper build passed. Final affected check:
+  11 suites / 93 tests passed without warnings. Browser verified actual Inter
+  requests/loaded status in all presets and the nested standalone helper; Lime also
+  loads Barlow. All font responses were 200, no page errors, and the helper made
+  no application API requests. These remain intermediate checks; full acceptance
+  is still outstanding for every issue.

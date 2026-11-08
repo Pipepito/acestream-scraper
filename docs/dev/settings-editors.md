@@ -40,3 +40,13 @@ environment supplies Node's native Fetch primitives for real data-router navigat
 This is an incremental migration under #318/#319. Editors not yet registered and
 other modal close paths remain in the epic acceptance ledger; this document is not
 an assertion that every application form has completed migration.
+
+Sources now share `SourceEditor` between setup and management: provider selection,
+source type, friendly name, enabled state and bare-ID controls all use the same
+fields and save controller. Choosing a provider only fills fields. Management
+saves without fetching; setup explicitly follows a successful save with Find
+channels. A retry reuses the saved source. Recipe state is omitted from these
+updates and remains owned by the extraction editor. Guide sources share
+`GuideSourceFields` and the existing create mutation; management guards its
+pending state, inline errors and modal cancellation. Runtime, WARP, public-address
+and notification editors also preserve/register their drafts.

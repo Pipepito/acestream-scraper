@@ -1,16 +1,17 @@
-import { uiText } from '../../i18n/text';
-import { useUiText } from '../../i18n/useUiText';
-import React, { useEffect, useState } from 'react';
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { Alert,Box,Button,Stack,TextField,Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
-import ContentSection from '../layout/ContentSection';
+import React,{ useState } from 'react';
 import { MEDIA_SERVERS_QUERY_KEY } from '../../hooks/useMediaServers';
-import { PUBLIC_URL_QUERY_KEY, usePublicUrl } from '../../hooks/useSystemServices';
+import { useSettingDraft } from '../../hooks/useSettingDraft';
+import { PUBLIC_URL_QUERY_KEY,usePublicUrl } from '../../hooks/useSystemServices';
 import { useTunerStatus } from '../../hooks/useTuner';
+import { translateKnown,uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import { configService } from '../../services/configService';
 import type { TunerDenial } from '../../services/tunerService';
 import { getErrorMessage } from '../../utils/errorUtils';
 import { formatRelativeTime } from '../../utils/format';
+import ContentSection from '../layout/ContentSection';
 
 const SOURCE_LABEL = { setting: 'Setting', forwarded: 'Proxy headers', request: 'Request' } as const;
 
@@ -47,17 +48,20 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
   const { data, isLoading, error, refetch } = usePublicUrl();
   const { data: tuner } = useTunerStatus();
   const denial = newestDenial(tuner?.recent_denials ?? []);
-  const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
   const saved = data?.source === 'setting' ? data.url : '';
 
-  useEffect(() => setValue(saved), [saved]);
+  const draft = useSettingDraft(saved, '', saving);
+  const value = draft.value;
+  const setValue = draft.change;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     try {
       await configService.updatePublicBaseUrl(value.trim());
+      draft.saved(value.trim());
       notify(value.trim() ? uiText("Public address saved.") : uiText("Public address cleared."), 'success');
       await queryClient.invalidateQueries({ queryKey: PUBLIC_URL_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ['tuner'] });
@@ -86,14 +90,14 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
         <Stack spacing={2}>
           <Typography variant="body2">
             {tUi("Currently")}{' '}<strong>{isLoading ? '…' : data?.url}</strong>
-            {data ? tUi(" ({{value0}})", { value0: SOURCE_LABEL[data.source] }) : ''}
+            {data ? tUi(" ({{value0}})", { value0: translateKnown(SOURCE_LABEL[data.source]) }) : ''}
           </Typography>
           {(data?.warnings ?? []).map((warning) => (
             <Alert key={warning} severity="warning">
-              {WARNING_TEXT[warning] ?? warning}
+              {translateKnown(WARNING_TEXT[warning] ?? warning)}
             </Alert>
           ))}
-          {tuner?.warnings.includes('TUNER_ALLOWLIST_INEFFECTIVE') ? <Alert severity="warning">{ALLOWLIST_INEFFECTIVE}</Alert> : null}
+          {tuner?.warnings.includes('TUNER_ALLOWLIST_INEFFECTIVE') ? <Alert severity="warning">{translateKnown(ALLOWLIST_INEFFECTIVE)}</Alert> : null}
           {denial ? (
             <Alert severity="warning">
               {tUi("Requests from {{address}} were denied {{time}} ({{path}}); add its network to TUNER_ALLOWED_NETWORKS if it is yours.", { address: denial.client_ip, time: denialTime(denial), path: denial.path })}</Alert>

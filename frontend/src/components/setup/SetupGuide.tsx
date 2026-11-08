@@ -1,14 +1,16 @@
-import { useUiText } from '../../i18n/useUiText';
-import React, { useEffect, useState } from 'react';
-import { Alert, Box, Button, Checkbox, FormControl, FormControlLabel, InputLabel, Link, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEPGSources } from '../../hooks/useEPG';
-import { useEPGSourceManagement } from '../../hooks/useEPGSourceManagement';
+import { Alert,Box,Button,Checkbox,FormControl,FormControlLabel,InputLabel,Link,MenuItem,Select,Stack,Typography } from '@mui/material';
+import { useMutation,useQueryClient } from '@tanstack/react-query';
+import React,{ useEffect,useState } from 'react';
+import { useCreateEPGSource,useEPGSources } from '../../hooks/useEPG';
 import { useEPGMatchAnalysis } from '../../hooks/useEPGMatchAnalysis';
+import { useEPGSourceManagement } from '../../hooks/useEPGSourceManagement';
 import { type SnackbarSeverity } from '../../hooks/useSnackbar';
-import { epgService, type EPGSource, type CreateEPGSourceDTO } from '../../services/epgService';
+import { useUiText } from '../../i18n/useUiText';
 import { epgProviders } from '../../services/epgProviders';
+import { type CreateEPGSourceDTO,type EPGSource } from '../../services/epgService';
 import { getErrorMessage } from '../../utils/errorUtils';
+import GuideSourceFields from '../GuideSourceFields';
+import { useUnsavedChanges } from '../UnsavedChanges';
 
 export default function SetupGuide({ active, onBusyChange }: { active: boolean; onBusyChange: (busy: boolean) => void }) {
   const tUi = useUiText();
@@ -18,6 +20,8 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
   const [custom, setCustom] = useState(false);
   const [address, setAddress] = useState('');
   const [name, setName] = useState('');
+  const [enabled, setEnabled] = useState(true);
+  const create = useCreateEPGSource();
   const [visible, setVisible] = useState(20);
   const [notice, setNotice] = useState<{ text: string; severity: SnackbarSeverity } | null>(null);
   const showNotice = (text: string, severity: SnackbarSeverity) => setNotice({ text, severity });
@@ -26,9 +30,10 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
   const add = useMutation({
     mutationFn: async (data: CreateEPGSourceDTO) => {
       const existing = sources.data?.find(source => source.url === data.url);
-      const source = existing ?? await epgService.createSource(data);
+      const source = existing ?? await create.mutateAsync(data);
       client.setQueryData<EPGSource[]>(['epg-sources'], previous => [...(previous ?? []).filter(item => item.id !== source.id), source]);
       setSelectedId(source.id);
+      setName(''); setAddress('');
       setNotice(null);
       if (!source.last_updated || source.last_error) void refresh.handleRefreshSourceClick(source.id);
       return source;
@@ -40,6 +45,7 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
   // matching stay on this step until the response is known.
   const busy = add.isPending || matches.isAnalyzingMatches || matches.isApplyingMatches;
   useEffect(() => { onBusyChange(busy); }, [busy, onBusyChange]);
+  useUnsavedChanges(Boolean(name || address), busy);
   const downloading = refresh.refreshingSourceId !== null;
   const selected = sources.data?.find(source => source.id === selectedId);
   const ready = Boolean(selected?.last_updated && !selected.last_error && !downloading);
@@ -58,9 +64,12 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
         </Stack>
       </Box>)}
       <Button aria-expanded={custom} onClick={() => setCustom(value => !value)}>{tUi("Use another guide")}</Button>
-      {custom ? <Box component="form" onSubmit={event => { event.preventDefault(); if (name.trim() && address.trim() && !busy && sources.isSuccess) add.mutate({ name: name.trim(), url: address.trim(), enabled: true }); }}>
-        <Stack spacing={2}><TextField label={tUi("Guide name")} value={name} onChange={event => setName(event.target.value)} disabled={busy} fullWidth />
-          <TextField label={tUi("Programme guide link")} value={address} onChange={event => setAddress(event.target.value)} disabled={busy} fullWidth helperText={tUi("Paste the XMLTV link supplied by your guide provider.")} inputProps={{ maxLength: 4096 }} />
+      {custom ? <Box component="form" onSubmit={event => { event.preventDefault(); if (name.trim() && address.trim() && !busy && sources.isSuccess) add.mutate({ name: name.trim(), url: address.trim(), enabled }); }}>
+        <Stack spacing={2}><GuideSourceFields value={{ name, url: address, enabled }} disabled={busy} onChange={event => {
+          if (event.target.name === 'name') setName(event.target.value);
+          else if (event.target.name === 'url') setAddress(event.target.value);
+          else if (event.target.name === 'enabled') setEnabled(event.target.checked);
+        }} />
           <Button type="submit" variant="contained" disabled={busy || !sources.isSuccess || !name.trim() || !address.trim()}>{tUi("Add programme guide")}</Button>
         </Stack>
       </Box> : null}

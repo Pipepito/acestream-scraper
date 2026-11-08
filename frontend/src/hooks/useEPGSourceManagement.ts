@@ -1,3 +1,6 @@
+import { useUnsavedChanges } from '../components/UnsavedChanges';
+import { useConfirm } from '../components/ConfirmDialog';
+import { getErrorMessage } from '../utils/errorUtils';
 import { uiText } from '../i18n/text';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -54,6 +57,14 @@ export const useEPGSourceManagement = (
     enabled: true
   });
 
+  const baseline = useRef<EPGSourceFormData>({ name: '', url: '', enabled: true });
+  const submitting = useRef(false);
+  const [sourcePending, setSourcePending] = useState(false);
+  const [sourceError, setSourceError] = useState('');
+  const { confirm, dialog: sourceConfirmation } = useConfirm();
+  const dirty = openSourceDialog && JSON.stringify(sourceFormData) !== JSON.stringify(baseline.current);
+  useUnsavedChanges(dirty, sourcePending);
+
   const { mutateAsync: createSource } = useCreateEPGSource();
   const { mutateAsync: updateSource } = useUpdateEPGSource(editSourceId || 0);
   const { mutateAsync: deleteSource } = useDeleteEPGSource();
@@ -100,6 +111,7 @@ export const useEPGSourceManagement = (
 
   // Source form handlers
   const handleAddSourceClick = () => {
+    baseline.current = { url: '', name: '', enabled: true }; setSourceError('');
     setIsEditSource(false);
     setEditSourceId(null);
     setSourceFormData({
@@ -111,6 +123,7 @@ export const useEPGSourceManagement = (
   };
 
   const handleEditSourceClick = (source: EPGSource) => {
+    baseline.current = { url: source.url, name: source.name, enabled: source.enabled }; setSourceError('');
     setIsEditSource(true);
     setEditSourceId(source.id);
     setSourceFormData({
@@ -121,7 +134,9 @@ export const useEPGSourceManagement = (
     setOpenSourceDialog(true);
   };
 
-  const handleCloseSourceDialog = () => {
+  const handleCloseSourceDialog = async () => {
+    if (submitting.current) return;
+    if (dirty && !await confirm({ title: uiText('Discard unsaved changes?'), body: uiText('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: uiText('Discard changes'), danger: true })) return;
     setOpenSourceDialog(false);
   };
 
@@ -134,22 +149,25 @@ export const useEPGSourceManagement = (
   };
 
   const handleSourceFormSubmit = async () => {
+    if (submitting.current || !sourceFormData.name.trim() || !sourceFormData.url.trim()) return;
+    submitting.current = true; setSourcePending(true); setSourceError('');
+    const submitted = { ...sourceFormData, name: sourceFormData.name.trim(), url: sourceFormData.url.trim() };
     try {
       if (isEditSource && editSourceId) {
-        await updateSource(sourceFormData);
+        await updateSource(submitted);
         showSnackbar(uiText("EPG source updated successfully"), 'success');
       } else {
-        await createSource(sourceFormData);
+        await createSource(submitted);
         showSnackbar(uiText("EPG source added successfully"), 'success');
       }
-      handleCloseSourceDialog();
+      setOpenSourceDialog(false);
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
-    }
+      setSourceError(getErrorMessage(error));
+    } finally { submitting.current = false; setSourcePending(false); }
   };
 
   const handleDeleteSourceClick = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this EPG source?')) {
+    if (await confirm({ title: uiText('Delete guide source?'), body: uiText('Remove this guide source and its imported programme data? Review channel guide assignments afterwards.'), confirmLabel: uiText('Delete'), danger: true })) {
       try {
         await deleteSource(id);
         showSnackbar(uiText("EPG source deleted successfully"), 'success');
@@ -223,7 +241,7 @@ export const useEPGSourceManagement = (
   };
 
   return {
-    openSourceDialog,
+    openSourceDialog, sourcePending, sourceError, sourceConfirmation,
     isEditSource,
     sourceFormData,
     refreshingSourceId,

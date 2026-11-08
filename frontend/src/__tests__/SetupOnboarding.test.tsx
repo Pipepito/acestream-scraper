@@ -35,7 +35,7 @@ it('adds and imports a source, then permits skipping the guide without changing 
   await waitFor(() => expect(screen.getByRole('button', { name: 'Add source and find channels' })).toBeEnabled());
   fireEvent.click(screen.getByRole('button', { name: 'Add source and find channels' }));
   await screen.findByText(/Found 4 channels/);
-  expect(scraperService.createURL).toHaveBeenCalledWith({ url: source.url, url_type: 'auto', enabled: true });
+  expect(scraperService.createURL).toHaveBeenCalledWith({ url: source.url, url_type: 'auto', enabled: true, name: '', scrape_bare_ids: false });
   expect(scraperService.scrapeURL).toHaveBeenCalledWith(1);
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(await screen.findByRole('button', { name: 'Use EPG dobleM' })).toBeVisible();

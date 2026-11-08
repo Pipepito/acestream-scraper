@@ -1,3 +1,5 @@
+import { useUnsavedChanges } from './UnsavedChanges';
+import { translateKnown } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { Alert, Button, Checkbox, FormControlLabel, Stack } from '@mui/material';
@@ -15,6 +17,7 @@ export default function WarpStartupSection() {
   const mutation = useMutation({ mutationFn: setupService.save, onSuccess: data => {
     client.setQueryData(setupQueryKey, data); setDraft({}); setEditingRevision(null);
   } });
+  useUnsavedChanges(Object.keys(draft).length > 0, mutation.isPending);
   const options = [
     ['ENABLE_WARP', 'Enable WARP service at startup'],
     ['WARP_ENABLE_NAT', 'Connect WARP before engines start'],
@@ -26,7 +29,7 @@ export default function WarpStartupSection() {
       {query.isError ? <Alert severity="error">{getErrorMessage(query.error)} <Button onClick={() => query.refetch()}>{tUi("Retry loading startup settings")}</Button></Alert> : null}
       {query.isPending ? <Alert severity="info">{tUi("Loading startup settings…")}</Alert> : null}
       {query.data ? <>
-        {options.map(([name, label]) => <FormControlLabel key={name} label={label}
+        {options.map(([name, label]) => <FormControlLabel key={name} label={translateKnown(label)}
           control={<Checkbox checked={checked(name)} disabled={mutation.isPending || (Boolean(query.data?.unavailable[name]) && !checked(name))}
             onChange={(_, value) => { setEditingRevision(previous => previous ?? query.data!.revision); setDraft(previous => ({ ...previous, [name]: value, ...(name === 'ENABLE_WARP' && !value ? { WARP_ENABLE_NAT: false } : {}) })); mutation.reset(); }} />} />)}
         {query.data.unavailable.ENABLE_WARP ? <Alert severity="info">{query.data.unavailable.ENABLE_WARP}</Alert> : null}

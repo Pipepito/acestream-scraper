@@ -1,3 +1,6 @@
+import { useUnsavedChanges } from '../components/UnsavedChanges';
+import { useConfirm } from '../components/ConfirmDialog';
+import { translateKnown } from '../i18n/text';
 import { runtimeLabel, runtimeHelp } from '../i18n/runtime';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
@@ -50,6 +53,13 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
     mutationFn: setupService.save,
     onSuccess: state => { setSaved(state); setDraft(state.runtime); setFinished(true); client.setQueryData(setupQueryKey, state); },
   });
+  useUnsavedChanges(changes.length > 0, mutation.isPending);
+  const { confirm, dialog } = useConfirm();
+  const close = async () => {
+    if (mutation.isPending) return;
+    if (changes.length && !await confirm({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true })) return;
+    onClose();
+  };
   const move = (index: number) => { setStep(index); };
   const field = (option: RuntimeOption) => {
     const automaticPlayback = option.name === 'ACE_ENGINE_URL' && bundledPlayback && !draft.ACE_ENGINE_URL;
@@ -67,14 +77,14 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
       helperText={helper || undefined} InputProps={{ readOnly: automaticChecker }} inputProps={numeric ? { min: option.minimum, max: option.maximum, step: option.kind === 'integer' ? 1 : 'any' } : { maxLength: 4096 }}
       onChange={event => setDraft(previous => ({ ...previous, [option.name]: numeric && event.target.value !== '' ? Number(event.target.value) : event.target.value }))} />;
   };
-  return <Dialog open fullWidth maxWidth="md" fullScreen={fullScreen} aria-labelledby="runtime-setup-title" onClose={mutation.isPending ? undefined : onClose}>
+  return <><Dialog open fullWidth maxWidth="md" fullScreen={fullScreen} aria-labelledby="runtime-setup-title" onClose={() => void close()}>
     <DialogTitle id="runtime-setup-title" ref={top} tabIndex={-1}>{tUi("Connection settings")}</DialogTitle>
     <DialogContent dividers>
     <Typography color="text.secondary" sx={{ mb: 2 }}>{tUi("Loaded from your saved configuration, with missing options imported from the deployment. Save here, then restart the container to apply changes.")}</Typography>
     {saved.restart_required ? <Alert severity="info" sx={{ mb: 2 }}>{tUi("Restart required")}</Alert> : null}
     {!finished ? <>
-      <Typography variant="body2" sx={{ display: { sm: 'none' }, mb: 2 }}>{tUi("Step")}{' '}{step + 1} {' '}{tUi("of")}{' '}{steps.length} · {steps[step]}</Typography>
-      <Stepper activeStep={step} sx={{ display: { xs: 'none', sm: 'flex' }, mb: 3 }}>{steps.map(label => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}</Stepper>
+      <Typography variant="body2" sx={{ display: { sm: 'none' }, mb: 2 }}>{tUi("Step")}{' '}{step + 1} {' '}{tUi("of")}{' '}{steps.length} · {translateKnown(steps[step])}</Typography>
+      <Stepper activeStep={step} sx={{ display: { xs: 'none', sm: 'flex' }, mb: 3 }}>{steps.map(label => <Step key={label}><StepLabel>{translateKnown(label)}</StepLabel></Step>)}</Stepper>
     </> : null}
     {mutation.isError ? <Alert severity="error" sx={{ mb: 2 }}>{mutation.error instanceof ApiError && mutation.error.status === 409 ? tUi("Configuration changed in another session. Reload the saved configuration before trying again.") : getErrorMessage(mutation.error)} <Button onClick={() => window.location.reload()}>{tUi("Reload saved configuration")}</Button></Alert> : null}
     {finished ? <>
@@ -82,7 +92,7 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
       <Typography sx={{ mb: 2 }}>{tUi("Return to setup to add channel sources and an optional programme guide.")}</Typography>
       <Button onClick={() => { setFinished(false); move(0); }}>{tUi("Review runtime settings")}</Button>
     </> : <Box component="form" id="runtime-setup-form" onSubmit={event => { event.preventDefault(); if (step < 3) move(step + 1); else mutation.mutate({ expected_revision: saved.revision, runtime: draft, setup_complete: saved.setup_complete }); }}>
-      <Box ref={heading} tabIndex={-1} sx={{ outlineOffset: 4 }}><Typography variant="h6" component="h2" sx={{ mb: 2 }}>{steps[step]}</Typography></Box>
+      <Box ref={heading} tabIndex={-1} sx={{ outlineOffset: 4 }}><Typography variant="h6" component="h2" sx={{ mb: 2 }}>{translateKnown(steps[step])}</Typography></Box>
       <ContentSection>
         <Stack spacing={3}>
           {step === 0 ? <>
@@ -110,7 +120,7 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
             {advanced ? saved.options.filter(option => option.group === 'advanced').map(field) : null}
           </>}
           {step === 2 ? serviceDetails.filter(service => draft[service.flag] === true).map(service => <Box key={service.group}>
-            <Button disabled={mutation.isPending} aria-expanded={expandedServices.includes(service.group)} onClick={() => setExpandedServices(previous => previous.includes(service.group) ? previous.filter(group => group !== service.group) : [...previous, service.group])}>{service.label}</Button>
+            <Button disabled={mutation.isPending} aria-expanded={expandedServices.includes(service.group)} onClick={() => setExpandedServices(previous => previous.includes(service.group) ? previous.filter(group => group !== service.group) : [...previous, service.group])}>{translateKnown(service.label)}</Button>
             {expandedServices.includes(service.group) ? <Stack spacing={3} sx={{ mt: 2 }}>{saved.options.filter(option => option.group === service.group).map(field)}</Stack> : null}
             {expandedServices.includes(service.group) && service.group === 'acexy' && bundledPlayback && (draft.ACEXY_HOST !== (draft.ACESTREAM_HTTP_HOST || 'localhost') || draft.ACEXY_PORT !== (draft.ACESTREAM_HTTP_PORT || 6878)) ? <Alert severity="info" sx={{ mt: 2 }}>{tUi("Acexy currently connects to a different engine.")}{' '}<Button disabled={mutation.isPending} onClick={() => setValues({ ACEXY_HOST: draft.ACESTREAM_HTTP_HOST || 'localhost', ACEXY_PORT: draft.ACESTREAM_HTTP_PORT || 6878 })}>{tUi("Connect Acexy to bundled engine")}</Button></Alert> : null}
             {expandedServices.includes(service.group) && (service.group === 'ipfs' || service.group === 'zeronet') ? (() => {
@@ -125,12 +135,12 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
     </Box>}
     </DialogContent>
     <DialogActions sx={{ px: 3, py: 2 }}>
-      <Button disabled={mutation.isPending} onClick={onClose}>{finished ? tUi("Return to setup") : tUi("Cancel")}</Button>
+      <Button disabled={mutation.isPending} onClick={() => void close()}>{finished ? tUi("Return to setup") : tUi("Cancel")}</Button>
       <Box sx={{ flex: 1 }} />
       {!finished ? <>
         <Button disabled={step === 0 || mutation.isPending} onClick={() => move(step - 1)}>{tUi("Back")}</Button>
         <Button variant="contained" type="submit" form="runtime-setup-form" disabled={mutation.isPending}>{mutation.isPending ? tUi("Saving…") : step === 3 ? tUi("Save setup") : tUi("Continue")}</Button>
       </> : null}
     </DialogActions>
-  </Dialog>;
+  </Dialog>{dialog}</>;
 }

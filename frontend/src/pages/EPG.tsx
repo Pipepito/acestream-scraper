@@ -84,7 +84,7 @@ const EPG: React.FC = () => {
   } = useTVChannelCatalog();
 
   const {
-    openSourceDialog,
+    openSourceDialog, sourcePending, sourceError, sourceConfirmation,
     isEditSource,
     sourceFormData,
     selectSourceProvider,
@@ -372,9 +372,10 @@ const EPG: React.FC = () => {
         ) : null}
       </Box>
 
+      {sourceConfirmation}
       {/* EPG Source Dialog */}
       <EPGSourceDialog
-        open={openSourceDialog}
+        open={openSourceDialog} pending={sourcePending} error={sourceError}
         isEdit={isEditSource}
         formData={sourceFormData}
         onSelectProvider={selectSourceProvider}

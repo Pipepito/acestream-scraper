@@ -1,3 +1,5 @@
+import interFont from './assets/fonts/inter.woff2';
+import barlowFont from './assets/fonts/barlow-condensed.woff2';
 import { enUS, esES } from '@mui/material/locale';
 import { createTheme } from '@mui/material/styles';
 import { applyPreset } from './styles/presets';
@@ -344,11 +346,10 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', la
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: {
-          '@font-face': [
-            { fontFamily: 'Inter', src: 'url(/static/fonts/inter.ttf) format("truetype")', fontWeight: '100 900', fontDisplay: 'swap' },
-            { fontFamily: 'Barlow Condensed', src: 'url(/static/fonts/barlow-condensed.ttf) format("truetype")', fontWeight: 700, fontDisplay: 'swap' },
-          ],
+        styleOverrides: () => [
+          `@font-face { font-family: Inter; src: url(${interFont}) format("woff2"); font-weight: 100 900; font-display: swap; }
+           @font-face { font-family: "Barlow Condensed"; src: url(${barlowFont}) format("woff2"); font-weight: 700; font-display: swap; }`,
+          {
           ':focus-visible': { outline: VISIBLE_FOCUS_OUTLINE, outlineOffset: 3 },
           '@media (prefers-reduced-motion: reduce)': { '*, *::before, *::after': { scrollBehavior: 'auto', animationDuration: '0s', transitionDuration: '0s' } },
           '.MuiFormHelperText-root': { fontSize: '0.875rem' },
@@ -362,7 +363,8 @@ export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', la
             '.MuiDialogActions-root': { flexWrap: 'wrap', gap: 8 },
             '.MuiTablePagination-toolbar': { flexWrap: 'wrap', paddingLeft: 0, paddingRight: 0 },
           },
-        },
+          },
+        ],
       },
       MuiAppBar: {
         defaultProps: {

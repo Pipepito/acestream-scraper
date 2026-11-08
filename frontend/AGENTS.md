@@ -165,3 +165,6 @@ state with `useUnsavedChanges`; the shared guard handles query tabs, route chang
 Back and document unload. Modal close also needs the canonical discard confirmation.
 Keep independent saves independent and do not overwrite drafts on query refresh.
 See `docs/dev/frontend-localization.md` and `docs/dev/settings-editors.md`.
+Inter supplies body/control text; Lime uses Barlow Condensed display headings.
+Use `docs/dev/frontend-component-catalogue.md` for shared owners and state examples,
+and the six-theme contrast tests for text and essential control boundaries.

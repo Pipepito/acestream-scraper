@@ -21,17 +21,25 @@ const FolderMatchDialog: React.FC<FolderMatchDialogProps> = ({ open, catalogueId
   const preview = useQuery({ queryKey: ['catalogue', catalogueId, 'folder-matches'], queryFn: () => catalogueService.folderMatches(catalogueId), enabled: open, staleTime: 0 });
   const pending = useRef(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [review, setReview] = useState<{ catalogueId: number; rows: FolderMatchRow[]; entries: CatalogueEntry[] } | null>(null);
   useEffect(() => {
-    if (preview.data) setChecked(Object.fromEntries(preview.data.rows.map((row) => [row.folder_id, row.status === 'match'])));
-  }, [preview.data]);
-  const parents = useMemo(() => new Map(entries.map((entry) => [entry.id, entry.parent_id ?? null])), [entries]);
+    if (!open || (review && review.catalogueId !== catalogueId)) {
+      setReview(null);
+      setChecked({});
+    } else if (!review && preview.data && !preview.isFetching) {
+      // Keep the exact reviewed targets and choices through background refreshes.
+      setReview({ catalogueId, rows: preview.data.rows, entries });
+      setChecked(Object.fromEntries(preview.data.rows.map((row) => [row.folder_id, row.status === 'match'])));
+    }
+  }, [open, catalogueId, review, preview.data, preview.isFetching, entries]);
+  const parents = useMemo(() => new Map((review?.entries ?? []).map((entry) => [entry.id, entry.parent_id ?? null])), [review]);
   const isDescendant = (childId: string, ancestorId: string) => {
     let current = parents.get(childId) ?? null;
     let guard = 0;
     while (current && guard < 100) { if (current === ancestorId) return true; current = parents.get(current) ?? null; guard += 1; }
     return false;
   };
-  const rows = preview.data?.rows ?? [];
+  const rows = review?.catalogueId === catalogueId ? review.rows : [];
   const coveredBy = (row: FolderMatchRow) => rows.find((other) => other.folder_id !== row.folder_id && checked[other.folder_id] && isDescendant(other.folder_id, row.folder_id));
   const choices: Choice[] = rows.flatMap((row): Choice[] => {
     if (!checked[row.folder_id] || coveredBy(row)) return [];
@@ -53,7 +61,7 @@ const FolderMatchDialog: React.FC<FolderMatchDialogProps> = ({ open, catalogueId
       <DialogTitle id="folder-match-title">{tUi("Match folders to TV channels")}</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 1.5 }}>{tUi("Folders whose name equals a TV channel are ticked. Tick Create for folders without a match to make a TV channel with the folder's name. Streams already on another TV channel are left where they are.")}</DialogContentText>
-        {preview.isPending ? <CircularProgress aria-label={tUi("Loading folder matches")} /> : preview.isError ? <Alert severity="error" action={<Button onClick={() => void preview.refetch()}>{tUi("Retry")}</Button>}>{getErrorMessage(preview.error)}</Alert>
+        {!review && preview.isError ? <Alert severity="error" action={<Button onClick={() => void preview.refetch()}>{tUi("Retry")}</Button>}>{getErrorMessage(preview.error)}</Alert> : !review ? <CircularProgress aria-label={tUi("Loading folder matches")} />
           : rows.length === 0 ? <Typography>{tUi("No folders with imported streams.")}</Typography>
           : <Stack spacing={1}>
             {rows.map((row) => {

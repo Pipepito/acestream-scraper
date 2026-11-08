@@ -217,13 +217,19 @@ This product is for single users with little or no technical knowledge who need 
 The brand should feel bold, powerful, and operational. The voice should be clear, direct, and supportive so users feel fast, confident, and slightly delighted rather than intimidated by a technical tool.
 
 ### Aesthetic Direction
-The current product already points toward a structured operational dashboard: Material UI, IBM Plex Sans, a left-nav app shell, light-mode defaults, teal and blue as primary accents, and compact cards and sections for dense information. Future design work should support both light and dark themes, keep the product feeling Linear-like in polish and clarity, introduce warmer accents where they add emphasis or friendliness, and avoid looking like a playful consumer app, a generic admin template, or an overly dark hacker interface.
+The approved UX #314 direction uses one Material UI application with exactly three
+presentations: Lime, Coral/navy and Immersive cyan (first-visit/unknown fallback).
+Inter is the body/control family; Lime adds Barlow Condensed headings. Local WOFF2
+fonts retain system fallbacks. Each preset supports independent light/dark and
+EN/ES choices. Keep administration calm, retain AceStream identity and use the
+shared semantic tokens, canonical editors and component catalogue in
+`docs/dev/frontend-component-catalogue.md`.
 
 ### Design Principles
 - Prefer guided, low-friction flows over expert-only controls so non-technical users can complete operational tasks with confidence.
 - Keep information dense but well-structured, using clear hierarchy, sectioning, and status signals to make the system feel fast and controllable.
 - Make operational state obvious: health, progress, errors, and next actions should be easy to scan and hard to misunderstand.
-- Build a polished dual-theme system that starts from the existing teal/blue foundation and uses warmer accents sparingly for emphasis, feedback, and approachability.
+- Implement features once in shared controllers/services/editors/messages; apply the three approved palettes, density and composition through presentation tokens. Preference changes never replace providers, drafts or media owners.
 - Meet WCAG AA expectations, respect reduced-motion preferences, and use more than color alone to communicate status or meaning.
 
 

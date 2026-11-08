@@ -519,3 +519,22 @@ final repeated interaction/media/memory and full validation remain outstanding.
   branch still assumes ARM; no private policy was changed. Its peer invocation
   lacked an explicit platform and emitted a Docker platform notice; subsequent
   local supplemental runs must supply that platform explicitly.
+
+### Integrated review follow-up
+
+- Frozen `abee85b2` responsive suite: **332 passed**, no skips, in 5.5 minutes
+  across Chromium phone/desktop, 320 px WebKit and Firefox tablet. Browser transport
+  monitor: **30 passed** across all three browsers, no skips, in 26.1 seconds.
+  Launchers remove the conflicting NO_COLOR environment; no warning suppression.
+- The fresh Firefox run exposed an old `Select acestream` test locator after the
+  accessible name became `Select stream`. Its failed assignment left a dependent
+  playlist empty. Page objects and expected feedback now use the actual names;
+  persistence/export assertions remain. A complete fresh rerun is required.
+- Folder matching now retains the exact reviewed rows, targets and parent tree
+  through background refreshes. The regression changes the server candidate while
+  preserving the selected old target and explicit Create choice, switches Spanish,
+  then rejects Apply and verifies both selections remain. Focused tests: 11 passed.
+- Reconciled obsolete IBM Plex/teal design guidance with the approved Inter/Barlow
+  and three-preset contract. The production component catalogue maps shared owners,
+  real usage sites, state tests, exceptions and add-a-feature-once steps. It does
+  not claim complete native accessibility or participant acceptance.

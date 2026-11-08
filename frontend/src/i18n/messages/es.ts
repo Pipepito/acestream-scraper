@@ -2549,5 +2549,6 @@ export const uiSpanish: Record<keyof typeof uiEnglish, string> = {
   "Best stream: {{name}} · {{status}}": "Mejor señal: {{name}} · {{status}}",
   "No group": "Sin grupo",
   "the player": "el reproductor",
-  "System tools": "Herramientas del sistema"
+  "System tools": "Herramientas del sistema",
+  "Loading account…": "Cargando cuenta…"
 };

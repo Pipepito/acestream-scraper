@@ -73,3 +73,10 @@ notice. Keep raw probe/error results in editor state and derive translated copy
 at render time. Do not capture an already translated verdict in a factory.
 Scheduled-job summaries use the typed `jobs` namespace with count-aware complete
 messages and locale-aware numbers; protocol metrics remain unchanged.
+
+Telegram diagnostics carry additive `message_code` fields and `X-Error-Code`
+headers. Fixed legacy details remain available to existing clients; the current
+UI translates codes and protocol states while preserving chat/source names.
+The backend resolves codes for persisted diagnostic text without a data migration.
+Source writes project only writable configuration fields, so response diagnostics
+never leak into the strict Telegram input schema.

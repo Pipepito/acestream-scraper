@@ -2549,5 +2549,6 @@ export const uiEnglish = {
   "Best stream: {{name}} · {{status}}": "Best stream: {{name}} · {{status}}",
   "No group": "No group",
   "the player": "the player",
-  "System tools": "System tools"
+  "System tools": "System tools",
+  "Loading account…": "Loading account…"
 } as const;

@@ -144,3 +144,17 @@ test('keeps source input and the pending request across language changes', async
     await waitFor(() => expect(screen.queryByDisplayValue('Sports draft')).not.toBeInTheDocument());
   } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
 });
+
+test('account diagnostic and state change language while the code draft remains intact', async () => {
+  mockStatus.mockResolvedValue({ state: 'code_required', message: 'Enter the code sent by Telegram.', message_code: 'TELEGRAM_ENTER_CODE' });
+  setup(); await unlock();
+  const input = await screen.findByLabelText('Telegram login code');
+  fireEvent.change(input, { target: { value: '12345' } });
+  expect(screen.getByText('Enter the code sent by Telegram.')).toBeInTheDocument();
+  await act(async () => { await i18next.changeLanguage('es'); });
+  expect(screen.getByText('Introduce el código enviado por Telegram.')).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('Introduce el código de acceso');
+  expect(input).toHaveValue('12345');
+  expect(mockCode).not.toHaveBeenCalled();
+  await act(async () => { await i18next.changeLanguage('en'); });
+});

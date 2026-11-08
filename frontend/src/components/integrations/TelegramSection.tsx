@@ -1,14 +1,14 @@
-import { useUnsavedChanges } from '../UnsavedChanges';
-import { uiText } from '../../i18n/text';
+import { Alert,Box,Button,Divider,Link,Stack,TextField,Typography } from '@mui/material';
+import { useQuery,useQueryClient } from '@tanstack/react-query';
+import React,{ useEffect,useMemo,useRef,useState } from 'react';
 import { getLocale } from '../../i18n/locale';
+import { statusLabel } from '../../i18n/status';
+import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Box, Button, Divider, Link, Stack, TextField, Typography } from '@mui/material';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import ContentSection from '../layout/ContentSection';
+import { telegramError as getErrorMessage,telegramMessage,telegramService,TelegramSource,TelegramSourceConfig } from '../../services/telegramService';
 import { useConfirm } from '../ConfirmDialog';
-import { telegramService, TelegramSource, TelegramSourceConfig } from '../../services/telegramService';
-import { telegramError as getErrorMessage } from '../../services/telegramService';
+import ContentSection from '../layout/ContentSection';
+import { useUnsavedChanges } from '../UnsavedChanges';
 import TelegramSourceEditor from './TelegramSourceEditor';
 
 export default function TelegramSection() {
@@ -43,7 +43,7 @@ export default function TelegramSection() {
     cache.removeQueries({ queryKey: ['telegram'] });
   };
   const toggle = async (source: TelegramSource) => {
-    const { id: _id, chat_label: _chat, sender_labels: _labels, cursor: _cursor, state: _state, last_success: _success, imported_count: _count, excluded_count: _excluded, message: _message, ...config } = source;
+    const { id: _id, chat_label: _chat, sender_labels: _labels, cursor: _cursor, state: _state, last_success: _success, imported_count: _count, excluded_count: _excluded, message: _message, message_code: _messageCode, ...config } = source;
     await api.save({ ...config, enabled: !source.enabled } as TelegramSourceConfig, source.id);
   };
   return <Box id="telegram"><ContentSection title={tUi("Telegram sources")} description={tUi("Collect AceStream links from selected chats using your own Telegram account.")}>
@@ -56,9 +56,9 @@ export default function TelegramSection() {
           <Button type="submit" variant="outlined" disabled={!token}>{tUi("Unlock Telegram settings")}</Button>
         </Stack>
       </> : <>
-        <Stack direction="row" justifyContent="space-between" spacing={1}><Typography role="status">{status.data?.account_label ? tUi("{{value0}} · ", { value0: status.data.account_label }) : ''}{status.data?.state.replaceAll('_', ' ') ?? 'Loading account…'}</Typography><Button disabled={busy || editing !== null} onClick={lock}>{tUi("Lock settings")}</Button></Stack>
+        <Stack direction="row" justifyContent="space-between" spacing={1}><Typography role="status">{status.data?.account_label ? tUi("{{value0}} · ", { value0: status.data.account_label }) : ''}{status.data ? statusLabel(status.data.state) : tUi('Loading account…')}</Typography><Button disabled={busy || editing !== null} onClick={lock}>{tUi("Lock settings")}</Button></Stack>
         {(error !== null || status.error || sources.error) && <Alert severity="error">{getErrorMessage(error ?? status.error ?? sources.error)}</Alert>}
-        {status.data?.message && <Alert severity="info">{status.data.message}</Alert>}
+        {status.data?.message && <Alert severity="info">{telegramMessage(status.data.message, status.data.message_code)}</Alert>}
         {status.data?.retry_at && <Typography>{tUi("Retry after")}{' '}{new Date(status.data.retry_at).toLocaleString(getLocale())}</Typography>}
         {!!status.data?.queue_size && <Typography>{status.data.queue_size} {' '}{tUi("queued updates")}</Typography>}
         {status.data?.state === 'disconnected' && <>
@@ -92,9 +92,9 @@ export default function TelegramSection() {
           {!sources.data?.length && <Typography>{tUi("No sources yet. Select a joined chat to start collecting.")}</Typography>}
           {sources.data?.map(source => <Stack key={source.id} spacing={1} sx={{ borderBottom: 1, borderColor: 'divider', py: 2, overflowWrap: 'anywhere' }}>
             <Typography variant="subtitle1">{source.name}</Typography>
-            <Typography variant="body2">{source.chat_label} · {source.state.replaceAll('_', ' ')} · {source.imported_count} {' '}{tUi("new streams imported ·")}{' '}{source.excluded_count ?? 0} {' '}{tUi("excluded in last processed message")}</Typography>
+            <Typography variant="body2">{source.chat_label} · {statusLabel(source.state)} · {source.imported_count} {' '}{tUi("new streams imported ·")}{' '}{source.excluded_count ?? 0} {' '}{tUi("excluded in last processed message")}</Typography>
             <Typography variant="body2">{tUi("Last processed:")}{' '}{source.last_success ? new Date(source.last_success).toLocaleString(getLocale()) : tUi("No messages processed yet")}</Typography>
-            {source.message && <Alert severity="warning">{source.message}</Alert>}
+            {source.message && <Alert severity="warning">{telegramMessage(source.message, source.message_code)}</Alert>}
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               <Button disabled={busy || editing !== null} onClick={() => void run(() => toggle(source))}>{source.enabled ? tUi("Pause") : tUi("Resume")} {source.name}</Button>
               <Button disabled={busy || editing !== null || !source.enabled} onClick={() => void run(() => api.scan(source.id))}>{tUi("Scan now")}</Button>

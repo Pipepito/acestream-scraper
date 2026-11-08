@@ -9979,6 +9979,8 @@ export interface components {
             last_success?: string | null;
             /** Message */
             message: string;
+            /** Message Code */
+            message_code?: string | null;
             /** Name */
             name: string;
             recipe?: components["schemas"]["ExtractionRecipe"] | null;
@@ -10116,6 +10118,8 @@ export interface components {
              * @default
              */
             message?: string;
+            /** Message Code */
+            message_code?: string | null;
             /**
              * Queue Size
              * @default 0

@@ -377,3 +377,43 @@ final repeated interaction/media/memory and full validation remain outstanding.
 - Build grouping now separates pure language catalogues and router code; latest
   entry 96.9 KB, EN 221.1 KB, ES 242.3 KB, router 93.9 KB, MUI 447.2 KB. Production
   SPA/helper build has no chunk warning; unchanged 500 KB warning threshold.
+
+### Telegram diagnostics and browser-discovered save behavior
+
+- Telegram status/source diagnostics now carry stable additive reason codes;
+  EN/ES account/source states and extraction outcomes resolve on render. Existing
+  details, encrypted storage and authentication/transport rules remain unchanged.
+  Source serializers explicitly project writable fields, preserving null/empty/
+  false values while excluding response metadata. No database migration required.
+- A real-backend Firefox journey found that the webhook draft retained its raw
+  token after Save while the server returned a masked URL. The form now adopts
+  the persisted masked value, clears its dirty state and enables Send test.
+  It never places the raw URL in the query cache. Setup import feedback also
+  resolves in the current language without resetting the import result.
+- Focused Telegram backend: 33 passed. Telegram/webhook frontend: 3 suites,
+  17 passed. Typecheck and zero-warning lint passed; production build passed.
+- Full application checkpoint (backend at 147a6e7, frontend at 544eee14):
+  2,611 backend tests and 119 frontend suites / 726 tests passed, coverage retained.
+  OpenAPI/client drift, lint/types, build, helper drift and all nine separate public
+  contract stages passed. This predates the changes in this section.
+- Frozen 147a6e7 matrix: all 15 image/platform builds passed. Five native ARM64
+  runtime checks and ARMv7 layout passed. AMD64 private runtime validation failed
+  because its emulated-platform layout branch asserts ARM OCI installation for
+  the native Linux AMD64 engine. Keep this exact infrastructure-validator
+  limitation open; successful build does not count as a runtime pass.
+- Strict Firefox at 544eee14: 57 passed, 3 failed, 1 dependent test did not run.
+  Failures: whitespace-sensitive matching assertion (corrected); webhook saved
+  state (application fix above); recording directory supplied through macOS's
+  /tmp symlink (must restart isolated backend using /private/tmp real path).
+- Frozen mobile matrix: 180 passed, 56 failed from outdated fixtures/selectors.
+  Corrected affected flows passed all 18 Chromium cases; the full matrix reruns.
+  Monitor transport suite: 30 passed across Firefox, Chromium and WebKit.
+- Next: finish real media preference continuity, corrected full browser matrices,
+  rerun against the new build and real-path storage, complete Docker packaging/
+  service/media/scanner checks and remaining feature/parity/visual acceptance.
+  Participant, native screen-reader and physical-device evidence remains open.
+
+- Real HLS playback preference acceptance passed (48.7 seconds): all three
+  presets × both themes × EN/ES, same video DOM element and one viewer session;
+  filtering advances media, channel switch releases one viewer, Stop reaps both
+  test sessions. Uses the frozen 544eee14 SPA and isolated FFmpeg backend.

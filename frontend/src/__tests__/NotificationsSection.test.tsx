@@ -29,7 +29,7 @@ const renderSection = (notify: jest.Mock) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  service.updateNotificationWebhookUrl.mockResolvedValue(undefined);
+  service.updateNotificationWebhookUrl.mockImplementation(async value => value);
   service.testNotificationWebhook.mockResolvedValue(undefined);
 });
 
@@ -89,3 +89,22 @@ it.each(['', 'https://gotify.test/message?token=new'])(
     expect(service.testNotificationWebhook).not.toHaveBeenCalled();
   },
 );
+
+
+it('adopts the masked server value after saving so test delivery is enabled without exposing the token', async () => {
+  service.getNotificationWebhookUrl.mockResolvedValue('');
+  const masked = 'https://gotify.test/message?token=•••';
+  service.updateNotificationWebhookUrl.mockImplementation(async () => {
+    service.getNotificationWebhookUrl.mockResolvedValue(masked);
+    return masked;
+  });
+  const user = userEvent.setup();
+  renderSection(jest.fn());
+  const input = screen.getByRole('textbox', { name: 'Webhook URL' });
+  await user.type(input, 'https://gotify.test/message?token=secret');
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(input).toHaveValue(masked));
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await user.click(screen.getByRole('button', { name: 'Send test' }));
+  expect(service.testNotificationWebhook).toHaveBeenCalledTimes(1);
+});

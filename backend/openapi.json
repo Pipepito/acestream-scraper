@@ -12789,6 +12789,17 @@
             "title": "Message",
             "type": "string"
           },
+          "message_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Code"
+          },
           "name": {
             "maxLength": 100,
             "minLength": 1,
@@ -13083,6 +13094,17 @@
             "default": "",
             "title": "Message",
             "type": "string"
+          },
+          "message_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Code"
           },
           "queue_size": {
             "default": 0,

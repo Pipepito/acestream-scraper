@@ -1,15 +1,15 @@
-import { useConfirm } from '../ConfirmDialog';
-import { useUnsavedChanges } from '../UnsavedChanges';
+import { Alert,Box,Button,Checkbox,FormControlLabel,MenuItem,Stack,TextField,Typography } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import React,{ lazy,Suspense,useRef,useState } from 'react';
+import { statusLabel } from '../../i18n/status';
 import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
-import React, { lazy, Suspense, useRef, useState } from 'react';
-import { Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import type { TelegramSource, TelegramSourceCreate, TelegramService, TelegramPreview } from '../../services/telegramService';
-import type { ExtractionRecipe } from '../../recipes/types';
+import type { ExtractionRecipe,RecipePreview } from '../../recipes/types';
 import apiClient from '../../services/apiClient';
-import type { RecipePreview } from '../../recipes/types';
+import type { TelegramPreview,TelegramService,TelegramSource,TelegramSourceCreate } from '../../services/telegramService';
 import { telegramError as getErrorMessage } from '../../services/telegramService';
+import { useConfirm } from '../ConfirmDialog';
+import { useUnsavedChanges } from '../UnsavedChanges';
 const RecipeBuilder = lazy(() => import('../../recipes/RecipeBuilder'));
 
 interface Props { api: TelegramService; source?: TelegramSource; onSaved: () => Promise<void>; onCancel: () => void }
@@ -114,7 +114,7 @@ export default function TelegramSourceEditor({ api, source, onSaved, onCancel }:
           <Typography variant="subtitle2">{tUi("Preview only · no catalogue changes")}</Typography>
           {preview.messages.length === 0 && <Typography>{tUi("No recent messages.")}</Typography>}
           {preview.messages.map(message => <Box key={message.message_id} sx={{ borderBottom: 1, borderColor: 'divider', py: 1, overflowWrap: 'anywhere' }}>
-            <Typography variant="body2">{tUi("Message")}{' '}{message.message_id} {' '}{tUi("· sender")}{' '}{message.sender_id ?? tUi('Unverified')} · {message.outcome} · {message.result.duplicate_count} {' '}{tUi("duplicates ·")}{' '}{message.result.invalid_count} {' '}{tUi("invalid")}</Typography>
+            <Typography variant="body2">{tUi("Message")}{' '}{message.message_id} {' '}{tUi("· sender")}{' '}{message.sender_id ?? tUi('Unverified')} · {statusLabel(message.outcome)} · {message.result.duplicate_count} {' '}{tUi("duplicates ·")}{' '}{message.result.invalid_count} {' '}{tUi("invalid")}</Typography>
             {message.result.channels.map(channel => <Typography key={channel.channel_id} variant="body2">{channel.name} — {channel.channel_id}{message.excluded_rule_ids?.[channel.channel_id]?.length ? <Button href={`/scraper?tab=exclusions#rule-${message.excluded_rule_ids[channel.channel_id][0]}`}>{tUi("Excluded · Review rule")}</Button> : null}</Typography>)}
           </Box>)}
         </Stack>}

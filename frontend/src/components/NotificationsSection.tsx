@@ -37,8 +37,9 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
     pending.current = true; setActionError(null);
     setBusy(true);
     try {
-      await configService.updateNotificationWebhookUrl(value.trim());
-      draft.saved(value.trim());
+      const persisted = await configService.updateNotificationWebhookUrl(value.trim());
+      draft.saved(persisted);
+      queryClient.setQueryData(NOTIFICATION_WEBHOOK_QUERY_KEY, persisted);
       notify(() => (value.trim() ? uiText("Notification webhook saved.") : uiText("Notifications turned off.")), 'success');
       await queryClient.invalidateQueries({ queryKey: NOTIFICATION_WEBHOOK_QUERY_KEY });
     } catch (err) {

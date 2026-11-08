@@ -572,3 +572,14 @@ final repeated interaction/media/memory and full validation remain outstanding.
   above. Repeat final full application/image/browser checks before acceptance.
   Existing npm audit findings remain 4 low / 22 moderate, zero high/critical;
   installer deprecation notices are retained in Docker build logs, not suppressed.
+
+- Repeated reorder comparison: five alternating samples per build, median open
+  2,842 → 854 ms, keyboard move 2,586 → 23 ms, CDP open-state heap 751 → 31 MB.
+  Post-cancel/GC heap is about 20 MB in both, so the evidence identifies peak
+  rendering cost rather than a retained leak. Curated measurements and local
+  budgets are committed; no universal latency or physical-device claim.
+- Final recording-editor review pinned the reviewed programme/revision, locked
+  time controls during submission and added dirty-close/navigation protection.
+  New regressions reject save after edits, retain exact times, switch Spanish and
+  confirm discard; a guide refetch cannot replace the selected programme. Focused
+  recording suite: 16 passed; final integrated evidence must include this follow-up.

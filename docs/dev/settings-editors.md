@@ -83,3 +83,10 @@ uses document-unload protection without importing the application router, query
 client or API. A save records the recipe baseline only after its request succeeds;
 changing source URL/type invalidates the prior test. Feedback is resolved in the
 current language, and plural resources are included in the generated helper subset.
+
+Recording dialogs pin the programme/recording and revision reviewed at opening.
+Guide refreshes cannot silently substitute another programme. Modified times and
+timezone register as a dirty draft and require explicit discard on close. Save
+disables every time/ambiguity control until settlement; rejection retains values
+and the original creation intent key, with feedback in the currently selected
+language. Opening or cancelling an untouched dialog performs no recording write.

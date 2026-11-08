@@ -76,3 +76,19 @@ fixed before/after builds with identical owned fixture databases; this script ne
 saves the draft. The 48-case `mobile/large-reorder.spec.ts` matrix checks bounded
 DOM, focus and exact complete save payloads. Native assistive-technology review
 remains separate from these automated semantics checks.
+
+At `5054e0a8`, five alternating desktop samples per build measured median reorder
+open time 2,842 → 854 ms (including the fixed 500 ms idle window), keyboard movement
+2,586 → 23 ms, and CDP open-state heap 751 → 31 MB. Post-cancel heap after explicit
+GC was about 20 MB in both builds; this was a peak-rendering problem, not evidence
+of a retained-memory leak. See `docs/design/ux-review-314/performance-reorder.json`.
+These are controlled local comparisons with host scheduling and API latency still
+included, not universal performance promises.
+
+Evidence-based local regression targets are under 2 seconds to open this fixture
+and under 100 ms for a keyboard move. Repeat on the same browser/device before
+interpreting a timing regression. Browser tests enforce the structural budget of
+fewer than 40 mounted reorder rows at the supported viewport sizes, complete save
+arrays and retained focus. Fonts remain below 400,000 source bytes; the unchanged
+500 KB per-chunk build warning threshold remains active. No budget permits dropping
+catalogue entries, permissions, translations or media functionality.

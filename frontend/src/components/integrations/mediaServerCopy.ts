@@ -1,9 +1,11 @@
+import { uiText } from '../../i18n/text';
+import { getLocale } from '../../i18n/locale';
 import { ApiError } from '../../services/apiErrors';
 import type { MediaServerKind, MediaServerProbe, MediaServerSyncStatus } from '../../services/mediaServerService';
 import { getErrorMessage } from '../../utils/errorUtils';
 
 /** How a section reports the outcome of a media-server action. */
-export type MediaServerNotify = (message: string, severity: 'success' | 'warning' | 'error') => void;
+export type MediaServerNotify = (message: string | (() => string), severity: 'success' | 'warning' | 'error') => void;
 
 export const KIND_LABEL: Record<MediaServerKind, string> = { jellyfin: 'Jellyfin', plex: 'Plex' };
 
@@ -21,10 +23,10 @@ export const SYNC_NEEDS_ATTENTION: MediaServerSyncStatus[] = ['error', 'manual']
 /** Plain-language copy for the errors the media-server endpoints raise. */
 export const describeMediaServerError = (error: unknown): string => {
   if (error instanceof ApiError) {
-    if (error.code === 'MEDIA_SERVER_AUTH') return 'The server rejected the API key/token.';
-    if (error.code === 'MEDIA_SERVER_UNREACHABLE') return 'The server did not answer. Check the address and that it is reachable from this server.';
+    if (error.code === 'MEDIA_SERVER_AUTH') return uiText('The server rejected the API key/token.');
+    if (error.code === 'MEDIA_SERVER_UNREACHABLE') return uiText('The server did not answer. Check the address and that it is reachable from this server.');
     if (error.code === 'MEDIA_SERVER_ERROR' || error.code === 'MEDIA_SERVER_NOT_CONNECTED' || error.code === 'MEDIA_SERVER_URL_FORBIDDEN') {
-      return error.message;
+      return getLocale() === 'en-US' ? error.message : getErrorMessage(error);
     }
   }
   return getErrorMessage(error);
@@ -44,8 +46,12 @@ export interface ProbeVerdict {
  * failure (error).
  */
 export const describeMediaServerProbe = (probe: MediaServerProbe, kind: MediaServerKind): ProbeVerdict => {
-  if (!probe.reachable) return { severity: 'error', text: probe.message };
-  if (!probe.authenticated) return { severity: probe.credentials === 'missing' ? 'warning' : 'error', text: probe.message };
+  if (!probe.reachable) return { severity: 'error', text: getLocale() === 'en-US' ? probe.message : uiText('The server did not answer. Check the address and that it is reachable from this server.') };
+  if (!probe.authenticated) return { severity: probe.credentials === 'missing' ? 'warning' : 'error', text: getLocale() === 'en-US' ? probe.message : probe.credentials === 'missing' ? uiText('Add an administrator API key or owner token, then test again.') : uiText('The server rejected the API key/token.') };
+  if (getLocale() !== 'en-US') {
+    const detail = uiText('{{server}} answered and accepted the credentials.', { server: KIND_LABEL[kind] }) + (probe.version ? ' ' + uiText('Version {{version}}', { version: probe.version }) + '.' : '');
+    return { severity: probe.tuner_access.allowed ? 'success' : 'warning', text: detail + (probe.tuner_access.allowed ? '' : ' ' + uiText('{{server}} at {{addresses}} is outside TUNER_ALLOWED_NETWORKS and will get 403 from the tuner routes; add its network.', { server: KIND_LABEL[kind], addresses: probe.tuner_access.addresses.join(', ') })) };
+  }
   const version = probe.version ? ` (version ${probe.version})` : '';
   if (probe.tuner_access.allowed) return { severity: 'success', text: `${probe.message}${version}.` };
   return {

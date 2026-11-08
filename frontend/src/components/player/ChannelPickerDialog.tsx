@@ -1,6 +1,6 @@
 import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Autocomplete,
@@ -55,7 +55,8 @@ const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player,
   const [mode, setMode] = useState<'tv' | 'streams'>('tv');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<PickerOption | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const pending = useRef(false);
   const debounced = useDebounced(search, 300);
   const tv = useTVChannelCatalog({ search: debounced });
   const streams = useAcestreamChannels(
@@ -72,7 +73,7 @@ const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player,
     setError(null);
   }, [open]);
 
-  const options = useMemo<PickerOption[]>(() => {
+  const options: PickerOption[] = (() => {
     if (mode === 'tv') {
       return (tv.data ?? [])
         .filter((channel) => channel.is_active && channel.acestream_channels.length > 0)
@@ -81,7 +82,7 @@ const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player,
           return {
             key: `tv-${channel.id}`,
             label: channel.name,
-            secondary: `Best stream: ${best.name} · ${describeOnline(best.is_online)}`,
+            secondary: uiText('Best stream: {{name}} · {{status}}', { name: best.name, status: describeOnline(best.is_online) }),
             contentId: best.id,
           };
         });
@@ -89,28 +90,29 @@ const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player,
     return (streams.data?.items ?? []).map((stream) => ({
       key: `s-${stream.id}`,
       label: stream.name,
-      secondary: `${stream.group || 'No group'} · ${describeOnline(stream.is_online)}`,
+      secondary: `${stream.group || tUi('No group')} · ${describeOnline(stream.is_online)}`,
       contentId: stream.id,
     }));
-  }, [mode, tv.data, streams.data]);
+  })();
 
   const submit = async () => {
-    if (!player || !selected) return;
+    if (!player || !selected || pending.current) return;
+    pending.current = true;
     setError(null);
     try {
       const result = await play.mutateAsync({ id: player.id, contentId: selected.contentId, title: selected.label });
       const sent = describePlaySent(selected.label, player.name, result.warnings);
       setSelected(null);
       onClose();
-      notify(sent.message, sent.severity);
+      notify(() => describePlaySent(selected.label, player.name, result.warnings).message, sent.severity);
     } catch (err) {
-      setError(err instanceof ApiError ? describeRemotePlayerError(err) : uiText("Could not reach the player."));
-    }
+      setError(err);
+    } finally { pending.current = false; }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" aria-labelledby="channel-picker-title">
-      <DialogTitle id="channel-picker-title">{tUi("Send a channel to")}{' '}{player?.name ?? 'the player'}</DialogTitle>
+    <Dialog open={open} onClose={() => { if (!pending.current) onClose(); }} fullWidth maxWidth="sm" aria-labelledby="channel-picker-title">
+      <DialogTitle id="channel-picker-title">{tUi("Send a channel to")}{' '}{player?.name ?? tUi('the player')}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <ToggleButtonGroup
@@ -152,7 +154,7 @@ const ChannelPickerDialog: React.FC<ChannelPickerDialogProps> = ({ open, player,
             }}
             renderInput={(params) => <TextField {...params} label={tUi("Channel")} placeholder={tUi("Type to search")} />}
           />
-          {error ? <Alert severity="error">{error}</Alert> : null}
+          {error !== null ? <Alert severity="error">{error instanceof ApiError ? describeRemotePlayerError(error) : tUi("Could not reach the player.")}</Alert> : null}
         </Stack>
       </DialogContent>
       <DialogActions>

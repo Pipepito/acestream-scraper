@@ -16,7 +16,7 @@ import ContentSection from '../layout/ContentSection';
 
 import { useUnsavedChanges } from '../UnsavedChanges';
 type FeedbackSeverity = 'success' | 'error';
-type Notify = (message: string, severity: FeedbackSeverity) => void;
+type Notify = (message: string | (() => string), severity: FeedbackSeverity) => void;
 
 export default function AccessSection({ notify }: { notify: Notify }) {
   const tUi = useUiText();
@@ -34,7 +34,7 @@ export default function AccessSection({ notify }: { notify: Notify }) {
     setApiTokenInput(trimmed); setSavedToken(trimmed);
     resetApiTokenRequired();
     setApiTokenRequired(false);
-    notify(tUi("API token saved. It will be sent with future API requests."), 'success');
+    notify(() => (tUi("API token saved. It will be sent with future API requests.")), 'success');
   };
 
   const handleApiTokenClear = () => {
@@ -42,7 +42,7 @@ export default function AccessSection({ notify }: { notify: Notify }) {
     setApiTokenInput(''); setSavedToken('');
     resetApiTokenRequired();
     setApiTokenRequired(false);
-    notify(tUi("API token cleared"), 'success');
+    notify(() => (tUi("API token cleared")), 'success');
   };
 
   return <><AccessSettings />

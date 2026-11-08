@@ -66,3 +66,10 @@ locations. Translate these types, never private request input or English sentenc
 The event API omits validation input/context, and the maintained schema documents
 this redacted response. Corrections retain their reviewed revision across refetches;
 a later server revision must produce a conflict rather than silently replace a draft.
+
+Page-scoped `notify` callbacks accept a string or a message factory. Retained
+feedback resolves the factory during render so changing language updates the same
+notice. Keep raw probe/error results in editor state and derive translated copy
+at render time. Do not capture an already translated verdict in a factory.
+Scheduled-job summaries use the typed `jobs` namespace with count-aware complete
+messages and locale-aware numbers; protocol metrics remain unchanged.

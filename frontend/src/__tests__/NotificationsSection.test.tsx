@@ -42,7 +42,7 @@ it('saves a webhook and only offers the test once it is saved', async () => {
   await user.type(screen.getByRole('textbox', { name: 'Webhook URL' }), ' https://gotify.test/message?token=t ');
   await user.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(service.updateNotificationWebhookUrl).toHaveBeenCalledWith('https://gotify.test/message?token=t'));
-  expect(notify).toHaveBeenCalledWith('Notification webhook saved.', 'success');
+  expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Notification webhook saved.', 'success']);
 });
 
 it('sends a test to the saved webhook', async () => {
@@ -54,7 +54,7 @@ it('sends a test to the saved webhook', async () => {
   await waitFor(() => expect(test).toBeEnabled());
   await user.click(test);
   await waitFor(() => expect(service.testNotificationWebhook).toHaveBeenCalled());
-  expect(notify).toHaveBeenCalledWith('Test notification sent.', 'success');
+  expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Test notification sent.', 'success']);
 });
 
 it('turns notifications off with an empty value', async () => {
@@ -67,7 +67,7 @@ it('turns notifications off with an empty value', async () => {
   await user.clear(field);
   await user.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(service.updateNotificationWebhookUrl).toHaveBeenCalledWith(''));
-  expect(notify).toHaveBeenCalledWith('Notifications turned off.', 'success');
+  expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Notifications turned off.', 'success']);
 });
 
 it.each(['', 'https://gotify.test/message?token=new'])(

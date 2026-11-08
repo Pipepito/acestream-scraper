@@ -1,3 +1,5 @@
+import { jobEnglish } from './messages/jobs-en';
+import { jobSpanish } from './messages/jobs-es';
 import { statusEnglish } from './messages/status-en';
 import { statusSpanish } from './messages/status-es';
 import { errorEnglish } from './messages/errors-en';
@@ -9,6 +11,7 @@ import { uiSpanish } from './messages/es';
 
 export const en = {
   ui: uiEnglish,
+  jobs: jobEnglish,
   runtime: runtimeEnglish,
   errors: errorEnglish,
   status: statusEnglish,
@@ -38,6 +41,7 @@ export const en = {
 type TranslationShape<T> = { [K in keyof T]: T[K] extends string ? string : TranslationShape<T[K]> };
 export const es: TranslationShape<Omit<typeof en, 'ui'>> & { ui: typeof uiSpanish } = {
   ui: uiSpanish,
+  jobs: jobSpanish,
   runtime: runtimeSpanish,
   errors: errorSpanish,
   status: statusSpanish,

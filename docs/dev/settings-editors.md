@@ -62,3 +62,9 @@ forms also register dirty/pending state. Their independent saves disable only th
 relevant controls and retain raw failures so changing language preserves and
 retranslates the same error. Issued credentials remain guarded until dismissed;
 no preference writes credentials to browser storage.
+
+Media-server and tuner forms preserve local edits when their queries refresh.
+Telegram source editors remain mounted if account status changes during editing;
+finish or explicitly discard an editor before locking or replacing it. Pending
+requests have immediate duplicate guards. Secrets remain memory-only and retain
+Telegram's explicit post-submission and lock clearing behavior.

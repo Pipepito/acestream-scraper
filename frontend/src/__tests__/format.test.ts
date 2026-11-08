@@ -54,3 +54,18 @@ describe('job names and results', () => {
     expect(summary).toContain('4 searches deferred');
   });
 });
+
+it('retranslates saved job results with distinct zero, skipped, offline and failure counts', async () => {
+  const { default: i18next } = await import('i18next');
+  await i18next.changeLanguage('es');
+  try {
+    expect(formatJobName('manual_channel_status')).toBe('Comprobar las emisiones (manual)');
+    expect(summarizeJobResult('url_scraping', { processed: 1, failures: 0 })).toBe('1 fuente, 0 errores');
+    expect(summarizeJobResult('activity_log_cleanup', 10000)).toBe('10.000 entradas eliminadas');
+    expect(summarizeJobResult('channel_status', { checked: 6, online: 2, offline: 4, skipped: 3, failed: 1 })).toBe('6 comprobadas, 2 con señal, 4 sin señal, 3 omitidas, 1 error');
+    expect(summarizeJobResult('channel_status', { checked: 0, message: 'Legacy English detail', message_code: 'CHECK_ENGINE_NOT_CONFIGURED' })).toContain('No hay un motor configurado');
+    expect(summarizeJobResult('channel_status', { message: 'Unknown English text' })).not.toContain('English');
+    expect(summarizeJobResult('epg_program_cleanup', { disabled: true })).toBe('retención desactivada');
+  } finally { await i18next.changeLanguage('en'); }
+  expect(summarizeJobResult('activity_log_cleanup', 1)).toBe('1 entry removed');
+});

@@ -1,6 +1,6 @@
 import { Alert,Button,Stack,TextField } from '@mui/material';
 import { useQuery,useQueryClient } from '@tanstack/react-query';
-import React,{ useState } from 'react';
+import React,{ useRef, useState } from 'react';
 import { useSettingDraft } from '../hooks/useSettingDraft';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
@@ -11,7 +11,7 @@ import ContentSection from './layout/ContentSection';
 export const NOTIFICATION_WEBHOOK_QUERY_KEY = ['notificationWebhookUrl'];
 
 export interface NotificationsSectionProps {
-  notify: (message: string, severity: 'success' | 'error') => void;
+  notify: (message: string | (() => string), severity: 'success' | 'error') => void;
 }
 
 /** One webhook that hears when a scrape or a channel check ends or fails (#41). */
@@ -22,6 +22,8 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
     queryKey: NOTIFICATION_WEBHOOK_QUERY_KEY,
     queryFn: configService.getNotificationWebhookUrl,
   });
+  const pending = useRef(false);
+  const [actionError, setActionError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const invalidSavedUrl = saved === '•••';
 
@@ -31,30 +33,34 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (busy) return;
+    if (pending.current) return;
+    pending.current = true; setActionError(null);
     setBusy(true);
     try {
       await configService.updateNotificationWebhookUrl(value.trim());
       draft.saved(value.trim());
-      notify(value.trim() ? uiText("Notification webhook saved.") : uiText("Notifications turned off."), 'success');
+      notify(() => (value.trim() ? uiText("Notification webhook saved.") : uiText("Notifications turned off.")), 'success');
       await queryClient.invalidateQueries({ queryKey: NOTIFICATION_WEBHOOK_QUERY_KEY });
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      setActionError(err);
+      notify(() => (getErrorMessage(err)), 'error');
     } finally {
-      setBusy(false);
+      pending.current = false; setBusy(false);
     }
   };
 
   const test = async () => {
-    if (busy) return;
+    if (pending.current) return;
+    pending.current = true; setActionError(null);
     setBusy(true);
     try {
       await configService.testNotificationWebhook();
-      notify(tUi("Test notification sent."), 'success');
+      notify(() => (tUi("Test notification sent.")), 'success');
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      setActionError(err);
+      notify(() => (getErrorMessage(err)), 'error');
     } finally {
-      setBusy(false);
+      pending.current = false; setBusy(false);
     }
   };
 
@@ -64,6 +70,7 @@ const NotificationsSection: React.FC<NotificationsSectionProps> = ({ notify }) =
       description={tUi("A JSON POST after scheduled runs, manual scrapes, and individual channel checks. Skipped checks send nothing. A Gotify /message?token= URL works as it is.")}
     >
       <Stack spacing={2}>
+        {actionError !== null && <Alert severity="error">{getErrorMessage(actionError)}</Alert>}
         {isError ? <Alert severity="error">{tUi("Could not load the notification webhook. Reload to try again.")}</Alert> : null}
         {invalidSavedUrl ? (
           <Alert severity="warning">{tUi("The saved webhook URL is invalid. Replace it or clear the field to turn notifications off.")}</Alert>

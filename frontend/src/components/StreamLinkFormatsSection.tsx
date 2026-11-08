@@ -13,7 +13,7 @@ import { useConfirm } from './ConfirmDialog';
 import ContentSection from './layout/ContentSection';
 import StreamFormatSuggestions from './StreamFormatSuggestions';
 type FeedbackSeverity = 'success' | 'error';
-type Notify = (message: string, severity: FeedbackSeverity) => void;
+type Notify = (message: string | (() => string), severity: FeedbackSeverity) => void;
 
 const describeSaveError = (error: unknown, attemptedName: string, fallback: string): string => {
   if (error instanceof ApiError && error.status === 409) {
@@ -82,9 +82,9 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
           setNewPattern('');
           setNewIsDefault(false);
           setAddOpen(false);
-          notify(tUi('Link format "{{name}}" added', { name }), 'success');
+          notify(() => (tUi('Link format "{{name}}" added', { name })), 'success');
         },
-        onError: (error) => notify(describeSaveError(error, name, 'Failed to add the link format'), 'error'),
+        onError: (error) => notify(() => (describeSaveError(error, name, 'Failed to add the link format')), 'error'),
       }
     );
   };
@@ -93,8 +93,8 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
     patchBaseUrlMutation.mutate(
       { id: entry.id, data: { is_default: true } },
       {
-        onSuccess: () => notify(tUi('"{{name}}" is now the default link format', { name: entry.name }), 'success'),
-        onError: (error) => notify(describeSaveError(error, entry.name, 'Failed to change the default link format'), 'error'),
+        onSuccess: () => notify(() => (tUi('"{{name}}" is now the default link format', { name: entry.name })), 'success'),
+        onError: (error) => notify(() => (describeSaveError(error, entry.name, 'Failed to change the default link format')), 'error'),
       }
     );
   };
@@ -108,8 +108,8 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
     }));
     if (!ok) return;
     deleteBaseUrlMutation.mutate(entry.id, {
-      onSuccess: () => notify(tUi('Link format "{{name}}" deleted', { name: entry.name }), 'success'),
-      onError: (error) => notify(describeSaveError(error, entry.name, 'Failed to delete the link format'), 'error'),
+      onSuccess: () => notify(() => (tUi('Link format "{{name}}" deleted', { name: entry.name })), 'success'),
+      onError: (error) => notify(() => (describeSaveError(error, entry.name, 'Failed to delete the link format')), 'error'),
     });
   };
 
@@ -131,9 +131,9 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
       updateLegacyBaseUrlMutation.mutate(pattern, {
         onSuccess: () => {
           closeEditDialog();
-          notify(tUi("Default link format updated"), 'success');
+          notify(() => (tUi("Default link format updated")), 'success');
         },
-        onError: (error) => notify(getErrorMessage(error), 'error'),
+        onError: (error) => notify(() => (getErrorMessage(error)), 'error'),
       });
       return;
     }
@@ -142,9 +142,9 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
       {
         onSuccess: () => {
           closeEditDialog();
-          notify(tUi('Link format "{{name}}" updated', { name }), 'success');
+          notify(() => (tUi('Link format "{{name}}" updated', { name })), 'success');
         },
-        onError: (error) => notify(describeSaveError(error, name, 'Failed to update the link format'), 'error'),
+        onError: (error) => notify(() => (describeSaveError(error, name, 'Failed to update the link format')), 'error'),
       }
     );
   };

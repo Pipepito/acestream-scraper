@@ -332,3 +332,24 @@ these include 500 ms network-idle and uncontrolled host timing. The new Watch ho
 has different scope (overview plus viewing), so its timing is not like-for-like.
 See `performance-catalogue-checkpoint.json`. These are intermediate measurements;
 final repeated interaction/media/memory and full validation remain outstanding.
+
+### Integration draft and feedback checkpoint
+
+- Media-server editors retain same-server drafts across query refreshes, keep raw
+  probe/save errors for live translation, guard pending requests and confirm local
+  discard. Tuner settings use an independent dirty draft and preserve failed saves.
+- Telegram source edits stay mounted when the account status refreshes; competing
+  edit/lock/removal actions cannot replace that editor. Cancellation confirms
+  discard, pending saves cannot be submitted twice, and credentials remain
+  memory-only with the existing explicit clearing lifecycle.
+- Shared notification callbacks resolve messages in the current language. Media
+  server/remote-player feedback and Plex instructions are localized; job summaries
+  use complete localized messages and numbers, with distinct offline/error/skipped
+  outcomes. Fourteen previously empty runtime help entries now have EN/ES copy.
+- Full backend iteration: 2,610 passed and one outdated exact response assertion
+  failed. Corrected assertion plus affected integration/checker tests: 67 passed.
+  Full frontend iteration: 717 passed and five callback-contract assertions failed;
+  corrected tests and affected draft/localization suites: 7 suites, 63 passed.
+  TypeScript, zero-warning lint, production SPA and standalone helper builds pass.
+- Prepared tracked `docs/recipes/` from its shared source. No Pages publication.
+  Full final gate and browser/Docker/participant acceptance remain outstanding.

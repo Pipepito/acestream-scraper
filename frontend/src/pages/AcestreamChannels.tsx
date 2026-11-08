@@ -29,7 +29,7 @@ import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import PlayOnMenu from '../components/player/PlayOnMenu';
 
 type SnackbarNotice = {
-  message: string;
+  message: string | (() => string);
   error?: unknown;
   /** Set by callers that distinguish more than "worked"/"failed" (a warning). */
   severity?: 'success' | 'warning' | 'error';
@@ -524,7 +524,7 @@ const AcestreamChannels: React.FC = () => {
           severity={notice?.severity ?? (notice?.error ? 'error' : 'success')}
           sx={{ width: '100%' }}
         >
-          {notice?.message}
+          {typeof notice?.message === 'function' ? notice.message() : notice?.message}
         </Alert>
       </Snackbar>
     </Box>

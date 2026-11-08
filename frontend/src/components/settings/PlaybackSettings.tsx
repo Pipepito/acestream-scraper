@@ -21,7 +21,7 @@ import PlaybackRoutingFields from '../player/PlaybackRoutingFields';
 
 import { useSettingDraft } from '../../hooks/useSettingDraft';
 type FeedbackSeverity = 'success' | 'error';
-type Notify = (message: string, severity: FeedbackSeverity) => void;
+type Notify = (message: string | (() => string), severity: FeedbackSeverity) => void;
 
 export default function PlaybackSettings({ notify }: { notify: Notify }) {
   const tUi = useUiText();
@@ -36,8 +36,8 @@ export default function PlaybackSettings({ notify }: { notify: Notify }) {
     event.preventDefault();
     if (!engineDraft.dirty || updateAceEngineUrlMutation.isPending || aceEngineUrlQuery.isError) return;
     updateAceEngineUrlMutation.mutate(aceEngineUrl, {
-      onSuccess: () => { engineDraft.saved(aceEngineUrl); notify(tUi('Engine URL saved'), 'success'); void acestreamStatusQuery.refetch(); },
-      onError: error => notify(tUi('Failed to save the engine URL: {{error}}', { error: getErrorMessage(error) }), 'error'),
+      onSuccess: () => { engineDraft.saved(aceEngineUrl); notify(() => (tUi('Engine URL saved')), 'success'); void acestreamStatusQuery.refetch(); },
+      onError: error => notify(() => (tUi('Failed to save the engine URL: {{error}}', { error: getErrorMessage(error) })), 'error'),
     });
   };
   if (aceEngineUrlQuery.isLoading) return <CircularProgress aria-label={tUi('Loading settings')} />;

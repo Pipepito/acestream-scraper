@@ -71,7 +71,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
     try {
       await command.mutateAsync({ id: player.id, command: cmd, value });
     } catch (err) {
-      notify(err instanceof ApiError ? describeRemotePlayerError(err) : getErrorMessage(err), 'error');
+      notify(() => (err instanceof ApiError ? describeRemotePlayerError(err) : getErrorMessage(err)), 'error');
     }
   };
 
@@ -209,9 +209,9 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
     if (!ok) return;
     try {
       await remove.mutateAsync(player.id);
-      notify(`Deleted ${player.name}.`, 'success');
+      notify(() => (uiText('Deleted {{name}}.', { name: player.name })), 'success');
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      notify(() => (getErrorMessage(err)), 'error');
     }
   };
 
@@ -220,9 +220,9 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
       // Same verdict the dialog's "Test connection" gives: one probe, one answer.
       const probe = await remotePlayerService.testSaved(player.id);
       const verdict = describeRemotePlayerProbe(probe);
-      notify(`${player.name}: ${verdict.text}`, verdict.severity);
+      notify(() => (`${player.name}: ${describeRemotePlayerProbe(probe).text}`), verdict.severity);
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      notify(() => (getErrorMessage(err)), 'error');
     }
   };
 

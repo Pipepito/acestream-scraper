@@ -6,7 +6,7 @@ import type { RemotePlayerProbe } from '../../services/remotePlayerService';
 
 /** How a page reports a player action's outcome. A send can succeed and still
  * warn: the player took the link but probably cannot fetch it. */
-export type PlayerNotify = (message: string, severity: 'success' | 'warning' | 'error') => void;
+export type PlayerNotify = (message: string | (() => string), severity: 'success' | 'warning' | 'error') => void;
 
 export interface PlayerErrorInput {
   error: PlayerError | null;

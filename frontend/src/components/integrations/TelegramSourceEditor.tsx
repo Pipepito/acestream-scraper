@@ -1,5 +1,8 @@
+import { useConfirm } from '../ConfirmDialog';
+import { useUnsavedChanges } from '../UnsavedChanges';
+import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useRef, useState } from 'react';
 import { Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import type { TelegramSource, TelegramSourceCreate, TelegramService, TelegramPreview } from '../../services/telegramService';
@@ -24,15 +27,26 @@ export default function TelegramSourceEditor({ api, source, onSaved, onCancel }:
   const [preset, setPreset] = useState<ExtractionRecipe | null>(null);
   const [preview, setPreview] = useState<TelegramPreview | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
+  const actionPending = useRef(false);
+  const initial = useRef(JSON.stringify(form));
+  const dirty = JSON.stringify(form) !== initial.current || Boolean(username) || recipeOpen;
+  useUnsavedChanges(dirty, busy);
+  const { confirm, dialog } = useConfirm();
+  const cancel = async () => {
+    if (actionPending.current) return;
+    if (dirty && !await confirm(() => ({ title: uiText('Discard unsaved changes?'), body: uiText('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: uiText('Discard changes'), danger: true }))) return;
+    onCancel();
+  };
   const chats = useQuery({ queryKey: ['telegram', 'chats'], queryFn: api.chats, retry: false });
   const topics = useQuery({ queryKey: ['telegram', 'topics', form.chat_id], queryFn: () => api.topics(form.chat_id), enabled: !!form.chat_id, retry: false });
   const update = <K extends keyof TelegramSourceCreate>(key: K, value: TelegramSourceCreate[K]) => {
     setForm(previous => ({ ...previous, [key]: value })); setPreview(null);
   };
   const run = async (action: () => Promise<void>) => {
-    setBusy(true); setError('');
-    try { await action(); } catch (cause) { setError(getErrorMessage(cause)); } finally { setBusy(false); }
+    if (actionPending.current) return;
+    actionPending.current = true; setBusy(true); setError(null);
+    try { await action(); } catch (cause) { setError(cause); } finally { actionPending.current = false; setBusy(false); }
   };
   const resolve = () => run(async () => {
     const peer = await api.resolve(username);
@@ -43,7 +57,7 @@ export default function TelegramSourceEditor({ api, source, onSaved, onCancel }:
   });
   return <Stack spacing={2} component="section" aria-label={source ? tUi("Edit Telegram source") : tUi("Add Telegram source")}>
     <Typography variant="h6">{source ? tUi("Edit source") : tUi("Add a Telegram source")}</Typography>
-    {error && <Alert severity="error">{error}</Alert>}
+    {error !== null && <Alert severity="error">{getErrorMessage(error)}</Alert>}
     {chats.error && <Alert severity="error">{getErrorMessage(chats.error)}</Alert>}
     <Box component="fieldset" disabled={busy} sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}>
       <Stack spacing={2}>
@@ -69,7 +83,7 @@ export default function TelegramSourceEditor({ api, source, onSaved, onCancel }:
           setSenderInput(event.target.value);
           update('sender_ids', Array.from(new Set(event.target.value.split(',').map(value => value.trim()).filter(Boolean))));
         }} />
-        {(form.sender_ids ?? []).map(id => <Typography key={id} variant="body2">{senderLabels[id] ?? 'Telegram identity'} · {id}</Typography>)}
+        {(form.sender_ids ?? []).map(id => <Typography key={id} variant="body2">{senderLabels[id] ?? tUi('Telegram identity')} · {id}</Typography>)}
         <FormControlLabel control={<Checkbox checked={form.include_forwards ?? true} onChange={event => update('include_forwards', event.target.checked)} />} label={tUi("Include forwarded messages")} />
         <TextField select label={tUi("Sender identity for forwards")} value={form.sender_rule ?? 'posting'} onChange={event => update('sender_rule', event.target.value as 'posting' | 'original')}>
           <MenuItem value="posting">{tUi("Account posting in the selected chat")}</MenuItem><MenuItem value="original">{tUi("Original author, when Telegram identifies them")}</MenuItem>
@@ -100,12 +114,13 @@ export default function TelegramSourceEditor({ api, source, onSaved, onCancel }:
           <Typography variant="subtitle2">{tUi("Preview only · no catalogue changes")}</Typography>
           {preview.messages.length === 0 && <Typography>{tUi("No recent messages.")}</Typography>}
           {preview.messages.map(message => <Box key={message.message_id} sx={{ borderBottom: 1, borderColor: 'divider', py: 1, overflowWrap: 'anywhere' }}>
-            <Typography variant="body2">{tUi("Message")}{' '}{message.message_id} {' '}{tUi("· sender")}{' '}{message.sender_id ?? 'unverified'} · {message.outcome} · {message.result.duplicate_count} {' '}{tUi("duplicates ·")}{' '}{message.result.invalid_count} {' '}{tUi("invalid")}</Typography>
+            <Typography variant="body2">{tUi("Message")}{' '}{message.message_id} {' '}{tUi("· sender")}{' '}{message.sender_id ?? tUi('Unverified')} · {message.outcome} · {message.result.duplicate_count} {' '}{tUi("duplicates ·")}{' '}{message.result.invalid_count} {' '}{tUi("invalid")}</Typography>
             {message.result.channels.map(channel => <Typography key={channel.channel_id} variant="body2">{channel.name} — {channel.channel_id}{message.excluded_rule_ids?.[channel.channel_id]?.length ? <Button href={`/scraper?tab=exclusions#rule-${message.excluded_rule_ids[channel.channel_id][0]}`}>{tUi("Excluded · Review rule")}</Button> : null}</Typography>)}
           </Box>)}
         </Stack>}
-        <Stack direction="row" spacing={1}><Button variant="contained" disabled={!form.name.trim() || !form.chat_id} onClick={() => void run(async () => { await api.save(form, source?.id); await onSaved(); })}>{tUi("Save source")}</Button><Button onClick={onCancel}>{tUi("Cancel")}</Button></Stack>
+        <Stack direction="row" spacing={1}><Button variant="contained" disabled={!form.name.trim() || !form.chat_id} onClick={() => void run(async () => { await api.save(form, source?.id); await onSaved(); })}>{tUi("Save source")}</Button><Button onClick={() => void cancel()}>{tUi("Cancel")}</Button></Stack>
       </Stack>
     </Box>
+    {dialog}
   </Stack>;
 }

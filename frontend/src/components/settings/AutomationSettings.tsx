@@ -26,7 +26,7 @@ import StreamCheckScopeField from '../StreamCheckScopeField';
 
 import { useSettingDraft } from '../../hooks/useSettingDraft';
 type FeedbackSeverity = 'success' | 'error';
-type Notify = (message: string, severity: FeedbackSeverity) => void;
+type Notify = (message: string | (() => string), severity: FeedbackSeverity) => void;
 interface IntervalFieldProps {
   max?: number;
   id: string;
@@ -87,24 +87,24 @@ export default function AutomationSettings({ notify }: { notify: Notify }) {
     const value = rescrape.value;
     if (!rescrape.dirty || value === '' || !Number.isInteger(value) || value < 1 || value > 168 || rescrapeIntervalQuery.isError || updateRescrapeIntervalMutation.isPending) return;
     updateRescrapeIntervalMutation.mutate(value, {
-      onSuccess: () => { rescrape.saved(value); notify(tUi('Sources will be scraped every {{count}} h', { count: value }), 'success'); },
-      onError: error => notify(tUi('Failed to save the scrape interval: {{error}}', { error: getErrorMessage(error) }), 'error'),
+      onSuccess: () => { rescrape.saved(value); notify(() => (tUi('Sources will be scraped every {{count}} h', { count: value })), 'success'); },
+      onError: error => notify(() => (tUi('Failed to save the scrape interval: {{error}}', { error: getErrorMessage(error) })), 'error'),
     });
   };
   const handleEpgRefreshSave = () => {
     const value = guide.value;
     if (!guide.dirty || value === '' || !Number.isInteger(value) || value < 1 || value > 168 || epgRefreshIntervalQuery.isError || updateEpgRefreshIntervalMutation.isPending) return;
     updateEpgRefreshIntervalMutation.mutate(value, {
-      onSuccess: () => { guide.saved(value); notify(tUi('EPG will refresh every {{count}} h', { count: value }), 'success'); },
-      onError: error => notify(tUi('Failed to save the EPG refresh interval: {{error}}', { error: getErrorMessage(error) }), 'error'),
+      onSuccess: () => { guide.saved(value); notify(() => (tUi('EPG will refresh every {{count}} h', { count: value })), 'success'); },
+      onError: error => notify(() => (tUi('Failed to save the EPG refresh interval: {{error}}', { error: getErrorMessage(error) })), 'error'),
     });
   };
   const handleChannelStatusSave = () => {
     const value = checks.value;
     if (!checks.dirty || value === '' || !Number.isInteger(value) || value < 1 || value > 10080 || channelStatusIntervalQuery.isError || updateChannelStatusIntervalMutation.isPending) return;
     updateChannelStatusIntervalMutation.mutate(value, {
-      onSuccess: () => { checks.saved(value); notify(tUi('Streams will be checked every {{count}} min', { count: value }), 'success'); },
-      onError: error => notify(tUi('Failed to save the stream check interval: {{error}}', { error: getErrorMessage(error) }), 'error'),
+      onSuccess: () => { checks.saved(value); notify(() => (tUi('Streams will be checked every {{count}} min', { count: value })), 'success'); },
+      onError: error => notify(() => (tUi('Failed to save the stream check interval: {{error}}', { error: getErrorMessage(error) })), 'error'),
     });
   };
   if (rescrapeIntervalQuery.isLoading || epgRefreshIntervalQuery.isLoading || channelStatusIntervalQuery.isLoading) return <CircularProgress aria-label={tUi('Loading settings')} />;

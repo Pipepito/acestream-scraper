@@ -1,7 +1,8 @@
+import { useUnsavedChanges } from '../UnsavedChanges';
 import { uiText } from '../../i18n/text';
 import { getLocale } from '../../i18n/locale';
 import { useUiText } from '../../i18n/useUiText';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Divider, Link, Stack, TextField, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ContentSection from '../layout/ContentSection';
@@ -22,7 +23,10 @@ export default function TelegramSection() {
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
+  const actionPending = useRef(false);
+  const credentialsDirty = Boolean(token || apiHash || phone || code || password);
+  useUnsavedChanges(credentialsDirty, busy);
   const [editing, setEditing] = useState<TelegramSource | 'new' | null>(null);
   const api = useMemo(() => telegramService(admin), [admin]);
   const status = useQuery({ queryKey: ['telegram', 'status'], queryFn: api.status, enabled: !!admin, refetchInterval: admin ? 10000 : false, retry: false });
@@ -30,11 +34,12 @@ export default function TelegramSection() {
   useEffect(() => () => { cache.removeQueries({ queryKey: ['telegram'] }); }, [cache]);
   const refresh = async () => { await cache.invalidateQueries({ queryKey: ['telegram'] }); };
   const run = async (action: () => Promise<unknown>) => {
-    setBusy(true); setError('');
-    try { await action(); await refresh(); } catch (cause) { setError(getErrorMessage(cause)); } finally { setBusy(false); }
+    if (actionPending.current) return;
+    actionPending.current = true; setBusy(true); setError(null);
+    try { await action(); await refresh(); } catch (cause) { setError(cause); } finally { actionPending.current = false; setBusy(false); }
   };
   const lock = () => {
-    setAdmin(''); setToken(''); setApiHash(''); setPhone(''); setCode(''); setPassword(''); setEditing(null); setError('');
+    setAdmin(''); setToken(''); setApiHash(''); setPhone(''); setCode(''); setPassword(''); setEditing(null); setError(null);
     cache.removeQueries({ queryKey: ['telegram'] });
   };
   const toggle = async (source: TelegramSource) => {
@@ -51,8 +56,8 @@ export default function TelegramSection() {
           <Button type="submit" variant="outlined" disabled={!token}>{tUi("Unlock Telegram settings")}</Button>
         </Stack>
       </> : <>
-        <Stack direction="row" justifyContent="space-between" spacing={1}><Typography role="status">{status.data?.account_label ? tUi("{{value0}} · ", { value0: status.data.account_label }) : ''}{status.data?.state.replaceAll('_', ' ') ?? 'Loading account…'}</Typography><Button onClick={lock}>{tUi("Lock settings")}</Button></Stack>
-        {(error || status.error || sources.error) && <Alert severity="error">{error || getErrorMessage(status.error ?? sources.error)}</Alert>}
+        <Stack direction="row" justifyContent="space-between" spacing={1}><Typography role="status">{status.data?.account_label ? tUi("{{value0}} · ", { value0: status.data.account_label }) : ''}{status.data?.state.replaceAll('_', ' ') ?? 'Loading account…'}</Typography><Button disabled={busy || editing !== null} onClick={lock}>{tUi("Lock settings")}</Button></Stack>
+        {(error !== null || status.error || sources.error) && <Alert severity="error">{getErrorMessage(error ?? status.error ?? sources.error)}</Alert>}
         {status.data?.message && <Alert severity="info">{status.data.message}</Alert>}
         {status.data?.retry_at && <Typography>{tUi("Retry after")}{' '}{new Date(status.data.retry_at).toLocaleString(getLocale())}</Typography>}
         {!!status.data?.queue_size && <Typography>{status.data.queue_size} {' '}{tUi("queued updates")}</Typography>}
@@ -65,7 +70,7 @@ export default function TelegramSection() {
                 <TextField fullWidth type="password" autoComplete="off" label={tUi("Telegram API hash")} value={apiHash} onChange={event => setApiHash(event.target.value)} />
                 <TextField fullWidth type="tel" autoComplete="off" label={tUi("Phone number with country code")} value={phone} onChange={event => setPhone(event.target.value)} />
               </Stack>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap"><Button type="submit" variant="contained" disabled={busy || !apiId || !apiHash || !phone}>{tUi("Send login code")}</Button><Button disabled={busy} onClick={() => void run(api.reconnect)}>{tUi("Reconnect saved account")}</Button></Stack>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap"><Button type="submit" variant="contained" disabled={busy || !apiId || !apiHash || !phone}>{tUi("Send login code")}</Button><Button disabled={busy || editing !== null} onClick={() => void run(api.reconnect)}>{tUi("Reconnect saved account")}</Button></Stack>
             </Stack>
           </Box>
         </>}
@@ -76,8 +81,8 @@ export default function TelegramSection() {
           <TextField fullWidth type="password" autoComplete="off" label={tUi("Telegram two-step verification password")} value={password} onChange={event => setPassword(event.target.value)} /><Button type="submit" variant="contained" disabled={busy || !password}>{tUi("Authorize account")}</Button>
         </Stack>}
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          <Button disabled={busy} onClick={() => void run(api.disconnect)}>{tUi("Disconnect")}</Button>
-          <Button color="error" disabled={busy} onClick={() => void run(async () => {
+          <Button disabled={busy || editing !== null} onClick={() => void run(api.disconnect)}>{tUi("Disconnect")}</Button>
+          <Button color="error" disabled={busy || editing !== null} onClick={() => void run(async () => {
             if (await confirm(() => ({ title: uiText("Revoke Telegram session?"), body: uiText("This logs the account out of this app and removes its sources and observations. Existing catalogue streams stay available."), confirmLabel: uiText("Revoke and remove"), danger: true }))) { await api.logout(); setEditing(null); }
           })}>{tUi("Revoke session and remove account")}</Button>
         </Stack>
@@ -91,15 +96,15 @@ export default function TelegramSection() {
             <Typography variant="body2">{tUi("Last processed:")}{' '}{source.last_success ? new Date(source.last_success).toLocaleString(getLocale()) : tUi("No messages processed yet")}</Typography>
             {source.message && <Alert severity="warning">{source.message}</Alert>}
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-              <Button disabled={busy} onClick={() => void run(() => toggle(source))}>{source.enabled ? tUi("Pause") : tUi("Resume")} {source.name}</Button>
-              <Button disabled={busy || !source.enabled} onClick={() => void run(() => api.scan(source.id))}>{tUi("Scan now")}</Button>
-              <Button disabled={busy} onClick={() => setEditing(source)}>{tUi("Edit")}{' '}{source.name}</Button>
-              <Button disabled={busy} color="error" onClick={() => void run(async () => { if (await confirm(() => ({ title: uiText("Remove source?"), body: uiText("Collection stops. Existing catalogue streams are preserved."), confirmLabel: uiText("Remove source"), danger: true }))) await api.remove(source.id); })}>{tUi("Remove")}{' '}{source.name}</Button>
+              <Button disabled={busy || editing !== null} onClick={() => void run(() => toggle(source))}>{source.enabled ? tUi("Pause") : tUi("Resume")} {source.name}</Button>
+              <Button disabled={busy || editing !== null || !source.enabled} onClick={() => void run(() => api.scan(source.id))}>{tUi("Scan now")}</Button>
+              <Button disabled={busy || editing !== null} onClick={() => setEditing(source)}>{tUi("Edit")}{' '}{source.name}</Button>
+              <Button disabled={busy || editing !== null} color="error" onClick={() => void run(async () => { if (await confirm(() => ({ title: uiText("Remove source?"), body: uiText("Collection stops. Existing catalogue streams are preserved."), confirmLabel: uiText("Remove source"), danger: true }))) await api.remove(source.id); })}>{tUi("Remove")}{' '}{source.name}</Button>
             </Stack>
           </Stack>)}
           {!editing && <Button variant="outlined" sx={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>{tUi("Add Telegram source")}</Button>}
-          {editing && <TelegramSourceEditor key={editing === 'new' ? 'new' : editing.id} api={api} source={editing === 'new' ? undefined : editing} onCancel={() => setEditing(null)} onSaved={async () => { setEditing(null); await refresh(); }} />}
         </>}
+          {editing && <TelegramSourceEditor key={editing === 'new' ? 'new' : editing.id} api={api} source={editing === 'new' ? undefined : editing} onCancel={() => setEditing(null)} onSaved={async () => { setEditing(null); await refresh(); }} />}
       </>}
     </Stack>{dialog}
   </ContentSection></Box>;

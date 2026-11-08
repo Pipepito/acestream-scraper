@@ -32,7 +32,7 @@ export interface RemotePlayerDialogProps {
   player: RemotePlayer | null;
   prefill?: { host: string; port: number; kind: RemotePlayerKind } | null;
   onClose: () => void;
-  notify: (message: string, severity: 'success' | 'error') => void;
+  notify: (message: string | (() => string), severity: 'success' | 'error') => void;
 }
 
 /** Add or edit one VLC/Kodi player, with an inline "Test connection" probe. */
@@ -156,10 +156,10 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
     try {
       if (player) {
         await update.mutateAsync({ id: player.id, data: { ...body, password: password || undefined, clear_base_url: baseUrlId === '' } });
-        notify(tUi("Saved {{name}}.", { name: body.name }), 'success');
+        notify(() => (tUi("Saved {{name}}.", { name: body.name })), 'success');
       } else {
         await create.mutateAsync({ ...body, password: password || null });
-        notify(tUi("Added {{name}}.", { name: body.name }), 'success');
+        notify(() => (tUi("Added {{name}}.", { name: body.name })), 'success');
       }
       onClose();
     } catch (err) {

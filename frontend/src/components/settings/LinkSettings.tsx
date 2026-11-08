@@ -23,7 +23,7 @@ import StreamLinkFormatsSection from '../StreamLinkFormatsSection';
 
 import { useUnsavedChanges } from '../UnsavedChanges';
 type FeedbackSeverity = 'success' | 'error';
-type Notify = (message: string, severity: FeedbackSeverity) => void;
+type Notify = (message: string | (() => string), severity: FeedbackSeverity) => void;
 
 export default function LinkSettings({ notify }: { notify: Notify }) {
   const tUi = useUiText();
@@ -47,10 +47,10 @@ export default function LinkSettings({ notify }: { notify: Notify }) {
     const checked = e.target.checked;
     setAddPid(checked);
     updateAddPidMutation.mutate(checked, {
-      onSuccess: () => notify(checked ? uiText("PID will be appended to stream links") : uiText("PID will no longer be appended"), 'success'),
+      onSuccess: () => notify(() => (checked ? uiText("PID will be appended to stream links") : uiText("PID will no longer be appended")), 'success'),
       onError: (error) => {
         setAddPid(!checked);
-        notify(tUi('Failed to save the PID setting: {{error}}', { error: getErrorMessage(error) }), 'error');
+        notify(() => (tUi('Failed to save the PID setting: {{error}}', { error: getErrorMessage(error) })), 'error');
       },
     });
   };
@@ -63,11 +63,11 @@ export default function LinkSettings({ notify }: { notify: Notify }) {
       .updateAppId(checked)
       .then(() => {
         setAppIdError('');
-        notify(checked ? uiText("AppID will be added to stream links") : uiText("AppID will no longer be added"), 'success');
+        notify(() => (checked ? uiText("AppID will be added to stream links") : uiText("AppID will no longer be added")), 'success');
       })
       .catch(() => {
         setAppid(!checked);
-        notify(tUi("Failed to update AppID setting"), 'error');
+        notify(() => (tUi("Failed to update AppID setting")), 'error');
       })
       .finally(() => setAppidSubmitting(false));
   };

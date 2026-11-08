@@ -64,7 +64,7 @@ describe('ChannelPickerDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send to Living room' }));
     await waitFor(() => expect(mockPlay).toHaveBeenCalledWith({ id: 1, contentId: 'best', title: 'Arena TV' }));
     expect(onClose).toHaveBeenCalled();
-    expect(notify).toHaveBeenCalledWith('Sent Arena TV to Living room.', 'success');
+    expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Sent Arena TV to Living room.', 'success']);
   });
 
   it('reports a link the player cannot fetch as a warning, not a confirmation', async () => {
@@ -79,7 +79,7 @@ describe('ChannelPickerDialog', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Channel' }));
     fireEvent.click(screen.getByRole('option', { name: /Arena TV/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Send to Living room' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/It may not start/), 'warning'));
+    await waitFor(() => expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual([expect.stringMatching(/It may not start/), 'warning']));
   });
 
   it('switches to raw streams', () => {

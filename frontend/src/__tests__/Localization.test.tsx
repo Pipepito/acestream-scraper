@@ -14,7 +14,7 @@ const tokens = (value: string) => Array.from(value.matchAll(/\{\{\s*([^}]+?)\s*\
 afterEach(async () => { await act(async () => { await i18n.changeLanguage('en'); }); });
 
 it('covers every application message and retains interpolation tokens in both languages', () => {
-  for (const namespace of ['common', 'ui'] as const) {
+  for (const namespace of ['common', 'ui', 'jobs', 'runtime', 'errors', 'status'] as const) {
     expect(Object.keys(es[namespace]).sort()).toEqual(Object.keys(en[namespace]).sort());
     for (const [key, value] of Object.entries(en[namespace])) {
       const translated = (es[namespace] as Record<string, string>)[key];

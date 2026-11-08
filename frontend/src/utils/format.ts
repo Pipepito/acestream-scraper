@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { getLocale } from '../i18n/locale';
 import { uiText } from '../i18n/text';
 /**
@@ -38,95 +39,87 @@ export const formatRelativeTime = (iso?: string | null, now: Date = new Date()):
   return past ? `${phrase} ago` : `in ${phrase}`;
 };
 
-export const JOB_NAMES: Record<string, string> = {
-  url_scraping: 'Scrape sources',
-  epg_refresh: 'Refresh EPG',
-  epg_program_cleanup: 'Purge old programmes',
-  channel_status: 'Check stream status',
-  channel_cleanup: 'Remove stale channels',
-  offline_stream_cleanup: 'Remove long-offline streams',
-  activity_log_cleanup: 'Clean activity log',
-  media_server_sync: 'Sync media servers',
-  v1_epg_programs_migration: 'Migrate v1 EPG programmes',
+const jobText = i18next.getFixedT(null, 'jobs');
+const jobIds = ['url_scraping', 'epg_refresh', 'epg_program_cleanup', 'channel_status', 'channel_cleanup',
+  'offline_stream_cleanup', 'activity_log_cleanup', 'media_server_sync', 'v1_epg_programs_migration'] as const;
+export const formatJobName = (id: string): string => {
+  const manual = id.startsWith('manual_');
+  const key = manual ? id.slice(7) : id;
+  const known = jobIds.find(value => value === key);
+  const name = known ? jobText(known) : key.replace(/_/g, ' ');
+  return manual ? jobText('manual', { name }) : name;
 };
+const num = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
+const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' ? value as Record<string, unknown> : {};
+const field = (value: unknown, key: string): number | null => num(object(value)[key]);
 
-export const formatJobName = (id: string): string => id.startsWith('manual_')
-  ? `${JOB_NAMES[id.slice(7)] ?? id.slice(7).replace(/_/g, ' ')} (manual)`
-  : JOB_NAMES[id] ?? id.replace(/_/g, ' ');
-
-const num = (value: unknown): number | null => (typeof value === 'number' && Number.isFinite(value) ? value : null);
-const field = (result: unknown, key: string): number | null =>
-  result && typeof result === 'object' ? num((result as Record<string, unknown>)[key]) : null;
-
-/** One sentence describing a job's last result, or null when there is nothing to say. */
+/** Whole localized metrics retain online/offline/skipped/error distinctions and scalar results. */
 export const summarizeJobResult = (id: string, result: unknown): string | null => {
-  if (result === null || result === undefined) return null;
+  if (result == null) return null;
+  const values = object(result);
   switch (id.startsWith('manual_') ? id.slice(7) : id) {
     case 'url_scraping': {
       const processed = field(result, 'processed');
-      const failures = field(result, 'failures') ?? 0;
       if (processed === null) return null;
-      const events = result && typeof result === 'object' ? (result as Record<string, unknown>).events : null;
-      const updated = field(events, 'updated') ?? 0;
-      const pending = field(events, 'pending') ?? 0;
-      const failed = field(events, 'failures') ?? 0;
-      const deferred = field(events, 'deferred') ?? 0;
-      const summary = updated || pending || failed || deferred ? `; events: ${updated} updated, ${pending} need review, ${failed} source errors, ${deferred} deferred` : '';
-      const nested = result && typeof result === 'object' ? result as Record<string, unknown> : {};
-      const searches = nested.saved_searches;
-      const searchSummary = searches ? `; saved searches: ${field(searches, 'added') ?? 0} added, ${field(searches, 'existing') ?? 0} existing, ${field(searches, 'excluded_candidates') ?? 0} excluded, ${field(searches, 'unresolved_candidates') ?? 0} unresolved, ${field(searches, 'partial') ?? 0} partial, ${field(searches, 'failed') ?? 0} failed, ${field(searches, 'skipped') ?? 0} skipped, ${field(searches, 'interrupted') ?? 0} interrupted, ${field(searches, 'deferred_candidates') ?? 0} candidates deferred, ${field(searches, 'deferred_searches') ?? 0} searches deferred` : '';
-      const excluded = field(nested.import_exclusions, 'excluded_candidates') ?? 0;
-      return `${plural(processed, 'source', 'sources')}, ${plural(failures, 'error', 'errors')}${summary}${searchSummary}${excluded ? `; ${excluded} source candidates excluded` : ''}`;
+      const parts: string[] = [jobText('scrape', { sources: jobText('sources', { count: processed }), errors: jobText('errors', { count: field(result, 'failures') ?? 0 }) })];
+      const events = values.events;
+      const updated = field(events, 'updated') ?? 0, pending = field(events, 'pending') ?? 0;
+      const failed = field(events, 'failures') ?? 0, deferred = field(events, 'deferred') ?? 0;
+      if (updated || pending || failed || deferred) parts.push(jobText('events', { updated, pending, failed, deferred }));
+      const searches = values.saved_searches;
+      if (searches) parts.push(jobText('searches', {
+        added: field(searches, 'added') ?? 0, existing: field(searches, 'existing') ?? 0,
+        excluded: field(searches, 'excluded_candidates') ?? 0, unresolved: field(searches, 'unresolved_candidates') ?? 0,
+        partial: field(searches, 'partial') ?? 0, failed: field(searches, 'failed') ?? 0,
+        skipped: field(searches, 'skipped') ?? 0, interrupted: field(searches, 'interrupted') ?? 0,
+        deferredCandidates: field(searches, 'deferred_candidates') ?? 0, deferredSearches: field(searches, 'deferred_searches') ?? 0,
+      }));
+      const excluded = field(values.import_exclusions, 'excluded_candidates') ?? 0;
+      if (excluded) parts.push(jobText('excluded', { count: excluded }));
+      return parts.join('; ');
     }
     case 'channel_status': {
+      if (values.message_code === 'CHECK_ENGINE_NOT_CONFIGURED') return jobText('noEngine');
+      if (typeof values.message === 'string') return getLocale() === 'en-US' ? values.message : jobText('legacyDetail');
       const checked = field(result, 'checked');
-      const failed = field(result, 'failed') ?? 0;
-      if (result && typeof result === 'object' && typeof (result as Record<string, unknown>).message === 'string') {
-        return (result as Record<string, string>).message;
-      }
       if (checked === null) return null;
-      const online = field(result, 'online');
-      const offline = field(result, 'offline');
-      const skipped = field(result, 'skipped') ?? 0;
-      const counts = online !== null && offline !== null ? `, ${online} online, ${offline} offline` : '';
+      const online = field(result, 'online'), offline = field(result, 'offline');
       const deferred = field(result, 'deferred') ?? 0;
-      const reason = result && typeof result === 'object' && (result as Record<string, unknown>).stop_reason === 'viewing'
-        ? 'playback active' : 'application stopping';
-      const incomplete = deferred > 0 ? `, ${deferred} deferred (${reason})` : '';
-      return `${checked} checked${counts}, ${skipped} skipped, ${plural(failed, 'error', 'errors')}${incomplete}`;
+      return jobText('checked', { checked, skipped: field(result, 'skipped') ?? 0,
+        signal: online !== null && offline !== null ? jobText('signal', { online, offline }) : '',
+        errors: jobText('errors', { count: field(result, 'failed') ?? 0 }),
+        deferred: deferred > 0 ? jobText('deferred', { count: deferred, reason: jobText(values.stop_reason === 'viewing' ? 'viewing' : 'shutdown') }) : '',
+      });
     }
     case 'epg_refresh': {
       const sources = field(result, 'sources');
-      const successful = field(result, 'successful') ?? 0;
-      const failed = field(result, 'failed') ?? 0;
       if (sources === null) return null;
-      if (failed === 0) return `${plural(successful, 'source', 'sources')} refreshed`;
-      return `${successful} of ${plural(sources, 'source', 'sources')} refreshed, ${failed} failed`;
+      const successful = field(result, 'successful') ?? 0, failed = field(result, 'failed') ?? 0;
+      return failed ? jobText('partialRefresh', { successful, sources: jobText('sources', { count: sources }), failed }) : jobText('refreshed', { count: successful });
     }
     case 'epg_program_cleanup': {
-      if (result && typeof result === 'object' && (result as Record<string, unknown>).disabled === true) return 'retention disabled';
+      if (values.disabled === true) return jobText('retentionDisabled');
       const deleted = field(result, 'deleted');
-      return deleted === null ? null : `${deleted} programmes removed`;
+      return deleted === null ? null : jobText('programmesRemoved', { count: deleted });
     }
     case 'offline_stream_cleanup': {
-      const status = result && typeof result === 'object' ? (result as Record<string, unknown>).status : null;
-      if (status === 'deferred') return 'Deferred while watching or recording';
-      if (status === 'disabled') return 'Cleanup disabled';
+      if (values.status === 'deferred') return jobText('cleanupDeferred');
+      if (values.status === 'disabled') return jobText('cleanupDisabled');
       const deleted = field(result, 'deleted');
       const failures = field(result, 'rescrape_failures') ?? 0;
-      return deleted === null ? null : `${deleted} streams removed, ${field(result, 'rescraped') ?? 0} sources refreshed${failures ? `, ${failures} refreshes failed` : ''}`;
+      return deleted === null ? null : jobText('streamCleanup', { removed: jobText('streamsRemoved', { count: deleted }),
+        refreshed: jobText('refreshed', { count: field(result, 'rescraped') ?? 0 }), failures: failures ? jobText('refreshFailures', { count: failures }) : '' });
     }
     case 'channel_cleanup': {
       const deleted = field(result, 'deleted');
-      const events = result && typeof result === 'object' ? (result as Record<string, unknown>).events : null;
-      const eventCount = field(events, 'deleted') ?? 0;
-      return deleted === null ? null : `${deleted} channels removed${eventCount ? `; ${eventCount} events removed` : ''}`;
+      if (deleted === null) return null;
+      const events = field(values.events, 'deleted') ?? 0;
+      return [jobText('channelsRemoved', { count: deleted }), ...(events ? [jobText('eventsRemoved', { count: events })] : [])].join('; ');
     }
     case 'activity_log_cleanup': {
-      const n = num(result) ?? field(result, 'deleted');
-      return n === null ? null : `${plural(n, 'entry', 'entries')} removed`;
+      const count = num(result) ?? field(result, 'deleted');
+      return count === null ? null : jobText('entriesRemoved', { count });
     }
-    default:
-      return null;
+    default: return null;
   }
 };

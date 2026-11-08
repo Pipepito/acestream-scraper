@@ -38,7 +38,7 @@ const denialTime = (denial: TunerDenial): string => {
 };
 
 export interface PublicAddressSectionProps {
-  notify: (message: string, severity: 'success' | 'error') => void;
+  notify: (message: string | (() => string), severity: 'success' | 'error') => void;
 }
 
 /** Where tuners, remote players and copied links reach this server. */
@@ -62,14 +62,14 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
     try {
       await configService.updatePublicBaseUrl(value.trim());
       draft.saved(value.trim());
-      notify(value.trim() ? uiText("Public address saved.") : uiText("Public address cleared."), 'success');
+      notify(() => (value.trim() ? uiText("Public address saved.") : uiText("Public address cleared.")), 'success');
       await queryClient.invalidateQueries({ queryKey: PUBLIC_URL_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ['tuner'] });
       // The Plex cards paste absolute URLs built from this address; without
       // this they would keep the old ones until the next 30 s status poll.
       await queryClient.invalidateQueries({ queryKey: MEDIA_SERVERS_QUERY_KEY });
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      notify(() => (getErrorMessage(err)), 'error');
     } finally {
       setSaving(false);
     }

@@ -1,6 +1,7 @@
+import i18next from 'i18next';
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import PublicAddress from '../pages/integrations/PublicAddress';
 import WebPlayer from '../pages/integrations/WebPlayer';
 import RemotePlayers from '../pages/integrations/RemotePlayers';
@@ -135,6 +136,7 @@ describe('Integration pages', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpdateTunerSettings.mockImplementation(async (data: unknown) => data);
     mockPublicUrl.mockReturnValue({ data: { url: 'http://localhost:8000', source: 'request', warnings: ['localhost', 'unset'] }, isLoading: false });
     mockCapabilities.mockReturnValue({ data: { ffmpeg_available: true, ffmpeg_path: '/opt/ffmpeg/bin/ffmpeg', max_sessions: 3, hls_dir: '/tmp/x' } });
     mockStreams.mockReturnValue({ data: { streams: [] } });
@@ -556,6 +558,23 @@ describe('Integration pages', () => {
     const card = screen.getByRole('group', { name: 'Media server Jelly' });
     fireEvent.click(within(card).getByRole('button', { name: 'Connect Jelly' }));
     expect(await screen.findByText('Jelly is connected.')).toBeInTheDocument();
+  });
+
+  it('retains a tuner draft through a server refresh, language change and failed save', async () => {
+    renderPage('media-servers');
+    fireEvent.click(screen.getByRole('button', { name: 'Tuner settings' }));
+    const input = screen.getByRole('textbox', { name: 'Tuner name' });
+    fireEvent.change(input, { target: { value: 'Unsaved tuner' } });
+    mockTunerSettings.mockReturnValue({ data: { friendly_name: 'Changed elsewhere', tuner_count: 8, max_channels: 400, only_online: true } });
+    mockUpdateTunerSettings.mockRejectedValue(new Error('network failed'));
+    try {
+      await act(async () => { await i18next.changeLanguage('es'); });
+      expect(screen.getByDisplayValue('Unsaved tuner')).toBe(input);
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar ajustes del sintonizador' }));
+      await waitFor(() => expect(mockUpdateTunerSettings).toHaveBeenCalledTimes(1));
+      expect(screen.getByDisplayValue('Unsaved tuner')).toBeInTheDocument();
+      expect(screen.getAllByRole('alert').some(alert => alert.textContent?.includes('network failed'))).toBe(false);
+    } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
   });
 
   it('keeps tuner numbers the API would reject out of the request', async () => {

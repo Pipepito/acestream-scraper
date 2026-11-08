@@ -33,7 +33,7 @@ const KIND_LABEL: Record<string, string> = { vlc: 'VLC', vlc_android: 'VLC Andro
 const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone, notify }) => {
   const tUi = useUiText();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'warning' | 'error' } | null>(null);
+  const [notice, setNotice] = useState<{ message: string | (() => string); severity: 'success' | 'warning' | 'error' } | null>(null);
   const { data: players = [], isLoading } = useRemotePlayers();
   const play = usePlayOnRemotePlayer();
   const access = useAccess();
@@ -57,10 +57,10 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
     try {
       const result = await play.mutateAsync({ id, contentId, title });
       const sent = describePlaySent(title, name, result.warnings);
-      report(sent.message, sent.severity);
+      report(() => describePlaySent(title, name, result.warnings).message, sent.severity);
       onDone?.();
     } catch (err) {
-      report(err instanceof ApiError ? describeRemotePlayerError(err) : uiText("Could not reach the player."), 'error');
+      report(() => err instanceof ApiError ? describeRemotePlayerError(err) : uiText("Could not reach the player."), 'error');
     }
   };
 
@@ -70,10 +70,10 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
     try {
       await castService.start({ content_id: contentId, device_id: id, audio_index: null, subtitle_index: null, compatibility: false, replace: false });
       void cache.invalidateQueries({ queryKey: ['cast-sessions'] });
-      report(`Casting ${title} to ${name}.`, 'success');
+      report(() => uiText('Casting {{title}} to {{name}}.', { title, name }), 'success');
       onDone?.();
     } catch (error) {
-      report(getAccessErrorMessage(error), 'error');
+      report(() => getAccessErrorMessage(error), 'error');
       // The shared dialog provides explicit replacement confirmation and
       // compatibility choices. Never retry a failed start with replace=true.
       setCastOptions(true);
@@ -86,8 +86,8 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
       await cache.cancelQueries({ queryKey: ['cast-devices'] });
       const found = await castService.discover();
       cache.setQueryData(['cast-devices'], found);
-      if (!found.length) report('No TVs found. Check TV casting settings and the server’s network connection.', 'warning');
-    } catch (error) { report(getAccessErrorMessage(error), 'error'); }
+      if (!found.length) report(() => uiText('No TVs found. Check TV casting settings and the server’s network connection.'), 'warning');
+    } catch (error) { report(() => getAccessErrorMessage(error), 'error'); }
     finally { setFinding(false); }
   };
 
@@ -101,13 +101,13 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
         aria-expanded={Boolean(anchor)}
         disabled={play.isPending || casting}
       >
-        {casting ? tUi("Starting cast…") : label ?? 'Play on…'}
+        {casting ? tUi("Starting cast…") : label ?? tUi('Play on…')}
       </Button>
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)} slotProps={{ paper: { sx: { maxWidth: 'calc(100vw - 32px)', '& .MuiListItemText-root': { whiteSpace: 'normal', overflowWrap: 'anywhere' } } } }}>
         {isLoading ? <MenuItem disabled>{tUi("Loading players…")}</MenuItem> : players.length === 0
           ? (
               <MenuItem component={RouterLink} to="/integrations/remote-players" onClick={() => setAnchor(null)}>
-                <ListItemText primary="Add a player" secondary="VLC or Kodi on your network, under Integrations" />
+                <ListItemText primary={tUi("Add a player")} secondary={tUi("VLC or Kodi on your network, under Connections")} />
               </MenuItem>
             )
           : players.map((player) => (
@@ -133,7 +133,7 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
       {notify ? null : (
         <Snackbar open={notice !== null} autoHideDuration={5000} onClose={() => setNotice(null)}>
           <Alert severity={notice?.severity ?? 'success'} onClose={() => setNotice(null)}>
-            {notice?.message}
+            {typeof notice?.message === 'function' ? notice.message() : notice?.message}
           </Alert>
         </Snackbar>
       )}

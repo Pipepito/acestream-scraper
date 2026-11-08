@@ -331,6 +331,7 @@ def test_open_mode_env_enforces_home_gate(access_client, monkeypatch):
         capabilities = remote.get('/api/v1/cast/capabilities').json()
         assert capabilities['server_devices'] is False
         assert capabilities['home_check'] == 'deployment'
+        assert capabilities['error_code'] == 'CAST_HOME_REQUIRED'
         assert remote.get('/api/v1/cast/devices').status_code == 403
         assert remote.get('/api/v1/cast/settings').status_code == 403
     finally:

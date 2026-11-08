@@ -2132,6 +2132,18 @@
             "title": "Compatibility Conversion",
             "type": "boolean"
           },
+          "error_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
           "home_check": {
             "default": "off",
             "enum": [
@@ -5515,6 +5527,65 @@
           "revision"
         ],
         "title": "EventUpdate",
+        "type": "object"
+      },
+      "EventValidationIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Loc",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Msg",
+            "type": "string"
+          },
+          "type": {
+            "description": "Stable Pydantic validation type or application EVENT_* reason code.",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "EventValidationIssue",
+        "type": "object"
+      },
+      "EventValidationProblem": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EventValidationIssue"
+                },
+                "type": "array"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "EventValidationProblem",
         "type": "object"
       },
       "EventView": {
@@ -22519,11 +22590,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22577,11 +22648,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22638,11 +22709,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22681,6 +22752,16 @@
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventValidationProblem"
+                }
+              }
+            },
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22724,11 +22805,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22763,6 +22844,16 @@
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventValidationProblem"
+                }
+              }
+            },
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22812,11 +22903,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22852,6 +22943,16 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventValidationProblem"
+                }
+              }
+            },
+            "description": "Invalid event request; private input and context are omitted."
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
@@ -22885,6 +22986,16 @@
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventValidationProblem"
+                }
+              }
+            },
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22932,11 +23043,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -22975,6 +23086,16 @@
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventValidationProblem"
+                }
+              }
+            },
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23024,11 +23145,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23063,6 +23184,16 @@
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventValidationProblem"
+                }
+              }
+            },
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23116,11 +23247,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23179,11 +23310,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23234,11 +23365,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23297,11 +23428,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23350,11 +23481,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23415,11 +23546,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23484,11 +23615,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23541,11 +23672,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23608,11 +23739,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -23673,11 +23804,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/EventValidationProblem"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Invalid event request; private input and context are omitted."
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"

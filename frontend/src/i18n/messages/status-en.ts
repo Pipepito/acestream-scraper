@@ -63,5 +63,7 @@ export const statusEnglish = {
   "storage_or_runtime_unavailable": "Storage or capture services were unavailable.",
   "application_shutdown": "The application stopped.",
   "conversion_failed": "The compatible copy could not be prepared.",
-  "recording_active": "Waiting for active recording to finish."
+  "recording_active": "Waiting for active recording to finish.",
+  "playing": "Playing",
+  "buffering": "Buffering"
 } as const;

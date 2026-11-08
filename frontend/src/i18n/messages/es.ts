@@ -2462,5 +2462,21 @@ export const uiSpanish: Record<keyof typeof uiEnglish, string> = {
   "{{count}} peers · {{rate}}": "{{count}} pares · {{rate}}",
   "contacting the engine": "conectando con el motor",
   "Too many channels are playing at once (limit {{limit}}). Close another player and try again.": "Se están reproduciendo demasiados canales a la vez (límite: {{limit}}). Cierra otro reproductor e inténtalo de nuevo.",
-  "Too many channels are playing at once. Close another player and try again.": "Se están reproduciendo demasiados canales a la vez. Cierra otro reproductor e inténtalo de nuevo."
+  "Too many channels are playing at once. Close another player and try again.": "Se están reproduciendo demasiados canales a la vez. Cierra otro reproductor e inténtalo de nuevo.",
+  "Save casting preference changes before trusting this connection.": "Guarda los cambios de preferencias de envío a TV antes de confiar en esta conexión.",
+  "TVs": "Televisores",
+  "Looking…": "Buscando…",
+  "Casting to your selected TV. You can close this page.": "Enviando al televisor seleccionado. Puedes cerrar esta página.",
+  "Browser cast stopped.": "Se detuvo el envío desde el navegador.",
+  "TV search finished.": "La búsqueda de televisores terminó.",
+  "Casting started. The TV keeps playing when you close the page.": "El envío comenzó. El televisor seguirá reproduciendo cuando cierres la página.",
+  "TV updated.": "Televisor actualizado.",
+  "Volume lowered.": "Volumen bajado.",
+  "Volume raised.": "Volumen subido.",
+  "Could not load casting information.": "No se pudo cargar la información de envío a TV.",
+  "{{field}}: {{message}}": "{{field}}: {{message}}",
+  "Row {{row}} · {{field}}": "Fila {{row}} · {{field}}",
+  "Headers": "Cabeceras",
+  "Participants": "Participantes",
+  "Language and quality not supplied": "Idioma y calidad no indicados"
 };

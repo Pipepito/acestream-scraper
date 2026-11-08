@@ -64,5 +64,7 @@ export const statusSpanish: Record<keyof typeof statusEnglish, string> = {
   "storage_or_runtime_unavailable": "El almacenamiento o los servicios de grabación no estaban disponibles.",
   "application_shutdown": "La aplicación se detuvo.",
   "conversion_failed": "No se pudo preparar la copia compatible.",
-  "recording_active": "Esperando a que termine la grabación activa."
+  "recording_active": "Esperando a que termine la grabación activa.",
+  "playing": "Reproduciendo",
+  "buffering": "Cargando"
 };

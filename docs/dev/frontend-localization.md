@@ -60,3 +60,9 @@ accepts a string or `() => string`; factories preserve the notification lifetime
 and retranslate its content. `useUiText` subscribes to changes and returns a
 language-independent translator so asynchronous callbacks do not retain the old
 language. Catalogue names and raw protocol diagnostics remain verbatim.
+
+Event validation uses stable `EVENT_*`/Pydantic reason types with bounded field
+locations. Translate these types, never private request input or English sentences.
+The event API omits validation input/context, and the maintained schema documents
+this redacted response. Corrections retain their reviewed revision across refetches;
+a later server revision must produce a conflict rather than silently replace a draft.

@@ -1,15 +1,17 @@
-import { statusLabel } from '../../i18n/status';
+import { Alert,Box,Button,Checkbox,FormControlLabel,MenuItem,Stack,TextField,Typography } from '@mui/material';
+import { useMutation,useQueryClient } from '@tanstack/react-query';
+import React,{ useRef,useState } from 'react';
 import { getLocale } from '../../i18n/locale';
+import { statusLabel } from '../../i18n/status';
 import { useUiText } from '../../i18n/useUiText';
-import React, { useState } from 'react';
-import { Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import EventProviderFields from './EventProviderFields';
-import EventInterestFields, { emptyInterests } from './EventInterestFields';
-import ContentSection from '../layout/ContentSection';
-import { eventService, type EventImport, type EventPreview, type EventSource, type EventProviderOptions } from '../../services/eventService';
 import { catalogueService } from '../../services/catalogueService';
+import { eventService,type EventImport,type EventPreview,type EventProviderOptions,type EventSource } from '../../services/eventService';
+import { useConfirm } from '../ConfirmDialog';
+import ContentSection from '../layout/ContentSection';
+import { useUnsavedChanges } from '../UnsavedChanges';
 import { eventErrorMessage as getErrorMessage } from './eventErrors';
+import EventInterestFields,{ emptyInterests } from './EventInterestFields';
+import EventProviderFields from './EventProviderFields';
 
 interface Props { zone: string; onClose: () => void; source?: EventSource;
   catalogue?: { id: number; revision: number; entryIds: string[]; title: string } }
@@ -38,7 +40,10 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
   const [url, setUrl] = useState('');
   const [label, setLabel] = useState('');
   const [raw, setRaw] = useState('');
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<{ remote: unknown } | { local: () => string } | null>(null);
+  const error = failure ? 'remote' in failure ? getErrorMessage(failure.remote) : failure.local() : '';
+  const action = useRef(false);
+  const { confirm, dialog } = useConfirm();
   const [reviewedProvider, setReviewedProvider] = useState('');
   const [preview, setPreview] = useState<EventPreview | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -47,38 +52,55 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
       revision: catalogue.revision, entry_ids: catalogue.entryIds, title, timezone: sourceZone,
       starts_at: start || null, sport, competition, state: start ? 'scheduled' : 'unknown',
     }) : eventService.preview(input),
-    onSuccess: (result) => { setPreview(result); setSelected([]); setError(''); },
-    onError: (err) => setError(getErrorMessage(err)) });
+    onSuccess: (result) => { setPreview(result); setSelected([]); setFailure(null); },
+    onError: (err) => setFailure({ remote: err }), onSettled: () => { action.current = false; } });
   const reviewSource = useMutation({ mutationFn: () => eventService.previewSource({ timeout_seconds: Number(timeoutSeconds), ...(mode === 'provider' ? { source_id: source?.id, provider_options: provider, timezone: sourceZone } : source ? { source_id: source.id } : { url: scheduleUrl, format, timezone: sourceZone }) }),
-    onSuccess: (result) => { setPreview(result); setSelected([]); setError(''); setReviewedProvider(JSON.stringify(provider)); },
-    onError: (err) => setError(getErrorMessage(err)) });
+    onSuccess: (result) => { setPreview(result); setSelected([]); setFailure(null); setReviewedProvider(JSON.stringify(provider)); },
+    onError: (err) => setFailure({ remote: err }), onSettled: () => { action.current = false; } });
   const save = useMutation({ mutationFn: () => (mode === 'url' || mode === 'provider') ? eventService.apply(preview!.token, selected, refreshSource) : eventService.apply(preview!.token, selected),
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['events'] }); void queryClient.invalidateQueries({ queryKey: ['catalogue'] }); onClose(); },
-    onError: (err) => setError(getErrorMessage(err)) });
+    onError: (err) => setFailure({ remote: err }), onSettled: () => { action.current = false; } });
   const previewStale = mode === 'provider' && reviewedProvider !== JSON.stringify(provider);
   const busy = review.isPending || reviewSource.isPending || save.isPending;
+  const draft = JSON.stringify({ mode, provider, title, start, sport, competition, format, sourceZone, timeoutSeconds, scheduleUrl, refreshSource, url, label, raw });
+  const initialDraft = useRef(draft);
+  const dirty = draft !== initialDraft.current || Boolean(preview);
+  useUnsavedChanges(dirty, busy);
+  const close = async () => {
+    if (action.current || busy) return;
+    if (dirty && !await confirm(() => ({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return;
+    onClose();
+  };
+  const run = (operation: () => void) => {
+    if (action.current) return;
+    action.current = true;
+    operation();
+  };
   const submit = () => {
-    setError('');
-    if (mode === 'url' || mode === 'provider') { reviewSource.mutate(); return; }
+    if (action.current) return;
+    setFailure(null);
+    if (mode === 'url' || mode === 'provider') { run(() => reviewSource.mutate()); return; }
     try {
-      if (mode === 'json' && new TextEncoder().encode(raw).length > 2 * 1024 * 1024) { setError(tUi("Choose a schedule smaller than 2 MiB.")); return; }
+      if (mode === 'json' && new TextEncoder().encode(raw).length > 2 * 1024 * 1024) { setFailure({ local: () => tUi("Choose a schedule smaller than 2 MiB.") }); return; }
       const input: EventImport = mode === 'json' ? JSON.parse(raw) as EventImport : { version: 1, observations: [{
         source_id: 'manual', source_name: 'Manual events', source_kind: 'manual', external_id: identity,
         title, timezone: zone, starts_at: start || null, sport, competition, state: start ? 'scheduled' : 'unknown',
         broadcasts: label || url ? [{ id: 'primary', label: label || 'Event stream', url: url || null }] : [],
       }] };
-      if (!input || input.version !== 1 || !Array.isArray(input.observations) || !input.observations.length) { setError(tUi("Use a version 1 event schedule with an observations array. For OpenFootball, choose Built-in provider.")); return; }
-      review.mutate(input);
-    } catch { setError(tUi("This is not valid JSON. Choose an event schedule file or correct the pasted text.")); }
+      if (!input || input.version !== 1 || !Array.isArray(input.observations) || !input.observations.length) { setFailure({ local: () => tUi("Use a version 1 event schedule with an observations array. For OpenFootball, choose Built-in provider.") }); return; }
+      run(() => review.mutate(input));
+    } catch { setFailure({ local: () => tUi("This is not valid JSON. Choose an event schedule file or correct the pasted text.") }); }
   };
   return <ContentSection title={tUi("Add events")}>
+    {dialog}
+    <Box component="fieldset" disabled={busy} sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}>
     {error ? <Alert severity="error" sx={{ mb: 2, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>{error}</Alert> : null}
     {preview ? <Stack spacing={2}>
       <Typography>{tUi("Review the schedule, then select the events to save. Times shown in")}{' '}{zone}.</Typography>
       {preview.warnings.map((warning) => <Typography key={warning} variant="body2" color="text.secondary">{warning}</Typography>)}
       {mode === 'provider' ? <>
         <EventInterestFields prefix="Import: " value={provider.interests ?? emptyInterests} choices={preview.available_interests} disabled={busy} onChange={(interests) => setProvider({ ...provider, interests })} />
-        <Button disabled={busy} onClick={() => reviewSource.mutate()}>{tUi("Update preview with interests")}</Button>
+        <Button disabled={busy} onClick={() => run(() => reviewSource.mutate())}>{tUi("Update preview with interests")}</Button>
         <Typography variant="caption">{tUi("Update the preview after changing interests before saving.")}</Typography>
       </> : null}
       {!preview.events.length ? <Alert severity="info">{tUi("No matching events are published in this window. Change your interests or save the source to review later.")}</Alert> : <FormControlLabel control={<Checkbox disabled={busy} checked={selected.length === preview.events.length} indeterminate={selected.length > 0 && selected.length < preview.events.length} onChange={(_, checked) => setSelected(checked ? preview.events.map((event) => event.id) : [])} />} label={tUi("Select all shown events")} />}
@@ -94,9 +116,9 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
       </Box>
       {mode === 'url' || mode === 'provider' ? <FormControlLabel control={<Checkbox checked={refreshSource} disabled={busy} onChange={(_, checked) => setRefreshSource(checked)} />} label={tUi("Refresh selected events automatically with scheduled scraping")} /> : null}
       <Stack direction="row" spacing={1} flexWrap="wrap">
-        <Button variant="contained" disabled={(!selected.length && mode !== 'provider') || busy || previewStale} onClick={() => save.mutate()}>{mode === 'provider' && !selected.length ? tUi("Save source without events") : tUi("Save selected ({{value0}})", { value0: selected.length })}</Button>
+        <Button variant="contained" disabled={(!selected.length && mode !== 'provider') || busy || previewStale} onClick={() => run(() => save.mutate())}>{mode === 'provider' && !selected.length ? tUi("Save source without events") : tUi("Save selected ({{value0}})", { value0: selected.length })}</Button>
         <Button disabled={busy} onClick={() => setPreview(null)}>{tUi("Back to input")}</Button>
-        <Button disabled={busy} onClick={onClose}>{tUi("Cancel")}</Button>
+        <Button disabled={busy} onClick={() => void close()}>{tUi("Cancel")}</Button>
       </Stack>
     </Stack> : <Stack spacing={2}>
       {!catalogue ? <TextField select label={tUi("Add from")} value={mode} onChange={(e) => setMode(e.target.value)} disabled={busy || Boolean(source) || Boolean(catalogue)}>
@@ -130,8 +152,8 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
         <Button component="label" variant="outlined">{tUi("Choose schedule file")}<input type="file" accept=".json,application/json" hidden onChange={(e) => {
           const file = e.target.files?.[0];
           if (!file) return;
-          if (file.size > 2 * 1024 * 1024) { setError(tUi("Choose a file smaller than 2 MiB.")); return; }
-          void file.text().then(setRaw).catch(() => setError(tUi("Could not read this file.")));
+          if (file.size > 2 * 1024 * 1024) { setFailure({ local: () => tUi("Choose a file smaller than 2 MiB.") }); return; }
+          void file.text().then(setRaw).catch(() => setFailure({ local: () => tUi("Could not read this file.") }));
         }} /></Button>
         <TextField multiline minRows={6} maxRows={12} label={tUi("Event schedule JSON")} value={raw} onChange={(e) => setRaw(e.target.value)} inputProps={{ maxLength: 2 * 1024 * 1024 }} />
       </>}
@@ -140,8 +162,9 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
         helperText={tUi("5–300 seconds for the complete source request. Saved for previews and automatic refresh.")} /> : null}
       <Stack direction="row" spacing={1}>
         <Button variant="contained" disabled={busy || ((mode === 'provider' || mode === 'url') && !validTimeout) || (mode === 'manual' ? !title.trim() : mode === 'url' ? !source && !scheduleUrl.trim() : mode === 'provider' ? provider.provider === 'wosti_es' && !provider.feeds?.length : !raw.trim())} onClick={submit}>{review.isPending || reviewSource.isPending ? tUi("Preparing preview…") : tUi("Preview events")}</Button>
-        <Button disabled={busy} onClick={onClose}>{tUi("Cancel")}</Button>
+        <Button disabled={busy} onClick={() => void close()}>{tUi("Cancel")}</Button>
       </Stack>
     </Stack>}
+    </Box>
   </ContentSection>;
 }

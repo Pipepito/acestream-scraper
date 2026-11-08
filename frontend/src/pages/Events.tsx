@@ -2,7 +2,7 @@ import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import { useSearchParams } from 'react-router-dom';
 import { validEventZone } from '../hooks/useDashboardEvents';
-import React, { useDeferredValue, useState } from 'react';
+import React, { useDeferredValue, useRef, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Drawer, MenuItem, FormControlLabel, Checkbox, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../components/layout/PageHeader';
@@ -48,7 +48,7 @@ export default function Events() {
   const [adding, setAdding] = useState(false);
   const selected = params.get('event');
   const setSelected = (id: string | null) => {
-    setMessage('');
+    setFeedback(null);
     setParams(current => {
       const next = new URLSearchParams(current);
       if (id) next.set('event', id); else next.delete('event');
@@ -56,22 +56,31 @@ export default function Events() {
     });
   };
   const [playing, setPlaying] = useState<{ id: string; title: string } | null>(null);
-  const [message, setMessage] = useState('');
+  const [feedback, setFeedback] = useState<{ error: unknown } | { saved: true } | null>(null);
+  const message = feedback ? 'error' in feedback ? getErrorMessage(feedback.error) : tUi('Event saved.') : '';
+  const action = useRef(false);
   const deferredSearch = useDeferredValue(search);
   const filters = { interests: JSON.stringify(interests), window_days: tab === 'upcoming' ? windowDays : undefined, search: deferredSearch, sport, competition, source, zone, day: tab === 'today' ? today(zone) : tab === 'date' ? day : undefined, upcoming: tab === 'upcoming', followed, archived: tab === 'archived', offset };
   const list = useQuery({ queryKey: ['events', 'list', filters], queryFn: () => eventService.list(filters) });
   const detail = useQuery({ queryKey: ['events', 'detail', selected], queryFn: () => eventService.get(selected!), enabled: Boolean(selected) });
   const update = useMutation({ mutationFn: (input: EventUpdate) => eventService.update(selected!, input),
-    onSuccess: () => { setMessage(uiText("Event saved.")); void cache.invalidateQueries({ queryKey: ['events'] }); },
-    onError: (err) => setMessage(getErrorMessage(err)) });
+    onSuccess: () => { setFeedback({ saved: true }); void cache.invalidateQueries({ queryKey: ['events'] }); },
+    onError: (err) => setFeedback({ error: err }) });
+  const saveEvent = async (input: EventUpdate) => {
+    if (action.current) return false;
+    action.current = true;
+    try { await update.mutateAsync(input); return true; }
+    catch { return false; }
+    finally { action.current = false; }
+  };
   const events = list.data?.events ?? [];
   const total = list.data?.total ?? 0;
   const interestCount = Object.values(interests).flat().length + [sport, competition, source].filter(Boolean).length + Number(followed);
   const resetFilters = () => { setInterests(emptyInterests); setSearch(''); setSport(''); setCompetition(''); setSource(''); setFollowed(false); setOffset(0); setTab('all'); };
   return <Box>
-    <PageHeader title={tUi("Events")} subtitle={tUi("Find your next match, race or game.")} actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button onClick={() => setManaging(!managing)} aria-expanded={managing}>{tUi("Sources & retention")}</Button><Button variant="contained" onClick={() => { setReviewSource(undefined); setManaging(false); setAdding(true); }}>{tUi("Add events")}</Button></Stack>} />
+    <PageHeader title={tUi("Events")} subtitle={tUi("Find your next match, race or game.")} actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button disabled={adding} onClick={() => setManaging(!managing)} aria-expanded={managing}>{tUi("Sources & retention")}</Button><Button disabled={adding} variant="contained" onClick={() => { setReviewSource(undefined); setManaging(false); setAdding(true); }}>{tUi("Add events")}</Button></Stack>} />
     <StatusLine items={[{ label: uiText("Events"), value: list.isPending ? uiText("Loading…") : list.isError ? uiText("Unavailable") : total }, { label: uiText("Times"), value: zone }]} />
-    {message && !selected ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 2 }}>{message}</Alert> : null}
+    {message && !selected ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{message}</Alert> : null}
     {managing ? <EventSourcesPanel onReview={(source) => { setReviewSource(source); setManaging(false); setAdding(true); }} /> : null}
     {adding ? <EventImportPanel key={reviewSource?.id ?? 'new'} source={reviewSource} zone={zone} onClose={() => { setAdding(false); setReviewSource(undefined); }} /> : null}
     <ContentSection title={tUi("Schedule")}>
@@ -110,12 +119,12 @@ export default function Events() {
       {total > 50 ? <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}><Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 50))}>{tUi("Previous")}</Button><Typography>{offset + 1}–{Math.min(offset + 50, total)} {' '}{tUi("of")}{' '}{total}</Typography><Button disabled={offset + 50 >= total} onClick={() => setOffset(offset + 50)}>{tUi("Next")}</Button></Stack> : null}
     </ContentSection>
     <Drawer anchor="right" open={Boolean(selected)} onClose={() => setSelected(null)} PaperProps={{ role: 'dialog', 'aria-label': uiText("Event details"), sx: { width: { xs: '100%', sm: 620 }, maxWidth: '100%', p: 2 } }}>
-    {message ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setMessage('')} sx={{ mb: 2 }}>{message}</Alert> : null}
+    {message ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{message}</Alert> : null}
     <Button onClick={() => setSelected(null)} sx={{ alignSelf: 'flex-start', mb: 1 }}>{tUi("Close event details")}</Button>
     {selected && detail.isPending ? <CircularProgress aria-label={tUi("Loading event details")} /> : null}
     {selected && detail.isError ? <Alert severity="error" action={<Button onClick={() => void detail.refetch()}>{tUi("Retry")}</Button>}>{tUi("Event details could not be loaded. The event may have been removed; close details to return to the agenda.")}</Alert> : null}
     {selected && detail.data?.archived ? <Alert severity="info">{tUi("This event is archived. Close details to return to the agenda.")}</Alert> : null}
-    {selected && detail.data && !detail.isError ? <EventDetails key={`${detail.data.id}:${detail.data.revision}`} event={detail.data} zone={zone} busy={update.isPending} onUpdate={(input) => update.mutate(input)} onPlay={(id, label) => setPlaying({ id, title: `${detail.data.title} · ${label}` })} /> : null}
+    {selected && detail.data && !detail.isError ? <EventDetails key={detail.data.id} event={detail.data} zone={zone} busy={update.isPending} onUpdate={saveEvent} onPlay={(id, label) => setPlaying({ id, title: `${detail.data.title} · ${label}` })} /> : null}
     </Drawer>
     <StreamPlayerDialog open={Boolean(playing)} contentId={playing?.id ?? null} title={playing?.title ?? ''} onClose={() => setPlaying(null)} />
   </Box>;

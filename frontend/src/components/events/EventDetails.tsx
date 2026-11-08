@@ -9,28 +9,45 @@ import { EventChannelName } from './EventAgenda';
 import EventGuideOverlay from './EventGuideOverlay';
 import EventArtwork from './EventArtwork';
 import EventBroadcastMapper from './EventBroadcastMapper';
+import { useUnsavedChanges } from '../UnsavedChanges';
+import { useConfirm } from '../ConfirmDialog';
 import ContentSection from '../layout/ContentSection';
 import { formatRelativeTime } from '../../utils/format';
 
-interface Props { event: SportingEvent; zone: string; busy: boolean; onUpdate: (input: EventUpdate) => void; onPlay: (id: string, label: string) => void }
+interface Props { event: SportingEvent; zone: string; busy: boolean; onUpdate: (input: EventUpdate) => Promise<boolean>; onPlay: (id: string, label: string) => void }
 export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Props) {
   const tUi = useUiText();
   const [managing, setManaging] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [fields, setFields] = useState<EventFields>({ title: event.title, sport: event.sport, competition: event.competition, participants: event.participants, scheduled_date: event.scheduled_date, starts_at: event.starts_at, ends_at: event.ends_at, timezone: event.timezone, time_notes: event.time_notes, state: event.state });
+  const sourceFields: EventFields = { title: event.title, sport: event.sport, competition: event.competition, participants: event.participants, scheduled_date: event.scheduled_date, starts_at: event.starts_at, ends_at: event.ends_at, timezone: event.timezone, time_notes: event.time_notes, state: event.state };
+  const [draft, setDraft] = useState<{ fields: EventFields; original: string; revision: number } | null>(null);
+  const fields = draft?.fields ?? sourceFields;
+  const setFields = (value: EventFields) => setDraft(current => ({ fields: value, original: current?.original ?? JSON.stringify(sourceFields), revision: current?.revision ?? event.revision }));
+  const dirty = Boolean(draft && JSON.stringify(draft.fields) !== draft.original);
+  useUnsavedChanges(dirty, busy);
+  const { confirm, dialog } = useConfirm();
+  const leaveCorrection = async () => {
+    if (busy) return false;
+    if (dirty && !await confirm(() => ({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return false;
+    setDraft(null); setEditing(false); return true;
+  };
+  const saveCorrection = async () => {
+    if (await onUpdate({ revision: draft?.revision ?? event.revision, correction: fields })) { setDraft(null); setEditing(false); }
+  };
   return <ContentSection title={event.title}>
+    {dialog}
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">{[event.competition, event.sport].filter(Boolean).join(' · ')}</Typography>
       <Typography fontWeight={600}>{event.starts_at ? new Date(event.starts_at).toLocaleString(getLocale(), { timeZone: zone, weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : event.scheduled_date ? tUi("{{value0}} · Time to be confirmed", { value0: event.scheduled_date }) : tUi("Date and time to be confirmed")}</Typography>
       <Stack direction="row" flexWrap="wrap" gap={1}>
-        <Button disabled={busy} onClick={() => onUpdate({ revision: event.revision, followed: !event.followed })}>{event.followed ? tUi("Unfollow event") : tUi("Follow event")}</Button>
-        <Button aria-expanded={managing} onClick={() => { setManaging(!managing); setEditing(false); }}>{tUi("Manage event")}</Button>
+        <Button disabled={busy} onClick={() => void onUpdate({ revision: event.revision, followed: !event.followed })}>{event.followed ? tUi("Unfollow event") : tUi("Follow event")}</Button>
+        <Button aria-expanded={managing} disabled={busy} onClick={() => { void leaveCorrection().then(allowed => { if (allowed) setManaging(!managing); }); }}>{tUi("Manage event")}</Button>
       </Stack>
       {managing ? <Stack direction="row" flexWrap="wrap" gap={1}>
-        <Button onClick={() => setEditing(!editing)}>{editing ? tUi("Cancel correction") : tUi("Correct schedule")}</Button>
-        <Button disabled={busy} onClick={() => onUpdate({ revision: event.revision, archived: !event.archived })}>{event.archived ? tUi("Restore event") : tUi("Archive event")}</Button>
+        <Button disabled={busy} onClick={() => { if (editing) void leaveCorrection(); else { setDraft({ fields: sourceFields, original: JSON.stringify(sourceFields), revision: event.revision }); setEditing(true); } }}>{editing ? tUi("Cancel correction") : tUi("Correct schedule")}</Button>
+        <Button disabled={busy} onClick={() => void onUpdate({ revision: event.revision, archived: !event.archived })}>{event.archived ? tUi("Restore event") : tUi("Archive event")}</Button>
       </Stack> : null}
-      {editing ? <Stack spacing={2}>
+      {editing ? <Stack component="fieldset" disabled={busy} spacing={2} sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}>
         <TextField label={tUi("Title")} value={fields.title} onChange={(e) => setFields({ ...fields, title: e.target.value })} />
         <TextField select label={tUi("Event state")} value={fields.state} onChange={(e) => setFields({ ...fields, state: e.target.value as EventFields['state'] })}>
           {['unknown', 'scheduled', 'live', 'finished', 'postponed', 'cancelled'].map((state) => <MenuItem key={state} value={state}>{statusLabel(state)}</MenuItem>)}
@@ -38,8 +55,8 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
         <TextField label={tUi("Start (ISO date and time)")} value={fields.starts_at ?? ''} onChange={(e) => setFields({ ...fields, starts_at: e.target.value || null })} helperText={tUi("Include an offset, or use the source timezone {{value0}}. Blank means unknown.", { value0: fields.timezone })} />
         <TextField label={tUi("End (only if known)")} value={fields.ends_at ?? ''} onChange={(e) => setFields({ ...fields, ends_at: e.target.value || null })} />
         <TextField label={tUi("Time notes")} value={fields.time_notes} onChange={(e) => setFields({ ...fields, time_notes: e.target.value })} />
-        <Stack direction="row" gap={1}><Button variant="contained" disabled={busy || !fields.title.trim()} onClick={() => onUpdate({ revision: event.revision, correction: fields })}>{tUi("Save correction")}</Button>
-          {event.corrected ? <Button disabled={busy} onClick={() => onUpdate({ revision: event.revision, correction: null })}>{tUi("Use source schedule")}</Button> : null}</Stack>
+        <Stack direction="row" gap={1}><Button variant="contained" disabled={busy || !fields.title.trim()} onClick={() => void saveCorrection()}>{tUi("Save correction")}</Button>
+          {event.corrected ? <Button disabled={busy} onClick={() => void onUpdate({ revision: event.revision, correction: null })}>{tUi("Use source schedule")}</Button> : null}</Stack>
       </Stack> : null}
       {event.corrected ? <Typography variant="caption" color="text.secondary">{tUi("Schedule updated manually")}</Typography> : null}
       {event.state === 'live' ? <Alert severity="info">{tUi("Live, as reported by the source.")}</Alert> : null}
@@ -63,7 +80,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
           {broadcast.target && (broadcast.via_alias || broadcast.target.name !== broadcast.label) ? <Typography variant="body2" color="text.secondary">{tUi("Your channel:")}{' '}{broadcast.target.name}{broadcast.via_alias ? tUi(" · applies to all {{value0}} events from {{value1}}", { value0: broadcast.label, value1: broadcast.source_name }) : ''}</Typography> : null}
           {broadcast.source_kept ? <Typography variant="body2" color="text.secondary">{tUi("Source broadcast kept for this event.")}</Typography> : null}
           {managing ? <>
-          <Typography variant="body2">{[broadcast.language, broadcast.quality, broadcast.country].filter(Boolean).join(' · ') || 'Language and quality not supplied'}</Typography>
+          <Typography variant="body2">{[broadcast.language, broadcast.quality, broadcast.country].filter(Boolean).join(' · ') || tUi("Language and quality not supplied")}</Typography>
           <Typography variant="body2">{broadcast.is_online === true ? tUi("Signal verified") : broadcast.is_online === false ? tUi("No signal verified") : tUi("Signal not checked")}{broadcast.checked_at ? tUi(" · {{value0}}", { value0: formatRelativeTime(broadcast.checked_at) }) : ''}</Typography>
           <Typography variant="body2" color="text.secondary">{broadcast.reason} · {broadcast.source_name}{broadcast.origin ? tUi(" · {{value0}}", { value0: broadcast.origin }) : ''}</Typography>
           </> : null}
@@ -73,7 +90,7 @@ export default function EventDetails({ event, zone, busy, onUpdate, onPlay }: Pr
         </Stack>
         {broadcast.content_id && broadcast.compatibility === 'playable' ? <Button variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, flexShrink: 0 }} onClick={() => onPlay(broadcast.content_id!, broadcast.label)}>{tUi("Play")}{' '}{broadcast.label}</Button> : null}
       </Stack>)}
-      {managing ? <EventGuideOverlay key={`${event.id}:${event.revision}`} event={event} /> : null}
+      {managing ? <EventGuideOverlay key={event.id} event={event} /> : null}
       {event.time_notes ? <Box component="details">
         <Box component="summary" sx={{ cursor: 'pointer', color: 'text.secondary', py: 1 }}>{tUi("Schedule notes")}</Box>
         <Typography variant="body2" sx={{ mt: 1 }}>{event.time_notes}</Typography>

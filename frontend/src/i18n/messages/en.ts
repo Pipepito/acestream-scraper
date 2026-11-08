@@ -2462,5 +2462,21 @@ export const uiEnglish = {
   "{{count}} peers · {{rate}}": "{{count}} peers · {{rate}}",
   "contacting the engine": "contacting the engine",
   "Too many channels are playing at once (limit {{limit}}). Close another player and try again.": "Too many channels are playing at once (limit {{limit}}). Close another player and try again.",
-  "Too many channels are playing at once. Close another player and try again.": "Too many channels are playing at once. Close another player and try again."
+  "Too many channels are playing at once. Close another player and try again.": "Too many channels are playing at once. Close another player and try again.",
+  "Save casting preference changes before trusting this connection.": "Save casting preference changes before trusting this connection.",
+  "TVs": "TVs",
+  "Looking…": "Looking…",
+  "Casting to your selected TV. You can close this page.": "Casting to your selected TV. You can close this page.",
+  "Browser cast stopped.": "Browser cast stopped.",
+  "TV search finished.": "TV search finished.",
+  "Casting started. The TV keeps playing when you close the page.": "Casting started. The TV keeps playing when you close the page.",
+  "TV updated.": "TV updated.",
+  "Volume lowered.": "Volume lowered.",
+  "Volume raised.": "Volume raised.",
+  "Could not load casting information.": "Could not load casting information.",
+  "{{field}}: {{message}}": "{{field}}: {{message}}",
+  "Row {{row}} · {{field}}": "Row {{row}} · {{field}}",
+  "Headers": "Headers",
+  "Participants": "Participants",
+  "Language and quality not supplied": "Language and quality not supplied"
 } as const;

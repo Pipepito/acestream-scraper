@@ -101,3 +101,26 @@ test('deployment-enforced home check keeps the home copy', async () => {
   expect(screen.queryByText(/Anyone who can open this app/)).not.toBeInTheDocument();
   view.unmount(); view.cache.clear();
 });
+
+test('keeps the settings editor mounted and requires saving its draft before trusting home', async () => {
+  (castService.capabilities as jest.Mock).mockResolvedValue({ server_devices: false, home_connection: false, message: 'Connection is unverified' });
+  (castService.saveSettings as jest.Mock).mockResolvedValue({ ...settings, compatibility_conversion: true });
+  (castService.trustHome as jest.Mock).mockResolvedValue({ ...settings, compatibility_conversion: true, home_networks: ['8.8.4.4/32'] });
+  const view = renderPage(true);
+  fireEvent.click(await screen.findByRole('button', { name: 'Advanced connection settings' }));
+  const field = screen.getByLabelText('Allowed home networks');
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'I am connected to my home network now' }));
+  const trust = screen.getByRole('button', { name: 'Trust this home connection' });
+  expect(trust).toBeDisabled();
+  expect(castService.trustHome).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Save casting settings' }));
+  await waitFor(() => expect(trust).toBeEnabled());
+  fireEvent.click(trust);
+  await waitFor(() => expect(field).toHaveValue('8.8.4.4/32'));
+  expect(screen.getByLabelText('Allowed home networks')).toBe(field);
+  expect(screen.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' })).toBeChecked();
+  expect(castService.saveSettings).toHaveBeenCalledTimes(1);
+  expect(castService.trustHome).toHaveBeenCalledTimes(1);
+  view.unmount(); view.cache.clear();
+});

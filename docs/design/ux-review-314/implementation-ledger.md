@@ -280,3 +280,24 @@ FFmpeg and ffprobe 9.0.2 for arm64 are prepared in `/tmp/ux314-tools/media-bin`,
 verified against the publisher's SHA-256 values and executable locally. Provenance:
 `/tmp/ux314-evidence/media-tool-provenance.json`; publisher
 https://www.osxexperts.net/. No global installation or application dependency changed.
+
+### Casting and event draft checkpoint
+
+Casting settings remain mounted after home-trust updates. Trust changes wait for
+unsaved preferences, and capabilities carry stable translated denial reasons.
+Casting/login actions have immediate pending guards and retain raw failures for
+language changes; receiver ownership and transport/permission rules are unchanged.
+Event validation exposes stable reason types with bounded redacted locations and
+messages, documented in OpenAPI. Private input/context never enters the response.
+Event import retains raw failures, guards duplicate operations and local dismissal.
+Corrections survive background revisions and language changes, retaining their
+original reviewed revision for conflict checks instead of remounting and losing edits.
+
+Final focused checks: 96 backend tests and 45 frontend tests in four suites passed;
+TypeScript, zero-warning lint and app/standalone production builds passed. Evidence:
+`/tmp/ux314-evidence/event-cast-backend.log`, `event-cast-*-verified.log`.
+An old cancellation test was updated to explicitly discard; a test naming warning
+and missing typed translation were fixed before rerunning the affected checks.
+Separately, all 70 recording/player runtime tests passed with verified FFmpeg and
+the required local socket/process-inspection access (`recording-player-runtime-permitted.log`).
+Final full gates and human/hardware acceptance remain outstanding.

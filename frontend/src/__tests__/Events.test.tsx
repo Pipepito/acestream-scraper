@@ -107,6 +107,7 @@ it('opens over LAN HTTP and keeps manual identity stable across previews but sep
     await screen.findByRole('button', { name: 'Back to input' });
     expect(service.preview.mock.calls[1][0].observations[0].external_id).toBe(firstId);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await user.click(await screen.findByRole('button', { name: 'Discard changes' }));
     await user.click(screen.getByRole('button', { name: 'Add events' }));
     await user.click(screen.getByLabelText('Add from'));
     await user.click(screen.getByRole('option', { name: 'Create an event' }));
@@ -422,4 +423,30 @@ it('previews an XMLTV overlay and requires review again when the end changes', a
   await waitFor(() => expect(service.applyOverlay).toHaveBeenCalledWith(event.id, {
     revision: 1, broadcast_id: 'es', ends_at: '2026-10-24T23:30:00Z',
   }, 'a'.repeat(64)));
+});
+
+it('retains a correction and its reviewed revision across query refresh and language changes', async () => {
+  const { default: EventDetails } = await import('../components/events/EventDetails');
+  const { default: i18next } = await import('i18next');
+  const { act } = await import('@testing-library/react');
+  const user = userEvent.setup();
+  const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const onUpdate = jest.fn().mockResolvedValue(false);
+  const show = (revision: number) => <QueryClientProvider client={cache}><ThemeProvider theme={createAppTheme('dark')}><TestMemoryRouter><EventDetails event={{ ...event, revision }} zone="Europe/Madrid" busy={false} onUpdate={onUpdate} onPlay={jest.fn()} /></TestMemoryRouter></ThemeProvider></QueryClientProvider>;
+  const { rerender } = render(show(1));
+  await user.click(screen.getByRole('button', { name: 'Manage event' }));
+  await user.click(screen.getByRole('button', { name: 'Correct schedule' }));
+  const title = screen.getByLabelText('Title');
+  await user.clear(title);
+  await user.type(title, 'My correction');
+  rerender(show(2));
+  expect(screen.getByLabelText('Title')).toBe(title);
+  expect(title).toHaveValue('My correction');
+  await user.click(screen.getByRole('button', { name: 'Save correction' }));
+  expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ revision: 1, correction: expect.objectContaining({ title: 'My correction' }) }));
+  try {
+    await act(async () => { await i18next.changeLanguage('es'); });
+    expect(screen.getByLabelText('Título')).toBe(title);
+    expect(title).toHaveValue('My correction');
+  } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
 });

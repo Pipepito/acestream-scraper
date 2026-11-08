@@ -15,11 +15,12 @@ router = APIRouter(tags=['cast'])
 
 @router.get('/capabilities', response_model=CastCapabilities)
 def capabilities(request: Request):
-    allowed, message = True, ''
+    allowed, message, error_code = True, '', None
     try:
         require_server_cast(request)
     except HTTPException as error:
         allowed, message = False, error.detail
+        error_code = (error.headers or {}).get('X-Error-Code')
     policy = request.state.access_policy
     from app.config.settings import get_settings
     if request.state.access_mode != 'open':
@@ -27,7 +28,7 @@ def capabilities(request: Request):
     else:
         home_check = 'deployment' if get_settings().CAST_REQUIRE_HOME_NETWORK else 'off'
     return CastCapabilities(server_devices=allowed, compatibility_conversion=policy.compatibility_conversion,
-        media_url_configured=bool(media_base(request)), message=message,
+        media_url_configured=bool(media_base(request)), message=message, error_code=error_code,
         home_connection=home_client(request), media_url=media_base(request) if allowed else '', home_check=home_check)
 
 

@@ -5589,6 +5589,8 @@ export interface components {
         CastCapabilities: {
             /** Compatibility Conversion */
             compatibility_conversion: boolean;
+            /** Error Code */
+            error_code?: string | null;
             /**
              * Home Check
              * @default off
@@ -7019,6 +7021,23 @@ export interface components {
             followed?: boolean | null;
             /** Revision */
             revision: number;
+        };
+        /** EventValidationIssue */
+        EventValidationIssue: {
+            /** Loc */
+            loc: (string | number)[];
+            /** Msg */
+            msg: string;
+            /**
+             * Type
+             * @description Stable Pydantic validation type or application EVENT_* reason code.
+             */
+            type: string;
+        };
+        /** EventValidationProblem */
+        EventValidationProblem: {
+            /** Detail */
+            detail: string | components["schemas"]["EventValidationIssue"][];
         };
         /** EventView */
         EventView: {
@@ -15095,13 +15114,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15132,13 +15151,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15167,13 +15186,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15200,6 +15219,15 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -15224,13 +15252,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15257,6 +15285,15 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -15285,13 +15322,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15318,6 +15355,15 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -15342,6 +15388,15 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -15370,13 +15425,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15403,6 +15458,15 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -15431,13 +15495,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15464,6 +15528,15 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -15490,13 +15563,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15529,13 +15602,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15564,13 +15637,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15603,13 +15676,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15640,13 +15713,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15679,13 +15752,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15714,13 +15787,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15753,13 +15826,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15789,13 +15862,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];
@@ -15828,13 +15901,13 @@ export interface operations {
             };
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
             500: components["responses"]["ApplicationProblem500"];

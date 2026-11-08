@@ -1,4 +1,5 @@
 """Authenticated event endpoints; blocking work uses FastAPI's worker pool."""
+from app.api.http_errors import coded_http_error
 from datetime import date
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,7 +15,7 @@ from app.services.event_overlay_service import EventOverlayService
 from app.schemas.events import EventOverlayRequest, EventOverlayApply, EventOverlayView, EventOverlayPreview
 from app.services.event_source_service import EventSourceService
 from app.schemas.events import EventSourcePreviewRequest, EventSourceView, EventSourceUpdate, EventRetention, EventBroadcastMapping, EventRefreshQueued
-from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog, EventSelection, BroadcasterLinkView
+from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog, EventSelection, BroadcasterLinkView, EventValidationProblem
 
 
 class PrivateEventRoute(APIRoute):
@@ -26,12 +27,12 @@ class PrivateEventRoute(APIRoute):
             except RequestValidationError as exc:
                 # Error locations/messages are useful, but input/context may hold
                 # signed stream URLs or private publisher headers.
-                errors = [{'loc': list(e['loc']), 'msg': e['msg']} for e in exc.errors()[:10]]
+                errors = [{'loc': list(e['loc']), 'msg': e['msg'], 'type': e['type']} for e in exc.errors()[:10]]
                 raise HTTPException(422, detail=errors) from None
         return guarded
 
 
-router = APIRouter(route_class=PrivateEventRoute)
+router = APIRouter(route_class=PrivateEventRoute, responses={422: {"model": EventValidationProblem, "description": "Invalid event request; private input and context are omitted."}})
 
 
 def service(db: Session = Depends(get_db)):
@@ -42,13 +43,13 @@ def invoke(call, *args, **kwargs):
     try:
         return call(*args, **kwargs)
     except LookupError as exc:
-        raise HTTPException(404, str(exc)) from None
+        raise coded_http_error(404, 'EVENT_NOT_FOUND', str(exc)) from None
     except ValidationError:
-        raise HTTPException(503, 'Stored event data could not be read; existing events were preserved') from None
+        raise coded_http_error(503, 'EVENT_STORED_DATA_INVALID', 'Stored event data could not be read; existing events were preserved') from None
     except ValueError as exc:
-        raise HTTPException(409, str(exc)) from None
+        raise coded_http_error(409, 'EVENT_CONFLICT', str(exc)) from None
     except Exception:
-        raise HTTPException(503, 'Event operation failed; saved events were preserved') from None
+        raise coded_http_error(503, 'EVENT_OPERATION_FAILED', 'Event operation failed; saved events were preserved') from None
 
 
 @router.get('', response_model=EventList)
@@ -63,11 +64,11 @@ def list_events(search: str = Query('', max_length=200), sport: str = Query('', 
     try:
         ZoneInfo(zone)
     except (ZoneInfoNotFoundError, ValueError):
-        raise HTTPException(422, 'Choose a valid IANA timezone') from None
+        raise coded_http_error(422, 'EVENT_TIMEZONE_INVALID', 'Choose a valid IANA timezone') from None
     try:
         selected = EventInterests.model_validate_json(interests) if interests else EventInterests()
     except ValidationError:
-        raise HTTPException(422, 'Choose valid sports, competitions and teams') from None
+        raise coded_http_error(422, 'EVENT_INTERESTS_INVALID', 'Choose valid sports, competitions and teams') from None
     return invoke(svc.list, search=search, sport=sport, competition=competition, source=source, interests=selected, window_days=window_days,
                   date=day, zone=zone, upcoming=upcoming, followed=followed, archived=archived, offset=offset, limit=limit, selection=selection)
 

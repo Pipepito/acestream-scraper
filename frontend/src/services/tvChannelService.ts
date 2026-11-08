@@ -1,4 +1,4 @@
-import type { components } from '../types/api-generated';
+import type { components, paths } from '../types/api-generated';
 import { TVChannel, TVChannelCreate, TVChannelUpdate, BatchAssignmentRequest, BatchAssignmentResult } from '../types/tvChannelTypes';
 import apiClient from './apiClient';
 
@@ -35,6 +35,9 @@ export interface CreateFromEPGAnalysisResult {
   }>;
 }
 
+export type TVBrowseParams = NonNullable<paths['/api/v1/tv-channels/browse']['get']['parameters']['query']>;
+export type TVInventory = components['schemas']['TVInventory'];
+
 export interface TVChannelListFilters {
   favorites?: boolean;
   search?: string;
@@ -46,6 +49,11 @@ type TVMatchApplyRequest = components['schemas']['TVMatchApplyRequest'];
 type TVMatchApplyResponse = components['schemas']['TVMatchApplyResponse'];
 
 export const tvChannelService = {
+  browse: async (params: TVBrowseParams, signal?: AbortSignal): Promise<{ items: TVChannel[]; total: number }> => {
+    const response = await apiClient.get(`${BASE_URL}/browse`, { params, signal });
+    return response.data;
+  },
+  inventory: async (): Promise<TVInventory> => (await apiClient.get(`${BASE_URL}/inventory`)).data,
   previewAutoMatch: async (options: TVMatchOptions = {}): Promise<TVMatchPreview> => {
     const response = await apiClient.post<TVMatchPreview>(`${BASE_URL}/automatch/preview`, options);
     return response.data;
@@ -70,8 +78,9 @@ export const tvChannelService = {
   },
 
   /** Now/Next for every active TV channel with a guide mapping, in one request. */
-  nowNext: async (): Promise<TVChannelNowNext[]> => {
-    const response = await apiClient.get(`${BASE_URL}/now-next`);
+  nowNext: async (channelIds?: number[]): Promise<TVChannelNowNext[]> => {
+    const params = channelIds ? new URLSearchParams(channelIds.map(id => ['channel_ids', String(id)])) : undefined;
+    const response = await apiClient.get(`${BASE_URL}/now-next`, { params });
     return response.data;
   },
 

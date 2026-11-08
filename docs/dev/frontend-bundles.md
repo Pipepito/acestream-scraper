@@ -47,3 +47,10 @@ existing controller/media chunk boundary and one viewer lifecycle. A late module
 load after close must not create an HLS instance; language, theme and presentation
 changes must not reload the decoder or replace the video element. The loaded
 constructor is cached by the module loader, while instances remain viewer-owned.
+
+Catalogue browsing uses bounded `/tv-channels/browse` pages. All filters and sorts
+run over the complete inventory before pagination; `/tv-channels/inventory`
+supplies global facet choices and counts independently. Watch fetches 50 rows and
+one bounded guide batch at a time. Stream names retain their server-provided TV
+channel labels without fetching the complete TV catalogue. Keep the full snapshot
+read for atomic reorder, whose expected order must contain every channel.

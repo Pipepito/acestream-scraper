@@ -18,7 +18,7 @@ def contract(schema):
     return OpenAPI.from_dict(schema)
 
 
-@pytest.mark.parametrize('url', ['/api/v1/tv-channels/', '/api/v1/tv-channels/now-next', '/api/v1/acestream-channels/'])
+@pytest.mark.parametrize('url', ['/api/v1/tv-channels/', '/api/v1/tv-channels/now-next', '/api/v1/tv-channels/now-next?channel_ids=1&channel_ids=2', '/api/v1/tv-channels/browse?limit=50&is_favorite=false&skip=0', '/api/v1/tv-channels/inventory', '/api/v1/acestream-channels/'])
 def test_real_provider_success_contract(client, contract, url):
     response = client.get(url)
     assert response.status_code == 200
@@ -97,4 +97,17 @@ def test_real_recording_collection_contract(client, contract, collection):
     assert response.status_code == 200
     request = request_adapter({'method': 'GET', 'url': url})
     contract.validate_request(request)
+    validate_response(contract, request, response.status_code, response.headers, response.content)
+
+
+def test_redacted_event_validation_matches_declared_contract(client, contract):
+    from test_sporting_events import schedule
+    payload = schedule()
+    payload['observations'][0]['timezone'] = 'invalid-private-input'
+    url = 'http://testserver/api/v1/events/preview'
+    response = client.post(url, json=payload)
+    assert response.status_code == 422
+    assert response.json()['detail'][0]['type'] == 'EVENT_TIMEZONE_INVALID'
+    assert 'invalid-private-input' not in response.text
+    request = request_adapter({'method': 'POST', 'url': url, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(payload)})
     validate_response(contract, request, response.status_code, response.headers, response.content)

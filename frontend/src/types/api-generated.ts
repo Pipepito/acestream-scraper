@@ -4291,6 +4291,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tv-channels/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse Tv Channels
+         * @description Combine catalogue-wide filters, then sort and return a bounded page.
+         */
+        get: operations["browse_tv_channels_api_v1_tv_channels_browse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tv-channels/bulk-update-epg": {
         parameters: {
             query?: never;
@@ -4349,6 +4369,26 @@ export interface paths {
         put?: never;
         /** Create Tv Channels From Epg */
         post: operations["create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tv Channel Inventory
+         * @description Global filter choices/counts without loading the catalogue or its streams.
+         */
+        get: operations["tv_channel_inventory_api_v1_tv_channels_inventory_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9712,6 +9752,23 @@ export interface components {
             name?: string | null;
             /** Website */
             website?: string | null;
+        };
+        /** TVInventory */
+        TVInventory: {
+            /** Categories */
+            categories: string[];
+            /** Countries */
+            countries: string[];
+            /** Epg Sources */
+            epg_sources: number[];
+            /** Favorites */
+            favorites: number;
+            /** Languages */
+            languages: string[];
+            /** Total */
+            total: number;
+            /** With Streams */
+            with_streams: number;
         };
         /** TVMatchApplyRequest */
         TVMatchApplyRequest: {
@@ -20260,6 +20317,59 @@ export interface operations {
             503: components["responses"]["ApplicationProblem503"];
         };
     };
+    browse_tv_channels_api_v1_tv_channels_browse_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                search?: string;
+                category?: string;
+                country?: string;
+                language?: string;
+                is_active?: boolean | null;
+                is_favorite?: boolean | null;
+                epg?: ("yes" | "no") | null;
+                epg_source_id?: number | null;
+                streams?: ("any" | "none" | "multiple") | null;
+                signal?: ("verified" | "unverified" | "unknown") | null;
+                number?: ("yes" | "no") | null;
+                min_number?: number | null;
+                max_number?: number | null;
+                min_streams?: number | null;
+                max_streams?: number | null;
+                logo_url?: ("yes" | "no") | null;
+                website?: ("yes" | "no") | null;
+                description?: ("yes" | "no") | null;
+                watchable?: boolean;
+                online_only?: boolean;
+                sort?: "default" | "name" | "channel_number" | "is_favorite" | "category" | "language" | "country" | "acestream_channels" | "is_active" | "logo_url";
+                direction?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelListResponse"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
     bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post: {
         parameters: {
             query?: never;
@@ -20356,9 +20466,39 @@ export interface operations {
             503: components["responses"]["ApplicationProblem503"];
         };
     };
-    tv_channel_now_next_api_v1_tv_channels_now_next_get: {
+    tv_channel_inventory_api_v1_tv_channels_inventory_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVInventory"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    tv_channel_now_next_api_v1_tv_channels_now_next_get: {
+        parameters: {
+            query?: {
+                channel_ids?: number[];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -20379,7 +20519,7 @@ export interface operations {
             403: components["responses"]["ApplicationProblem403"];
             404: components["responses"]["ApplicationProblem404"];
             409: components["responses"]["ApplicationProblem409"];
-            422: components["responses"]["ApplicationProblem422"];
+            422: components["responses"]["ApplicationProblem422Validation"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };

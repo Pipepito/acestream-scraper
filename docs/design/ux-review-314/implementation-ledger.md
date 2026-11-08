@@ -37,29 +37,29 @@ dialogs, pending actions and the player node/session/position.
 
 | Step | Work | Status |
 | --- | --- | --- |
-| 1 | Baseline, exact issue criteria, prerequisites, performance | Initial production baseline recorded; interaction/media and tooling preparation remain |
+| 1 | Baseline, exact issue criteria, prerequisites, performance | Initial production baseline recorded; isolated FFmpeg prepared; comparable follow-up measurement running; interaction/media evidence remains |
 | 2 | Reproduce #315/SRC-F15, fixes, executable API contracts | Defect fixes committed; initial wire contracts pass; operation coverage expansion remains |
-| 3 | Shared presets, preferences, EN/ES, components | Initial preferences/tokens/core resources implemented; full catalogue migration remains |
-| 4 | Shell, aliases, access/startup, canonical settings | Seven destinations and initial canonical links implemented; editor extraction/dirty navigation remain |
-| 5 | Sources/extraction, channels, guides, playlists | Pending |
-| 6 | Watch, events, recordings, batched artwork | Pending |
-| 7 | Connections, notifications, System/recovery | Pending |
-| 8 | Final performance, complete validation, docs, one PR | Pending |
+| 3 | Shared presets, preferences, EN/ES, components | Shared preferences/tokens and 2,400+ paired resources implemented; dynamic-message and full state coverage remain |
+| 4 | Shell, aliases, access/startup, canonical settings | Seven destinations, selected-only Settings, canonical source/guide/account/player editors and dirty/pending guards implemented; remaining editors and complete journeys remain |
+| 5 | Sources/extraction, channels, guides, playlists | Canonical source/guide editors, bounded channel browse and complete reorder snapshot implemented; remaining journeys and acceptance in progress |
+| 6 | Watch, events, recordings, batched artwork | Watch composition/deferred HLS, recording collections and event draft/validation work implemented; complete media journeys remain |
+| 7 | Connections, notifications, System/recovery | Account/remote-player/Cast drafts and stable translated failures implemented; remaining System/notification state coverage remains |
+| 8 | Final performance, complete validation, docs, one PR | Single draft PR #325 open; incremental evidence recorded; final full validation and external acceptance outstanding |
 
 ## Task ownership
 
 | Issue | Scope | Implemented | Tested | Accepted |
 | --- | --- | --- | --- | --- |
-| #315 | Recording HTTP/UUID/idempotency, confirmed UI defects, isolated SRC-F15 | No | No | No |
-| #316 | Three shared presets/components, graphics, exception register | No | No | No |
-| #317 | Typed EN/ES, fallback/formatting/pseudo-locale, accessibility | No | No | No |
-| #318 | Seven destinations, aliases/settings/access/setup/gates | No | No | No |
-| #319 | Watch/events/recordings, exact scheduling/media ownership | No | No | No |
-| #320 | Channels/guide/reorder/atomic Add-Link/playlists | No | No | No |
-| #321 | Canonical source journey/search/W3U/extraction/helpers | No | No | No |
-| #322 | Connections/trust/notifications/System/WARP/diagnostics | No | No | No |
-| #323 | Reproducible production baseline and final budgets | No | No | No |
-| #324 | Integrated field/state/permission/preset/locale evidence | No | No | No |
+| #315 | Recording HTTP/UUID/idempotency, confirmed UI defects, isolated SRC-F15 | Partial | Incremental checks | No |
+| #316 | Three shared presets/components, graphics, exception register | Partial | Incremental checks | No |
+| #317 | Typed EN/ES, fallback/formatting/pseudo-locale, accessibility | Partial | Incremental checks | No |
+| #318 | Seven destinations, aliases/settings/access/setup/gates | Partial | Incremental checks | No |
+| #319 | Watch/events/recordings, exact scheduling/media ownership | Partial | Incremental checks | No |
+| #320 | Channels/guide/reorder/atomic Add-Link/playlists | Partial | Incremental checks | No |
+| #321 | Canonical source journey/search/W3U/extraction/helpers | Partial | Incremental checks | No |
+| #322 | Connections/trust/notifications/System/WARP/diagnostics | Partial | Incremental checks | No |
+| #323 | Reproducible production baseline and final budgets | Partial | Incremental checks | No |
+| #324 | Integrated field/state/permission/preset/locale evidence | Partial | Incremental checks | No |
 
 `acceptance.json` records each current issue checkbox separately. Design field,
 runtime-option and workflow inventories remain coverage references, not page counts.
@@ -79,7 +79,7 @@ warnings and blockers; rerun affected/dependent stages after fixes. No silent sk
 - Docker checked 2026-11-08: 29.9.2, linux/aarch64; buildx 0.38.1. Initial
   sandbox socket access requires escalation; daemon is running.
 - Node/dependencies/Playwright present; lockfile compatibility remains to check.
-- Host FFmpeg is absent from PATH: prepare repository-supported isolated tooling.
+- Isolated arm64 FFmpeg/ffprobe 9.0.2 prepared and hash-verified under `/tmp/ux314-tools/media-bin`; 70 recording/player runtime tests passed. Add that directory to PATH for final media gates.
 - Actual AT, native zoom, physical casting/mobile devices and fluent Spanish /
   nontechnical participant review remain unverified. Owner/participants provide
   external evidence; agent prepares reproducible protocols and continues independent
@@ -301,3 +301,34 @@ and missing typed translation were fixed before rerunning the affected checks.
 Separately, all 70 recording/player runtime tests passed with verified FFmpeg and
 the required local socket/process-inspection access (`recording-player-runtime-permitted.log`).
 Final full gates and human/hardware acceptance remain outstanding.
+
+### Bounded catalogue and editor checkpoint
+
+Channels now reads one filtered/sorted page and independent global facet/count
+metadata. Watch loads 50 rows at a time and guide reads only cover loaded batches.
+The new `/tv-channels/browse` contract applies every existing filter before
+pagination; the legacy complete read remains available for reorder and other
+consumers. Stream relationships load in batches (three SQL reads for a 100-row
+serialized page). Complete reorder snapshots and atomic stale rejection are intact.
+Primary Search/Category/Status/Favorite controls stay visible on phones. Channel
+forms and reorder previews retain raw errors, protect dirty/pending dismissal,
+and translate table/filter labels and notices without translating catalogue values.
+
+Checkpoint validation: **119 frontend suites / 721 tests passed**, **89 backend
+catalogue/provider-contract tests passed**, TypeScript, zero-warning lint and
+production app/helper builds passed. Actual consumer validation covers 13 wire
+requests, including repeated query IDs and false/zero/literal-substring filters.
+Built browser matrix: 12 preset/language/390-or-1440 cases with 10,000 channels and
+streams; one initial browse request, exactly 50 Watch rows, no writes, no page errors
+or document overflow; discarded create drafts remained intact after Cancel.
+An initial locator was ambiguous with the table header and was corrected to the
+combobox role. Evidence: `/tmp/ux314-evidence/catalogue-check/large-browser.json`,
+`catalogue-full-frontend.log`, `tv-browse-backend-verified.log`.
+
+The comparable 100-sample baseline fixture has no streams. At 10,000 channels,
+Channels initial API requests changed 24→6, Live TV 25→5, Settings 20→4. Median
+cold settled times were 1557→741 ms, 1573→660 ms, 706→614 ms respectively;
+these include 500 ms network-idle and uncontrolled host timing. The new Watch home
+has different scope (overview plus viewing), so its timing is not like-for-like.
+See `performance-catalogue-checkpoint.json`. These are intermediate measurements;
+final repeated interaction/media/memory and full validation remain outstanding.

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Checkbox, FormControlLabel, LinearProgress, Stack, TextField, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { useTVChannelCatalog, useTVChannel } from '../hooks/useTVChannels';
+import { useTVChannelPages, useTVChannel } from '../hooks/useTVChannels';
 import { useNowNext } from '../hooks/useNowNext';
 import type { AcestreamChannel } from '../services/channelService';
 import type { TVChannel } from '../types/tvChannelTypes';
@@ -26,14 +26,17 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
   const canResizePlayer = useMediaQuery(useTheme().breakpoints.up('lg'));
   const [largePlayer, setLargePlayer] = useState(false);
   const viewingArea = useRef<HTMLDivElement>(null);
-  const catalog = useTVChannelCatalog(undefined, 30_000);
-  const nowNext = useNowNext();
+  const sentinel = useRef<HTMLDivElement>(null);
   const [playingStream, setPlayingStream] = useState<AcestreamChannel | null>(null);
   const [favorites, setFavorites] = useState(false);
   const [params, setParams] = useSearchParams();
   const onlineOnly = params.get('availability') !== 'all';
   const mode = parseBrowseMode(params.get('list'));
   const search = params.get('q') ?? '';
+  const catalog = useTVChannelPages({ watchable: true, online_only: onlineOnly, search, ...(favorites ? { is_favorite: true } : {}) }, mode === 'tv');
+  const loadedChannels = useMemo(() => catalog.data?.pages.flatMap(page => page.items) ?? [], [catalog.data]);
+  const nowNext = useNowNext(mode === 'tv' ? loadedChannels.map(channel => channel.id) : []);
+  const total = catalog.data?.pages[0]?.total ?? 0;
   const selectedId = Number(params.get('channel')) || 0;
   const selected = useTVChannel(selectedId, 30_000);
   const now = useNow();
@@ -42,15 +45,25 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
     Object.entries(changes).forEach(([key, value]) => { if (value === null || value === '' || (key === 'list' && value === 'tv')) next.delete(key); else next.set(key, value); });
     setParams(next, { replace });
   };
-  const channels = useMemo(() => (catalog.data ?? []).filter((channel) => channel.is_active && channel.acestream_channels.some((stream) => stream.is_active !== false && (!onlineOnly || stream.is_online === true))
+  const channels = useMemo(() => loadedChannels.filter((channel) => channel.is_active && channel.acestream_channels.some((stream) => stream.is_active !== false && (!onlineOnly || stream.is_online === true))
     && (!favorites || channel.is_favorite)
-    && `${channel.name} ${channel.category ?? ''} ${channel.channel_number ?? ''}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
-    .sort((a, b) => (a.channel_number ?? Infinity) - (b.channel_number ?? Infinity) || a.name.localeCompare(b.name)), [catalog.data, search, favorites, onlineOnly]);
-  const tvNames = useMemo(() => new Map((catalog.data ?? []).map((channel) => [channel.id, channel.name])), [catalog.data]);
+    && `${channel.name} ${channel.category ?? ''} ${channel.channel_number ?? ''}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))
+    .sort((a, b) => (a.channel_number ?? Infinity) - (b.channel_number ?? Infinity) || a.name.localeCompare(b.name)), [loadedChannels, search, favorites, onlineOnly]);
+  const tvNames = useMemo(() => new Map(loadedChannels.map((channel) => [channel.id, channel.name])), [loadedChannels]);
   const isWatching = Boolean(playingStream || (selectedId && selected.data?.acestream_channels.length));
   useEffect(() => {
     if (isWatching) viewingArea.current?.scrollIntoView?.({ block: 'start' });
   }, [isWatching, canResizePlayer]);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = catalog;
+  useEffect(() => {
+    const node = sentinel.current;
+    if (mode !== 'tv' || !node || !hasNextPage || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting) && !isFetchingNextPage) void fetchNextPage();
+    }, { rootMargin: '200px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [mode, hasNextPage, isFetchingNextPage, fetchNextPage]);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const close = () => updateParams({ channel: null }, true);
   const watchChannel = (channel: TVChannel | number) => {
@@ -61,7 +74,7 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
 
   return <Box>
     <PageHeader title={home ? t('watch') : tUi("Live TV")} subtitle={tUi("Choose a channel, see what’s on, and watch.")} />
-    <Box sx={{ display: { xs: 'none', sm: 'block' } }}><StatusLine items={[{ label: uiText("Channels"), value: channels.length }, { label: uiText("Guide times"), value: timezone }]} /></Box>
+    <Box sx={{ display: { xs: 'none', sm: 'block' } }}><StatusLine items={[{ label: uiText("Channels"), value: total }, { label: uiText("Guide times"), value: timezone }]} /></Box>
     <Box ref={viewingArea} sx={{ scrollMarginTop: '76px', display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: isWatching ? (largePlayer ? 'minmax(0, 2.5fr) minmax(320px, 1fr)' : 'minmax(0, 1.3fr) minmax(320px, 1fr)') : 'minmax(0, 1fr)' }, gap: 2, alignItems: 'start' }}>
       <Box sx={{ minWidth: 0, display: isWatching || selectedId ? 'block' : 'none' }}>
         <ChannelPlayerDialog inline hideUnavailableSources={onlineOnly} largePlayer={largePlayer} onTogglePlayerSize={canResizePlayer ? () => setLargePlayer((value) => !value) : undefined} open={Boolean(playingStream)} contentId={playingStream?.id ?? null} title={playingStream?.name ?? ''} onClose={() => setPlayingStream(null)} />
@@ -92,6 +105,8 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
               {onlineOnly ? <Button color="inherit" onClick={() => updateParams({ availability: 'all' }, true)}>{tUi("Show all channels")}</Button> : null}
             </Alert> : null}
             <TVChannelList channels={channels} selectedId={selectedId} now={now} nowNext={nowNext.data} nowNextFailed={nowNext.isError} onWatch={watchChannel} />
+            <div ref={sentinel} aria-hidden />
+            {catalog.hasNextPage ? <Button disabled={catalog.isFetchingNextPage} onClick={() => void catalog.fetchNextPage()} sx={{ my: 2 }}>{catalog.isFetchingNextPage ? tUi('Loading…') : tUi('Show more channels')}</Button> : null}
           </> : null}
           {mode === 'streams' ? <StreamList search={search} onlineOnly={onlineOnly} tvNames={tvNames} onWatch={watchStream} /> : null}
           {mode === 'events' ? <EventList search={search} onWatchChannel={watchChannel} /> : null}

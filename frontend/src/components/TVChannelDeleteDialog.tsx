@@ -8,25 +8,27 @@ import {
   DialogTitle,
   Typography,
 } from '@mui/material';
+import { useUnsavedChanges } from './UnsavedChanges';
 import { TVChannel } from '../types/tvChannelTypes';
 
 interface TVChannelDeleteDialogProps {
   channel: TVChannel | null;
+  submitting?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-const TVChannelDeleteDialog: React.FC<TVChannelDeleteDialogProps> = ({ channel, onCancel, onConfirm }) => { const tUi = useUiText(); return (
-  <Dialog open={channel !== null} onClose={onCancel} fullWidth maxWidth="xs">
+const TVChannelDeleteDialog: React.FC<TVChannelDeleteDialogProps> = ({ channel, submitting = false, onCancel, onConfirm }) => { const tUi = useUiText(); useUnsavedChanges(false, channel !== null && submitting); return (
+  <Dialog open={channel !== null} onClose={submitting ? undefined : onCancel} fullWidth maxWidth="xs">
     <DialogTitle>{tUi("Delete TV Channel")}</DialogTitle>
     <DialogContent dividers>
       <Typography>
         {tUi("Remove")}{' '}{channel?.name || 'this TV channel'} {tUi("from the TV channel inventory? This cannot be undone.")}</Typography>
     </DialogContent>
     <DialogActions>
-      <Button onClick={onCancel} variant="contained" data-action-priority="primary">
+      <Button disabled={submitting} onClick={onCancel} variant="contained" data-action-priority="primary">
         {tUi("Cancel")}</Button>
-      <Button onClick={onConfirm} color="error" variant="outlined" data-action-priority="danger">
+      <Button disabled={submitting} onClick={onConfirm} color="error" variant="outlined" data-action-priority="danger">
         {tUi("Delete TV Channel")}</Button>
     </DialogActions>
   </Dialog>

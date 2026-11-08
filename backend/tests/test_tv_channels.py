@@ -1078,6 +1078,8 @@ def test_now_next_returns_one_row_per_mapped_channel(client, seed_tv_channels, s
     assert rows[tv.id]['now']['image_url'] == 'https://example.invalid/programme.webp'
     assert rows[tv.id]['next']['image_url'] is None
     assert other.id not in rows
+    assert client.get('/api/v1/tv-channels/now-next', params={'channel_ids': other.id}).json() == []
+    assert client.get('/api/v1/tv-channels/now-next', params={'channel_ids': tv.id}).json() == [rows[tv.id]]
     # A mapped channel without current programmes still appears, with empty slots.
     db_session.query(EPGProgram).delete()
     db_session.commit()

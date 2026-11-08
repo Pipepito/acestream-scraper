@@ -3,7 +3,7 @@ API endpoints for TV channel management
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Annotated, List
 
 from app.config.database import get_db
 from app.services.tvchannel_service import TVChannelService, StaleEPGPreview
@@ -12,6 +12,7 @@ from app.schemas.tv_matching import TVMatchPreview, TVMatchApplyRequest, TVMatch
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.epg_match_service import EPGMatchService
 from app.services.stream_ranking import sort_streams_curated
+from app.schemas.tv_browse import TVBrowseFilters, TVInventory
 from app.schemas.channel import (
     AcestreamChannelResponse,
     EPGMatchAnalysisRequest,
@@ -58,13 +59,25 @@ def apply_tv_matches(request: TVMatchApplyRequest, db: Session = Depends(get_db)
 
 
 @router.get("/now-next", response_model=List[TVChannelNowNext])
-def tv_channel_now_next(db: Session = Depends(get_db)) -> List[TVChannelNowNext]:
+def tv_channel_now_next(db: Session = Depends(get_db), channel_ids: list[int] = Query(default=[], max_length=100)) -> List[TVChannelNowNext]:
     """Current and next programme for every active TV channel with a guide mapping, in one query window."""
-    return TVChannelService(db).now_next()
+    return TVChannelService(db).now_next(channel_ids=channel_ids or None)
+
+
+@router.get('/browse', response_model=TVChannelListResponse)
+def browse_tv_channels(filters: Annotated[TVBrowseFilters, Query()], db: Session = Depends(get_db)):
+    """Combine catalogue-wide filters, then sort and return a bounded page."""
+    return TVChannelService(db).browse(filters)
+
+
+@router.get('/inventory', response_model=TVInventory)
+def tv_channel_inventory(db: Session = Depends(get_db)):
+    """Global filter choices/counts without loading the catalogue or its streams."""
+    return TVChannelService(db).inventory()
 
 
 @router.get("/", response_model=TVChannelListResponse)
-async def get_tv_channels(
+def get_tv_channels(
     skip: int = Query(0, alias="skip"),
     limit: int = Query(100, alias="limit"),
     page: int = Query(None, alias="page"),

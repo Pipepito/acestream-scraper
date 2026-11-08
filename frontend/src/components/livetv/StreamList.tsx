@@ -43,7 +43,7 @@ const StreamList: React.FC<StreamListProps> = ({ search, onlineOnly, tvNames, on
     {items.map((stream) => <Stack component="article" key={stream.id} aria-label={stream.name} direction="row" spacing={1.5} useFlexGap flexWrap="wrap" alignItems="center" sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }}>
       <Box sx={{ flex: '1 1 180px', minWidth: 0 }}>
         <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{stream.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{statusText(stream)}{stream.group ? tUi(" · {{value0}}", { value0: stream.group }) : ''}{stream.tv_channel_id && tvNames.get(stream.tv_channel_id) ? tUi(" · in {{value0}}", { value0: tvNames.get(stream.tv_channel_id) ?? '—' }) : ''}</Typography>
+        <Typography variant="body2" color="text.secondary">{statusText(stream)}{stream.group ? tUi(" · {{value0}}", { value0: stream.group }) : ''}{stream.tv_channel_id && (stream.tv_channel_name || tvNames.get(stream.tv_channel_id)) ? tUi(" · in {{value0}}", { value0: stream.tv_channel_name || tvNames.get(stream.tv_channel_id) || '—' }) : ''}</Typography>
       </Box>
       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
         <Button variant="outlined" startIcon={<PlayArrowRounded />} aria-label={tUi("Watch {{value0}}", { value0: stream.name })} onClick={() => onWatch(stream)}>{tUi("Watch")}</Button>

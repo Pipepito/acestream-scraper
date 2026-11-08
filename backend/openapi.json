@@ -12246,6 +12246,61 @@
         "title": "TVChannelUpdate",
         "type": "object"
       },
+      "TVInventory": {
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "epg_sources": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Epg Sources",
+            "type": "array"
+          },
+          "favorites": {
+            "title": "Favorites",
+            "type": "integer"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "with_streams": {
+            "title": "With Streams",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "favorites",
+          "with_streams",
+          "categories",
+          "countries",
+          "languages",
+          "epg_sources"
+        ],
+        "title": "TVInventory",
+        "type": "object"
+      },
       "TVMatchApplyRequest": {
         "properties": {
           "assignments": {
@@ -31448,6 +31503,435 @@
         "x-access-class": "management"
       }
     },
+    "/api/v1/tv-channels/browse": {
+      "get": {
+        "description": "Combine catalogue-wide filters, then sort and return a bounded page.",
+        "operationId": "browse_tv_channels_api_v1_tv_channels_browse_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_favorite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Favorite"
+            }
+          },
+          {
+            "in": "query",
+            "name": "epg",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Epg"
+            }
+          },
+          {
+            "in": "query",
+            "name": "epg_source_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Epg Source Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "streams",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "any",
+                    "none",
+                    "multiple"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Streams"
+            }
+          },
+          {
+            "in": "query",
+            "name": "signal",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "verified",
+                    "unverified",
+                    "unknown"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Signal"
+            }
+          },
+          {
+            "in": "query",
+            "name": "number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_streams",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Streams"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_streams",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Streams"
+            }
+          },
+          {
+            "in": "query",
+            "name": "logo_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Logo Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "website",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Website"
+            }
+          },
+          {
+            "in": "query",
+            "name": "description",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            }
+          },
+          {
+            "in": "query",
+            "name": "watchable",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Watchable",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "online_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Online Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "default",
+              "enum": [
+                "default",
+                "name",
+                "channel_number",
+                "is_favorite",
+                "category",
+                "language",
+                "country",
+                "acestream_channels",
+                "is_active",
+                "logo_url"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Direction",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TVChannelListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Browse Tv Channels",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
     "/api/v1/tv-channels/bulk-update-epg": {
       "post": {
         "description": "Update EPG IDs for multiple TV channels.\n\nThis endpoint updates EPG IDs for multiple TV channels in a batch.\n\nRequest format:\n{\n    \"updates\": [\n        {\"tv_channel_id\": 1, \"epg_id\": \"new.epg.id1\"},\n        {\"tv_channel_id\": 2, \"epg_id\": \"new.epg.id2\"}\n    ]\n}",
@@ -31617,10 +32101,73 @@
         "x-access-class": "management"
       }
     },
+    "/api/v1/tv-channels/inventory": {
+      "get": {
+        "description": "Global filter choices/counts without loading the catalogue or its streams.",
+        "operationId": "tv_channel_inventory_api_v1_tv_channels_inventory_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TVInventory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Tv Channel Inventory",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
     "/api/v1/tv-channels/now-next": {
       "get": {
         "description": "Current and next programme for every active TV channel with a guide mapping, in one query window.",
         "operationId": "tv_channel_now_next_api_v1_tv_channels_now_next_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "channel_ids",
+            "required": false,
+            "schema": {
+              "default": [],
+              "items": {
+                "type": "integer"
+              },
+              "maxItems": 100,
+              "title": "Channel Ids",
+              "type": "array"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -31652,7 +32199,7 @@
             "$ref": "#/components/responses/ApplicationProblem409"
           },
           "422": {
-            "$ref": "#/components/responses/ApplicationProblem422"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"

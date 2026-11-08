@@ -56,6 +56,13 @@ class TVChannelService:
         return self.repository.get_tv_channels_with_total(
             skip=skip, limit=limit, search=search, favorites_only=favorites_only
         )
+    def browse(self, filters):
+        items, total = self.repository.browse_tv_channels(filters)
+        return {'items': items, 'total': total}
+
+    def inventory(self):
+        return self.repository.tv_inventory()
+
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
         return self.repository.get_tv_channel_by_epg_id(epg_id)
     """Service for TVChannel-related operations"""
@@ -76,7 +83,7 @@ class TVChannelService:
         self.auto_associate_acestreams(tv_channel)
         return tv_channel
 
-    def now_next(self, window_back_hours: int = 1, window_forward_hours: int = 6):
+    def now_next(self, window_back_hours: int = 1, window_forward_hours: int = 6, channel_ids: list[int] | None = None):
         """Now/Next for every active TV channel with a guide mapping, read in one programme window
         so a full channel list never issues per-row guide requests."""
         from datetime import datetime, timedelta, timezone
@@ -84,8 +91,11 @@ class TVChannelService:
         from app.schemas.channel import GuideSlot, TVChannelNowNext
         from app.services.epg_service import EPGService
         now = datetime.now(timezone.utc)
-        channels = self.repository.db.query(TVChannel).filter(TVChannel.is_active.is_(True), TVChannel.epg_id.isnot(None),
-                                                   TVChannel.epg_source_id.isnot(None)).all()
+        query = self.repository.db.query(TVChannel).filter(TVChannel.is_active.is_(True), TVChannel.epg_id.isnot(None),
+                                                   TVChannel.epg_source_id.isnot(None))
+        if channel_ids is not None:
+            query = query.filter(TVChannel.id.in_(channel_ids))
+        channels = query.all()
         lookup = EPGService(self.repository.db).epg_channel_lookup(channels)
         mapped = [(tv, lookup.get((tv.epg_source_id, tv.epg_id))) for tv in channels]
         mapped = [(tv, epg) for tv, epg in mapped if epg is not None]

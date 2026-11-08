@@ -17,7 +17,7 @@
         {
           "id": "315-2",
           "requirement": "A mocked missing randomUUID path exercises the actual fallback. Repeated submit/retry retains a key; separate intents get different keys. Missing cryptographic capability produces contained feedback, not an application-wide crash.",
-          "implementation": "pending",
+          "implementation": "implemented",
           "tests": [],
           "acceptance": "pending"
         },
@@ -101,8 +101,11 @@
         {
           "id": "316-4",
           "requirement": "Typography/font files, licensing, fallback behavior and loading strategy are documented; missing assets do not block legible rendering.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "docs/dev/frontend-bundles.md",
+            "frontend/src/assets/fonts/manifest.json"
+          ],
           "acceptance": "pending"
         },
         {
@@ -157,15 +160,20 @@
         {
           "id": "317-1",
           "requirement": "Language resolution, persistence failure, English fallback, first-render gates and namespace failures have behavioral coverage.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "frontend/src/__tests__/AppPreferences.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
           "id": "317-2",
           "requirement": "Switching EN/ES during playback and a dirty form preserves sessions and values; document language and accessible text update.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "frontend/src/__tests__/Events.test.tsx",
+            "frontend/src/__tests__/StreamPlayerDialog.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
@@ -178,8 +186,11 @@
         {
           "id": "317-4",
           "requirement": "Common API failures, unknown failures and status/reason labels show localized safe feedback without message-string matching.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "frontend/src/__tests__/eventErrors.test.ts",
+            "backend/tests/test_sporting_events.py"
+          ],
           "acceptance": "pending"
         },
         {
@@ -192,7 +203,7 @@
         {
           "id": "317-6",
           "requirement": "The standalone recipe entry can use shared resources without loading the main application or contacting an installation.",
-          "implementation": "pending",
+          "implementation": "implemented",
           "tests": [],
           "acceptance": "pending"
         },
@@ -255,8 +266,11 @@
         {
           "id": "318-4",
           "requirement": "Save failure retains inputs; Cancel restores the saved baseline; dirty navigation is handled; no duplicate requests occur on repeated clicks.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "frontend/src/__tests__/UnsavedChanges.test.tsx",
+            "frontend/src/__tests__/TvCasting.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
@@ -346,15 +360,20 @@
         {
           "id": "319-5",
           "requirement": "Users can schedule, locate, play and manage a recording through clear states; deleted records are separated from playable content.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "backend/tests/test_recordings.py",
+            "frontend/src/__tests__/Recordings.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
           "id": "319-6",
           "requirement": "Disabling, stopping, cancelling, deleting and converting have distinct, accurate consequences and meaningful pending/error states.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "frontend/src/__tests__/Recordings.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
@@ -409,15 +428,21 @@
         {
           "id": "320-2",
           "requirement": "All existing filters, dedicated controls, detail/row actions and catalogue-wide ordering semantics survive desktop/phone redesign.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "backend/tests/test_tv_browse.py",
+            "frontend/src/__tests__/TVChannelsPageResponsive.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
           "id": "320-3",
           "requirement": "Reorder works with keyboard, stale inventory is handled without partial writes, and Cancel leaves persisted order unchanged.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "frontend/src/__tests__/TVChannelReorder.test.tsx",
+            "backend/tests/test_tv_channels.py"
+          ],
           "acceptance": "pending"
         },
         {
@@ -654,15 +679,19 @@
         {
           "id": "323-1",
           "requirement": "Before/after evidence is reproducible and distinguishes app payload from media, API data, external caching and environment noise.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "e2e/scripts/measure-production.py"
+          ],
           "acceptance": "pending"
         },
         {
           "id": "323-2",
           "requirement": "Dashboard/Settings initial loads do not eagerly initialize player/extraction/table engines they do not use; justified shared exceptions are documented.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "frontend/src/components/player/loadHls.ts"
+          ],
           "acceptance": "pending"
         },
         {
@@ -696,8 +725,10 @@
         {
           "id": "323-7",
           "requirement": "Large catalogue filtering/scrolling remains responsive with keyboard/assistive access intact; no new unbounded data fetch/render.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "backend/tests/test_tv_browse.py"
+          ],
           "acceptance": "pending"
         },
         {

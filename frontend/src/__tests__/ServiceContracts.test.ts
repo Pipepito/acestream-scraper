@@ -41,6 +41,10 @@ it('validates production serializers after transport, including false, empty, ze
   expect(exchanges[2].url).not.toContain('state=');
   for (const collection of ['library', 'upcoming', 'history'] as const) await recordingService.list(undefined, 50, 'Evening', collection);
   expect(exchanges[7].url).toContain('collection=library');
+  await tvChannelService.browse({ skip: 0, limit: 50, is_active: false, min_streams: 0, search: '100%_News', sort: 'channel_number', direction: 'desc' });
+  await tvChannelService.inventory();
+  await tvChannelService.nowNext([1, 2]);
+  expect(exchanges[12].url).toContain('channel_ids=1&channel_ids=2');
   const result = execFileSync(path.resolve('../backend/venv/bin/python'), [path.resolve('../backend/scripts/validate_api_contracts.py')], { input: JSON.stringify(exchanges), encoding: 'utf8' });
-  expect(result).toContain('Validated 10 actual consumer requests');
+  expect(result).toContain('Validated 13 actual consumer requests');
 });

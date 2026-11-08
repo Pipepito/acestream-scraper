@@ -17,7 +17,7 @@ const mockCatalog = jest.fn();
 const mockTVChannel = jest.fn();
 const mockPages = jest.fn();
 const mockNowNext = jest.fn();
-jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => mockCatalog(), useTVChannel: (id: number) => mockTVChannel(id) }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelPages: (...args: unknown[]) => { const result = mockCatalog(...args); return { ...result, data: result.data ? { pages: [{ items: result.data, total: result.data.length }] } : undefined }; }, useTVChannel: (id: number) => mockTVChannel(id) }));
 jest.mock('../hooks/useStreamPages', () => ({ useStreamPages: (...args: unknown[]) => mockPages(...args) }));
 jest.mock('../hooks/useNowNext', () => ({ useNowNext: () => mockNowNext() }));
 jest.mock('../components/player/ChannelGuide', () => ({ __esModule: true, default: () => <div>Guide</div> }));

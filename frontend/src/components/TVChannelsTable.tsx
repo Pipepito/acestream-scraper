@@ -323,7 +323,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   const columns: GridColDef[] = [
     {
       field: 'logo_url',
-      headerName: 'Logo',
+      headerName: tUi("Logo"),
       width: 60,
       renderCell: (params: GridRenderCellParams<TVChannel>) =>
         params.row.logo_url ? (
@@ -334,7 +334,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     },
     {
       field: 'name',
-      headerName: 'Name',
+      headerName: tUi("Name"),
       flex: 1,
       minWidth: 140,
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
@@ -347,25 +347,25 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
     },
     {
       field: 'actions',
-      headerName: 'Actions',
+      headerName: tUi("Actions"),
       width: 130,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TVChannel>) => renderActions(params.row),
     },
-    { field: 'channel_number', headerName: 'Number', width: 135, renderCell: (params: GridRenderCellParams<TVChannel>) => onNumberChange ? <ChannelNumberField hideLabel channel={params.row} onSave={onNumberChange} /> : params.row.channel_number ?? '—' },
-    { field: 'is_favorite', headerName: 'Favorite', width: 90, renderCell: (params: GridRenderCellParams<TVChannel>) => renderFavorite(params.row) },
-    { field: 'category', headerName: 'Category', width: 120 },
-    { field: 'language', headerName: 'Language', width: 100 },
-    { field: 'country', headerName: 'Country', width: 100 },
+    { field: 'channel_number', headerName: tUi("Number"), width: 135, renderCell: (params: GridRenderCellParams<TVChannel>) => onNumberChange ? <ChannelNumberField hideLabel channel={params.row} onSave={onNumberChange} /> : params.row.channel_number ?? '—' },
+    { field: 'is_favorite', headerName: tUi("Favorite"), width: 90, renderCell: (params: GridRenderCellParams<TVChannel>) => renderFavorite(params.row) },
+    { field: 'category', headerName: tUi("Category"), width: 120 },
+    { field: 'language', headerName: tUi("Language"), width: 100 },
+    { field: 'country', headerName: tUi("Country"), width: 100 },
     {
       field: 'acestream_channels',
-      headerName: 'Streams',
+      headerName: tUi("Streams"),
       width: 90,
       valueGetter: (params) => Array.isArray(params.row.acestream_channels) ? params.row.acestream_channels.length : 0,
     },
     {
       field: 'is_active',
-      headerName: 'Status',
+      headerName: tUi("Status"),
       width: 90,
       renderCell: (params: GridRenderCellParams<TVChannel>) => (
         <Chip
@@ -380,7 +380,7 @@ const TVChannelsTable: React.FC<TVChannelsTableProps> = ({
   ];
 
   if (isCompact) {
-    if (loading) {
+    if (loading && channels.length === 0) {
       return <MobileLoadingState />;
     }
 

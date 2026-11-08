@@ -3,7 +3,7 @@ import { TVChannel, TVChannelCreate, TVChannelUpdate } from '../types/tvChannelT
 
 export type TVChannelFormErrors = {
   name?: string;
-  submit?: string;
+  submit?: unknown;
 };
 
 const sanitizeTextInput = (value: string | undefined): string => value?.trim() ?? '';
@@ -64,7 +64,7 @@ export const useTVChannelForm = () => {
     setFormErrors((prev) => ({ ...prev, [name]: undefined, submit: undefined }));
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : name === 'channel_number' ? (value === '' ? '' : Number(value)) : value,
+      [name]: type === 'checkbox' ? checked : name === 'channel_number' ? (value === '' ? null : Number(value)) : value,
     }));
   };
 

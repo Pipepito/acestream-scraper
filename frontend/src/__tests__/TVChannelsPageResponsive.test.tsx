@@ -11,6 +11,7 @@ import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
 const mockNavigate = jest.fn();
 const mockUseAllTVChannels = jest.fn();
 const mockUseTVChannelCatalog = jest.fn();
+const mockUseTVChannelPage = jest.fn();
 const mockCatalogRefetch = jest.fn();
 const mockUseDeleteTVChannel = jest.fn();
 const mockUseCreateTVChannel = jest.fn();
@@ -36,6 +37,8 @@ jest.mock('react-router-dom', () => {
 });
 
 jest.mock('../hooks/useTVChannels', () => ({
+  useTVChannelPage: (...args: unknown[]) => mockUseTVChannelPage(...args),
+  useTVInventory: () => { const data = mockUseTVChannelCatalog().data ?? []; return { data: { total: data.length, favorites: data.filter((row: { is_favorite: boolean }) => row.is_favorite).length, with_streams: data.filter((row: { acestream_channels: unknown[] }) => row.acestream_channels.length).length, categories: Array.from(new Set(data.map((row: { category: string }) => row.category).filter(Boolean))), countries: Array.from(new Set(data.map((row: { country: string }) => row.country).filter(Boolean))), languages: Array.from(new Set(data.map((row: { language: string }) => row.language).filter(Boolean))), epg_sources: [] }, refetch: jest.fn() }; },
   useReorderTVChannels: () => ({ mutateAsync: jest.fn() }),
   useAllTVChannels: (...args: unknown[]) => mockUseAllTVChannels(...args),
   useTVChannelCatalog: (...args: unknown[]) => mockUseTVChannelCatalog(...args),
@@ -234,23 +237,28 @@ describe('TVChannels responsive page behavior', () => {
     toggleFavoriteMutateAsync = jest.fn().mockImplementation(({ id, value }: { id: number; value?: boolean }) =>
       Promise.resolve({ id, is_favorite: value ?? true })
     );
+    mockUseTVChannelPage.mockImplementation((params) => {
+      const result = mockUseTVChannelCatalog();
+      const { matchesTVFilters } = jest.requireActual('../components/TVChannelFilters');
+      const filters = Object.fromEntries(Object.entries(params).filter(([key]) => !['skip', 'limit', 'sort', 'direction'].includes(key)).map(([key, value]) => [key, String(value)]));
+      const rows = (result.data ?? []).filter((row: unknown) => matchesTVFilters(row, filters));
+      return { ...result, data: result.data ? { items: rows.slice(params.skip, params.skip + params.limit), total: rows.length } : undefined };
+    });
     mockUseDeleteTVChannel.mockReturnValue({ mutateAsync: deleteMutateAsync });
     mockUseCreateTVChannel.mockReturnValue({ mutateAsync: createMutateAsync, isPending: false });
     mockUseUpdateTVChannel.mockReturnValue({ mutateAsync: updateMutateAsync, isPending: false });
     mockUseToggleTVChannelFavorite.mockReturnValue({ mutateAsync: toggleFavoriteMutateAsync, isPending: false });
   });
 
-  it('keeps primary actions visible while collapsing filters on phone', async () => {
+  it('keeps primary actions and primary filters visible on phone', async () => {
     renderPage({ isPhone: true, isDesktop: false, isWideDesktop: false });
 
     expect(screen.getByText('The channels you publish. Each one groups its streams and carries the EPG for the playlist.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add TV Channel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /show filters/i })).toBeInTheDocument();
     expect(screen.getByTestId('tv-channels-table')).toHaveTextContent('rows:2');
-    expect(screen.queryByRole('form', { name: /channel filters/i })).not.toBeInTheDocument();
-
-    await click(screen.getByRole('button', { name: /show filters/i }));
+    expect(screen.getByRole('form', { name: /channel filters/i })).toBeVisible();
+    expect(screen.getByText('Favorites only')).toBeVisible();
 
     const filtersRegion = screen.getByRole('region', { name: 'Channels' });
 
@@ -265,7 +273,6 @@ describe('TVChannels responsive page behavior', () => {
     expect(within(filtersRegion).queryByLabelText('Group')).not.toBeInTheDocument();
     expect(within(filtersRegion).queryByLabelText('Sort By')).not.toBeInTheDocument();
     expect(within(filtersRegion).queryByLabelText('Online')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /hide filters/i })).toBeInTheDocument();
   });
 
   it('opens with a summary line and the filters inside the channel list', () => {
@@ -314,7 +321,6 @@ describe('TVChannels responsive page behavior', () => {
       expect(screen.queryByRole('dialog', { name: 'Add TV Channel' })).not.toBeInTheDocument();
     });
 
-    await click(screen.getByRole('button', { name: /show filters/i }));
     await click(screen.getByRole('button', { name: 'Open edit dialog' }));
 
     const editDialog = screen.getByRole('dialog', { name: 'Edit TV Channel' });
@@ -380,21 +386,21 @@ describe('TVChannels responsive page behavior', () => {
     expect(mockCatalogRefetch).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps a complete catalog while filtering favorites locally', async () => {
+  it('requests catalogue-wide favorites without loading the complete reorder inventory', async () => {
     renderPage({ isPhone: false, isDesktop: true, isWideDesktop: false });
 
-    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith();
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined, undefined, false);
 
     const filtersRegion = screen.getByRole('region', { name: 'Channels' });
     const favoritesSwitch = within(filtersRegion).getByRole('checkbox', { name: 'Favorites only' });
 
     await click(favoritesSwitch);
 
-    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith();
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined, undefined, false);
 
     await click(favoritesSwitch);
 
-    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith();
+    expect(mockUseTVChannelCatalog).toHaveBeenLastCalledWith(undefined, undefined, false);
   });
 
   it('toggles a channel favorite from the inventory and confirms the change', async () => {
@@ -523,7 +529,7 @@ describe('TVChannels responsive page behavior', () => {
   it('keeps the edit dialog open and preserves input after an update failure', async () => {
     updateMutateAsync.mockRejectedValueOnce(
       new ApiError({
-        message: 'Too many requests were sent. Please wait a moment and try again.',
+        message: 'Too many requests were sent. Wait a moment and try again.',
         status: 429,
         kind: 'rate_limit',
         canRetry: true,
@@ -544,7 +550,7 @@ describe('TVChannels responsive page behavior', () => {
     expect(screen.getByRole('dialog', { name: 'Edit TV Channel' })).toBeInTheDocument();
     expect(within(screen.getByRole('dialog', { name: 'Edit TV Channel' })).getByDisplayValue('Updated bilingual details عربى 日本語')).toBeInTheDocument();
     expect(within(screen.getByRole('dialog', { name: 'Edit TV Channel' })).getByRole('alert')).toHaveTextContent(
-      'Too many requests were sent. Please wait a moment and try again.'
+      'Too many requests were sent. Wait a moment and try again.'
     );
   });
 });

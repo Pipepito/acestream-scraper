@@ -16,7 +16,7 @@ const programme = { id: 7, epg_channel_id: 10, title: 'Evening documentary', des
 const channel = { id: 1, name: 'One', is_active: true, epg_source_id: 2, epg_id: 'one', acestream_channels: [{ id: 'stream', is_active: true, is_online: true }] };
 const mockCatalog = jest.fn();
 const mockPlayer = jest.fn();
-jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: () => mockCatalog(), useTVChannel: () => ({}) }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelPages: (...args: unknown[]) => { const result = mockCatalog(...args); return { ...result, data: result.data ? { pages: [{ items: result.data, total: result.data.length }] } : undefined }; }, useTVChannel: () => ({}) }));
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannels: () => ({ data: { items: [], total: 0 } }) }));
 // The batched Now/Next read failed here, so rows fall back to their own guide queries (mocked below).
 jest.mock('../hooks/useNowNext', () => ({ useNowNext: () => ({ data: undefined, isError: true }) }));

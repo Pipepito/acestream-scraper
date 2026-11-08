@@ -201,3 +201,12 @@ describe('normalizeApiError', () => {
   expect(typeof normalized.message).toBe('string');
   expect(normalized.kind).toBe('validation');
 });
+
+it('reads stable HTTP error headers while retaining legacy detail and rejecting invalid metadata', () => {
+  const error = createAxiosError({ response: { status: 403, statusText: 'Forbidden', config: createAxiosConfig(),
+    headers: { 'x-error-code': 'ACCESS_CSRF_REQUIRED' }, data: { detail: 'A server sentence that can change independently' } } });
+  expect(normalizeApiError(error).code).toBe('ACCESS_CSRF_REQUIRED');
+  expect(normalizeApiError(error).message).toBe('A server sentence that can change independently');
+  error.response!.headers['x-error-code'] = { invalid: true };
+  expect(normalizeApiError(error).code).toBeUndefined();
+});

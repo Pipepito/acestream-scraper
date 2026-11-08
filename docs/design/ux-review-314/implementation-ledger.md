@@ -213,3 +213,23 @@ these foundations. All task acceptance and final full validation remain open.
   loads Barlow. All font responses were 200, no page errors, and the helper made
   no application API requests. These remain intermediate checks; full acceptance
   is still outstanding for every issue.
+
+### Account and player feedback checkpoint
+
+Account/Cast failures now expose optional stable `X-Error-Code` metadata without
+changing their legacy bodies, status, retry headers or security decisions. The
+OpenAPI contract and generated client were refreshed. Remote-player probes expose
+an optional reason enum; shared player guidance renders in EN/ES and retains
+protocol diagnostics separately. Remote-player edits survive query refresh, failed
+save, language changes and guarded modal dismissal; one action guard serializes
+save/test/pairing. Account setup, password, individual account, policy and credential
+forms now register dirty/pending state and retain raw errors for retranslation.
+
+Focused validation against this checkpoint: 160 backend tests passed (accounts,
+Cast, token policy, maintained wire contracts and remote-player drivers/services/API),
+70 frontend tests passed in six suites; TypeScript, zero-warning ESLint and production
+app/standalone builds passed. Evidence: `/tmp/ux314-evidence/access-player-final-*`
+and `player-errors-backend-final.log`. An initially incorrect test expectation
+for VLC HTTP 403 was corrected to the existing `no_password` semantic; no driver
+behaviour changed. This remains incremental evidence, not the required final full
+application/Docker/browser or human/hardware acceptance gate.

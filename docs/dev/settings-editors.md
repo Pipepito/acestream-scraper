@@ -50,3 +50,15 @@ updates and remains owned by the extraction editor. Guide sources share
 `GuideSourceFields` and the existing create mutation; management guards its
 pending state, inline errors and modal cancellation. Runtime, WARP, public-address
 and notification editors also preserve/register their drafts.
+
+The remote-player dialog registers dirty and pending state, guards modal close,
+and snapshots its initial fields once per opening/player identity. Query refresh
+does not overwrite an edited name, address, credentials or link format. Save,
+probe and pairing share an immediate action guard; pending operations disable the
+fields and close action. Failed saves retain the draft and inline error.
+
+Account setup, password changes, individual accounts, access policy and credential
+forms also register dirty/pending state. Their independent saves disable only the
+relevant controls and retain raw failures so changing language preserves and
+retranslates the same error. Issued credentials remain guarded until dismissed;
+no preference writes credentials to browser storage.

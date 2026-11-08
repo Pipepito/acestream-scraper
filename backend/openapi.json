@@ -16,7 +16,18 @@
             }
           }
         },
-        "description": "Invalid operation or empty update"
+        "description": "Invalid operation or empty update",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem401": {
         "content": {
@@ -33,7 +44,18 @@
             }
           }
         },
-        "description": "Missing or invalid credentials"
+        "description": "Missing or invalid credentials",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem403": {
         "content": {
@@ -50,7 +72,18 @@
             }
           }
         },
-        "description": "Permission, origin, CSRF or transport denied"
+        "description": "Permission, origin, CSRF or transport denied",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem404": {
         "content": {
@@ -67,7 +100,46 @@
             }
           }
         },
-        "description": "Resource not found"
+        "description": "Resource not found",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApplicationProblem408": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HTTPProblem"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Request timed out",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem409": {
         "content": {
@@ -84,7 +156,46 @@
             }
           }
         },
-        "description": "Stale state, conflict or admission rejected"
+        "description": "Stale state, conflict or admission rejected",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApplicationProblem413": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HTTPProblem"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Request too large",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem422": {
         "content": {
@@ -101,7 +212,18 @@
             }
           }
         },
-        "description": "Invalid request fields"
+        "description": "Invalid request fields",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem422Validation": {
         "content": {
@@ -121,7 +243,46 @@
             }
           }
         },
-        "description": "Validation Error"
+        "description": "Validation Error",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApplicationProblem429": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HTTPProblem"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Rate or capacity limit",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem500": {
         "content": {
@@ -138,7 +299,46 @@
             }
           }
         },
-        "description": "Unexpected application failure"
+        "description": "Unexpected application failure",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApplicationProblem502": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HTTPProblem"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Receiver rejected the operation",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       },
       "ApplicationProblem503": {
         "content": {
@@ -155,7 +355,46 @@
             }
           }
         },
-        "description": "Startup, access storage or required service unavailable"
+        "description": "Startup, access storage or required service unavailable",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApplicationProblem504": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HTTPProblem"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Receiver preparation timed out",
+        "headers": {
+          "X-Error-Code": {
+            "required": false,
+            "schema": {
+              "description": "Stable application reason code, when available; select localized guidance by this code, not the detail sentence.",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$",
+              "title": "X-Error-Code",
+              "type": "string"
+            }
+          }
+        }
       }
     },
     "schemas": {
@@ -8555,6 +8794,24 @@
             "title": "Reachable",
             "type": "boolean"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "unreachable",
+                  "not_player",
+                  "no_password",
+                  "wrong_password",
+                  "pairing_required"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
           "tuner_access": {
             "$ref": "#/components/schemas/TunerAccessResponse"
           },
@@ -15803,21 +16060,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "security": [
@@ -15857,11 +16128,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Credentials",
@@ -15900,21 +16195,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Issue Credential",
@@ -15949,21 +16258,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Revoke Credential",
@@ -15997,21 +16320,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Disable",
@@ -16052,21 +16389,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "security": [
@@ -16095,11 +16446,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Logout",
@@ -16133,21 +16508,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Change Password",
@@ -16178,11 +16567,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Policy",
@@ -16221,21 +16634,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Update Policy",
@@ -16270,11 +16697,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Sessions",
@@ -16309,21 +16760,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Revoke Session",
@@ -16354,11 +16819,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Access Status",
@@ -16393,11 +16882,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Users",
@@ -16436,21 +16949,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Create User",
@@ -16502,21 +17029,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Update User",
@@ -16832,21 +17373,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Browser",
@@ -16877,11 +17432,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Capabilities",
@@ -16916,11 +17495,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Devices",
@@ -16955,11 +17558,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Discover",
@@ -16990,11 +17617,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Home Connection",
@@ -17029,11 +17680,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Sessions",
@@ -17072,21 +17747,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Start",
@@ -17131,21 +17820,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Command",
@@ -17176,11 +17879,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
+          },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Settings",
@@ -17219,21 +17946,35 @@
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
           },
+          "502": {
+            "$ref": "#/components/responses/ApplicationProblem502"
+          },
           "503": {
             "$ref": "#/components/responses/ApplicationProblem503"
+          },
+          "504": {
+            "$ref": "#/components/responses/ApplicationProblem504"
           }
         },
         "summary": "Save Settings",

@@ -1,7 +1,7 @@
 """VLC/Kodi remote players (spec 6.1). Sync handlers: the drivers block for up to a few seconds."""
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Literal, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
@@ -179,13 +179,14 @@ def delete_player(player_id: int, service: RemotePlayerService = Depends(_servic
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _no_player(message: str, hint: str) -> RemotePlayerProbeResponse:
+def _no_player(message: str, hint: str, reason: Literal["unreachable", "not_player"]) -> RemotePlayerProbeResponse:
     return RemotePlayerProbeResponse(
         reachable=False,
         authenticated=False,
         version=None,
         message=message,
         hint=hint,
+        reason=reason,
         tuner_access=TunerAccessResponse(addresses=[], allowed=True),
     )
 
@@ -204,19 +205,20 @@ def _probe(
     try:
         probe, access = service.probe(kind, host, port, username, password, stored_id=stored_id)
     except PlayerUnreachable as exc:
-        return _no_player(str(exc), UNREACHABLE_HINT)
+        return _no_player(str(exc), UNREACHABLE_HINT, "unreachable")
     except PlayerCommandError:
         # An HTTP answer that is not a player's: a router admin page, a printer,
         # the wrong port. Telling the user that is exactly why a probe exists —
         # the driver's own wording ("VLC reported an error") would mislead here.
         label = KIND_LABELS.get(kind, kind)
-        return _no_player(f"{host}:{port} answered, but not like {label}.", NOT_A_PLAYER_HINT)
+        return _no_player(f"{host}:{port} answered, but not like {label}.", NOT_A_PLAYER_HINT, "not_player")
     return RemotePlayerProbeResponse(
         reachable=probe.reachable,
         authenticated=probe.authenticated,
         version=probe.version,
         message=probe.message,
         hint=probe.hint,
+        reason=probe.reason,
         tuner_access=TunerAccessResponse(addresses=access.addresses, allowed=access.allowed),
     )
 

@@ -43,3 +43,12 @@ Migration is ongoing under #317: runtime field labels, status/reason enumeration
 remaining composed feedback and complete sentence/plural consolidation must be
 reconciled before language acceptance. The existence of a translated resource does
 not prove that every rendered state uses it.
+
+Account and Cast HTTP failures preserve their legacy `detail` body and status and
+add optional `X-Error-Code` metadata. Clients translate that stable code, never
+match English server wording. The OpenAPI response headers document its format.
+Remote-player probes carry an optional `reason` enum for password, pairing, wrong
+player and unreachable outcomes. The canonical editor retains the raw result and
+renders guidance in the current language; original protocol diagnostics remain
+under Technical details. None of these presentation fields grants permission or
+alters account transport, receiver ownership or network admission.

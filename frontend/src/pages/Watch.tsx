@@ -1,18 +1,18 @@
-import { statusLabel } from '../i18n/status';
-import { uiText } from '../i18n/text';
-import { getLocale } from '../i18n/locale';
-import { useUiText } from '../i18n/useUiText';
-import React, { useState } from 'react';
-import { Alert, Box, Button, Container, List, ListItem, ListItemText, MenuItem, Stack, TextField, Typography } from '@mui/material';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { Alert,Box,Button,Container,List,ListItem,ListItemText,MenuItem,Stack,TextField,Typography } from '@mui/material';
+import { useMutation,useQuery } from '@tanstack/react-query';
+import React,{ useState } from 'react';
 import { useAccess } from '../components/access/AccessContext';
-import { accessService, permissionLabels, type Permission } from '../services/accessService';
-import apiClient from '../services/apiClient';
-import type { components } from '../types/api-generated';
 import LoginForm from '../components/access/LoginForm';
 import PasswordForm from '../components/access/PasswordForm';
 import StreamPlayerDialog from '../components/player/StreamPlayerDialog';
 import RecordingPlayback from '../components/recordings/RecordingPlayback';
+import { getLocale } from '../i18n/locale';
+import { statusLabel } from '../i18n/status';
+import { translateKnown,uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
+import { accessService,permissionLabels,type Permission } from '../services/accessService';
+import apiClient from '../services/apiClient';
+import type { components } from '../types/api-generated';
 
 type Section = 'live' | 'channels' | 'guide' | 'events' | 'recordings' | 'playlists';
 type ViewData = components['schemas']['WatchChannels'] | components['schemas']['WatchProgramme'][] | components['schemas']['WatchEvent'][] | components['schemas']['WatchRecording'][];
@@ -46,7 +46,7 @@ export default function Watch() {
     {login || (!sections.length && !access?.status.user) ? <LoginForm onCancel={sections.length ? () => setLogin(false) : undefined} /> : account ? <PasswordForm /> : <>
       {!sections.length ? <Alert severity="info">{tUi("Your account has no viewing permissions. Ask an administrator to enable the features you need.")}</Alert> : <>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-          <TextField select label={tUi("View")} value={section} onChange={e => { setSelected(e.target.value as Section); setOffset(0); setFile(null); }} sx={{ minWidth: 200 }}>{sections.map(value => <MenuItem key={value} value={value}>{permissionLabels[value]}</MenuItem>)}</TextField>
+          <TextField select label={tUi("View")} value={section} onChange={e => { setSelected(e.target.value as Section); setOffset(0); setFile(null); }} sx={{ minWidth: 200 }}>{sections.map(value => <MenuItem key={value} value={value}>{translateKnown(permissionLabels[value])}</MenuItem>)}</TextField>
           {channels ? <TextField label={tUi("Search channels")} value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} fullWidth /> : null}
         </Stack>
         {section === 'playlists' ? <Stack spacing={2}>

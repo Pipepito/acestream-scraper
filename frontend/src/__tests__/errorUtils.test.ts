@@ -80,3 +80,13 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(new ApiError({ message: 'secret internal path', status: 500, kind: 'server', canRetry: true, code: 'FUTURE_CODE' }))).toBe(i18next.t('server', { ns: 'errors' }));
   });
 });
+
+describe('account and receiver HTTP error metadata', () => {
+  afterEach(async () => { await i18next.changeLanguage('en'); });
+  it.each(['ACCESS_CSRF_REQUIRED', 'CAST_DEVICE_NOT_FOUND', 'ACCESS_STORAGE_UNAVAILABLE'] as const)('translates %s without matching server wording', async (code) => {
+    await i18next.changeLanguage('es');
+    const failure = { isAxiosError: true, response: { status: 403, headers: { 'x-error-code': code }, data: { detail: 'Server wording can change' } } };
+    expect(getErrorMessage(failure)).toBe(i18next.t(code, { ns: 'errors' }));
+    expect(getErrorMessage(failure)).not.toContain('Server wording');
+  });
+});

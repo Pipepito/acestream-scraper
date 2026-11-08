@@ -199,3 +199,23 @@ test('sign-in accepts the same Unicode password length as password creation', as
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   await waitFor(() => expect(accessService.login).toHaveBeenCalledWith('owner', '😀'.repeat(128)));
 });
+
+test('password failures retain fields and translate again when the language changes', async () => {
+  const i18next = (await import('i18next')).default;
+  (accessService.password as jest.Mock).mockRejectedValue(new ApiError({ status: 403, kind: 'permission', canRetry: false, code: 'ACCESS_CURRENT_PASSWORD_INVALID', message: 'Server diagnostic' }));
+  wrapper(<PasswordForm />);
+  const current = screen.getByLabelText(/Current password/);
+  const next = screen.getByLabelText(/^New password/);
+  fireEvent.change(current, { target: { value: 'old long password' } });
+  fireEvent.change(next, { target: { value: 'new long password' } });
+  fireEvent.change(screen.getByLabelText(/Confirm new password/), { target: { value: 'new long password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
+  await screen.findByRole('alert');
+  try {
+    await act(async () => { await i18next.changeLanguage('es'); });
+    expect(screen.getByRole('alert')).toHaveTextContent(i18next.t('ACCESS_CURRENT_PASSWORD_INVALID', { ns: 'errors' }));
+    expect(current).toHaveValue('old long password');
+    expect(next).toHaveValue('new long password');
+    expect(accessService.password).toHaveBeenCalledTimes(1);
+  } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
+});

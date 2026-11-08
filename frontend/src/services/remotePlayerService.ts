@@ -50,6 +50,7 @@ export interface RemotePlayerProbe {
   message: string;
   hint: string | null;
   tuner_access: TunerAccess;
+  reason?: components['schemas']['RemotePlayerProbeResponse']['reason'];
 }
 
 export interface RemotePlayerStatus {

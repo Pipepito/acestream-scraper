@@ -97,6 +97,7 @@ def test_vlc_probe_reports_version():
     assert probe.reachable and probe.authenticated and probe.version == "3.0.23"
     probe = _vlc(lambda r: httpx.Response(403)).probe()
     assert probe.reachable and not probe.authenticated and "password" in probe.hint.lower()
+    assert probe.reason == "no_password"
 
 
 def test_drivers_refuse_forbidden_hosts(monkeypatch):

@@ -153,6 +153,9 @@ export const normalizeApiError = (error: unknown): ApiError => {
     const payload = getResponsePayload(error);
     const backendError = payload.error;
     const kind = getApiErrorKindFromStatus(status);
+    const headerCode: unknown = error.response?.headers?.['x-error-code'];
+    const code = typeof backendError?.code === 'string' ? backendError.code
+      : typeof headerCode === 'string' && /^[A-Z][A-Z0-9_]{0,99}$/.test(headerCode) ? headerCode : undefined;
     const message =
       typeof backendError?.message === 'string' ? backendError.message
         : typeof payload.detail === 'string' ? payload.detail : DEFAULT_MESSAGES[kind];
@@ -162,7 +165,7 @@ export const normalizeApiError = (error: unknown): ApiError => {
       status,
       kind,
       canRetry: RETRYABLE_KINDS[kind],
-      code: backendError?.code,
+      code,
       correlationId: backendError?.correlation_id,
       context: backendError?.context,
       data: error.response?.data,

@@ -1,4 +1,5 @@
 """Account verification, request identity and narrowly scoped authorization."""
+from app.api.http_errors import coded_http_error
 from collections import OrderedDict, deque
 import hashlib
 import hmac
@@ -11,7 +12,7 @@ from urllib.parse import urlsplit
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError, InvalidHashError
-from fastapi import HTTPException, Request
+from fastapi import Request
 
 from app.schemas.access import PERMISSIONS
 
@@ -26,9 +27,9 @@ _ATTEMPTS_LOCK = threading.Lock()
 
 def hash_password(password):
     if len(password) < 12 or len(password) > 128:
-        raise HTTPException(422, 'Use a password between 12 and 128 characters')
+        raise coded_http_error(422, 'ACCESS_PASSWORD_LENGTH', 'Use a password between 12 and 128 characters')
     if not _HASH_SLOTS.acquire(blocking=False):
-        raise HTTPException(429, 'Account verification is busy; try again shortly', headers={'Retry-After': '2'})
+        raise coded_http_error(429, 'ACCESS_VERIFICATION_BUSY', 'Account verification is busy; try again shortly', headers={'Retry-After': '2'})
     try:
         return _HASHER.hash(password)
     finally:
@@ -37,7 +38,7 @@ def hash_password(password):
 
 def verify_password(encoded, password):
     if not _HASH_SLOTS.acquire(blocking=False):
-        raise HTTPException(429, 'Account verification is busy; try again shortly', headers={'Retry-After': '2'})
+        raise coded_http_error(429, 'ACCESS_VERIFICATION_BUSY', 'Account verification is busy; try again shortly', headers={'Retry-After': '2'})
     try:
         try:
             # A missing account performs the same expensive operation.
@@ -59,7 +60,7 @@ def limit_login(request):
         while events and now - events[0] >= 60:
             events.popleft()
         if len(events) >= 10:
-            raise HTTPException(429, 'Too many attempts; try again in a minute', headers={'Retry-After': '60'})
+            raise coded_http_error(429, 'ACCESS_RATE_LIMITED', 'Too many attempts; try again in a minute', headers={'Retry-After': '60'})
         events.append(now)
         _ATTEMPTS.move_to_end(key)
         while len(_ATTEMPTS) > 2048:
@@ -94,11 +95,11 @@ def same_origin(request):
 
 def require_csrf(request: Request):
     if not same_origin(request) or request.headers.get('sec-fetch-site') == 'cross-site':
-        raise HTTPException(403, 'Open this form from the application itself')
+        raise coded_http_error(403, 'ACCESS_ORIGIN_REQUIRED', 'Open this form from the application itself')
     value = request.headers.get('x-csrf-token', '')
     cookie = request.cookies.get(CSRF_COOKIE, '')
     if not valid_csrf(value) or not hmac.compare_digest(value.encode(), cookie.encode()):
-        raise HTTPException(403, 'Reload the page before submitting this form')
+        raise coded_http_error(403, 'ACCESS_CSRF_REQUIRED', 'Reload the page before submitting this form')
 
 
 def account_transport(request):
@@ -131,7 +132,7 @@ def account_transport(request):
 
 def secure_transport(request):
     if account_transport(request) == 'blocked':
-        raise HTTPException(403, 'Use HTTPS, or open the server’s private IP address on your home network.')
+        raise coded_http_error(403, 'ACCESS_SECURE_TRANSPORT', 'Use HTTPS, or open the server’s private IP address on your home network.')
 
 
 def header_token(request):
@@ -168,7 +169,7 @@ def permissions(request):
 def require_admin(request):
     user = getattr(request.state, 'access_user', None)
     if not user or not user['administrator']:
-        raise HTTPException(403, 'Administrator access required')
+        raise coded_http_error(403, 'ACCESS_ADMIN_REQUIRED', 'Administrator access required')
     return user
 
 
@@ -176,7 +177,7 @@ def require_permission(request, permission):
     if getattr(request.state, 'access_mode', 'open') == 'open' and permission != 'cast_server':
         return
     if permission not in permissions(request):
-        raise HTTPException(403, 'This account does not have permission for that action')
+        raise coded_http_error(403, 'ACCESS_PERMISSION_REQUIRED', 'This account does not have permission for that action')
 
 
 def trusted_client(request, networks):
@@ -245,7 +246,7 @@ def require_server_cast(request):
     if getattr(request.state, 'access_mode', 'open') != 'open':
         require_permission(request, 'cast_server')
         if not user:
-            raise HTTPException(403, 'Sign in with permission to control server devices')
+            raise coded_http_error(403, 'CAST_PERMISSION_REQUIRED', 'Sign in with permission to control server devices')
     policy = request.state.access_policy
     # Remote control always requires an account, including after accounts are disabled.
     if cast_home_required(request) and not (policy.remote_casting and user) and not home_client(request):
@@ -253,10 +254,10 @@ def require_server_cast(request):
         from app.middleware.forwarded import parse_trusted
         peer = getattr(request.state, 'peer', (None, 0))[0]
         if parse_trusted(get_settings().FORWARDED_ALLOW_IPS).contains(peer) and request.client and request.client.host == peer:
-            raise HTTPException(403, 'The client address is hidden or listed as a trusted proxy. In Settings → Network, trust only your actual reverse proxy; without a proxy use 127.0.0.1. Save and restart the container.')
-        raise HTTPException(403, 'This connection is not recognized as home. Open TV casting to check the connection or trust your home connection as an administrator.')
+            raise coded_http_error(403, 'CAST_CLIENT_HIDDEN', 'The client address is hidden or listed as a trusted proxy. In Settings → Network, trust only your actual reverse proxy; without a proxy use 127.0.0.1. Save and restart the container.')
+        raise coded_http_error(403, 'CAST_HOME_REQUIRED', 'This connection is not recognized as home. Open TV casting to check the connection or trust your home connection as an administrator.')
     if not same_origin(request):
-        raise HTTPException(403, 'Open casting from the application itself')
+        raise coded_http_error(403, 'CAST_ORIGIN_REQUIRED', 'Open casting from the application itself')
     if request.method not in ('GET', 'HEAD') and not getattr(request.state, 'header_authenticated', False):
         require_csrf(request)
 

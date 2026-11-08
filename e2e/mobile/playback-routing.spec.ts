@@ -43,6 +43,9 @@ for (const mode of ['light', 'dark']) {
     await expect(page).toHaveURL(/tab=automation/);
     await page.reload();
     await expect(page.getByRole('tab', { name: 'Automation', exact: true })).toHaveAttribute('aria-selected', 'true');
+    // The selected tab appears before its editor finishes loading. Let that
+    // layout settle before WebKit scrolls the next tab into the narrow viewport.
+    await expect(page.getByRole('heading', { name: 'Automation', exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Stream links', exact: true }).click();
     await expect(page.getByRole('checkbox', { name: 'Append PID to stream links' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Public address', exact: true })).toHaveCount(0);

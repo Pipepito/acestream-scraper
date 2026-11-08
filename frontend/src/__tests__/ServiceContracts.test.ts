@@ -7,6 +7,13 @@ import { acestreamChannelService } from '../services/channelService';
 import { recordingService } from '../services/recordingService';
 import { tvChannelService } from '../services/tvChannelService';
 import { setupService } from '../services/setupService';
+import { telegramService } from '../services/telegramService';
+import { configService } from '../services/configService';
+import { scraperService } from '../services/scraperService';
+import { epgService } from '../services/epgService';
+import { mediaServerService } from '../services/mediaServerService';
+import { tunerService } from '../services/tunerService';
+import { eventService } from '../services/eventService';
 
 interface Exchange { method: string; url: string; headers: Record<string, string | string[] | undefined>; body: string }
 const exchanges: Exchange[] = [];
@@ -47,4 +54,42 @@ it('validates production serializers after transport, including false, empty, ze
   expect(exchanges[12].url).toContain('channel_ids=1&channel_ids=2');
   const result = execFileSync(path.resolve('../backend/venv/bin/python'), [path.resolve('../backend/scripts/validate_api_contracts.py')], { input: JSON.stringify(exchanges), encoding: 'utf8' });
   expect(result).toContain('Validated 13 actual consumer requests');
+});
+
+it('validates canonical source, guide and integration serializers with scoped credentials and independent saves', async () => {
+  const begin = exchanges.length;
+  await scraperService.getProviders();
+  await scraperService.getURLs({ enabled: false, search: 'Original 100% name', page: 1, page_size: 50 });
+  await scraperService.createURL({ name: '', url: 'https://fixture.test/channels.m3u', url_type: 'auto', enabled: false, scrape_bare_ids: false, extraction_recipe: null });
+  await scraperService.updateURL(7, { name: null, extraction_recipe: null, enabled: true });
+  await scraperService.deleteURL(7, false);
+  await epgService.createSource({ name: 'Original guía', url: 'https://fixture.test/guide.xml', enabled: false });
+  await epgService.updateSource(8, { enabled: true });
+  await epgService.getChannels(8, 0, 50);
+  await configService.updatePlaybackRouting({ use_acexy: false, acexy_url: '' });
+  await configService.updateNotificationWebhookUrl('');
+  await tunerService.updateSettings({ tuner_count: 1, max_channels: 100, only_online: false, hide_unusable: false });
+  await mediaServerService.create({ kind: 'jellyfin', name: 'Home', base_url: 'http://192.168.1.20:8096', api_key: null, enabled: false });
+  await mediaServerService.update(9, { api_key: '' });
+  await eventService.updateSource('source-fixture', 1, false);
+  await eventService.mapBroadcast('event-fixture', 1, 'broadcast-fixture', null, false);
+  const telegram = telegramService('synthetic-scoped-admin');
+  await telegram.status();
+  await telegram.login(12345, 'a'.repeat(32), '+123456789');
+  const source = { name: 'Original chat', chat_id: '-100123', enabled: false, topic_id: null, sender_ids: [],
+    include: '', exclude: '', bare_ids: false, recipe: null, history_count: 0, history_since: null };
+  await telegram.preview(source);
+  await telegram.save(source);
+  await telegram.save({ ...source, message_code: 'TELEGRAM_CHAT_LOST' } as typeof source, 10);
+  const captured = exchanges.slice(begin);
+  expect(captured).toHaveLength(20);
+  expect(captured.slice(0, 15).every(exchange => exchange.headers['x-telegram-admin'] === undefined)).toBe(true);
+  expect(captured.slice(15).every(exchange => exchange.headers['x-telegram-admin'] === 'synthetic-scoped-admin')).toBe(true);
+  expect(JSON.parse(captured[19].body)).not.toHaveProperty('message_code');
+  expect(JSON.parse(captured[19].body)).not.toHaveProperty('history_count');
+  expect(captured.filter(exchange => exchange.body).every(exchange => String(exchange.headers['content-type']).startsWith('application/json'))).toBe(true);
+  const result = execFileSync(path.resolve('../backend/venv/bin/python'), [path.resolve('../backend/scripts/validate_api_contracts.py')], {
+    input: JSON.stringify(captured), encoding: 'utf8',
+  });
+  expect(result).toContain('Validated 20 actual consumer requests');
 });

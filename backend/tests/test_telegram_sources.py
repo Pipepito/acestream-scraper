@@ -366,6 +366,13 @@ def test_private_routes_never_echo_secrets_and_preview_never_writes(alembic_back
         assert preview.headers['cache-control'] == 'no-store'
         state = client.get('/api/v1/telegram/status', headers=headers)
         assert 'encrypted-session' not in state.text and 'a'*32 not in state.text and '+123456789' not in state.text
+        from openapi_core import OpenAPI
+        from scripts.validate_api_contracts import request_adapter, validate_response
+        contract = OpenAPI.from_dict(json.loads((Path(__file__).resolve().parents[1] / 'openapi.json').read_text()))
+        for response in (invalid, denied, disconnected_scan, login, preview, state):
+            request = request_adapter({'method': response.request.method, 'url': str(response.request.url)})
+            validate_response(contract, request, response.status_code, response.headers, response.content)
+
         with alembic_backend_runtime.SessionLocal() as db:
             assert db.query(AcestreamChannel).count() == 0
         assert client.delete('/api/v1/telegram/account', headers=headers).status_code == 200

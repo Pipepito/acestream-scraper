@@ -154,7 +154,7 @@ async def bulk_activate_acestream_channels(
 
 
 # Static paths must be registered before the /{acestreamchannel_id} matcher below.
-@router.get("/export_csv")
+@router.get("/export_csv", response_class=StreamingResponse, responses={200: {"content": {"text/csv": {}}}})
 def export_acestream_channels_csv(db: Session = Depends(get_db)):
     """
     Export all Acestream channels as a CSV file.

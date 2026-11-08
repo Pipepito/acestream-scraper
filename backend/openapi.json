@@ -128,7 +128,7 @@
             }
           }
         },
-        "description": "Request timed out",
+        "description": "Bounded request timed out",
         "headers": {
           "X-Error-Code": {
             "required": false,
@@ -271,7 +271,7 @@
             }
           }
         },
-        "description": "Rate or capacity limit",
+        "description": "Telegram rate limit",
         "headers": {
           "X-Error-Code": {
             "required": false,
@@ -14485,6 +14485,12 @@
         "in": "query",
         "name": "token",
         "type": "apiKey"
+      },
+      "TelegramAdmin": {
+        "description": "Separate memory-only Telegram administration token. Also requires the installation management credential when enabled, and HTTPS or exact localhost transport.",
+        "in": "header",
+        "name": "X-Telegram-Admin",
+        "type": "apiKey"
       }
     }
   },
@@ -15509,9 +15515,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {}
-              }
+              "text/csv": {}
             },
             "description": "Successful Response"
           },
@@ -19073,9 +19077,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {}
-              }
+              "text/csv": {}
             },
             "description": "Successful Response"
           },
@@ -22386,9 +22388,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {}
-              }
+              "application/xml": {}
             },
             "description": "Successful Response"
           },
@@ -22437,9 +22437,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {}
-              }
+              "application/xml": {}
             },
             "description": "Successful Response"
           },
@@ -29735,12 +29733,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/zip": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
+              "application/zip": {}
             },
             "description": "Successful Response"
           },
@@ -30173,11 +30166,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30186,11 +30197,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Logout",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/chats": {
@@ -30211,11 +30244,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30224,11 +30275,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Chats",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/chats/{chat_id}/topics": {
@@ -30260,21 +30333,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30283,11 +30364,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Topics",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/code": {
@@ -30314,21 +30417,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30337,11 +30448,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Code",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/disconnect": {
@@ -30358,11 +30491,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30371,11 +30522,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Disconnect",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/login": {
@@ -30402,21 +30575,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30425,11 +30606,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Login",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/password": {
@@ -30456,21 +30659,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30479,11 +30690,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Password",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/preset": {
@@ -30500,11 +30733,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30513,11 +30764,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Preset",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/preview": {
@@ -30544,21 +30817,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30567,11 +30848,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Preview",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/reconnect": {
@@ -30588,11 +30891,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30601,11 +30922,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Reconnect",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/resolve": {
@@ -30632,21 +30975,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30655,11 +31006,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Resolve",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/sources": {
@@ -30680,11 +31053,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30693,11 +31084,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Sources",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       },
       "post": {
         "operationId": "create_source_api_v1_telegram_sources_post",
@@ -30722,21 +31135,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30745,11 +31166,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Create Source",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/sources/{source_id}": {
@@ -30781,21 +31224,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30804,11 +31255,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Delete Source",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       },
       "put": {
         "operationId": "update_source_api_v1_telegram_sources__source_id__put",
@@ -30844,21 +31317,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30867,11 +31348,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Update Source",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/sources/{source_id}/scan": {
@@ -30903,21 +31406,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
           },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30926,11 +31437,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Scan",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/telegram/status": {
@@ -30947,11 +31480,29 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
           "401": {
             "$ref": "#/components/responses/ApplicationProblem401"
           },
           "403": {
             "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "408": {
+            "$ref": "#/components/responses/ApplicationProblem408"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApplicationProblem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApplicationProblem429"
           },
           "500": {
             "$ref": "#/components/responses/ApplicationProblem500"
@@ -30960,11 +31511,33 @@
             "$ref": "#/components/responses/ApplicationProblem503"
           }
         },
+        "security": [
+          {
+            "TelegramAdmin": []
+          },
+          {
+            "HeaderToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "BearerToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "LegacyQueryToken": [],
+            "TelegramAdmin": []
+          },
+          {
+            "AccountSession": [],
+            "TelegramAdmin": []
+          }
+        ],
         "summary": "Status",
         "tags": [
           "telegram"
         ],
-        "x-access-class": "management"
+        "x-access-class": "management",
+        "x-telegram-transport": "HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception."
       }
     },
     "/api/v1/tuner/settings": {

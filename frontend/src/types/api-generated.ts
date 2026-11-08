@@ -10653,7 +10653,7 @@ export interface components {
                 "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description Request timed out */
+        /** @description Bounded request timed out */
         ApplicationProblem408: {
             headers: {
                 "X-Error-Code"?: string;
@@ -10703,7 +10703,7 @@ export interface components {
                 "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"] | components["schemas"]["HTTPValidationError"];
             };
         };
-        /** @description Rate or capacity limit */
+        /** @description Telegram rate limit */
         ApplicationProblem429: {
             headers: {
                 "X-Error-Code"?: string;
@@ -11126,7 +11126,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/csv": unknown;
                 };
             };
             400: components["responses"]["ApplicationProblem400"];
@@ -13012,7 +13012,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/csv": unknown;
                 };
             };
             400: components["responses"]["ApplicationProblem400"];
@@ -15085,7 +15085,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/xml": unknown;
                 };
             };
             401: components["responses"]["ApplicationProblem401"];
@@ -15122,7 +15122,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/xml": unknown;
                 };
             };
             401: components["responses"]["ApplicationProblem401"];
@@ -19204,7 +19204,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/zip": string;
+                    "application/zip": unknown;
                 };
             };
             401: components["responses"]["ApplicationProblem401"];
@@ -19493,8 +19493,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19517,8 +19523,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPeer"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19543,17 +19555,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPeer"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19580,17 +19589,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19613,8 +19619,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19641,17 +19653,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19678,17 +19687,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19711,8 +19717,14 @@ export interface operations {
                     "application/json": components["schemas"]["ExtractionRecipe"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19739,17 +19751,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPreview"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19772,8 +19781,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19800,17 +19815,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPeer"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19833,8 +19845,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramSource"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19861,17 +19879,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramSource"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19900,17 +19915,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramSource"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19937,17 +19949,14 @@ export interface operations {
                     };
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -19974,17 +19983,14 @@ export interface operations {
                     };
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };
@@ -20007,8 +20013,14 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
             401: components["responses"]["ApplicationProblem401"];
             403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };

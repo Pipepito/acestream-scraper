@@ -111,3 +111,56 @@ def test_redacted_event_validation_matches_declared_contract(client, contract):
     assert 'invalid-private-input' not in response.text
     request = request_adapter({'method': 'POST', 'url': url, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(payload)})
     validate_response(contract, request, response.status_code, response.headers, response.content)
+
+
+@pytest.mark.parametrize('path,content_type,prefix', [
+    ('/api/v1/playlists/m3u', 'text/plain', b'#EXTM3U'),
+    ('/api/v1/epg/xml', 'application/xml', b'<?xml'),
+    ('/api/v1/acestream-channels/export_csv', 'text/csv', b'id,'),
+])
+def test_non_json_download_contract(client, contract, path, content_type, prefix):
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers['content-type'].split(';')[0] == content_type
+    assert response.content.startswith(prefix)
+    if path.endswith('/xml'):
+        from xml.etree.ElementTree import fromstring
+        assert fromstring(response.content).tag == 'tv'
+    if path.endswith('/export_csv'):
+        import csv
+        from io import StringIO
+        rows = list(csv.reader(StringIO(response.text)))
+        assert rows[0] == ['id', 'name', 'source_url', 'group', 'logo', 'tvg_id', 'tvg_name', 'is_online', 'is_active', 'last_seen']
+    assert 'attachment;' in response.headers['content-disposition']
+    request = request_adapter({'method': 'GET', 'url': 'http://testserver' + path})
+    validate_response(contract, request, response.status_code, response.headers, response.content)
+    with pytest.raises(Exception):
+        validate_response(contract, request, 200, {'Content-Type': 'application/json'}, b'{}')
+
+
+def test_diagnostics_binary_download_contract(client, contract, monkeypatch, tmp_path):
+    from io import BytesIO
+    from zipfile import ZipFile
+    monkeypatch.setenv('CAPTURE_LOG_DIR', str(tmp_path))
+    response = client.get('/api/v1/system/diagnostics')
+    assert response.status_code == 200
+    assert response.headers['content-type'] == 'application/zip'
+    assert response.headers['cache-control'] == 'no-store'
+    assert response.headers['x-content-type-options'] == 'nosniff'
+    assert response.headers['content-disposition'].endswith('"acestream-diagnostics.zip"')
+    with ZipFile(BytesIO(response.content)) as archive:
+        assert archive.testzip() is None
+        assert archive.namelist()
+    request = request_adapter({'method': 'GET', 'url': 'http://testserver/api/v1/system/diagnostics'})
+    validate_response(contract, request, response.status_code, response.headers, response.content)
+
+
+def test_telegram_requires_its_separate_administration_header(contract):
+    exchange = {'method': 'GET', 'url': 'https://testserver/api/v1/telegram/status'}
+    with pytest.raises(Exception):
+        contract.validate_request(request_adapter(exchange))
+    exchange['headers'] = {'X-Api-Token': 'ordinary-api-token'}
+    with pytest.raises(Exception):
+        contract.validate_request(request_adapter(exchange))
+    exchange['headers']['X-Telegram-Admin'] = 'synthetic-telegram-token'
+    contract.validate_request(request_adapter(exchange))

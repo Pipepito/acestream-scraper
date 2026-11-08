@@ -18,7 +18,10 @@
           "id": "315-2",
           "requirement": "A mocked missing randomUUID path exercises the actual fallback. Repeated submit/retry retains a key; separate intents get different keys. Missing cryptographic capability produces contained feedback, not an application-wide crash.",
           "implementation": "implemented",
-          "tests": [],
+          "tests": [
+            "frontend/src/__tests__/RecordingIntent.test.tsx",
+            "frontend/src/__tests__/BulkStreamIntent.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
@@ -169,10 +172,11 @@
         {
           "id": "317-2",
           "requirement": "Switching EN/ES during playback and a dirty form preserves sessions and values; document language and accessible text update.",
-          "implementation": "partial",
+          "implementation": "implemented",
           "tests": [
-            "frontend/src/__tests__/Events.test.tsx",
-            "frontend/src/__tests__/StreamPlayerDialog.test.tsx"
+            "e2e/tests/11-live-tv.spec.ts — real HLS, 3 presets × 2 themes × EN/ES; 48.7s pass at 544eee14",
+            "frontend/src/__tests__/AppPreferences.test.tsx",
+            "frontend/src/__tests__/TelegramSection.test.tsx"
           ],
           "acceptance": "pending"
         },
@@ -196,8 +200,12 @@
         {
           "id": "317-5",
           "requirement": "Typed keys, resource checks, translation ownership inventory and pseudo-locale are available to each feature task.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "frontend/src/__tests__/Localization.test.tsx",
+            "frontend/src/i18n/pseudo.ts",
+            "docs/dev/frontend-localization.md"
+          ],
           "acceptance": "pending"
         },
         {
@@ -252,8 +260,11 @@
         {
           "id": "318-2",
           "requirement": "A user can find playback, schedules, stream formats, accounts, recording defaults and player address from both Settings and the relevant feature.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "frontend/src/__tests__/routes.test.tsx",
+            "e2e/tests/01-navigation.spec.ts — passed in 61/61 run at 7f539536"
+          ],
           "acceptance": "pending"
         },
         {
@@ -269,7 +280,8 @@
           "implementation": "partial",
           "tests": [
             "frontend/src/__tests__/UnsavedChanges.test.tsx",
-            "frontend/src/__tests__/TvCasting.test.tsx"
+            "frontend/src/__tests__/SourceEditor.test.tsx",
+            "frontend/src/__tests__/NotificationsSection.test.tsx"
           ],
           "acceptance": "pending"
         },
@@ -339,8 +351,10 @@
         {
           "id": "319-2",
           "requirement": "Search/filter/language/theme changes do not interrupt active viewing; Stop/channel change tears down only the intended viewer.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "e2e/tests/11-live-tv.spec.ts — same video node/viewer, advancing filtered playback, source switch and Stop cleanup; passed"
+          ],
           "acceptance": "pending"
         },
         {
@@ -511,8 +525,12 @@
         {
           "id": "321-1",
           "requirement": "First-run and later source addition share form/service behavior and distinguish Save from Add and find channels.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "frontend/src/__tests__/SourceEditor.test.tsx",
+            "e2e/mobile/setup-catalogue.spec.ts",
+            "e2e/mobile/source-management.spec.ts — included in 236/236 responsive checkpoint"
+          ],
           "acceptance": "pending"
         },
         {
@@ -567,8 +585,10 @@
         {
           "id": "321-9",
           "requirement": "The generated docs/recipes payload matches shared sources and includes only appropriate standalone assets.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "scripts/ci/run_v2_test_suite.sh --profile full — Pages helper drift passed at 147a6e7/544eee14 checkpoint"
+          ],
           "acceptance": "pending"
         },
         {
@@ -630,8 +650,11 @@
         {
           "id": "322-5",
           "requirement": "Notification settings and source ingestion remain distinct; tests cannot send real owner messages.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "e2e/tests/16-manual-notifications.spec.ts — owned local receiver, 7f539536 full Firefox pass",
+            "frontend/src/__tests__/TelegramSection.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
@@ -711,8 +734,12 @@
         {
           "id": "323-5",
           "requirement": "English/Spanish switching during playback and dirty forms causes no session restart, draft loss or query-cache reset.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "implemented",
+          "tests": [
+            "e2e/tests/11-live-tv.spec.ts",
+            "frontend/src/__tests__/AppPreferences.test.tsx",
+            "frontend/src/__tests__/UnsavedChanges.test.tsx"
+          ],
           "acceptance": "pending"
         },
         {
@@ -811,8 +838,10 @@
         {
           "id": "324-7",
           "requirement": "Complete final integrated validation is recorded with no hidden failures/skips or outstanding unwaived requirements.",
-          "implementation": "pending",
-          "tests": [],
+          "implementation": "partial",
+          "tests": [
+            "implementation-ledger.md — 2611 backend / 726 frontend checkpoint; 61 Firefox; 236 responsive; 30 monitor; 15 image builds. Final revision and manual requirements outstanding"
+          ],
           "acceptance": "pending"
         },
         {

@@ -30,6 +30,7 @@ def installation_openapi(app):
         'BearerToken': {'type': 'http', 'scheme': 'bearer', 'description': 'Legacy API token or scoped credential; not interchangeable with viewer capabilities.'},
         'LegacyQueryToken': {'type': 'apiKey', 'in': 'query', 'name': 'token', 'description': 'Legacy open-mode token or playback credential. Never grants account-mode management access.'},
         'AccountSession': {'type': 'apiKey', 'in': 'cookie', 'name': COOKIE},
+        'TelegramAdmin': {'type': 'apiKey', 'in': 'header', 'name': 'X-Telegram-Admin', 'description': 'Separate memory-only Telegram administration token. Also requires the installation management credential when enabled, and HTTPS or exact localhost transport.'},
         'CSRF': {'type': 'apiKey', 'in': 'header', 'name': 'X-CSRF-Token', 'description': 'Must match the CSRF cookie; account writes also require same-origin requests.'},
     }
     schema['security'] = [{}, {'HeaderToken': []}, {'BearerToken': []}, {'LegacyQueryToken': []}, {'AccountSession': []}]
@@ -53,11 +54,16 @@ def installation_openapi(app):
             operation['x-access-class'] = 'delegated' if path.startswith(('/api/v1/auth/', '/api/v1/view/', '/api/v1/viewers/', '/api/v1/cast/', '/api/v1/startup')) else 'management'
             if path in {'/api/v1/auth/login', '/api/v1/auth/bootstrap'} and method == 'post':
                 operation['security'] = [{'CSRF': []}]
+            if path.startswith('/api/v1/telegram/'):
+                operation['security'] = [{**credential, 'TelegramAdmin': []} for credential in schema['security']]
+                operation['x-telegram-transport'] = 'HTTPS or exact localhost; same-origin browser requests; not a general private-HTTP exception.'
             responses = operation.setdefault('responses', {})
             statuses = {401: 'Missing or invalid credentials', 403: 'Permission, origin, CSRF or transport denied',
                         503: 'Startup, access storage or required service unavailable', 500: 'Unexpected application failure'}
             if path.startswith(('/api/v1/recordings', '/api/v1/tv-channels', '/api/v1/acestream-channels', '/api/v1/channels', '/api/v1/setup')):
                 statuses.update({400: 'Invalid operation or empty update', 404: 'Resource not found', 409: 'Stale state, conflict or admission rejected', 422: 'Invalid request fields'})
+            if path.startswith('/api/v1/telegram/'):
+                statuses.update({400: 'Telegram action rejected', 408: 'Bounded request timed out', 409: 'Telegram batch is busy', 413: 'Request too large', 422: 'Redacted invalid Telegram input', 429: 'Telegram rate limit'})
             if path.startswith(('/api/v1/auth/', '/api/v1/cast/')):
                 statuses.update({404: 'Resource not found', 408: 'Request timed out', 409: 'State conflict or confirmation required',
                                  413: 'Request too large', 422: 'Invalid request fields', 429: 'Rate or capacity limit',

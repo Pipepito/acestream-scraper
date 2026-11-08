@@ -417,3 +417,30 @@ final repeated interaction/media/memory and full validation remain outstanding.
   presets × both themes × EN/ES, same video DOM element and one viewer session;
   filtering advances media, channel switch releases one viewer, Stop reaps both
   test sessions. Uses the frozen 544eee14 SPA and isolated FFmpeg backend.
+
+### Expanded executable contracts and completed browser checkpoint
+
+- Fresh strict Firefox at application `7f539536` / journeys `6a6c4221`: all 61
+  passed (5.5 minutes), no skips. This includes real local webhook delivery, guide
+  scheduling with real-path recording storage and the expanded HLS preference test.
+- Corrected frozen-544eee14 responsive matrix: all 236 passed (4.1 minutes),
+  no skips, across phone Chromium, 320 px WebKit, tablet Firefox and desktop Chromium.
+  Further application changes still need affected/final browser coverage.
+- Actual-wire consumer contracts expanded from 13 to 33 production service calls;
+  false/null/empty/omitted values, scoped Telegram headers and independent saves
+  are checked with maintained OpenAPI validation. The first iteration correctly
+  rejected a test's out-of-range tuner limit; the valid fixture uses its real limit.
+- XMLTV and CSV response declarations now describe their actual media types.
+  Diagnostics uses the OpenAPI 3.1 binary media-type contract, with separate ZIP
+  parsing. Provider tests parse non-JSON formats and assert attachment/cache headers;
+  negative tests reject JSON media types. Telegram's separate admin header and
+  redacted errors are documented without changing enforcement. Expanded provider/
+  synthetic Telegram validation: 62 passed; actual consumer test: 2 cases / 33
+  requests passed. See `docs/dev/executable-api-contracts.md` for exact coverage.
+- All existing issues #314–#324 and draft PR #325 were updated through `6a6c4221`;
+  no issue was closed. Final integrated and manual acceptance remain outstanding.
+- Fixed the observed 320 px Spanish guide-section clipping by wrapping tabs on
+  phones and retaining a distinct selected background/underline. All 48 actual
+  browser combinations (3 presets × EN/ES × both themes × 4 browser/viewports)
+  passed label-bound checks, Home/End keyboard focus, zero-write and overflow
+  assertions; selected-state screenshots were inspected.

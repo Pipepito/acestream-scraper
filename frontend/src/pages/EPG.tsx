@@ -217,7 +217,18 @@ const EPG: React.FC = () => {
         scrollButtons="auto"
         allowScrollButtonsMobile
         aria-label={tUi("EPG sections")}
-        sx={{ mb: 2, borderBottom: `1px solid ${theme.appTokens.surface.border}` }}
+        sx={{
+          mb: 2, borderBottom: `1px solid ${theme.appTokens.surface.border}`,
+          // Keep every section legible on phones, including longer Spanish labels.
+          '& .MuiTabs-flexContainer': { flexWrap: { xs: 'wrap', sm: 'nowrap' } },
+          '& .MuiTabs-scroller': { overflow: { xs: 'visible !important' } },
+          '& .MuiTabs-scrollButtons': { display: { xs: 'none', sm: 'inline-flex' } },
+          '& .MuiTabs-indicator': { display: { xs: 'none', sm: 'block' } },
+          '& .MuiTab-root': {
+            minWidth: { xs: 'auto', sm: 90 }, px: { xs: 1.5, sm: 2 },
+            '&.Mui-selected': { bgcolor: { xs: 'action.selected', sm: 'transparent' }, textDecoration: { xs: 'underline', sm: 'none' } },
+          },
+        }}
       >
         {EPG_TABS.map((tab) => (
           <Tab key={tab} value={tab} label={translateKnown(TAB_LABELS[tab])} id={`epg-tab-${tab}`} aria-controls={`epg-tabpanel-${tab}`} />

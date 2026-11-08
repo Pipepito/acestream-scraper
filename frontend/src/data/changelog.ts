@@ -2,6 +2,18 @@
 export interface ReleaseNotes { version: string; summary: string; sections: Array<{ title: string; items: string[] }> }
 export const releases: ReleaseNotes[] = [
   {
+    "version": "v2.2.1",
+    "summary": "Preserve readable spaces in exported programme-guide identifiers.",
+    "sections": [
+      {
+        "title": "Fixed",
+        "items": [
+          "Keep spaces in playlist and XMLTV channel IDs when duplicate guide sources require a source prefix. Refresh both the playlist and guide after updating so cached IDs match."
+        ]
+      }
+    ]
+  },
+  {
     "version": "v2.2.0",
     "summary": "Optional user accounts and TV casting join HTTP playback, W3U catalogues, sporting events, Telegram sources and built-in recordings, with simpler setup, LAN access and more reliable playback.",
     "sections": [

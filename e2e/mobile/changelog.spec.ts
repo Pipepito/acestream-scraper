@@ -1,4 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
+import { releases } from '../../frontend/src/data/changelog';
+
+const currentVersion = releases[0].version;
+const whatsNew = `What’s new in ${currentVersion}`;
 
 async function openShell(page: Page, path?: string) {
   // Wait for shell reads before another full navigation can cancel them. A
@@ -24,8 +28,8 @@ for (const mode of ['light', 'dark']) {
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
     // An unknown route needs no catalogue fixtures and still exercises the shell.
     await openShell(page, '/missing-page');
-    await expect(page.getByRole('link', { name: 'What’s new in v2.2.0' })).toBeVisible();
-    await page.getByRole('link', { name: 'What’s new in v2.2.0' }).click();
+    await expect(page.getByRole('link', { name: whatsNew })).toBeVisible();
+    await page.getByRole('link', { name: whatsNew }).click();
     await expect(page.getByRole('heading', { name: 'Changelog', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'v2.1.0', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'v2.0.0', exact: true }).click();
@@ -34,9 +38,9 @@ for (const mode of ['light', 'dark']) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`changelog-${mode}.png`), fullPage: true });
     await openShell(page, '/missing-page');
-    await expect(page.getByRole('link', { name: 'What’s new in v2.2.0' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: whatsNew })).toHaveCount(0);
     await openShell(page);
-    await expect(page.getByRole('link', { name: 'What’s new in v2.2.0' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: whatsNew })).toHaveCount(0);
     const menu = page.getByRole('button', { name: 'open drawer' });
     if (await menu.isVisible()) await menu.click();
     await page.getByRole('link', { name: 'Changelog', exact: true }).click();
@@ -53,7 +57,7 @@ for (const deployment of ['docker', 'native']) {
     page.on('response', response => { if (response.url().includes('/api/') && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
     await page.route('**/api/**', route => route.fulfill({ json: { status: 'ready', phase: 'Ready to use', events: [] } }));
     await page.route('**/api/v1/system/updates', route => route.fulfill({ json: {
-      current_version: 'v2.2.0', latest_version: 'v2.10.0', update_available: true,
+      current_version: currentVersion, latest_version: 'v2.10.0', update_available: true,
       status: 'checked', deployment, release_url: 'https://github.com/Pipepito/acestream-scraper/releases/tag/v2.10.0',
     } }));
     await openShell(page, '/missing-page');
@@ -62,10 +66,10 @@ for (const deployment of ['docker', 'native']) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`update-${deployment}.png`), fullPage: true });
     await openShell(page);
-    await expect(page.getByRole('link', { name: 'What’s new in v2.2.0' })).toBeVisible();
+    await expect(page.getByRole('link', { name: whatsNew })).toBeVisible();
     await expect(page.getByText('v2.10.0 is available')).toHaveCount(0);
     // Load the lazy route once, then disconnect: history needs no GitHub request.
-    await page.getByRole('link', { name: 'What’s new in v2.2.0' }).click();
+    await page.getByRole('link', { name: whatsNew }).click();
     await expect(page.getByRole('heading', { name: 'Changelog', exact: true })).toBeVisible();
     await page.context().setOffline(true);
     await page.getByRole('link', { name: 'v2.1.0', exact: true }).click();

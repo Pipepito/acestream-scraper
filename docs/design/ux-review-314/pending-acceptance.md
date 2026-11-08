@@ -1,6 +1,7 @@
 # Remaining acceptance and external owners
 
-Application snapshot: `e40dc853`, 2026-11-08. This is an outstanding-work register,
+Application snapshot: `e13a42ef`, E2E harness `24fbb4eb`, frontend fixtures
+`f09097aa`, 2026-11-08. This is an outstanding-work register,
 not a waiver. PR #325 remains draft and issues #314–#324 stay open. Passing local
 checks cannot substitute for the evidence below. The per-criterion scope is in
 `acceptance.json`; exact automated outcomes and earlier failures are in
@@ -12,8 +13,13 @@ Owner: repository maintainer / private infrastructure reviewer.
 
 The read-only infrastructure snapshot is `0955626eee33149e88e83d5f95901bd131b065b5`.
 Its fixed Jest configuration cannot parse WOFF2 imports and does not provide the
-Fetch APIs used by React Router's data router. The unmodified-policy reproduction
-fails before any test runs. A reviewable compatibility change needs:
+Fetch APIs used by React Router's data router. The earlier focused reproduction
+failed before its tests ran. The final full
+reproduction passes all 2,619 backend tests, lint and types, then reports 56 failed /
+65 passed frontend suites: eight failed / 231 passed tests execute. Font-load
+failures prevent the remaining tests from running; they are not passes or skips.
+The observed errors are WOFF2 parsing and missing `Request`. A reviewable
+compatibility change needs:
 
 - A fixed font-asset mapping/stub for WOFF2 imports.
 - A trusted jsdom environment exposing native Request, Response, Headers,
@@ -26,6 +32,10 @@ non-native AMD64 image. AMD64 legitimately contains its Linux engine layout.
 Separate explicitly emulated runtime probes provide supplemental evidence; they
 do not turn the unmodified wrapper's failure into a pass. Review the platform
 selection in private infrastructure and rerun its unchanged intended validations.
+
+The same pinned image passes all 750 frontend tests with the public configuration,
+plus lint/types, schema/client drift and both builds, without test warnings after
+correcting three test fixtures. This is separate evidence, not a private gate pass.
 
 No private policy, Jenkins definition, credential, job or protected branch has
 been changed. The implementation request excluded these mutations; a separate
@@ -81,3 +91,15 @@ its original commit. It is nonsecret test data used only by the loopback listene
 The current test uses an unmistakably synthetic valid UUID; branch history is
 preserved. Review the historical false-positive classification through the normal
 private process. No inline suppression, private exception or force-push is included.
+
+
+## Existing build advisories · #317 / #324
+
+Owner: dependency/private-tooling maintainer. Application tests and lint report no
+warnings, but image dependency installation still prints the existing npm
+deprecations listed in the ledger and 26 audit findings (4 low, 22 moderate).
+The affected deprecated package versions were compared with the integration base
+and are unchanged. Existing container pip-root and debconf noninteractive notices
+also remain visible. No warning suppression, forced dependency upgrade or private
+ESLint/Jest policy change was used to hide them. Review upgrades with the pinned
+private tooling; local test success is not a claim that these advisories vanished.

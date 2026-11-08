@@ -1,0 +1,584 @@
+{
+  "date": "2026-11-08",
+  "applicationRevision": "e13a42ef705abae8e5ae41f7997b38eb579a41a4",
+  "e2eRevision": "24fbb4eb",
+  "integrationBase": "cf952afc6b4489c02b7a675ff3d634cc13d98e0b",
+  "readOnlyPrivatePolicyRevision": "0955626eee33149e88e83d5f95901bd131b065b5",
+  "fullyAccepted": false,
+  "fullApplicationGate": {
+    "command": "CI_USE_PREINSTALLED_DEPS=1 CI_COVERAGE_DIR=<owned-temporary-reports> bash scripts/ci/run_v2_test_suite.sh --profile full",
+    "exitCode": 0,
+    "backend": {
+      "total": {
+        "covered": 22440,
+        "executable": 26030,
+        "percent": 86.21
+      },
+      "changed": {
+        "covered": 323,
+        "executable": 408,
+        "percent": 79.17
+      },
+      "changed_target": 80,
+      "coverage_gate": "advisory",
+      "note": "80% changed-line goal; advisory during rollout",
+      "tests": {
+        "tests": 2619,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "frontend": {
+      "total": {
+        "covered": 7878,
+        "executable": 10037,
+        "percent": 78.49
+      },
+      "changed": {
+        "covered": 2544,
+        "executable": 3183,
+        "percent": 79.92
+      },
+      "changed_target": 80,
+      "coverage_gate": "advisory",
+      "note": "80% changed-line goal; advisory during rollout",
+      "tests": {
+        "tests": 750,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "frontendSuites": 121,
+    "testWarnings": 0
+  },
+  "contracts": [
+    {
+      "command": [
+        "bash",
+        "scripts/ci/assert_no_legacy_paths.sh",
+        "--strict"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "entrypoint.sh",
+        "warp-setup.sh",
+        "healthcheck.sh"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "backend/venv/bin/python",
+        "scripts/ci/validate_dockerfile_contract.py"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "bash",
+        "scripts/ci/validate_runtime_contract.sh"
+      ],
+      "exitCode": 0,
+      "repeatNote": "Sandbox blocked /dev/fd; permitted unchanged repeat passed."
+    },
+    {
+      "command": [
+        "backend/venv/bin/python",
+        "scripts/ci/validate_documentation.py"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "backend/venv/bin/python",
+        "scripts/ci/validate_docker_docs_contract.py"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "bash",
+        "scripts/ci/validate_command_builder.sh"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "backend/venv/bin/python",
+        "scripts/ci/validate_docker_manifest_metadata.py"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "backend/venv/bin/python",
+        "scripts/phase_gates/phase5_gate_runner.py",
+        "--profile",
+        "quick",
+        "--json-output"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "browsers": {
+    "strictFirefox": {
+      "expected": 61,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "responsive": {
+      "expected": 380,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "monitor": {
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0
+    },
+    "standalone": {
+      "expected": 36,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "isolatedAccountRepeats": [
+      {
+        "run": 1,
+        "exit_code": 0
+      },
+      {
+        "run": 2,
+        "exit_code": 0
+      },
+      {
+        "run": 3,
+        "exit_code": 0
+      },
+      {
+        "run": 4,
+        "exit_code": 0
+      },
+      {
+        "run": 5,
+        "exit_code": 0
+      }
+    ]
+  },
+  "sourceScan": {
+    "status": "success",
+    "enforcement": "report-only",
+    "total": 391,
+    "new": 1,
+    "priority_new": 1,
+    "blocking_new": 0
+  },
+  "sourceScanClassification": "One new history-only finding is a synthetic loopback recording-intent UUID; no new current-source finding. Owner classification remains pending.",
+  "imageBuilds": [
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper",
+      "tag": "ux314-validation:e13a42ef-linux-arm64-scraper",
+      "build": 0,
+      "runtime": 0
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-acestream",
+      "tag": "ux314-validation:e13a42ef-linux-arm64-scraper-acestream",
+      "build": 0,
+      "runtime": 0
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-acexy",
+      "tag": "ux314-validation:e13a42ef-linux-arm64-scraper-acexy",
+      "build": 0,
+      "runtime": 0
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-acestream-acexy",
+      "tag": "ux314-validation:e13a42ef-linux-arm64-scraper-acestream-acexy",
+      "build": 0,
+      "runtime": 0
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-outpace",
+      "tag": "ux314-validation:e13a42ef-linux-arm64-scraper-outpace",
+      "build": 0,
+      "runtime": 0
+    },
+    {
+      "platform": "linux/amd64",
+      "flavor": "scraper",
+      "tag": "ux314-validation:e13a42ef-linux-amd64-scraper",
+      "build": 0
+    },
+    {
+      "platform": "linux/amd64",
+      "flavor": "scraper-acestream",
+      "tag": "ux314-validation:e13a42ef-linux-amd64-scraper-acestream",
+      "build": 0,
+      "runtime": 1
+    },
+    {
+      "platform": "linux/amd64",
+      "flavor": "scraper-acexy",
+      "tag": "ux314-validation:e13a42ef-linux-amd64-scraper-acexy",
+      "build": 0
+    },
+    {
+      "platform": "linux/amd64",
+      "flavor": "scraper-acestream-acexy",
+      "tag": "ux314-validation:e13a42ef-linux-amd64-scraper-acestream-acexy",
+      "build": 0
+    },
+    {
+      "platform": "linux/amd64",
+      "flavor": "scraper-outpace",
+      "tag": "ux314-validation:e13a42ef-linux-amd64-scraper-outpace",
+      "build": 0
+    },
+    {
+      "platform": "linux/arm/v7",
+      "flavor": "scraper",
+      "tag": "ux314-validation:e13a42ef-linux-arm-v7-scraper",
+      "build": 0
+    },
+    {
+      "platform": "linux/arm/v7",
+      "flavor": "scraper-acestream",
+      "tag": "ux314-validation:e13a42ef-linux-arm-v7-scraper-acestream",
+      "build": 0,
+      "runtime": 0
+    },
+    {
+      "platform": "linux/arm/v7",
+      "flavor": "scraper-acexy",
+      "tag": "ux314-validation:e13a42ef-linux-arm-v7-scraper-acexy",
+      "build": 0
+    },
+    {
+      "platform": "linux/arm/v7",
+      "flavor": "scraper-acestream-acexy",
+      "tag": "ux314-validation:e13a42ef-linux-arm-v7-scraper-acestream-acexy",
+      "build": 0
+    },
+    {
+      "platform": "linux/arm/v7",
+      "flavor": "scraper-outpace",
+      "tag": "ux314-validation:e13a42ef-linux-arm-v7-scraper-outpace",
+      "build": 0
+    }
+  ],
+  "dockerPackaging": {
+    "exit_code": 0,
+    "source": "e13a42ef",
+    "counts": {
+      "tests": 60,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "imageScans": [
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper",
+      "exit_code": 0,
+      "summary": {
+        "status": "success",
+        "enforcement": "report-only",
+        "blocking_new": 0,
+        "total": 427,
+        "priority_new": 0,
+        "new": 0,
+        "baseline_findings": 427
+      }
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-acestream",
+      "exit_code": 0,
+      "summary": {
+        "status": "success",
+        "enforcement": "report-only",
+        "blocking_new": 0,
+        "total": 427,
+        "priority_new": 0,
+        "new": 0,
+        "baseline_findings": 427
+      }
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-acexy",
+      "exit_code": 0,
+      "summary": {
+        "status": "success",
+        "enforcement": "report-only",
+        "blocking_new": 0,
+        "total": 427,
+        "priority_new": 0,
+        "new": 0,
+        "baseline_findings": 427
+      }
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-acestream-acexy",
+      "exit_code": 0,
+      "summary": {
+        "status": "success",
+        "enforcement": "report-only",
+        "blocking_new": 0,
+        "total": 427,
+        "priority_new": 0,
+        "new": 0,
+        "baseline_findings": 427
+      }
+    },
+    {
+      "platform": "linux/arm64",
+      "flavor": "scraper-outpace",
+      "exit_code": 0,
+      "summary": {
+        "status": "success",
+        "enforcement": "report-only",
+        "blocking_new": 0,
+        "total": 427,
+        "priority_new": 0,
+        "new": 0,
+        "baseline_findings": 427
+      }
+    },
+    {
+      "platform": "linux/amd64",
+      "flavor": "scraper-acestream",
+      "exit_code": 0,
+      "summary": {
+        "status": "success",
+        "enforcement": "report-only",
+        "blocking_new": 0,
+        "total": 431,
+        "priority_new": 0,
+        "new": 0,
+        "baseline_findings": 431
+      }
+    },
+    {
+      "platform": "linux/arm/v7",
+      "flavor": "scraper-acestream",
+      "exit_code": 0,
+      "summary": {
+        "status": "success",
+        "enforcement": "report-only",
+        "blocking_new": 0,
+        "total": 358,
+        "priority_new": 0,
+        "new": 0,
+        "baseline_findings": 358
+      }
+    }
+  ],
+  "dockerJourneys": [
+    {
+      "mode": "on",
+      "applicationRevision": "e13a42ef",
+      "exit_code": 0,
+      "counts": {
+        "expected": 61,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    {
+      "mode": "off",
+      "applicationRevision": "e13a42ef",
+      "exit_code": 0,
+      "counts": {
+        "expected": 61,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    }
+  ],
+  "pipelineStages": [
+    {
+      "stage": "matrix",
+      "exit_code": 0
+    },
+    {
+      "stage": "packaging",
+      "exit_code": 0
+    },
+    {
+      "stage": "security",
+      "exit_code": 0
+    },
+    {
+      "stage": "amd64-supplemental",
+      "exit_code": 0
+    },
+    {
+      "stage": "docker-journeys",
+      "exit_code": 0
+    }
+  ],
+  "remaining": [
+    "Pinned private Jest configuration cannot load WOFF2 / native Fetch APIs. No private policy changed.",
+    "Unmodified runtime wrapper selects ARM OCI layout for nonnative AMD64; supplemental AMD64 execution is separate evidence.",
+    "Historical synthetic UUID scanner classification needs owner review.",
+    "Native assistive technology, real browser zoom and physical mobile/receiver acceptance.",
+    "Fluent Spanish and nontechnical participant acceptance.",
+    "Native ARMv7 engine qualification remains experimental; emulation/layout is not physical qualification."
+  ],
+  "evidenceLimits": "See implementation-ledger.md for failed/interrupted attempts, actual retry causes, warnings and exact scope; pending-acceptance.md names external owners. Local results are not Jenkins status. No publication, deployment or protected merge.",
+  "pinnedEnvironment": {
+    "status": "public-checks-pass-private-policy-fails",
+    "applicationRevision": "e13a42ef",
+    "sourceSnapshot": "24fbb4eb",
+    "runtime": {
+      "python": "3.12.14",
+      "node": "v22.23.2",
+      "ffmpeg": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
+      "fixtureFFmpeg": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "dependencies": {
+        "fastapi": "0.162.2",
+        "pydantic": "2.14.3",
+        "sqlalchemy": "2.1.8",
+        "httpx": "0.28.1",
+        "aiohttp": "3.14.5",
+        "openapi-core": "0.23.1",
+        "pytest": "9.2.0"
+      }
+    },
+    "privatePolicyResult": {
+      "exitCode": 1,
+      "backend": {
+        "passed": 2619,
+        "failed": 0,
+        "skipped": 0,
+        "testWarnings": 0
+      },
+      "lint": "pass",
+      "types": "pass",
+      "frontendSuites": {
+        "passed": 65,
+        "failed": 56
+      },
+      "executedFrontendTests": {
+        "passed": 231,
+        "failed": 8
+      },
+      "errors": [
+        "WOFF2 asset parsing",
+        "Request is not defined"
+      ],
+      "notExecuted": "Tests behind failed imports, subsequent production builds and private phase-5 stage; separate public/host evidence remains distinct."
+    },
+    "isolation": "Frozen owned archive, offline container, no credentials or Docker socket. Unchanged private recipe/configuration copies; no shared runner cleanup.",
+    "firstPublicFrontend": {
+      "exitCode": 0,
+      "suitesPassed": 121,
+      "testsPassed": 750,
+      "consoleErrors": 15,
+      "warningFree": false
+    },
+    "intermediateRetry": {
+      "revision": "37bf4fad",
+      "exitCode": 137,
+      "reason": "Stopped owned container to include confirmation focus fixture fix; no pass claimed."
+    },
+    "finalFrontendTestRevision": "f09097aa",
+    "publicFrontend": {
+      "exitCode": 0,
+      "suitesPassed": 121,
+      "testsPassed": 750,
+      "failed": 0,
+      "skipped": 0,
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "durationSeconds": 127.997,
+      "schemaAndClientDrift": "pass",
+      "lint": "pass",
+      "types": "pass",
+      "productionBuild": "pass",
+      "standaloneBuildAndDrift": "pass"
+    },
+    "normalizedReports": {
+      "status": "success",
+      "backend": {
+        "total": {
+          "covered": 22424,
+          "executable": 26030,
+          "percent": 86.15
+        },
+        "changed": {
+          "covered": 323,
+          "executable": 408,
+          "percent": 79.17
+        },
+        "changed_target": 80,
+        "coverage_gate": "advisory",
+        "note": "80% changed-line goal; advisory during rollout",
+        "tests": {
+          "tests": 2619,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "frontend": {
+        "total": {
+          "covered": 7878,
+          "executable": 10037,
+          "percent": 78.49
+        },
+        "changed": {
+          "covered": 2544,
+          "executable": 3183,
+          "percent": 79.92
+        },
+        "changed_target": 80,
+        "coverage_gate": "advisory",
+        "note": "80% changed-line goal; advisory during rollout",
+        "tests": {
+          "tests": 750,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
+    },
+    "reproductionCommands": [
+      "APP_ROOT=/workspace bash /validation/run_pr_validation.sh",
+      "Restore archived public Jest, ESLint, TypeScript and public suite configuration; run public frontend stages with CI_USE_PREINSTALLED_DEPS=1 and CI_COVERAGE_DIR set.",
+      "Run unchanged private quality_reports.py over copied backend and final public-frontend reports; keep original failed-policy reports separately."
+    ]
+  },
+  "buildAdvisories": {
+    "npmAudit": {
+      "low": 4,
+      "moderate": 22,
+      "high": 0,
+      "critical": 0
+    },
+    "deprecatedPackagesUnchangedFromBase": true,
+    "details": "See implementation-ledger.md and pending-acceptance.md. Test/lint warnings and dependency-install notices are separate."
+  },
+  "frontendTestRevision": "f09097aa",
+  "sourceScanRevision": "f09097aa",
+  "sourceScanRetry": {
+    "firstAttempt": "incomplete RuntimeError, retained",
+    "unchangedRetry": "success"
+  }
+}

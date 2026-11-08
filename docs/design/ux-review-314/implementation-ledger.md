@@ -17,6 +17,24 @@ No deployment, protected merge, Jenkins mutation, image/release or Pages publica
 - All eleven issues remain open; design-only issue prose is superseded by this
   explicit implementation authorization. Prototype results are not app acceptance.
 
+## Delivery checkpoint · 2026-11-08
+
+One coordinated draft [PR #325](https://github.com/Pipepito/acestream-scraper/pull/325)
+targets `develop` from `codex/ux-implementation-314`. Production source/assets:
+`e13a42ef`; E2E harness: `24fbb4eb`; final unit-test fixtures: `f09097aa`.
+The final evidence commit changes only this design evidence directory.
+`validation-summary.json` is the concise current results index; dated notes below
+retain earlier failed, interrupted and superseded runs.
+
+Public full application checks pass locally and in the pinned Linux environment
+(2,619 backend / 750 frontend tests), as do all 15 image builds, 60 Docker packaging
+checks and the final browser matrices. The unchanged private Jest gate and AMD64
+wrapper remain failed for the documented compatibility reasons. Manual/native,
+participant and private-owner evidence is unwaived; all eleven issues remain open.
+The next required work is owner review of `pending-acceptance.md`, provision of its
+external acceptance evidence, then correction/revalidation of any resulting issues.
+No protected merge or publication is authorized by this checkpoint.
+
 ## Approved decisions
 
 Exactly three presentations of one application: Lime (`lime`), Coral/navy
@@ -37,29 +55,29 @@ dialogs, pending actions and the player node/session/position.
 
 | Step | Work | Status |
 | --- | --- | --- |
-| 1 | Baseline, exact issue criteria, prerequisites, performance | Initial production baseline recorded; isolated FFmpeg prepared; comparable follow-up measurement running; interaction/media evidence remains |
-| 2 | Reproduce #315/SRC-F15, fixes, executable API contracts | Defect fixes committed; initial wire contracts pass; operation coverage expansion remains |
-| 3 | Shared presets, preferences, EN/ES, components | Shared preferences/tokens and 2,400+ paired resources implemented; dynamic-message and full state coverage remain |
-| 4 | Shell, aliases, access/startup, canonical settings | Seven destinations, selected-only Settings, canonical source/guide/account/player editors and dirty/pending guards implemented; remaining editors and complete journeys remain |
-| 5 | Sources/extraction, channels, guides, playlists | Canonical source/guide editors, bounded channel browse and complete reorder snapshot implemented; remaining journeys and acceptance in progress |
-| 6 | Watch, events, recordings, batched artwork | Watch composition/deferred HLS, recording collections and event draft/validation work implemented; complete media journeys remain |
-| 7 | Connections, notifications, System/recovery | Account/remote-player/Cast drafts and stable translated failures implemented; remaining System/notification state coverage remains |
-| 8 | Final performance, complete validation, docs, one PR | Single draft PR #325 open; incremental evidence recorded; final full validation and external acceptance outstanding |
+| 1 | Baseline, prerequisites, performance | Original baseline and final 100-load / 10-reorder / 30-cycle measurements recorded |
+| 2 | #315 defects and executable contracts | Recording/access/asset/accessibility fixes integrated; 35 consumer requests and selected provider/non-JSON/semantic contracts tested; exhaustive contract acceptance remains open |
+| 3 | Presets, EN/ES and components | One shared application, three presets and 2,400+ paired resources integrated; native AT/fluent-language/participant acceptance pending |
+| 4 | Shell, aliases, access/startup and Settings | Seven destinations and canonical independent editors integrated; automated routes/gates/state tests pass; full manual acceptance pending |
+| 5 | Sources, extraction, channels, guide and playlists | Shared editors, bounded browse and complete virtual reorder integrated; standalone 36 combinations pass; participant/AT acceptance pending |
+| 6 | Watch, events and recordings | Shared player ownership, collections and reviewed drafts integrated; private HTTP/HTTPS and media regressions tested |
+| 7 | Connections, notifications, System/recovery | Canonical editors and translated operational states integrated; owned synthetic fixtures tested; physical receiver acceptance pending |
+| 8 | Final validation and delivery | Public full gate passes on e13a42ef; final Docker/browser evidence and delivery updates below; private-policy and external acceptance remain outstanding |
 
 ## Task ownership
 
 | Issue | Scope | Implemented | Tested | Accepted |
 | --- | --- | --- | --- | --- |
-| #315 | Recording HTTP/UUID/idempotency, confirmed UI defects, isolated SRC-F15 | Partial | Incremental checks | No |
-| #316 | Three shared presets/components, graphics, exception register | Partial | Incremental checks | No |
-| #317 | Typed EN/ES, fallback/formatting/pseudo-locale, accessibility | Partial | Incremental checks | No |
-| #318 | Seven destinations, aliases/settings/access/setup/gates | Partial | Incremental checks | No |
-| #319 | Watch/events/recordings, exact scheduling/media ownership | Partial | Incremental checks | No |
-| #320 | Channels/guide/reorder/atomic Add-Link/playlists | Partial | Incremental checks | No |
-| #321 | Canonical source journey/search/W3U/extraction/helpers | Partial | Incremental checks | No |
-| #322 | Connections/trust/notifications/System/WARP/diagnostics | Partial | Incremental checks | No |
-| #323 | Reproducible production baseline and final budgets | Partial | Incremental checks | No |
-| #324 | Integrated field/state/permission/preset/locale evidence | Partial | Incremental checks | No |
+| #315 | Recording HTTP/UUID/idempotency, confirmed UI defects, isolated SRC-F15 | Integrated; criteria partial | Final evidence below | Pending |
+| #316 | Three shared presets/components, graphics, exception register | Integrated; criteria partial | Final evidence below | Pending |
+| #317 | Typed EN/ES, fallback/formatting/pseudo-locale, accessibility | Integrated; criteria partial | Final evidence below | Pending |
+| #318 | Seven destinations, aliases/settings/access/setup/gates | Integrated; criteria partial | Final evidence below | Pending |
+| #319 | Watch/events/recordings, exact scheduling/media ownership | Integrated; criteria partial | Final evidence below | Pending |
+| #320 | Channels/guide/reorder/atomic Add-Link/playlists | Integrated; criteria partial | Final evidence below | Pending |
+| #321 | Canonical source journey/search/W3U/extraction/helpers | Integrated; criteria partial | Final evidence below | Pending |
+| #322 | Connections/trust/notifications/System/WARP/diagnostics | Integrated; criteria partial | Final evidence below | Pending |
+| #323 | Reproducible production baseline and final budgets | Integrated; criteria partial | Final evidence below | Pending |
+| #324 | Integrated field/state/permission/preset/locale evidence | Integrated; criteria partial | Final evidence below | Pending |
 
 `acceptance.json` records each current issue checkbox separately. Design field,
 runtime-option and workflow inventories remain coverage references, not page counts.
@@ -78,7 +96,7 @@ warnings and blockers; rerun affected/dependent stages after fixes. No silent sk
 
 - Docker checked 2026-11-08: 29.9.2, linux/aarch64; buildx 0.38.1. Initial
   sandbox socket access requires escalation; daemon is running.
-- Node/dependencies/Playwright present; lockfile compatibility remains to check.
+- Node/dependencies/Playwright present; full public dependency/test/build validation passes. Pinned private Jest compatibility remains outstanding (see `pending-acceptance.md`).
 - Isolated arm64 FFmpeg/ffprobe 9.0.2 prepared and hash-verified under `/tmp/ux314-tools/media-bin`; 70 recording/player runtime tests passed. Add that directory to PATH for final media gates.
 - Actual AT, native zoom, physical casting/mobile devices and fluent Spanish /
   nontechnical participant review remain unverified. Owner/participants provide
@@ -615,9 +633,9 @@ final repeated interaction/media/memory and full validation remain outstanding.
   Any private policy/runner checksum change belongs to the maintainer-controlled
   infrastructure repository. This application PR does not change that policy.
 
-Next: finish final browser/image/service/media checks, Docker-on/off journeys,
-repeat performance measurements, reconcile acceptance evidence, and update the
-single PR/issues. Participant, native AT/zoom, physical device and native ARMv7
+Checkpoint next action (superseded by the final evidence below): finish browser,
+image/service/media and Docker-on/off checks, repeat performance measurements,
+then reconcile acceptance and the single PR/issues. Participant, native AT/zoom, physical device and native ARMv7
 evidence remains explicitly unaccepted and requires the stated external owners.
 
 ### Media isolation diagnosis
@@ -775,3 +793,195 @@ evidence remains explicitly unaccepted and requires the stated external owners.
   availability check now succeeds. Incomplete application/image/packaging runs and
   the partial 48-case phone fix run are not counted as passes. Resume final checks
   from frozen sources, keeping heavy builds separate from browser timing checks.
+
+
+### Frozen application `e13a42ef` — final local validation
+
+- Source is frozen at `e13a42ef705abae8e5ae41f7997b38eb579a41a4`;
+  subsequent changes in this section are evidence/documentation only. Private
+  validation definitions remain read-only at `0955626eee33149e88e83d5f95901bd131b065b5`.
+- Initial final browser attempts retained: strict Firefox 60 passed / 1 failed
+  on a Cast checkbox interaction; responsive 379 passed / 1 failed on a mobile
+  Settings tab interaction. Neither failure reproduced in targeted checks:
+  mobile playback 20/20; five account lifecycles 5/5 on independent backends.
+  No assertion, timeout, retry or error allowance was relaxed. Complete suites
+  are rerun separately below; these original failures are not erased.
+- Repeating account lifecycles against one process hit the real login limiter
+  (429 on the third run), preventing cleanup and invalidating later repeats.
+  An initial fresh-instance harness also omitted completed setup. The corrected
+  harness completes setup with owned fixtures and uses a fresh database/process
+  per case; it does not disable rate limiting or reuse production data.
+- The source scan's first attempt was incomplete (`RuntimeError`); its unchanged
+  pinned-policy retry completed: 391 total findings, one new historical synthetic
+  UUID false positive, no new current-source finding. This is report-only evidence,
+  not a waiver of the history classification or a claim of zero existing findings.
+- Production performance repeated: 100 route samples, ten alternating reorder
+  samples and 30 same-context interaction cycles. No page errors or API writes
+  occurred in reorder/session measurements. At 10,000 channels the cold medians
+  are Watch 714 ms, Settings 623 ms, Channels 669 ms, Live TV 673 ms and extraction
+  654 ms (including the fixed 500 ms idle window). Settings/Channels/Live TV use
+  4/6/5 API requests versus 20/24/25 in the original baseline.
+- Reorder median opening time is 3,033 → 856 ms; keyboard move 2,982 → 29 ms;
+  CDP open heap 750 → 35 MB; DOM elements 150,226 → 442. Both builds release
+  most open heap after Cancel/GC (~20 MB). Thirty-cycle final heap is 21.9 MB;
+  successive ten-cycle median heaps are 21.4/21.7/21.8 MB and DOM count stays
+  1,373. This bounded experiment is not proof that all sessions are leak-free.
+- Actual private IPv4 HTTP and HTTPS recording checks pass on this revision:
+  unsupported HTTP `randomUUID` uses `getRandomValues`, double submission creates
+  one recording, replay returns the same record, cancellation creates none, guide
+  times and dirty edit/discard are preserved, with zero player starts/page errors.
+
+- Full public gate: 2,619 backend tests and 121 frontend suites / 750 tests pass,
+  with zero failed/skipped tests and no test warnings. OpenAPI/generated-client
+  drift, warning-free lint/types, production/recipe builds and helper drift pass.
+  Pinned report normalization succeeds: total backend/frontend coverage
+  86.21%/78.49%; changed-line coverage 79.17%/79.92%. The 80% changed-line goal
+  is advisory under this policy; these values are not rounded up to a pass.
+- Fresh strict Firefox retry: 60 pass, one recording-storage failure because the
+  disposable harness had not created its configured recordings directory. After
+  creating that directory, the failed guide scheduling journey passes with the
+  unchanged assertions and strict monitor. A fully prepared clean run follows.
+- Final axe repeat: 63 initial route/preset/locale/theme/width states, zero reported
+  violations, 85 incomplete rule instances still triaged. Native AT/zoom/physical
+  devices and fluent participant acceptance remain outstanding, not implied by axe.
+
+- The responsive shared-stack retry had 378 passes / two startup failures. Their
+  snapshots show the public viewer gate: the concurrent account suite changed the
+  same backend's access mode. Responsive tests now run on a separate, prepared
+  open-mode backend; this requirement is documented in `e2e/README.md`.
+- A second strict run reproduced the Cast checkbox failure. Trace frames show the
+  accordion still expanding/clipping the target as Firefox scrolls and clicks.
+  The E2E harness now polls the actual ancestor animation state before editing
+  (same click/check assertions and timeouts). An intermediate `.finished`-promise
+  wait rejected a normal canceled browser animation in one of five checks; the
+  final state poll avoids creating that error and does not suppress application
+  errors. Harness commits `dc28457d` / `24fbb4eb` leave all application/build bytes
+  identical to `e13a42ef`.
+
+- Final independent responsive matrix: 380/380 pass, no failures/skips. Final
+  account lifecycle transition-state synchronization: 5/5 fresh-instance repeats
+  pass with strict monitoring. The earlier 20 mobile playback repeats also pass.
+- Monitor suite: 30/30 pass. Standalone helper: 36/36 browser/locale/theme/width
+  combinations pass, exercising 108 actual template tests/exports and no external
+  or installation requests. All nine separate public contracts and E2E types pass.
+
+- Complete isolated strict Firefox run: **61/61 pass**, including actual media,
+  guide scheduling without playback, account isolation and account disable.
+  Application `e13a42ef`; final E2E synchronization `24fbb4eb`. All browser
+  contexts are isolated; no personal Firefox profile or live installation is used.
+- Before final builds, only obsolete task-owned `ux314-validation:7f5ce82d-*` /
+  `e40dc853-*` tags and the stopped `ux314-e2e-scan-on` container were removed,
+  after retaining its logs. The dedicated task builder remains. Unrelated images,
+  containers, builders, volumes and the host's other build cache are untouched.
+
+- Remote `develop` was rechecked before delivery and remains
+  `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`; no rebase/integration merge was needed.
+  The final pinned source scan at `24fbb4eb` completes with the same 391 findings
+  and one history-only synthetic UUID flag. No new current-source finding.
+
+- Final host dependency versions were inspected, not assumed from the lockfile:
+  Python 3.12.10, Node 22.17.0, FastAPI 0.162.0, Pydantic 2.14.2,
+  SQLAlchemy 2.1.6, HTTPX 0.28.1, aiohttp 3.14.5, openapi-core 0.23.1,
+  pytest 9.2.0; React 18.3.1, React Router 7.18.5, React Query 5.105.0,
+  React Virtual 3.14.26. The pinned private runner uses Python 3.12 / Node 22;
+  production application images use their declared Python 3.13 runtime. The
+  separate private Jest configuration limitation remains unresolved.
+
+- Final matrix: all **15/15** flavour/architecture builds pass. Five native
+  ARM64 runtime probes and the ARMv7 layout probe pass. The unmodified private
+  AMD64 wrapper fails `kind=oci-image` after selecting its ARM layout path; this
+  remains failed and is distinct from separate execution evidence.
+- Separate Docker packaging/service/media suite: **60/60 pass**, zero skips and
+  no pytest warning summary, in 1,433.93 seconds. This includes real AMD64/ARM64
+  engine smokes and the FFmpeg/installer/IPFS/ZeroNet/security checks. Its pytest
+  JUnit is authoritative; the wrapper's status message overlaps part of the
+  progress-dot line in the text log, without affecting tests or the XML result.
+- Host full-gate FFmpeg is 9.0.2; production and the pinned private runner use
+  manifest 8.1.2. A separate frozen-source Linux runner repeat is queued after
+  Docker browser journeys, using the unchanged private Dockerfile/configuration
+  copies. Its build uses only the dedicated task builder: the private runner
+  lifecycle helper was not invoked because it would prune unrelated host cache.
+- Build notices remain visible: npm reports deprecated whatwg-encoding 3.1.1,
+  rimraf 3.0.2, inflight 1.0.6, eslint 8.57.1, the two @humanwhocodes helpers,
+  glob 7.2.3/10.5.0, and 26 audit findings (4 low, 22 moderate). Container pip-root
+  and debconf noninteractive notices are also retained. The warning-free claim
+  applies to application tests/lint; these upstream build notices are not hidden
+  or represented as zero findings.
+
+- Each npm-deprecated package version above was checked against the integration
+  base lockfile and is unchanged. Their existing advisories are retained for
+  dependency/private-tooling review in `pending-acceptance.md`.
+
+- Final image security: all seven comparisons complete with zero new findings;
+  existing totals are 427 per ARM64 flavour, 431 AMD64 and 358 ARMv7. The
+  supplemental explicitly emulated AMD64 runtime probe passes. This remains
+  separate from the unmodified wrapper's failed layout selection.
+- Docker browser modes: **61/61 pass with bundled services enabled and 61/61
+  pass with them disabled**, strict monitoring active, zero skips. All owned
+  application containers are removed by the harness; the completed fixture and
+  dedicated builder are stopped without deleting preserved images/cache.
+- Fresh pinned runner resolves Python 3.12.14 / Node 22.23.2, FastAPI 0.162.2,
+  Pydantic 2.14.3 and SQLAlchemy 2.1.8, with minimal FFmpeg 8.1.2 and distro
+  FFmpeg 5.1.9 only for fixture generation. These are newer patches than the
+  host's cached environment; the full backend gate is being repeated against them.
+
+
+### Pinned runner reproduction and final delivery
+
+- The first local pinned-runner attempt used a symlink to the image's renamed
+  `/opt/frontend-node_modules` directory. Node could not resolve hoisted sibling
+  dependencies from that location: two backend build-copy tests failed on missing
+  `universalify`, and the frontend then failed resolving `@redocly/openapi-core`.
+  Result: 2,617 backend passed / two failed; no application change was justified.
+  The trusted entrypoint copies that directory to `frontend/node_modules`.
+- The corrected run invokes the unchanged private `run_pr_validation.sh`, including
+  its dependency copy, fixed quality suite and configuration. It uses an owned
+  frozen archive of `24fbb4eb`, an offline container without credentials or Docker
+  socket, and the unchanged image built from the pinned private Dockerfile.
+  Public frontend stages follow after restoring the archived public configuration,
+  so private-policy compatibility failures remain separate from public results.
+  The first failed setup and all logs remain under the task's temporary evidence
+  directory; they are not counted as passing validation.
+- Corrected pinned run: all **2,619 backend tests pass** in 511.02 seconds,
+  with zero failures/skips/test warnings. The unchanged private frontend lint and
+  types pass; its Jest run reports **56 failed / 65 passed suites**, with **eight
+  failed / 231 passed executed tests**. WOFF2 imports fail to parse and `Request`
+  is absent. Tests behind failed imports do not execute. This is a failed private
+  gate, not a green CI claim; private configuration remains unmodified.
+- The first corrected public frontend run passes all 121 suites / 750 tests,
+  schema/client drift, lint/types and both builds, but emits 15 console errors:
+  14 undefined provider-query results in two setup fixture suites and one unwrapped
+  confirmation-button focus update. The host run had emitted none; cold-run
+  diagnostics exposed these fixture lifecycle gaps. This run does not satisfy the
+  warning-free requirement.
+- `37bf4fad` supplies valid empty provider lists in the setup mocks; `f09097aa`
+  wraps the deliberate focus change in RTL `act`. No application/runtime/build
+  source changed. Focused fixtures: four suites / 23 tests pass without warnings.
+  The intermediate provider-only full frontend repeat was deliberately stopped
+  (exit 137) to include the focus correction; its partial log is retained and not
+  counted as a pass. The final full frontend repeat uses all three corrected tests.
+- Final pinned public frontend at test revision `f09097aa`: **121/121 suites,
+  750/750 tests pass**, zero failures/skips/console errors/console warnings, in
+  127.997 seconds. OpenAPI snapshot and generated-client drift, lint/types,
+  production build and standalone helper build/drift pass. Combined report
+  normalization succeeds: pinned backend/frontend total coverage 86.15%/78.49%,
+  changed-line 79.17%/79.92% (80% target remains advisory). Backend application
+  bytes are unchanged since its complete pinned run; frontend changes are solely
+  three test fixtures. Production sources and assets remain `e13a42ef`.
+- Exact pinned evidence: `pinned-runner-e13/reports/private-gate.log`,
+  `reports/public-frontend-final.log`, `normalized-final/summary.json` and runtime
+  metadata under `/tmp/ux314-evidence`. The first dependency-layout failure,
+  warning-producing public run and stopped intermediate repeat remain separate.
+  No private configuration was edited to manufacture a passing private gate.
+- Final source scan of `f09097aa`: the first attempt is incomplete with
+  `RuntimeError`; its unchanged retry completes with 391 findings, one new
+  history-only synthetic UUID flag and zero new current-source findings. Original
+  reports remain under `source-security-f09097aa`; successful retry reports are
+  under `source-security-f09097aa-retry`. Security policy remains report-only.
+- Final documentation/contracts repeat: eight stages pass directly. The runtime
+  stage is blocked by the host sandbox's `/dev/fd` process-substitution restriction;
+  its permitted unchanged repeat passes (`runtime-contract-final-permitted.log`).
+  This is a permission failure and retry, not a Docker outage or application fix.
+  The final normalized contract outcomes are all passing, with original failure
+  text retained. Evidence JSON parses, referenced local acceptance paths exist,
+  and `git diff --check` passes. No runtime databases/logs/private captures are staged.

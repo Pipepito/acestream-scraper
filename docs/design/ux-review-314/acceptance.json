@@ -16,7 +16,7 @@
             "frontend/src/__tests__/RecordingIntent.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "e40dc853"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-2",
@@ -27,7 +27,7 @@
             "frontend/src/__tests__/BulkStreamIntent.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-3",
@@ -39,7 +39,7 @@
             "e2e/tests/11-live-tv.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "e40dc853"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-4",
@@ -50,7 +50,7 @@
             "docs/design/ux-review-314/contrast-evidence.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-5",
@@ -61,7 +61,7 @@
             "frontend/src/__tests__/TVChannelsPageResponsive.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-6",
@@ -73,7 +73,7 @@
             "frontend/src/__tests__/StartupGate.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-7",
@@ -86,7 +86,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-8",
@@ -99,7 +99,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "315-9",
@@ -110,7 +110,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -130,7 +130,7 @@
             "docs/design/ux-review-314/implementation-coverage.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-2",
@@ -140,7 +140,7 @@
             "docs/design/ux-review-314/implementation-ledger.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-3",
@@ -151,7 +151,7 @@
             "frontend/src/__tests__/theme.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-4",
@@ -162,7 +162,7 @@
             "frontend/src/assets/fonts/manifest.json"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-5",
@@ -174,7 +174,7 @@
             "e2e/mobile/event-illustrations.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-6",
@@ -186,7 +186,7 @@
             "frontend/AGENTS.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-7",
@@ -197,7 +197,7 @@
             "docs/dev/settings-editors.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-8",
@@ -210,7 +210,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-9",
@@ -223,7 +223,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "316-10",
@@ -234,7 +234,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -251,7 +251,7 @@
             "frontend/src/__tests__/AppPreferences.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-2",
@@ -263,7 +263,7 @@
             "frontend/src/__tests__/TelegramSection.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422",
+          "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
             "real HLS, 3 presets \u00d7 2 themes \u00d7 EN/ES; 48.7s pass at 544eee14"
           ]
@@ -278,7 +278,7 @@
             "frontend/src/__tests__/ScheduleAnchorFields.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-4",
@@ -290,7 +290,7 @@
             "frontend/src/__tests__/eventErrors.test.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-5",
@@ -302,7 +302,7 @@
             "docs/dev/frontend-localization.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-6",
@@ -310,7 +310,7 @@
           "implementation": "implemented",
           "tests": [],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-7",
@@ -321,7 +321,7 @@
             "docs/dev/executable-api-contracts.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-8",
@@ -334,7 +334,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-9",
@@ -347,7 +347,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "317-10",
@@ -358,7 +358,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -377,7 +377,7 @@
             "docs/design/ux-review-314/implementation-coverage.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-2",
@@ -388,7 +388,7 @@
             "e2e/tests/01-navigation.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422",
+          "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
             "passed in 61/61 run at 7f539536"
           ]
@@ -402,7 +402,7 @@
             "docs/dev/settings-editors.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-4",
@@ -414,7 +414,7 @@
             "frontend/src/__tests__/NetworkSettings.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-5",
@@ -426,7 +426,7 @@
             "backend/tests/test_guide_setup.py"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-6",
@@ -439,7 +439,7 @@
             "frontend/src/__tests__/StartupGate.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-7",
@@ -451,7 +451,7 @@
             "e2e/mobile/network-settings.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-8",
@@ -463,7 +463,7 @@
             "frontend/src/__tests__/Access.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-9",
@@ -476,7 +476,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-10",
@@ -489,7 +489,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "318-11",
@@ -500,7 +500,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -518,7 +518,7 @@
             "e2e/mobile/dashboards.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-2",
@@ -528,7 +528,7 @@
             "e2e/tests/11-live-tv.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422",
+          "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
             "same video node/viewer, advancing filtered playback, source switch and Stop cleanup; passed"
           ]
@@ -542,7 +542,7 @@
             "frontend/src/__tests__/UpcomingEvents.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-4",
@@ -554,7 +554,7 @@
             "backend/tests/test_sporting_events.py"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-5",
@@ -567,7 +567,7 @@
             "e2e/tests/19-guide-recording.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-6",
@@ -579,7 +579,7 @@
             "backend/tests/test_recordings.py"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-7",
@@ -592,7 +592,7 @@
             "e2e/mobile/recordings.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-8",
@@ -605,7 +605,7 @@
             "e2e/mobile/events.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-9",
@@ -618,7 +618,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-10",
@@ -631,7 +631,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "319-11",
@@ -642,7 +642,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -661,7 +661,7 @@
             "docs/dev/frontend-component-catalogue.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-2",
@@ -673,7 +673,7 @@
             "e2e/mobile/channel-labels.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-3",
@@ -684,7 +684,7 @@
             "e2e/mobile/large-reorder.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-4",
@@ -697,7 +697,7 @@
             "e2e/mobile/guide-setup.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-5",
@@ -709,7 +709,7 @@
             "e2e/mobile/guide-navigation.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-6",
@@ -721,7 +721,7 @@
             "frontend/src/components/StreamLinkFormatsSection.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-7",
@@ -734,7 +734,7 @@
             "docs/dev/executable-api-contracts.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-8",
@@ -746,7 +746,7 @@
             "frontend/src/__tests__/TVChannelsPageResponsive.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-9",
@@ -759,7 +759,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-10",
@@ -772,7 +772,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "320-11",
@@ -783,7 +783,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -802,7 +802,7 @@
             "e2e/mobile/source-management.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422",
+          "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
             "included in 236/236 responsive checkpoint"
           ]
@@ -817,7 +817,7 @@
             "e2e/mobile/source-management.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-3",
@@ -829,7 +829,7 @@
             "e2e/mobile/source-management.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-4",
@@ -840,7 +840,7 @@
             "backend/tests/test_search_broadcast.py"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-5",
@@ -852,7 +852,7 @@
             "backend/tests/test_extraction_recipes.py"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-6",
@@ -864,7 +864,7 @@
             "frontend/src/__tests__/Localization.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-7",
@@ -875,7 +875,7 @@
             "frontend/src/__tests__/Localization.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-8",
@@ -886,7 +886,7 @@
             "frontend/src/__tests__/RecipeBuilder.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-9",
@@ -896,7 +896,7 @@
             "scripts/ci/run_v2_test_suite.sh"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422",
+          "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
             "Pages helper drift passed at 147a6e7/544eee14 checkpoint"
           ]
@@ -912,7 +912,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-11",
@@ -925,7 +925,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "321-12",
@@ -936,7 +936,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -954,7 +954,7 @@
             "docs/dev/frontend-component-catalogue.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-2",
@@ -965,7 +965,7 @@
             "docs/dev/settings-editors.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-3",
@@ -978,7 +978,7 @@
             "frontend/src/__tests__/TvCasting.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-4",
@@ -990,7 +990,7 @@
             "e2e/mobile/vlc-android.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-5",
@@ -1001,7 +1001,7 @@
             "frontend/src/__tests__/TelegramSection.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422",
+          "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
             "owned local receiver, 7f539536 full Firefox pass"
           ]
@@ -1017,7 +1017,7 @@
             "e2e/mobile/warp.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-7",
@@ -1029,7 +1029,7 @@
             "frontend/src/__tests__/Localization.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-8",
@@ -1042,7 +1042,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-9",
@@ -1055,7 +1055,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "322-10",
@@ -1066,7 +1066,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -1085,7 +1085,7 @@
             "docs/design/ux-review-314/performance-reorder.json"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-2",
@@ -1096,7 +1096,7 @@
             "frontend/src/__tests__/Settings.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-3",
@@ -1107,7 +1107,7 @@
             "frontend/src/__tests__/StartupGate.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-4",
@@ -1118,7 +1118,7 @@
             "e2e/mobile/integration-navigation.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-5",
@@ -1130,7 +1130,7 @@
             "frontend/src/__tests__/UnsavedChanges.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-6",
@@ -1141,7 +1141,7 @@
             "e2e/standalone/recipes.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-7",
@@ -1152,7 +1152,7 @@
             "docs/design/ux-review-314/performance-reorder.json"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-8",
@@ -1164,7 +1164,7 @@
             "docs/design/ux-review-314/performance-session-final.json"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "0e10d63e"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-9",
@@ -1177,7 +1177,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-10",
@@ -1190,7 +1190,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "323-11",
@@ -1201,7 +1201,7 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     },
@@ -1219,7 +1219,7 @@
             "docs/dev/frontend-component-catalogue.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-2",
@@ -1230,7 +1230,7 @@
             "frontend/src/__tests__/Localization.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-3",
@@ -1241,7 +1241,7 @@
             "frontend/src/__tests__/ConfirmDialog.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-4",
@@ -1253,7 +1253,7 @@
             "e2e/mobile/event-illustrations.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-5",
@@ -1261,7 +1261,7 @@
           "implementation": "pending",
           "tests": [],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-6",
@@ -1272,7 +1272,7 @@
             "docs/dev/settings-editors.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-7",
@@ -1282,7 +1282,7 @@
             "docs/design/ux-review-314/implementation-ledger.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422",
+          "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
             "2611 backend / 726 frontend checkpoint; 61 Firefox; 236 responsive; 30 monitor; 15 image builds. Final revision and manual requirements outstanding"
           ]
@@ -1296,7 +1296,7 @@
             "docs/design/ux-review-314/implementation-ledger.md"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-9",
@@ -1309,7 +1309,7 @@
           ],
           "acceptance": "pending",
           "remaining": "Exhaustive feature-state/permission/presentation parity acceptance remains open; shared ownership and representative continuity are tested.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-10",
@@ -1322,7 +1322,7 @@
           ],
           "acceptance": "pending",
           "remaining": "35 actual consumer requests plus selected provider/non-JSON/semantic coverage; not every API operation or presentation combination.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         },
         {
           "id": "324-11",
@@ -1333,10 +1333,10 @@
           ],
           "acceptance": "pending",
           "remaining": "External participant, native assistive technology/zoom and physical-device protocols remain unexecuted. See exact ownership in the implementation ledger.",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "e13a42ef"
         }
       ]
     }
   ],
-  "evidenceNote": "Implementation status is separate from acceptance. No issue is accepted or waived by this reconciliation. Final application gate passed; final Docker/browser evidence is still being completed. Exact checkpoint provenance is in the ledger."
+  "evidenceNote": "Final application snapshot e13a42ef; evidence-only documentation follows. Implementation and acceptance remain distinct: partial criteria retain their explicit coverage limits. Public full gate passes (2619 backend, 750 frontend); exact browser/Docker outcomes and unwaived private-policy/manual/physical/participant gaps are in implementation-ledger.md and pending-acceptance.md. No issue is automatically closed."
 }

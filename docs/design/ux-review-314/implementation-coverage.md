@@ -1,6 +1,6 @@
 # Implemented surface and editor ownership
 
-Source snapshot: `e40dc853`, 2026-11-08. This map describes the application, not the
+Source snapshot: `e13a42ef`, 2026-11-08. This map describes the application, not the
 review prototype. Automated evidence is linked below; native accessibility,
 physical-device and participant acceptance remains pending in `acceptance.json`.
 All rows use the same router, query cache, services, access model and EN/ES resources

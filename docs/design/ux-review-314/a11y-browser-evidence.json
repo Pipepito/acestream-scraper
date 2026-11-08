@@ -1,7 +1,7 @@
 {
   "date": "2026-11-08",
   "sourceBase": "2b55a46e",
-  "corrections": "Filled-primary contrast, event/schedule heading levels, pagination outside the grid, recipe accordion names; committed with this report.",
+  "corrections": "Final repeat of the production application, including phone reorder layout and Access cancellation/fieldset fixes.",
   "engine": "axe-core 4.14.0",
   "browser": "Chromium 149.0.7827.55",
   "scope": "21 production routes \u00d7 3 preset/language/theme/viewport combinations, owned synthetic 10,000-channel catalogue. Selected initial states only, not exhaustive dialogs or native AT.",
@@ -594,7 +594,7 @@
       "beforeViolations": [],
       "afterViolations": [],
       "incomplete": {
-        "aria-prohibited-attr": 15,
+        "aria-prohibited-attr": 14,
         "color-contrast": 9
       }
     },
@@ -607,7 +607,7 @@
       "beforeViolations": [],
       "afterViolations": [],
       "incomplete": {
-        "aria-prohibited-attr": 15,
+        "aria-prohibited-attr": 14,
         "color-contrast": 10
       }
     },
@@ -620,7 +620,7 @@
       "beforeViolations": [],
       "afterViolations": [],
       "incomplete": {
-        "aria-prohibited-attr": 15,
+        "aria-prohibited-attr": 14,
         "color-contrast": 22
       }
     },
@@ -817,5 +817,5 @@
       }
     }
   ],
-  "applicationRevision": "0e10d63e"
+  "applicationRevision": "e13a42ef"
 }

@@ -30,13 +30,13 @@ const StartupGate: React.FC<React.PropsWithChildren> = ({ children }) => {
 
   const recover = async (action: RecoveryAction) => {
     if (!data) return;
-    if (action !== 'retry' && !(await confirm({
+    if (action !== 'retry' && !(await confirm(() => ({
       title: action === 'fresh' ? uiText("Start with an empty database?") : uiText("Rebuild from readable data?"),
       body: action === 'fresh'
         ? uiText("Your current database and migration files will be backed up first. The app will then start empty. Channels, sources, settings and integrations will need to be set up again. Backups are kept on your data drive.")
         : uiText("Your current database and migration files will be backed up first. Scraper URLs and EPG sources are recovered first, with old errors and timestamps reset. Other readable V2 data is copied afterward. Channels and programme listings can be rebuilt by scraping and refreshing the recovered sources. Damaged or incompatible rows may be skipped. Programme listings and activity history are not copied. The original V1 import will not run again."),
       confirmLabel: action === 'fresh' ? uiText("Back up and start fresh") : uiText("Back up and rebuild"), danger: action === 'fresh',
-    }))) return;
+    })))) return;
     setShowResult(true);
     setBusy(true);
     setActionError('');

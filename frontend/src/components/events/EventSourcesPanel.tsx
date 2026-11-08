@@ -60,7 +60,7 @@ export default function EventSourcesPanel({ onReview }: { onReview: (source: Eve
           <FormControlLabel control={<Checkbox checked={source.enabled} disabled={update.isPending} onChange={(_, enabled) => update.mutate({ source, enabled })} />} label={tUi("Automatic refresh for {{value0}}", { value0: source.name })} />
           <Button onClick={() => onReview(source)}>{tUi("Review schedule")}</Button>
           <Button color="error" disabled={remove.isPending || update.isPending} onClick={async () => {
-            if (await confirm({ title: `Delete ${source.name}?`, body: 'Remove this source and stop its automatic refresh. Imported events, manual corrections and channels will be kept.', confirmLabel: uiText("Delete source"), danger: true })) remove.mutate(source);
+            if (await confirm(() => ({ title: uiText("Delete {{name}}?", { name: source.name }), body: uiText("Remove this source and stop its automatic refresh. Imported events, manual corrections and channels will be kept."), confirmLabel: uiText("Delete source"), danger: true }))) remove.mutate(source);
           }}>{tUi("Delete source")}</Button>
         </Stack>
       </Stack>)}

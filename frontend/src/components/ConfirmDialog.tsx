@@ -37,10 +37,13 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ open, title, body, confir
 };
 
 export type ConfirmOptions = Omit<ConfirmDialogProps, 'open' | 'onConfirm' | 'onClose'>;
+type Confirmation = ConfirmOptions | (() => ConfirmOptions);
 
 /** `const { confirm, dialog } = useConfirm(); if (await confirm({...})) doIt();` — render `{dialog}` once. */
-export const useConfirm = (): { confirm: (opts: ConfirmOptions) => Promise<boolean>; dialog: React.ReactNode } => {
-  const [options, setOptions] = useState<ConfirmOptions | null>(null);
+export const useConfirm = (): { confirm: (opts: Confirmation) => Promise<boolean>; dialog: React.ReactNode } => {
+  useUiText();
+  const [source, setOptions] = useState<Confirmation | null>(null);
+  const options = typeof source === 'function' ? source() : source;
   const resolver = useRef<((value: boolean) => void) | null>(null);
 
   useEffect(() => () => { resolver.current?.(false); resolver.current = null; }, []);
@@ -51,9 +54,9 @@ export const useConfirm = (): { confirm: (opts: ConfirmOptions) => Promise<boole
     setOptions(null);
   }, []);
 
-  const confirm = useCallback((opts: ConfirmOptions) => {
+  const confirm = useCallback((opts: Confirmation) => {
     resolver.current?.(false);
-    setOptions(opts);
+    setOptions(() => opts);
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve;
     });

@@ -1,6 +1,6 @@
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -36,7 +36,8 @@ import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import StatusLine from '../components/StatusLine';
 import { useAddSearchResult, useSearch } from '../hooks/useSearch';
 import { useSnackbar } from '../hooks/useSnackbar';
-import { normalizeApiError } from '../services/apiErrors';
+import { getErrorMessage } from '../utils/errorUtils';
+import { statusLabel } from '../i18n/status';
 import { searchService, SearchResultItem } from '../services/searchService';
 import { formatBitrate } from '../utils/format';
 import SavedSearchDialog from '../components/imports/SavedSearchDialog';
@@ -48,7 +49,8 @@ const Search: React.FC = () => {
   const tUi = useUiText();
   const [linkStream, setLinkStream] = useState<SearchResultItem | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [importMessage, setImportMessage] = useState('');
+  const [importMessage, setImportMessage] = useState<(() => string) | null>(null);
+  const importing = useRef(false);
   const [importRuleId, setImportRuleId] = useState<number>();
   const [bulkBusy, setBulkBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -75,9 +77,9 @@ const Search: React.FC = () => {
   const playMutation = useMutation({
     mutationFn: (channel: SearchResultItem) => searchService.resolveContentId(channel.id),
     onSuccess: (contentId, channel) => setPlayerTarget({ contentId, title: channel.name }),
-    onError: (error) => showSnackbar(`Could not play: ${normalizeApiError(error).message}`, 'error'),
+    onError: (error) => showSnackbar(() => tUi('Could not play: {{details}}', { details: getErrorMessage(error) }), 'error'),
   });
-  const searchErrorMessage = searchError instanceof Error ? searchError.message : String(searchError);
+  const searchErrorMessage = getErrorMessage(searchError);
 
   const handleSearch = useCallback(() => {
 
@@ -122,24 +124,27 @@ const Search: React.FC = () => {
   };
 
   const handleAddChannel = async (channel: SearchResultItem) => {
+    if (importing.current) return;
+    importing.current = true;
     try {
       const outcome = await addChannelMutation.mutateAsync(channel);
       setImportRuleId(outcome.rule_ids?.[0]);
       if (outcome.outcome !== 'added' && outcome.outcome !== 'existing') {
-        setImportMessage(`${channel.name}: ${outcome.outcome}${outcome.rule_ids?.length ? ` (rule ${outcome.rule_ids.join(', ')})` : ''}.`);
+        setImportMessage(() => () => tUi('{{name}}: {{outcome}}. Rules: {{rules}}.', { name: channel.name, outcome: statusLabel(outcome.outcome), rules: outcome.rule_ids?.join(', ') || '—' }));
         return;
       }
       queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
       setSelectedChannels((prev) => prev.filter((item) => item.id !== channel.id));
       markAdded([channel.id]);
-      showSnackbar(`${channel.name}: ${outcome.outcome}.`, 'success');
+      showSnackbar(() => (tUi("{{name}}: {{outcome}}.", { name: channel.name, outcome: statusLabel(outcome.outcome) })), 'success');
     } catch (error) {
-      showSnackbar(`Could not add ${channel.name}: ${normalizeApiError(error).message}`, 'error');
-    }
+      showSnackbar(() => (tUi("Could not add {{name}}: {{details}}", { name: channel.name, details: getErrorMessage(error) })), 'error');
+    } finally { importing.current = false; }
   };
 
   const handleAddSelectedChannels = async () => {
-    if (selectedChannels.length === 0) return;
+    if (selectedChannels.length === 0 || importing.current) return;
+    importing.current = true;
 
     setBulkBusy(true);
     try {
@@ -149,11 +154,11 @@ const Search: React.FC = () => {
       markAdded(successful);
       setSelectedChannels(prev => prev.filter(item => !successful.includes(item.id)));
       if (successful.length) void queryClient.invalidateQueries({ queryKey: ['acestream-channels'] });
-      setImportMessage(`${result.added} added, ${result.existing} existing, ${result.excluded} excluded, ${result.unresolved} unresolved, ${result.deferred} deferred.`);
+      setImportMessage(() => () => tUi("{{added}} added, {{existing}} existing, {{excluded}} excluded, {{unresolved}} unresolved, {{deferred}} deferred.", { added: result.added ?? 0, existing: result.existing ?? 0, excluded: result.excluded ?? 0, unresolved: result.unresolved ?? 0, deferred: result.deferred ?? 0 }));
     } catch (error) {
-      showSnackbar(normalizeApiError(error).message, 'error');
+      showSnackbar(() => (getErrorMessage(error)), 'error');
     } finally {
-      setBulkBusy(false);
+      importing.current = false; setBulkBusy(false);
     }
   };
 
@@ -211,7 +216,7 @@ const Search: React.FC = () => {
 
       {activeSearch?.query ? <Button sx={{ mb: 2 }} onClick={() => setSaveOpen(true)}>{tUi("Save search")}</Button> : null}
       {saveOpen && activeSearch ? <SavedSearchDialog initial={{ name: activeSearch.query.slice(0, 100), query: activeSearch.query, category: activeSearch.category, refresh_enabled: false }} onClose={() => setSaveOpen(false)} /> : null}
-      {importMessage ? <Alert severity="info" sx={{ mb: 2 }}>{importMessage}<Button component={RouterLink} to={`/scraper?tab=exclusions${importRuleId ? `#rule-${importRuleId}` : ''}`}>{importRuleId ? tUi("Exclusion rule #{{value0}}", { value0: importRuleId }) : tUi("Import exclusions")}</Button></Alert> : null}
+      {importMessage ? <Alert severity="info" sx={{ mb: 2 }}>{importMessage()}<Button component={RouterLink} to={`/scraper?tab=exclusions${importRuleId ? `#rule-${importRuleId}` : ''}`}>{importRuleId ? tUi("Exclusion rule #{{value0}}", { value0: importRuleId }) : tUi("Import exclusions")}</Button></Alert> : null}
       {searchError && activeSearch ? (
         <Alert severity="error" sx={{ mb: 3 }}>
           {tUi("Search for \"")}{activeSearch.query}{tUi("\" failed.")}{' '}{searchErrorMessage}
@@ -333,7 +338,7 @@ const Search: React.FC = () => {
         </ContentSection>
       ) : null}
 
-      {linkStream ? <AddAndLinkDialog stream={linkStream} onClose={() => setLinkStream(null)} onAdded={() => { markAdded([linkStream.id]); showSnackbar(`${linkStream.name} added and linked.`, 'success'); setLinkStream(null); }} /> : null}
+      {linkStream ? <AddAndLinkDialog stream={linkStream} onClose={() => setLinkStream(null)} onAdded={() => { markAdded([linkStream.id]); showSnackbar(() => (tUi("{{name}} added and linked.", { name: linkStream.name })), 'success'); setLinkStream(null); }} /> : null}
       <ChannelPlayerDialog
         open={Boolean(playerTarget)}
         contentId={playerTarget?.contentId ?? null}

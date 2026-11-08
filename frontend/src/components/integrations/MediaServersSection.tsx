@@ -447,15 +447,15 @@ const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => 
   const [adding, setAdding] = useState(false);
 
   const handleDelete = async (server: MediaServer) => {
-    const ok = await confirm({
-      title: `Delete ${server.name}?`,
+    const ok = await confirm(() => ({
+      title: uiText("Delete {{name}}?", { name: server.name }),
       body:
         server.kind === 'jellyfin' && server.connected
           ? uiText("The server is removed from this list. This also removes the tuner and guide provider from Jellyfin.")
           : uiText("The server is removed from this list."),
       confirmLabel: uiText("Delete"),
       danger: true,
-    });
+    }));
     if (!ok) return;
     try {
       await remove.mutateAsync(server.id);
@@ -467,12 +467,12 @@ const MediaServersSection: React.FC<MediaServersSectionProps> = ({ notify }) => 
 
   const handleDisconnect = async (server: MediaServer) => {
     if (server.kind === 'jellyfin') {
-      const ok = await confirm({
-        title: `Disconnect ${server.name}?`,
-        body: 'This removes the AceStream tuner and its guide provider from Jellyfin. Jellyfin will re-run Refresh Guide and drop those channels.',
+      const ok = await confirm(() => ({
+        title: uiText("Disconnect {{name}}?", { name: server.name }),
+        body: uiText("This removes the AceStream tuner and its guide provider from Jellyfin. Jellyfin will re-run Refresh Guide and drop those channels."),
         confirmLabel: uiText("Disconnect"),
         danger: true,
-      });
+      }));
       if (!ok) return;
     }
     try {

@@ -30,9 +30,9 @@ const Editor: React.FC<{ initial: RecordingSettings }> = ({ initial }) => {
     if (!dirty || !valid || submitting.current) return;
     submitting.current = true;
     const submitted = value;
-    if (baseline.enabled && !submitted.enabled && !await confirm({ title: tUi('Disable recordings?'),
+    if (baseline.enabled && !submitted.enabled && !await confirm(() => ({ title: tUi('Disable recordings?'),
       body: tUi('Active recordings will stop and future recordings will be cancelled. Saved files will remain.'),
-      confirmLabel: tUi('Disable recordings'), danger: true })) { submitting.current = false; return; }
+      confirmLabel: tUi('Disable recordings'), danger: true }))) { submitting.current = false; return; }
     save.mutate(submitted);
   };
   return <>{dialog}<Stack component="fieldset" disabled={save.isPending} spacing={2} sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>

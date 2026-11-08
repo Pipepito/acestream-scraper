@@ -233,3 +233,24 @@ and `player-errors-backend-final.log`. An initially incorrect test expectation
 for VLC HTTP 403 was corrected to the existing `no_password` semantic; no driver
 behaviour changed. This remains incremental evidence, not the required final full
 application/Docker/browser or human/hardware acceptance gate.
+
+### Live feedback and modal-language checkpoint
+
+Confirmation descriptors and shared notifications now resolve their wording in the
+current language while retaining the same dialog/notification and pending action.
+The translation hook no longer captures a language in an in-flight callback.
+Canonical discard/delete/stop/cancel dialogs, guide import/refresh outcomes and
+search import feedback use that contract. Search import has an immediate guard
+across single/bulk actions. Failed guide-editor saves retain raw errors.
+
+Final frontend run for this checkpoint: **119 suites / 714 tests passed**, no
+warnings; typecheck, zero-warning lint and production app/helper builds passed.
+The earlier run exposed a legacy guide-detail snackbar and a playback-copy
+expectation; both were resolved before the complete rerun. Logs:
+`/tmp/ux314-evidence/live-feedback-full-frontend-final.log`,
+`feedback-typecheck-fixed.log`, `feedback-lint.log`, `live-feedback-build.log`.
+Built Spanish smoke matrix with actual Inter/Barlow fonts: 54 combinations across
+three presets, two themes, widths 320/390/1440 and Watch/Network/XML export; zero
+page errors or document overflow. Screenshots/results are under
+`/tmp/ux314-evidence/current/spanish-fonts-feedback/`. These are browser smoke
+checks, not claims of full visual, screen-reader or human acceptance.

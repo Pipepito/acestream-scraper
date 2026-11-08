@@ -2,11 +2,11 @@ import { uiText } from '../i18n/text';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { tvChannelService, EPGMatchAnalysisResponse, EPGMatchAnalysisRow, EPGMatchStrictness } from '../services/tvChannelService';
-import { SnackbarSeverity } from './useSnackbar';
+import { SnackbarNotify } from './useSnackbar';
 
 export type MatchFilter = 'all' | 'matched' | 'unmatched' | 'creatable';
 
-export const useEPGMatchAnalysis = (selectedSourceId: number | undefined, showSnackbar: (message: string, severity: SnackbarSeverity) => void) => {
+export const useEPGMatchAnalysis = (selectedSourceId: number | undefined, showSnackbar: SnackbarNotify) => {
   const queryClient = useQueryClient();
   const [matchStrictness, setMatchStrictness] = useState<EPGMatchStrictness>('strict');
   const [isAnalyzingMatches, setIsAnalyzingMatches] = useState(false);
@@ -39,7 +39,7 @@ export const useEPGMatchAnalysis = (selectedSourceId: number | undefined, showSn
       const result = await tvChannelService.analyzeEPGMatches({ strictness: matchStrictness, source_id: selectedSourceId });
       if (revision.current === current) { setMatchAnalysis(result); setMatchFilter('all'); }
     } catch {
-      if (revision.current === current) showSnackbar(uiText("Could not analyze guide matches. Try again."), 'error');
+      if (revision.current === current) showSnackbar(() => (uiText("Could not analyze guide matches. Try again.")), 'error');
     } finally {
       if (revision.current === current) setIsAnalyzingMatches(false);
     }
@@ -62,9 +62,9 @@ export const useEPGMatchAnalysis = (selectedSourceId: number | undefined, showSn
       for (const key of ['tvChannels', 'epg-channels', 'guide-coverage', 'acestreamChannels']) {
         void queryClient.invalidateQueries({ queryKey: [key] });
       }
-      showSnackbar(`Created ${result.created_count} TV channels, assigned ${result.associated_count} streams, skipped ${result.skipped_count}${result.failure_count ? `, failed ${result.failure_count}` : ''}`, result.failure_count ? 'warning' : 'success');
+      showSnackbar(() => (uiText("Created {{created}} TV channels, assigned {{associated}} streams, skipped {{skipped}}, failed {{failed}}", { created: result.created_count, associated: result.associated_count, skipped: result.skipped_count, failed: result.failure_count ?? 0 })), result.failure_count ? 'warning' : 'success');
     } catch {
-      showSnackbar(uiText("Could not apply matches. The catalogue may have changed; analyze again before applying."), 'error');
+      showSnackbar(() => (uiText("Could not apply matches. The catalogue may have changed; analyze again before applying.")), 'error');
     } finally {
       applying.current = false; setIsApplyingMatches(false); setSelectedMatchRowIds([]); setMatchAnalysis(null);
     }

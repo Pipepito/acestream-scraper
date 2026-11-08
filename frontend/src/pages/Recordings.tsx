@@ -38,15 +38,15 @@ const Recordings: React.FC = () => {
     change.mutate(action);
   };
   const stop = async (row: Recording) => {
-    if (await confirm({ title: tUi('Stop recording?'), body: tUi('Stop “{{title}}” now? The captured part remains available if finalization succeeds.', { title: row.snapshot.title }),
-      confirmLabel: tUi('Stop recording'), danger: true })) execute(() => recordingService.stop(row.id));
+    if (await confirm(() => ({ title: tUi('Stop recording?'), body: tUi('Stop “{{title}}” now? The captured part remains available if finalization succeeds.', { title: row.snapshot.title }),
+      confirmLabel: tUi('Stop recording'), danger: true }))) execute(() => recordingService.stop(row.id));
   };
   const cancel = async (row: Recording) => {
-    if (await confirm({ title: tUi('Cancel scheduled recording?'), body: tUi('“{{title}}” will not be recorded. This does not delete saved files.', { title: row.snapshot.title }),
-      confirmLabel: tUi('Cancel recording'), danger: true })) execute(() => recordingService.cancel(row.id));
+    if (await confirm(() => ({ title: tUi('Cancel scheduled recording?'), body: tUi('“{{title}}” will not be recorded. This does not delete saved files.', { title: row.snapshot.title }),
+      confirmLabel: tUi('Cancel recording'), danger: true }))) execute(() => recordingService.cancel(row.id));
   };
   const remove = async (row: Recording) => {
-    if (await confirm({ title: uiText("Delete recording?"), body: tUi('Delete every saved part of “{{title}}”? This cannot be undone.', { title: row.snapshot.title }), confirmLabel: uiText("Delete files"), danger: true })) execute(() => recordingService.delete(row.id));
+    if (await confirm(() => ({ title: uiText("Delete recording?"), body: tUi('Delete every saved part of “{{title}}”? This cannot be undone.', { title: row.snapshot.title }), confirmLabel: uiText("Delete files"), danger: true }))) execute(() => recordingService.delete(row.id));
   };
   return <Box>
     <PageHeader title={tUi("Recordings")} subtitle={tUi("Scheduled programmes and saved recordings.")} actions={<Button component={RouterLink} to="/recordings?tab=settings" variant="outlined">{tUi("Recording settings")}</Button>} />

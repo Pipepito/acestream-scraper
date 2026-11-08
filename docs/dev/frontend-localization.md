@@ -52,3 +52,11 @@ player and unreachable outcomes. The canonical editor retains the raw result and
 renders guidance in the current language; original protocol diagnostics remain
 under Technical details. None of these presentation fields grants permission or
 alters account transport, receiver ownership or network admission.
+
+For feedback that stays visible, retain data or a message factory instead of a
+translated string. `useConfirm(() => ({ ... }))` resolves its descriptor on each
+language render without reopening the modal or settling its promise. `useSnackbar`
+accepts a string or `() => string`; factories preserve the notification lifetime
+and retranslate its content. `useUiText` subscribes to changes and returns a
+language-independent translator so asynchronous callbacks do not retain the old
+language. Catalogue names and raw protocol diagnostics remain verbatim.

@@ -78,7 +78,7 @@ export default function TelegramSection() {
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
           <Button disabled={busy} onClick={() => void run(api.disconnect)}>{tUi("Disconnect")}</Button>
           <Button color="error" disabled={busy} onClick={() => void run(async () => {
-            if (await confirm({ title: uiText("Revoke Telegram session?"), body: 'This logs the account out of this app and removes its sources and observations. Existing catalogue streams stay available.', confirmLabel: uiText("Revoke and remove"), danger: true })) { await api.logout(); setEditing(null); }
+            if (await confirm(() => ({ title: uiText("Revoke Telegram session?"), body: uiText("This logs the account out of this app and removes its sources and observations. Existing catalogue streams stay available."), confirmLabel: uiText("Revoke and remove"), danger: true }))) { await api.logout(); setEditing(null); }
           })}>{tUi("Revoke session and remove account")}</Button>
         </Stack>
         {status.data?.state === 'connected' && <>
@@ -94,7 +94,7 @@ export default function TelegramSection() {
               <Button disabled={busy} onClick={() => void run(() => toggle(source))}>{source.enabled ? tUi("Pause") : tUi("Resume")} {source.name}</Button>
               <Button disabled={busy || !source.enabled} onClick={() => void run(() => api.scan(source.id))}>{tUi("Scan now")}</Button>
               <Button disabled={busy} onClick={() => setEditing(source)}>{tUi("Edit")}{' '}{source.name}</Button>
-              <Button disabled={busy} color="error" onClick={() => void run(async () => { if (await confirm({ title: uiText("Remove source?"), body: 'Collection stops. Existing catalogue streams are preserved.', confirmLabel: uiText("Remove source"), danger: true })) await api.remove(source.id); })}>{tUi("Remove")}{' '}{source.name}</Button>
+              <Button disabled={busy} color="error" onClick={() => void run(async () => { if (await confirm(() => ({ title: uiText("Remove source?"), body: uiText("Collection stops. Existing catalogue streams are preserved."), confirmLabel: uiText("Remove source"), danger: true }))) await api.remove(source.id); })}>{tUi("Remove")}{' '}{source.name}</Button>
             </Stack>
           </Stack>)}
           {!editing && <Button variant="outlined" sx={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>{tUi("Add Telegram source")}</Button>}

@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-/** Subscribe the owning component; changing language keeps its React identity. */
+/** Subscribe without capturing a language in an in-flight action or open dialog. */
 export function useUiText() {
-  return useTranslation('ui').t;
+  const { i18n } = useTranslation('ui');
+  return useMemo(() => i18n.getFixedT(null, 'ui'), [i18n]);
 }

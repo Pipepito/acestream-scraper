@@ -200,12 +200,12 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
   const [sending, setSending] = useState<RemotePlayer | null>(null);
 
   const handleDelete = async (player: RemotePlayer) => {
-    const ok = await confirm({
-      title: `Delete ${player.name}?`,
-      body: 'The player is removed from this list. Nothing changes on the player itself.',
+    const ok = await confirm(() => ({
+      title: uiText("Delete {{name}}?", { name: player.name }),
+      body: uiText("The player is removed from this list. Nothing changes on the player itself."),
       confirmLabel: uiText("Delete"),
       danger: true,
-    });
+    }));
     if (!ok) return;
     try {
       await remove.mutateAsync(player.id);

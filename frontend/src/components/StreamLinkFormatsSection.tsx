@@ -63,8 +63,8 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
   useUnsavedChanges(addDirty || editDirty, isMutating);
   const requestClose = async (kind: 'add' | 'edit') => {
     if (isMutating) return;
-    if ((kind === 'add' ? addDirty : editDirty) && !await confirm({ title: tUi('Discard unsaved changes?'),
-      body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true })) return;
+    if ((kind === 'add' ? addDirty : editDirty) && !await confirm(() => ({ title: tUi('Discard unsaved changes?'),
+      body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return;
     if (kind === 'edit') setEditingEntry(null);
     else { setAddOpen(false); setNewName(''); setNewPattern(''); setNewIsDefault(false); }
   };
@@ -100,12 +100,12 @@ const StreamLinkFormatsSection: React.FC<StreamLinkFormatsSectionProps> = ({ not
   };
 
   const handleDelete = async (entry: StreamBaseUrl) => {
-    const ok = await confirm({
+    const ok = await confirm(() => ({
       title: tUi('Delete the link format “{{name}}”?', { name: entry.name }),
       body: tUi('Playlists that were built with this format fall back to the default one.'),
       confirmLabel: uiText("Delete"),
       danger: true,
-    });
+    }));
     if (!ok) return;
     deleteBaseUrlMutation.mutate(entry.id, {
       onSuccess: () => notify(tUi('Link format "{{name}}" deleted', { name: entry.name }), 'success'),

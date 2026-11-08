@@ -32,7 +32,7 @@ export default function BroadcasterLinks() {
       : rows.map((link) => <Stack key={link.id} direction="row" spacing={2} alignItems="center" sx={{ overflowWrap: 'anywhere' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}><Typography>{describe(link)}</Typography></Box>
         <Button color="error" aria-label={tUi("Remove link for {{value0}}", { value0: link.label })} disabled={remove.isPending} onClick={async () => {
-          if (await confirm({ title: `Remove link for ${link.label}?`, body: 'Events from this source go back to automatic matching for this broadcaster.', confirmLabel: uiText("Remove link"), danger: true })) remove.mutate(link);
+          if (await confirm(() => ({ title: uiText("Remove link for {{name}}?", { name: link.label }), body: uiText("Events from this source go back to automatic matching for this broadcaster."), confirmLabel: uiText("Remove link"), danger: true }))) remove.mutate(link);
         }}>{tUi("Remove")}</Button>
       </Stack>)}
   </Stack>;

@@ -15,10 +15,10 @@ import {
 import { Download as DownloadIcon } from '@mui/icons-material';
 import { useDownloadEPGXML } from '../hooks/useEPG';
 import { EPGXMLGenerationParams } from '../services/epgService';
-import { SnackbarSeverity } from '../hooks/useSnackbar';
+import { SnackbarNotify } from '../hooks/useSnackbar';
 
 interface EPGXmlOutputPanelProps {
-  onNotify: (message: string, severity: SnackbarSeverity) => void;
+  onNotify: SnackbarNotify;
 }
 
 const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
@@ -49,9 +49,9 @@ const EPGXmlOutputPanel: React.FC<EPGXmlOutputPanelProps> = ({ onNotify }) => {
     submitting.current = true;
     try {
       await downloadEPGXML(xmlOptions);
-      onNotify(tUi('EPG XML generation started'), 'info');
+      onNotify(() => tUi('EPG XML generation started'), 'info');
     } catch (error) {
-      onNotify(getErrorMessage(error), 'error');
+      onNotify(() => getErrorMessage(error), 'error');
     } finally {
       submitting.current = false;
     }

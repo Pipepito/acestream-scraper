@@ -56,7 +56,7 @@ const OrphanedSourcesDialog: React.FC<OrphanedSourcesDialogProps> = ({ open, onC
         <Button onClick={onClose} disabled={cleanup.isPending}>{tUi("Close")}</Button>
         <Button variant="contained" color="error" disabled={cleanup.isPending || selected.length === 0} onClick={async () => {
           const total = (rows.data ?? []).filter((row) => selected.includes(row.source_url)).reduce((sum, row) => sum + row.count, 0);
-          if (await confirm({ title: uiText("Remove streams from removed sources?"), body: `${total} stream${total === 1 ? '' : 's'} from ${selected.length} source${selected.length === 1 ? '' : 's'} will be deleted, including streams linked to TV channels. TV channels are kept.`, confirmLabel: uiText("Remove streams"), danger: true })) cleanup.mutate(selected);
+          if (await confirm(() => ({ title: uiText("Remove streams from removed sources?"), body: uiText("Streams to remove: {{streams}}. Sources selected: {{sources}}. Streams linked to TV channels are included. TV channels are kept.", { streams: total, sources: selected.length }), confirmLabel: uiText("Remove streams"), danger: true }))) cleanup.mutate(selected);
         }}>{tUi("Remove selected")}</Button>
       </DialogActions>
     </Dialog>

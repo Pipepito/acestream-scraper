@@ -172,7 +172,7 @@ const RemotePlayerDialog: React.FC<RemotePlayerDialogProps> = ({ open, player, p
   useUnsavedChanges(open && dirty, open && busy);
   const close = async () => {
     if (acting.current || busy) return;
-    if (dirty && !await confirm({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true })) return;
+    if (dirty && !await confirm(() => ({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return;
     onClose();
   };
   const probe = !feedback ? null : feedback.kind === 'probe' ? describeRemotePlayerProbe(feedback.value)

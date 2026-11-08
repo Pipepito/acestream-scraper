@@ -4,7 +4,7 @@ import React,{ useEffect,useState } from 'react';
 import { useCreateEPGSource,useEPGSources } from '../../hooks/useEPG';
 import { useEPGMatchAnalysis } from '../../hooks/useEPGMatchAnalysis';
 import { useEPGSourceManagement } from '../../hooks/useEPGSourceManagement';
-import { type SnackbarSeverity } from '../../hooks/useSnackbar';
+import { resolveSnackbarMessage, type SnackbarMessage, type SnackbarSeverity } from '../../hooks/useSnackbar';
 import { useUiText } from '../../i18n/useUiText';
 import { epgProviders } from '../../services/epgProviders';
 import { type CreateEPGSourceDTO,type EPGSource } from '../../services/epgService';
@@ -23,8 +23,8 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
   const [enabled, setEnabled] = useState(true);
   const create = useCreateEPGSource();
   const [visible, setVisible] = useState(20);
-  const [notice, setNotice] = useState<{ text: string; severity: SnackbarSeverity } | null>(null);
-  const showNotice = (text: string, severity: SnackbarSeverity) => setNotice({ text, severity });
+  const [notice, setNotice] = useState<{ text: SnackbarMessage; severity: SnackbarSeverity } | null>(null);
+  const showNotice = (text: SnackbarMessage, severity: SnackbarSeverity) => setNotice({ text, severity });
   const refresh = useEPGSourceManagement(showNotice);
   const matches = useEPGMatchAnalysis(selectedId, showNotice);
   const add = useMutation({
@@ -79,7 +79,7 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
         <MenuItem value="">{tUi("Choose or add a guide")}</MenuItem>{sources.data.map(source => <MenuItem key={source.id} value={source.id}>{source.name}</MenuItem>)}
       </Select>
     </FormControl> : null}
-    {notice ? <Alert severity={notice.severity}>{notice.text}</Alert> : null}
+    {notice ? <Alert severity={notice.severity}>{resolveSnackbarMessage(notice.text)}</Alert> : null}
     {selected ? <>
       {downloading ? <Typography role="status">{tUi("Downloading programme times. Large guides can take a few minutes. You can finish setup while this continues, then match channels in EPG.")}</Typography> : <>
         {selected.last_error ? <Alert severity="warning">{tUi("The guide could not be downloaded. Try again or choose another guide.")}</Alert> : null}

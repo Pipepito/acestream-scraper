@@ -57,7 +57,7 @@ export default function RuntimeSetup({ initial, onClose }: { initial: SetupState
   const { confirm, dialog } = useConfirm();
   const close = async () => {
     if (mutation.isPending) return;
-    if (changes.length && !await confirm({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true })) return;
+    if (changes.length && !await confirm(() => ({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return;
     onClose();
   };
   const move = (index: number) => { setStep(index); };

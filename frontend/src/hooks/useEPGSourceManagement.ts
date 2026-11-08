@@ -11,7 +11,7 @@ import {
   useRefreshAllEPGSources
 } from './useEPG';
 import { EPGSource, epgService } from '../services/epgService';
-import { SnackbarSeverity } from './useSnackbar';
+import { SnackbarNotify } from './useSnackbar';
 
 export interface EPGSourceFormData {
   url: string;
@@ -35,7 +35,7 @@ const DEFAULT_REFRESH_TIMEOUT_MS = 15 * 60 * 1000;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export const useEPGSourceManagement = (
-  showSnackbar: (message: string, severity: SnackbarSeverity) => void,
+  showSnackbar: SnackbarNotify,
   watchOptions: EPGRefreshWatchOptions = {}
 ) => {
   const queryClient = useQueryClient();
@@ -60,7 +60,8 @@ export const useEPGSourceManagement = (
   const baseline = useRef<EPGSourceFormData>({ name: '', url: '', enabled: true });
   const submitting = useRef(false);
   const [sourcePending, setSourcePending] = useState(false);
-  const [sourceError, setSourceError] = useState('');
+  const [sourceFailure, setSourceError] = useState<unknown>(null);
+  const sourceError = sourceFailure ? getErrorMessage(sourceFailure) : '';
   const { confirm, dialog: sourceConfirmation } = useConfirm();
   const dirty = openSourceDialog && JSON.stringify(sourceFormData) !== JSON.stringify(baseline.current);
   useUnsavedChanges(dirty, sourcePending);
@@ -95,15 +96,15 @@ export const useEPGSourceManagement = (
 
   const describeRefreshOutcome = async (source: EPGSource | null, name: string) => {
     if (!source) {
-      showSnackbar(`EPG refresh for ${name} is still running. Reload the page later to see the result.`, 'warning');
+      showSnackbar(() => (uiText("EPG refresh for {{name}} is still running. Reload the page later to see the result.", { name })), 'warning');
       return;
     }
     if (source.last_error) {
-      showSnackbar(`EPG refresh failed for ${name}: ${source.last_error}`, 'error');
+      showSnackbar(() => (uiText("EPG refresh failed for {{name}}: {{details}}", { name, details: source.last_error ?? uiText("Unknown error") })), 'error');
       return;
     }
     const { total } = await epgService.getChannels(source.id, 0, 1);
-    showSnackbar(`EPG source ${name} refreshed: ${total} channels loaded.`, 'success');
+    showSnackbar(() => (uiText("EPG source {{name}} refreshed: {{count}} channels loaded.", { name, count: total })), 'success');
   };
 
   // State for tracking which source is being refreshed
@@ -111,7 +112,7 @@ export const useEPGSourceManagement = (
 
   // Source form handlers
   const handleAddSourceClick = () => {
-    baseline.current = { url: '', name: '', enabled: true }; setSourceError('');
+    baseline.current = { url: '', name: '', enabled: true }; setSourceError(null);
     setIsEditSource(false);
     setEditSourceId(null);
     setSourceFormData({
@@ -123,7 +124,7 @@ export const useEPGSourceManagement = (
   };
 
   const handleEditSourceClick = (source: EPGSource) => {
-    baseline.current = { url: source.url, name: source.name, enabled: source.enabled }; setSourceError('');
+    baseline.current = { url: source.url, name: source.name, enabled: source.enabled }; setSourceError(null);
     setIsEditSource(true);
     setEditSourceId(source.id);
     setSourceFormData({
@@ -136,7 +137,7 @@ export const useEPGSourceManagement = (
 
   const handleCloseSourceDialog = async () => {
     if (submitting.current) return;
-    if (dirty && !await confirm({ title: uiText('Discard unsaved changes?'), body: uiText('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: uiText('Discard changes'), danger: true })) return;
+    if (dirty && !await confirm(() => ({ title: uiText('Discard unsaved changes?'), body: uiText('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: uiText('Discard changes'), danger: true }))) return;
     setOpenSourceDialog(false);
   };
 
@@ -150,29 +151,29 @@ export const useEPGSourceManagement = (
 
   const handleSourceFormSubmit = async () => {
     if (submitting.current || !sourceFormData.name.trim() || !sourceFormData.url.trim()) return;
-    submitting.current = true; setSourcePending(true); setSourceError('');
+    submitting.current = true; setSourcePending(true); setSourceError(null);
     const submitted = { ...sourceFormData, name: sourceFormData.name.trim(), url: sourceFormData.url.trim() };
     try {
       if (isEditSource && editSourceId) {
         await updateSource(submitted);
-        showSnackbar(uiText("EPG source updated successfully"), 'success');
+        showSnackbar(() => (uiText("EPG source updated successfully")), 'success');
       } else {
         await createSource(submitted);
-        showSnackbar(uiText("EPG source added successfully"), 'success');
+        showSnackbar(() => (uiText("EPG source added successfully")), 'success');
       }
       setOpenSourceDialog(false);
     } catch (error) {
-      setSourceError(getErrorMessage(error));
+      setSourceError(error);
     } finally { submitting.current = false; setSourcePending(false); }
   };
 
   const handleDeleteSourceClick = async (id: number) => {
-    if (await confirm({ title: uiText('Delete guide source?'), body: uiText('Remove this guide source and its imported programme data? Review channel guide assignments afterwards.'), confirmLabel: uiText('Delete'), danger: true })) {
+    if (await confirm(() => ({ title: uiText('Delete guide source?'), body: uiText('Remove this guide source and its imported programme data? Review channel guide assignments afterwards.'), confirmLabel: uiText('Delete'), danger: true }))) {
       try {
         await deleteSource(id);
-        showSnackbar(uiText("EPG source deleted successfully"), 'success');
+        showSnackbar(() => (uiText("EPG source deleted successfully")), 'success');
       } catch (error) {
-        showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
+        showSnackbar(() => (getErrorMessage(error)), 'error');
       }
     }
   };
@@ -185,17 +186,17 @@ export const useEPGSourceManagement = (
       name = before.name || name;
       const result = await epgService.refreshSource(id);
       if (!result.success) {
-        showSnackbar(`Error refreshing EPG source: ${result.error || 'Unknown error'}`, 'error');
+        showSnackbar(() => (uiText("Error refreshing EPG source: {{details}}", { details: result.error || uiText("Unknown error") })), 'error');
         return;
       }
-      showSnackbar(`EPG refresh started for ${name}. Large guides can take a few minutes.`, 'info');
+      showSnackbar(() => (uiText("EPG refresh started for {{name}}. Large guides can take a few minutes.", { name })), 'info');
       const after = await waitForSourceRefresh(id, before.last_updated);
       if (!mountedRef.current) return;
       queryClient.invalidateQueries({ queryKey: ['epg-sources'] });
       queryClient.invalidateQueries({ queryKey: ['epg-channels'] });
       await describeRefreshOutcome(after, name);
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
+      showSnackbar(() => (getErrorMessage(error)), 'error');
     } finally {
       if (mountedRef.current) setRefreshingSourceId(null);
     }
@@ -209,13 +210,13 @@ export const useEPGSourceManagement = (
       const results = await refreshAllSources();
       const failedToStart = results.filter((r) => !r.success).length;
       if (enabled.length === 0) {
-        showSnackbar(uiText("No enabled EPG sources to refresh."), 'warning');
+        showSnackbar(() => (uiText("No enabled EPG sources to refresh.")), 'warning');
         return;
       }
       showSnackbar(
-        failedToStart === 0
-          ? `EPG refresh started for ${enabled.length} source${enabled.length === 1 ? '' : 's'}. The table updates as each one finishes.`
-          : `${failedToStart} of ${enabled.length} sources could not be started.`,
+        () => (failedToStart === 0
+          ? uiText("EPG refresh started for {{count}} sources. The table updates as each one finishes.", { count: enabled.length })
+          : uiText("{{failed}} of {{count}} sources could not be started.", { failed: failedToStart, count: enabled.length })),
         failedToStart === 0 ? 'info' : 'warning'
       );
       const outcomes = await Promise.all(enabled.map((source) => waitForSourceRefresh(source.id, source.last_updated)));
@@ -226,15 +227,12 @@ export const useEPGSourceManagement = (
       const failed = finished.filter((o) => Boolean(o.last_error)).length;
       const stillRunning = outcomes.length - finished.length;
       if (failed === 0 && stillRunning === 0) {
-        showSnackbar(`All ${finished.length} EPG sources refreshed successfully`, 'success');
+        showSnackbar(() => (uiText("All {{count}} EPG sources refreshed successfully", { count: finished.length })), 'success');
       } else {
-        const parts = [`${finished.length - failed} refreshed`];
-        if (failed > 0) parts.push(`${failed} failed`);
-        if (stillRunning > 0) parts.push(`${stillRunning} still running`);
-        showSnackbar(`EPG refresh: ${parts.join(', ')}`, failed > 0 ? 'error' : 'warning');
+        showSnackbar(() => (uiText("EPG refresh: {{refreshed}} refreshed, {{failed}} failed, {{running}} still running", { refreshed: finished.length - failed, failed, running: stillRunning })), failed > 0 ? 'error' : 'warning');
       }
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
+      showSnackbar(() => (getErrorMessage(error)), 'error');
     } finally {
       if (mountedRef.current) setIsWatchingRefreshAll(false);
     }

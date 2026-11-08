@@ -123,11 +123,11 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     setConfirming(null);
     try {
       const result = await restart.mutateAsync(target.name);
-      showSnackbar(result.message || `Restart requested for ${target.label}.`, 'info');
+      showSnackbar(() => (result.message || `Restart requested for ${target.label}.`), 'info');
       setWatch({ name: target.name, label: target.label, previousPid: target.pid, startedAt: Date.now() });
     } catch (err) {
       const normalized = normalizeApiError(err);
-      showSnackbar(`Could not restart ${target.label}: ${normalized.message}`, 'error');
+      showSnackbar(() => (`Could not restart ${target.label}: ${normalized.message}`), 'error');
     }
   };
 
@@ -136,10 +136,10 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     const action = target.stopped_by_user ? 'start' : 'stop';
     try {
       const result = await control.mutateAsync({ action, name: target.name });
-      showSnackbar(result.message, 'info');
+      showSnackbar(() => (result.message), 'info');
       setWatch({ name: target.name, label: target.label, previousPid: target.pid, action, startedAt: Date.now() });
     } catch (err) {
-      showSnackbar(`Could not ${action} ${target.label}: ${normalizeApiError(err).message}`, 'error');
+      showSnackbar(() => (`Could not ${action} ${target.label}: ${normalizeApiError(err).message}`), 'error');
     }
   };
 

@@ -160,7 +160,7 @@ const AcestreamChannels: React.FC = () => {
         if (detail.code !== 'IMPORT_EXCLUDED') throw error;
         const context = detail.context as { rule_ids?: number[] } | undefined;
         const ruleIds = context?.rule_ids ?? [];
-        const accepted = await confirm({ title: uiText("Add excluded stream?"), body: <Stack spacing={1}><span>{tUi("This stream matches import rule")}{' '}{ruleIds.join(', ')}{tUi(". Add anyway applies only to this manual addition.")}</span><Button href={`/scraper?tab=exclusions#rule-${ruleIds[0] ?? ''}`}>{tUi("Review import exclusions")}</Button></Stack>, confirmLabel: uiText("Add anyway") });
+        const accepted = await confirm(() => ({ title: uiText("Add excluded stream?"), body: <Stack spacing={1}><span>{tUi("This stream matches import rule")}{' '}{ruleIds.join(', ')}{tUi(". Add anyway applies only to this manual addition.")}</span><Button href={`/scraper?tab=exclusions#rule-${ruleIds[0] ?? ''}`}>{tUi("Review import exclusions")}</Button></Stack>, confirmLabel: uiText("Add anyway") }));
         if (!accepted) return;
         await acestreamChannelService.createAcestreamChannel({ ...values, allow_excluded: true });
       }
@@ -194,12 +194,12 @@ const AcestreamChannels: React.FC = () => {
 
   const handleDelete = useCallback(
     async (channel: AcestreamChannel) => {
-      const ok = await confirm({
-        title: `Delete ${channel.name}?`,
-        body: 'The channel is removed from the inventory and the playlist. It comes back if a source still lists it.',
+      const ok = await confirm(() => ({
+        title: uiText("Delete {{name}}?", { name: channel.name }),
+        body: uiText("The channel is removed from the inventory and the playlist. It comes back if a source still lists it."),
         confirmLabel: uiText("Delete"),
         danger: true,
-      });
+      }));
       if (!ok) return;
       deleteChannel.mutate(channel.id, {
         onSuccess: () => setNotice({ message: `Deleted ${channel.name}.` }),

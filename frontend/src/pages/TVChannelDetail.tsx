@@ -222,12 +222,12 @@ const TVChannelDetail: React.FC = () => {
 
   const handleRemoveAcestream = async (aceStreamId: string) => {
     const stream = channel?.acestream_channels.find((item) => item.id === aceStreamId);
-    const ok = await confirm({
-      title: `Remove ${stream?.name || aceStreamId} from this channel?`,
-      body: 'The stream stays in the Acestream inventory; it just stops feeding this TV channel.',
+    const ok = await confirm(() => ({
+      title: uiText("Remove {{name}} from this channel?", { name: stream?.name || aceStreamId }),
+      body: uiText("The stream stays in the Acestream inventory; it just stops feeding this TV channel."),
       confirmLabel: uiText("Remove"),
       danger: true,
-    });
+    }));
     if (!ok) return;
     try {
       await removeAcestreamMutation.mutateAsync({ tvChannelId: channelId, aceStreamId });

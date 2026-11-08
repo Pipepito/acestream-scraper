@@ -1,3 +1,5 @@
+import { useSnackbar } from '../hooks/useSnackbar';
+import { getErrorMessage } from '../utils/errorUtils';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
@@ -72,7 +74,7 @@ const EPGChannelDetail: React.FC = () => {
     is_active: true,
     is_favorite: false,
   });
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' | 'info' });
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const { data: channel, isLoading: isLoadingChannel, error: channelError } = useEPGChannel(channelId);
   const { data: stringMappings, isLoading: isLoadingMappings, error: stringMappingsError } = useEPGStringMappings(channelId);
@@ -85,36 +87,31 @@ const EPGChannelDetail: React.FC = () => {
 
   const selectedMappedChannel = tvChannels?.find((tvChannel: TVChannel) => tvChannel.id === selectedTVChannel) || null;
 
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
-    setSnackbar({ open: true, message, severity });
-  };
-  const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
-
   const handleAddStringMapping = async () => {
     const trimmedPattern = stringMappingFormData.search_pattern.trim();
     try {
       await addStringMapping({ pattern: trimmedPattern, isExclusion: stringMappingFormData.is_exclusion });
-      showSnackbar(uiText("String mapping added successfully"), 'success');
+      showSnackbar(() => (uiText("String mapping added successfully")), 'success');
       setOpenStringMappingDialog(false);
       setStringMappingFormData({ search_pattern: '', is_exclusion: false });
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
+      showSnackbar(() => (getErrorMessage(error)), 'error');
     }
   };
 
   const handleDeleteStringMapping = async (mapping: EPGStringMapping) => {
-    const ok = await confirm({
-      title: `Delete the rule “${mapping.search_pattern}”?`,
-      body: 'Matching stops using this pattern from the next EPG refresh.',
+    const ok = await confirm(() => ({
+      title: uiText("Delete the rule “{{pattern}}”?", { pattern: mapping.search_pattern }),
+      body: uiText("Matching stops using this pattern from the next EPG refresh."),
       confirmLabel: uiText("Delete"),
       danger: true,
-    });
+    }));
     if (!ok) return;
     try {
       await deleteStringMapping(mapping.id);
-      showSnackbar(uiText("String mapping deleted successfully"), 'success');
+      showSnackbar(() => (uiText("String mapping deleted successfully")), 'success');
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
+      showSnackbar(() => (getErrorMessage(error)), 'error');
     }
   };
 
@@ -122,11 +119,11 @@ const EPGChannelDetail: React.FC = () => {
     if (!selectedTVChannel || isLoadingTVChannels || tvChannelsError || !tvChannels?.length) return;
     try {
       await mapChannel({ epg_channel_id: channelId, tv_channel_id: selectedTVChannel });
-      showSnackbar(uiText("Channel mapped successfully"), 'success');
+      showSnackbar(() => (uiText("Channel mapped successfully")), 'success');
       setOpenMappingDialog(false);
       setSelectedTVChannel(null);
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, 'error');
+      showSnackbar(() => (getErrorMessage(error)), 'error');
     }
   };
 
@@ -146,10 +143,10 @@ const EPGChannelDetail: React.FC = () => {
     if (!channel) return;
     try {
       await createTVChannel({ ...createTVForm, epg_id: channel.channel_xml_id });
-      showSnackbar(uiText("TV channel created successfully"), 'success');
+      showSnackbar(() => (uiText("TV channel created successfully")), 'success');
       setOpenCreateTVDialog(false);
     } catch {
-      showSnackbar(uiText("Failed to create TV Channel"), 'error');
+      showSnackbar(() => (uiText("Failed to create TV Channel")), 'error');
     }
   };
 

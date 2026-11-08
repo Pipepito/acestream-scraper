@@ -43,7 +43,7 @@ export default function SourceEditor({ source, onSaved, onClose, submitLabel, di
   const change = (patch: Partial<SourceDraft>) => { setValue(previous => ({ ...previous, ...patch })); setError(null); };
   const close = async () => {
     if (busy) return;
-    if (dirty && !await confirm({ title: t('Discard unsaved changes?'), body: t('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: t('Discard changes'), danger: true })) return;
+    if (dirty && !await confirm(() => ({ title: t('Discard unsaved changes?'), body: t('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: t('Discard changes'), danger: true }))) return;
     onClose?.();
   };
   const submit = async (event: React.FormEvent) => {

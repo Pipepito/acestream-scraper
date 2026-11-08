@@ -199,7 +199,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
   };
 
   const handleScrapeAll = async () => {
-    if (await confirm({ title: uiText("Scrape all enabled sources?"), body: `${enabledSourceCount} source${enabledSourceCount === 1 ? '' : 's'} will be fetched now; results appear in the table as each finishes.`, confirmLabel: uiText("Scrape all") })) {
+    if (await confirm(() => ({ title: uiText("Scrape all enabled sources?"), body: uiText("Enabled sources to fetch now: {{count}}. Results appear as each finishes.", { count: enabledSourceCount }), confirmLabel: uiText("Scrape all") }))) {
       try {
         await scrapeAllURLs.mutateAsync();
         setSnackbar({

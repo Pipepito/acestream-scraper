@@ -37,12 +37,12 @@ const RulesTab: React.FC = () => {
   const { mutateAsync: deleteMapping, isPending: isDeleting } = useDeleteGlobalEPGStringMapping();
 
   const handleDeleteMapping = async (mapping: EPGStringMapping) => {
-    const ok = await confirm({
-      title: `Delete the rule “${mapping.search_pattern}”?`,
-      body: 'Matching stops using this pattern from the next EPG refresh.',
+    const ok = await confirm(() => ({
+      title: uiText("Delete the rule “{{pattern}}”?", { pattern: mapping.search_pattern }),
+      body: uiText("Matching stops using this pattern from the next EPG refresh."),
       confirmLabel: uiText("Delete"),
       danger: true,
-    });
+    }));
     if (!ok) return;
     try {
       await deleteMapping(mapping.id);

@@ -35,6 +35,30 @@ test('video keeps advancing while browsing and switches channels inline', async 
     await expect(player).toBeVisible();
     const video = page.locator('video');
     await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).currentTime), { timeout: 60_000 }).toBeGreaterThan(1);
+    // Exercise real decoding while every presentation preference changes. The
+    // same element, viewer and source lease must survive the open selector.
+    const originalVideo = await video.elementHandle();
+    for (const preset of ['Lime', 'Coral / navy', 'Immersive']) {
+      await page.getByRole('button', { name: 'Interface', exact: true }).click();
+      const selector = page.getByRole('dialog', { name: 'Choose your interface' });
+      await selector.getByRole('button', { name: new RegExp(`^${preset.replace('/', '\\/')}`) }).click();
+      for (const theme of ['Dark', 'Light']) {
+        await selector.getByRole('combobox', { name: /^Theme\b/ }).click();
+        await page.getByRole('option', { name: theme, exact: true }).click();
+        await selector.getByRole('combobox', { name: /^Language\b/ }).click();
+        await page.getByRole('option', { name: 'Español', exact: true }).click();
+        const spanishSelector = page.getByRole('dialog', { name: 'Elige tu interfaz' });
+        await expect(spanishSelector).toBeVisible();
+        expect(await video.evaluate((node, original) => node === original, originalVideo)).toBe(true);
+        expect(starts).toEqual([ids[0]]);
+        expect(leaves).toHaveLength(0);
+        await spanishSelector.getByRole('combobox', { name: /^Idioma\b/ }).click();
+        await page.getByRole('option', { name: 'English', exact: true }).click();
+      }
+      await selector.getByRole('button', { name: 'Close', exact: true }).click();
+      await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).currentTime)).toBeGreaterThan(1);
+    }
+    expect(await video.evaluate((node, original) => node === original, originalVideo)).toBe(true);
     const before = await video.evaluate(v => (v as HTMLVideoElement).currentTime);
     await page.getByRole('searchbox', { name: 'Find a channel' }).fill('E2E live TV 2');
     await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).currentTime)).toBeGreaterThan(before + 2);

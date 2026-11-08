@@ -21,7 +21,7 @@ for (const mode of ['light', 'dark']) {
       await route.fulfill({ json: data });
     });
     await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/settings');
+    await page.goto('/settings?tab=playback');
     const toggle = page.getByRole('checkbox', { name: 'Route playback through Acexy' });
     await expect(toggle).not.toBeChecked();
     await toggle.check();

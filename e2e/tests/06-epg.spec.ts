@@ -142,9 +142,9 @@ test.describe('EPG', () => {
     await epg.open('Matching');
     await epg.selectSourceFilter(scenario.epg.sources[0].name);
     await epg.analyze('Balanced');
-    await expect(epg.matching()).toContainText(/\d+ analyzed/, { timeout: 240_000 });
+    await expect(epg.matching()).toContainText(/\d+\s+analyzed/, { timeout: 240_000 });
     const text = await epg.matching().innerText();
-    testInfo.annotations.push({ type: 'epg-analysis', description: text.match(/\d+ analyzed[\s\S]*?\d+ creatable/)?.[0]?.replace(/\s+/g, ' ') ?? text.slice(0, 200) });
+    testInfo.annotations.push({ type: 'epg-analysis', description: text.match(/\d+\s+analyzed[\s\S]*?\d+\s+creatable/)?.[0]?.replace(/\s+/g, ' ') ?? text.slice(0, 200) });
   });
 
   test('EPG XML output is generated from the Export tab', async ({ page, api }) => {

@@ -124,7 +124,9 @@ live scenario remains supported below.
 - `stack/stack-up.sh` builds the image through `scripts/ci/build_multiarch_images.sh` when missing and waits
   for every service. Set `E2E_IMAGE`/`E2E_PLATFORM` to test another flavor/platform.
 - The backend runs from source (`stack/backend-start.sh`) so bugs found by the suite can be debugged and
-  fixed locally; its database and logs live under `e2e/.stack/`.
+  fixed locally; its database, recording storage, HLS output and logs live under `e2e/.stack/`.
+  Independently launched backends must each set a different `PLAYER_HLS_DIR` too:
+  startup cleanup intentionally reclaims orphaned FFmpeg processes in that directory.
 
 ## Mobile viewing regression suite
 

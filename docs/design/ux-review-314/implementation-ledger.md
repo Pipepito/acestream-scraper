@@ -583,3 +583,54 @@ final repeated interaction/media/memory and full validation remain outstanding.
   New regressions reject save after edits, retain exact times, switch Spanish and
   confirm discard; a guide refetch cannot replace the selected programme. Focused
   recording suite: 16 passed; final integrated evidence must include this follow-up.
+
+### Final application checkpoint `cebf5422`
+
+- Full public gate: **2,617 backend tests and 121 frontend suites / 748 tests**,
+  zero failures/skips/test warnings. Backend ran from `5054e0a8` and is byte-identical
+  at `cebf5422`; frontend, lint/types, generated-artifact drift and both builds ran
+  after `cebf5422` was committed. Nine separate public contract stages also passed.
+  Private report normalization passed: backend 86.21% total / 78.64% changed;
+  frontend 78.40% total / 79.72% changed. Changed-line goals remain advisory.
+- Actual private IPv4 HTTP and HTTPS recording checks passed in Chromium 149.
+  HTTP reported an insecure context, no `randomUUID`, and working `getRandomValues`;
+  HTTPS reported a secure context. Record-now and guide dialogs opened/cancelled
+  without writes. Double submit produced one creation; replaying its intent returned
+  the same recording. Exact guide times survived, edit/discard worked, and neither
+  origin produced page errors or player starts. HTTPS used an isolated self-signed
+  certificate accepted only by that test context. The initial copied fixture lacked
+  its matching DVR marker; storage correctly rejected it before the clone was fixed.
+  See `recording-origin-evidence.json`; no installation address or credentials included.
+- `5054e0a8` responsive suite: **380 passed**, no skips. Strict Firefox: 60 passed /
+  1 failed because its FFmpeg process exited with signal 9 before playback advanced.
+  The full fresh `cebf5422` Firefox and responsive suites are running; the earlier
+  failure stays in the evidence and is not counted as a pass.
+- Final Docker builds encountered full Docker storage. Removed only 21 obsolete
+  task-owned image tags and old cache in the dedicated `ux314-validation` builder;
+  unrelated images/cache/volumes were preserved. Original failure logs remain.
+  The frozen final matrix is retrying; Docker packaging and final image scans remain.
+- Private Jest policy still blocks the trusted validation path. Its reviewed config
+  needs WOFF2 mapping and the native Fetch-capable test environment (or equivalent
+  pinned trusted implementations); public configuration alone is not applied there.
+  Any private policy/runner checksum change belongs to the maintainer-controlled
+  infrastructure repository. This application PR does not change that policy.
+
+Next: finish final browser/image/service/media checks, Docker-on/off journeys,
+repeat performance measurements, reconcile acceptance evidence, and update the
+single PR/issues. Participant, native AT/zoom, physical device and native ARMv7
+evidence remains explicitly unaccepted and requires the stated external owners.
+
+### Media isolation diagnosis
+
+- Final application responsive suite: **380 passed**, no skips, 5.6 minutes.
+  Final cross-browser monitor: **30 passed**, no skips, 19.7 seconds; E2E types pass.
+- The first `cebf5422` strict Firefox run had 60 passes and one failure: a manifest
+  returned 404 after FFmpeg exited with signal 9. The previous failure had the same
+  process symptom. Investigation found that task backends had separate databases
+  but shared default `/tmp/acestream-player`; a newly started backend's intentional
+  startup sweep killed another fixture's FFmpeg. This was test isolation, not an
+  accepted application failure or reason to weaken error monitoring.
+- The repository E2E launcher now explicitly owns `.stack/player-hls`, and the
+  final fresh fixture uses its own HLS directory. Complete Firefox rerun retains
+  all assertions and strict API/console/backend monitoring. Docker backends have
+  separate container namespaces and explicit task HLS directories.

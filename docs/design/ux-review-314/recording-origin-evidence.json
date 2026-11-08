@@ -1,0 +1,38 @@
+[
+  {
+    "origin": "http private IPv4",
+    "revision": "cebf5422",
+    "browser": "149.0.7827.55",
+    "capabilities": {
+      "secure": false,
+      "randomUUID": "undefined",
+      "getRandomValues": "function"
+    },
+    "recordNowOpenCancel": true,
+    "guideOpenCancel": true,
+    "doubleSubmitCreates": 1,
+    "sameIntentRetrySameRecording": true,
+    "editDirtyDiscard": true,
+    "programmeTimesPreserved": true,
+    "playerStarts": 0,
+    "pageErrors": []
+  },
+  {
+    "origin": "https private IPv4",
+    "revision": "cebf5422",
+    "browser": "149.0.7827.55",
+    "capabilities": {
+      "secure": true,
+      "randomUUID": "function",
+      "getRandomValues": "function"
+    },
+    "recordNowOpenCancel": true,
+    "guideOpenCancel": true,
+    "doubleSubmitCreates": 1,
+    "sameIntentRetrySameRecording": true,
+    "editDirtyDiscard": true,
+    "programmeTimesPreserved": true,
+    "playerStarts": 0,
+    "pageErrors": []
+  }
+]

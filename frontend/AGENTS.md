@@ -90,7 +90,7 @@ does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation uses Watch, Recordings, Events, Channels, Connections, Settings and
 System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
-Integrations. PID/AppID belong to Stream links, not Automation.
+Connections. PID/AppID belong to Stream links, not Automation.
 
 
 ## TV channel inventory and playlist formats
@@ -155,7 +155,7 @@ leases, guarded HTTP input, control-pipe/process-group cleanup, journal recovery
 stop intent and immutable guide snapshots. Never replace originals during
 conversion or delete protected/active/reader-held media. File routes retain the
 optional API-token policy and descriptor-relative no-follow access. Recordings
-is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
+is a main navigation destination; scheduling is TV-channel-only. See `wiki/Recordings.md` and
 `docs/ops/recordings.md` for limits, qualification and rollback.
 
 ## Shared presentation and editor ownership

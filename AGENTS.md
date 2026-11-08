@@ -6,7 +6,7 @@ First-run account setup and later activation live in Settings → Access; no new
 Docker bootstrap credentials are required. Keep the independent migrated access
 store and fail-closed marker outside catalogue exports/recovery. Default-deny
 management applies to all API aliases and ASGI prefixes. Viewer/media capabilities,
-IPTV credentials and administrative headers are separate. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page and works without accounts for verified
+IPTV credentials and administrative headers are separate. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own page under Connections and works without accounts for verified
 home clients. With accounts enabled, require casting permission. Remote control
 always requires an account and explicit opt-in. Keep automatic discovery bounded,
 proxy trust scoped (`auto` detects Docker bridge peers but excludes gateways), and local-browser ownership separate from accounts. Preserve explicit saved proxy overrides. Receiver cleanup must verify exact media ownership; original
@@ -315,7 +315,7 @@ does not release playback; changing the channel or Stop watching releases the
 current viewer. Other pages retain the player dialog. Navigation uses Watch, Recordings, Events, Channels, Connections, Settings and
 System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
-Integrations. PID/AppID belong to Stream links, not Automation.
+Connections. PID/AppID belong to Stream links, not Automation.
 
 
 ## TV channel inventory and playlist formats
@@ -788,7 +788,7 @@ leases, guarded HTTP input, control-pipe/process-group cleanup, journal recovery
 stop intent and immutable guide snapshots. Never replace originals during
 conversion or delete protected/active/reader-held media. File routes retain the
 optional API-token policy and descriptor-relative no-follow access. Recordings
-is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
+is a main navigation destination; scheduling is TV-channel-only. See `wiki/Recordings.md` and
 `docs/ops/recordings.md` for limits, qualification and rollback.
 
 Live TV exposes the seven-day guide inline without starting playback. Programme

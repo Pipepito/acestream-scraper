@@ -16,7 +16,7 @@
             "frontend/src/__tests__/RecordingIntent.test.tsx"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "7f5ce82d"
         },
         {
           "id": "315-2",
@@ -39,7 +39,7 @@
             "e2e/tests/11-live-tv.spec.ts"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "7f5ce82d"
         },
         {
           "id": "315-4",
@@ -265,7 +265,7 @@
           "acceptance": "pending",
           "evidenceRevision": "cebf5422",
           "checkpointNotes": [
-            "real HLS, 3 presets × 2 themes × EN/ES; 48.7s pass at 544eee14"
+            "real HLS, 3 presets \u00d7 2 themes \u00d7 EN/ES; 48.7s pass at 544eee14"
           ]
         },
         {
@@ -653,7 +653,7 @@
       "criteria": [
         {
           "id": "320-1",
-          "requirement": "A user can explain and navigate source → stream → TV channel → guide → playlist through concise in-context help.",
+          "requirement": "A user can explain and navigate source \u2192 stream \u2192 TV channel \u2192 guide \u2192 playlist through concise in-context help.",
           "implementation": "partial",
           "tests": [
             "frontend/src/__tests__/GuideSetup.test.tsx",
@@ -1157,13 +1157,14 @@
         {
           "id": "323-8",
           "requirement": "Final measurements are repeated on the completed page migrations before closure, not just an intermediate branch.",
-          "implementation": "partial",
+          "implementation": "implemented",
           "tests": [
-            "docs/design/ux-review-314/performance-reorder.json",
-            "e2e/scripts/measure-production.py"
+            "docs/design/ux-review-314/performance-final.json",
+            "docs/design/ux-review-314/performance-reorder-final.json",
+            "docs/design/ux-review-314/performance-session-final.json"
           ],
           "acceptance": "pending",
-          "evidenceRevision": "cebf5422"
+          "evidenceRevision": "0e10d63e"
         },
         {
           "id": "323-9",

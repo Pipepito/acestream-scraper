@@ -664,3 +664,49 @@ evidence remains explicitly unaccepted and requires the stated external owners.
 - Runtime contract initially failed because the sandbox denied `/dev/fd` process
   substitution. Its permitted rerun is being checked; the earlier blanket
   nine-stage statement must be read with this correction until that result is recorded.
+
+### Integrated checkpoint `0e10d63e` and production static fix `7f5ce82d`
+
+- The full public gate at `0e10d63e` passed **2,617 backend tests and 121 frontend
+  suites / 749 tests**, with zero failures/skips/test warnings. The backend began
+  at `2b55a46e` and was byte-identical; frontend/codegen/lint/types/builds used
+  `0e10d63e`. Private report normalization passed: backend 86.20% total / 78.64%
+  changed; frontend 78.40% total / 79.73% changed (changed-line goals advisory).
+- All nine public contracts passed with the required local shell permission.
+  This includes the runtime contract previously denied `/dev/fd` by the sandbox;
+  that failed invocation remains recorded and is superseded by the permitted pass.
+- Strict Firefox passed **61/61**; monitor checks **30/30**; standalone helper
+  **36/36 combinations** with 108 template tests/exports. No skips. Actual private
+  HTTP/HTTPS recording checks passed again, including the insecure-context crypto
+  fallback, no-write Cancel, one creation on double submit, same-intent replay,
+  exact guide times and edit/discard, with no page errors or player starts.
+  One harness invocation used Python without Playwright; the configured environment
+  corrected it. Another used immediate `uncheck()` against router-deferred state;
+  the final harness clicks and awaits both unchecked state and the resulting URL.
+- The final 100 production-load samples had no page errors. With 10,000 channels,
+  cold medians including 500ms idle were Watch home 1,140ms, Settings 725ms,
+  TV channels 938ms, Live TV 764ms, Extraction 768ms. TV/Live TV/Settings made
+  6/5/4 API calls versus baseline 24/25/20. Host concurrency affects timings.
+- Five alternating reorder comparisons measured median open 3,199 → 876ms,
+  keyboard move 2,924 → 33ms, precise open heap 753 → 28MB and DOM 150,226 → 442.
+  Post-cancel collected heap was approximately 20MB on both. Thirty repeated
+  same-context reorder/filter/scroll cycles made no writes or page errors; DOM
+  stabilized at 1,373 and final collected heap was 27.4MB versus initial 14.4MB.
+  Warmed caches and sampled variability are retained, not described as proof of
+  no leaks. See the three `performance-*-final.json` evidence files.
+- The responsive suite through FastAPI found **18 WebKit failures / 362 passes**:
+  `/manifest.json` returned SPA HTML. This was hidden by Vite preview, which serves
+  root assets correctly. `7f5ce82d` adds explicit manifest/favicon responses and
+  missing-asset 404s; four focused backend tests pass. Browser console assertions
+  remain unchanged. Full affected application/browser/image validation is rerunning.
+- This final serving correction leaves frontend asset bytes identical to
+  `0e10d63e`. Performance, standalone, contrast, axe and browser-monitor evidence
+  therefore remains applicable to those bytes; production backend behavior is
+  verified separately by the reruns. No manual acceptance requirement is waived.
+
+- The corrected `7f5ce82d` private HTTP/HTTPS recording repeat also passed both
+  origins. The nine public contracts passed again. The superseded `0e10d63e`
+  Docker-on suite passed 61/61; its Docker-off run exposed an eager heading-list
+  assertion before the lazy Settings editor mounted. The maintained test now waits
+  for the same exact two headings. No timeout, expected heading or console assertion
+  was removed. Final Docker-on/off runs use this assertion.

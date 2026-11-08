@@ -30,6 +30,7 @@ from app.api.endpoints.playlists import (
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
+from app.api.openapi_contract import installation_openapi
 from app.config.database import (
     backfill_scraped_url_flags,
     backup_sqlite,
@@ -648,7 +649,6 @@ async def read_index():
         # If frontend build doesn't exist yet, return a placeholder
         return HTMLResponse(content="<html><body><h1>Acestream Scraper</h1><p>Frontend not built yet. Please run 'npm run build' in the frontend directory.</p></body></html>")
 
-from app.api.openapi_contract import installation_openapi
 app.openapi = lambda: installation_openapi(app)
 
 if __name__ == "__main__":

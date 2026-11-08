@@ -710,3 +710,24 @@ evidence remains explicitly unaccepted and requires the stated external owners.
   assertion before the lazy Settings editor mounted. The maintained test now waits
   for the same exact two headings. No timeout, expected heading or console assertion
   was removed. Final Docker-on/off runs use this assertion.
+
+- Corrected production-backend browser results: **380/380 responsive scenarios**
+  and **61/61 strict local Firefox journeys**, no skips. Private-origin recording
+  repeat passed both HTTP and HTTPS. All nine public contract stages passed.
+  The strict runner emitted one Node environment notice because both `NO_COLOR`
+  and `FORCE_COLOR` were set; it is retained in the log and does not come from the
+  application. Docker browser wrappers remove the conflicting inherited variable.
+
+### Pinned source/security scan follow-up
+
+- The private source/dependency/history scanner completed at `f4694fd8`: 394
+  findings, four new, two marked priority. The two priority records refer to the
+  same synthetic recording-intent UUID in the current serializer test and its
+  commit history; it is not a credential and was never used outside the owned
+  listener. The current fixture now uses an explicit zero-filled valid UUID.
+  No scanner suppression, policy exception or history rewrite was introduced.
+- The two new advisory Ruff findings were an OpenAPI helper import below module
+  statements and a test's comparison to `False`. Both were corrected directly.
+  Actual serializer contracts pass 3/3 after the fixture change. Integrated
+  validation is repeated for the import-order correction; historical scanner
+  classification requires owner triage and is not silently counted as clean.

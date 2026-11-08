@@ -39,7 +39,7 @@ it('validates production serializers after transport, including false, empty, ze
   await acestreamChannelService.bulkActivateAcestreamChannels(['one', 'two'], false);
   await recordingService.list(undefined, 0, '');
   await recordingService.create({ tv_channel_id: 1, mode: 'schedule', timezone: 'Europe/Madrid',
-    start_time: '2030-01-01T12:00:00Z', end_time: '2030-01-01T13:00:00Z', idempotency_key: 'a4450d44-2ceb-4339-a095-464b992136ea' });
+    start_time: '2030-01-01T12:00:00Z', end_time: '2030-01-01T13:00:00Z', idempotency_key: '00000000-0000-4000-8000-000000000001' });
   await recordingService.edit('fixture', { expected_revision: 1, end_time: '2030-01-01T13:30:00Z' });
   await tvChannelService.nowNext();
   await setupService.save({ expected_revision: 'a'.repeat(64), runtime: {}, setup_complete: false });

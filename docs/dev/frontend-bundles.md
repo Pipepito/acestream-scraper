@@ -106,3 +106,12 @@ The production backend serves the root `manifest.json` and `favicon.ico` as
 explicit static responses with revalidation. Missing root assets return 404,
 never the SPA fallback HTML. Verify through FastAPI as well as Vite preview:
 WebKit reports an invalid manifest if a static URL falls through to client routing.
+
+The final frontend repeat at `0e10d63e` measured median reorder open 876ms,
+keyboard movement 33ms and open-state CDP heap 28MB over five alternating samples.
+The same-context 30-cycle check retained 1,373 DOM elements and ended at 27.4MB
+collected heap after a 14.4MB cold start. Preserve these raw samples and warmed-cache
+limits when investigating growth; this bounded run does not certify absence of
+leaks. Final measurements are in `performance-final.json`,
+`performance-reorder-final.json` and `performance-session-final.json` under
+`docs/design/ux-review-314/`.

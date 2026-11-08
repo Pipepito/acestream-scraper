@@ -59,7 +59,7 @@ def test_closure_preserves_intentional_maps_and_original_compatibility(schema):
     original = copy.deepcopy(schema)
     closed = consumer_schema(schema)
     assert schema == original
-    assert closed['components']['schemas']['SetupUpdate']['properties']['runtime']['additionalProperties'] != False
+    assert closed['components']['schemas']['SetupUpdate']['properties']['runtime']['additionalProperties'] is not False
 
 
 @pytest.mark.parametrize('url', ['/api/v1/channels/', '/api/v1/acestream-channels/'])

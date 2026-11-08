@@ -1,37 +1,44 @@
 # Remaining acceptance and external owners
 
-Application snapshot: `e13a42ef`, E2E harness `24fbb4eb`, frontend fixtures
-`f09097aa`, 2026-11-08. This is an outstanding-work register,
-not a waiver. PR #325 remains draft and issues #314–#324 stay open. Passing local
-checks cannot substitute for the evidence below. The per-criterion scope is in
-`acceptance.json`; exact automated outcomes and earlier failures are in
-`implementation-ledger.md`.
+## Integration and completion are separate
 
-## Private validation fixed; review/deployment pending · #317 / #324
+Maintainer decision, 2026-11-08: PR #325 is an integration step toward v2.3.0.
+It may merge into `develop` for real-user testing before the UX epic is fully
+accepted. Manual acceptance below is deferred to that feedback cycle, not marked
+passed or removed. Further design changes can land through follow-up PRs.
+Keep #314–#324 open until their individual remaining criteria are accepted.
+Do not use automatic closing references for this integration PR.
 
-Owner: repository maintainer / private infrastructure reviewer.
+Before integration, require passing automated validation for the exact final PR
+head and current target, resolved review conversations, and the maintainer's
+merge decision. A version or documentation follow-up creates a new head and
+needs fresh required CI. Do not reuse an older commit's green status.
 
-The owner authorized the private compatibility changes after the original delivery.
-[Private PR #15](https://github.com/Pipepito/acestream-scraper-infra/pull/15), revision
-`a057148d9dd923329a297bd81236935f0982e912`, supplies trusted WOFF2 mapping and
-matching native Fetch APIs through individually mounted private helpers. The AMD64
-wrapper now executes actual runtime checks under emulation; ARMv7 stays packaging-only.
+After integration, the trusted develop pipeline validates the merged revision
+before publishing floating `develop*` images. Those previews can supply the
+manual and participant evidence below. Record image digest and source commit,
+not just the mutable tag. A merge, selected version or develop image does not
+mean stable release, epic completion, accessibility conformance or final design
+approval. Versioned v2.3.0 images and `latest` remain a separate manual release
+from `main`. This document does not authorize a merge or publication.
 
-All 362 infrastructure regressions pass with warnings treated as errors. The fixed
-private full gate passes 2,619 backend tests and 121 frontend suites / 750 tests,
-with zero failures/skips/test warnings/console errors, plus lint/types, drift,
-builds and architecture/publication dry runs. Five AMD64 and five ARM64 runtime
-checks and the ARMv7 engine packaging probe pass. All four rendered pipeline
-files pass the live Jenkins Declarative validator after explicit owner authorization.
-See `private-validation-compatibility.json` for exact revisions and immutable images.
+## Automated evidence and follow-up
 
-The prior failed-policy evidence remains in the ledger. These new local results do
-not claim that deployed Jenkins policy changed: the fix is on a review branch and
-has not been merged or installed. Live CI needs the separately authorized reviewed
-policy deployment. The owner explicitly requested no merge or deployment yet.
-No credentials, jobs, protected branches, publication policy or live definitions
-were changed. Native ARMv7 engine qualification remains experimental and needs its
-hardware procedure independently of successful packaging checks.
+Application implementation snapshot: `e13a42ef`; final E2E harness `24fbb4eb`;
+frontend fixtures `f09097aa`. The 2026-11-08 hosted validation of app head
+`8ee7da19dd5c7e28c808c197bbad3d277127739f` against develop base
+`cf952afc6b4489c02b7a675ff3d634cc13d98e0b` passed the full application gate
+(2,619 backend tests, 121 frontend suites / 750 tests, zero failures/skips), all
+15 image builds, five AMD64 and five ARM64 runtime checks, and ARMv7 packaging.
+All 11 image security comparisons completed with zero new findings. Recheck
+GitHub commit statuses for the current head; this is a dated snapshot, not proof
+that subsequent changes passed. Prior failed attempts remain in the ledger.
+
+The per-criterion scope remains in `acceptance.json`; automated outcomes and
+commands are in `implementation-ledger.md`. Native ARMv7 engine qualification
+remains experimental and requires real hardware independently of packaging.
+The source-scan classification and existing dependency advisories below are
+separate security/dependency follow-ups; neither is a manual UX test result.
 
 ## Manual assistive technology · #315 / #317 / #324
 
@@ -94,3 +101,22 @@ and are unchanged. Existing container pip-root and debconf noninteractive notice
 also remain visible. No warning suppression, forced dependency upgrade or private
 ESLint/Jest policy change was used to hide them. Review upgrades with the pinned
 private tooling; local test success is not a claim that these advisories vanished.
+
+## Feedback and acceptance record
+
+For each session record the image digest/source commit, OS/device, browser and
+assistive technology versions, preset, language, theme, task, expected/observed
+behavior, pass/fail, severity and owning issue. Keep personal data, credentials
+and private source URLs out of public evidence. Use consenting testers and owned
+test installations/receivers; back up persistent data before development upgrades.
+
+Start with viewing/filtering/stopping, recording schedule/edit/cancel (including
+DST), source preview/save, guide matching/reorder/export, account permissions,
+connection setup and recovery explanations. Check draft and playback continuity
+when switching preferences. Fix consequential mistakes and accessibility blockers,
+then repeat affected tasks on the new image. Keep design preferences separate
+from correctness failures and retain the original observations.
+
+Before declaring the epic complete or v2.3.0 ready for stable release, reconcile
+all remaining criteria with observed evidence or an explicit maintainer scope
+change. Integration into develop alone closes none of these acceptance items.

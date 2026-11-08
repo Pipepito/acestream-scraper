@@ -265,7 +265,7 @@
           "acceptance": "pending",
           "evidenceRevision": "e13a42ef",
           "checkpointNotes": [
-            "real HLS, 3 presets \u00d7 2 themes \u00d7 EN/ES; 48.7s pass at 544eee14"
+            "real HLS, 3 presets × 2 themes × EN/ES; 48.7s pass at 544eee14"
           ]
         },
         {
@@ -653,7 +653,7 @@
       "criteria": [
         {
           "id": "320-1",
-          "requirement": "A user can explain and navigate source \u2192 stream \u2192 TV channel \u2192 guide \u2192 playlist through concise in-context help.",
+          "requirement": "A user can explain and navigate source → stream → TV channel → guide → playlist through concise in-context help.",
           "implementation": "partial",
           "tests": [
             "frontend/src/__tests__/GuideSetup.test.tsx",
@@ -1338,5 +1338,19 @@
       ]
     }
   ],
-  "evidenceNote": "Production application snapshot e13a42ef, final unit fixtures f09097aa. Public and fixed private full gates pass (2619 backend, 750 frontend); private infrastructure a057148 passes all eleven image probes and four authorized live Declarative checks. Its PR #15 is not merged/deployed. Per-criterion coverage limits and unwaived manual/physical/participant evidence remain explicit; no issue is automatically closed. See private-validation-compatibility.json and pending-acceptance.md."
+  "evidenceNote": "Application snapshot e13a42ef, final E2E harness 24fbb4eb and unit fixtures f09097aa. Hosted validation passed on app head 8ee7da19dd5c7e28c808c197bbad3d277127739f on 2026-11-08: 2619 backend / 750 frontend tests, 15 image builds, ten AMD64/ARM64 runtime checks and ARMv7 packaging. New heads require fresh validation. Integration into develop permits real-user testing and further design iteration; it does not accept pending manual/physical/participant criteria or close issues. See pending-acceptance.md.",
+  "integrationPolicy": {
+    "decisionDate": "2026-11-08",
+    "target": "develop",
+    "selectedVersion": "v2.3.0",
+    "purpose": "Integrate for real-user development-image testing and further design iteration.",
+    "manualAcceptanceTiming": "May continue after integration; remains pending until evidenced or explicitly rescoped.",
+    "mergeRequirements": [
+      "Required automated validation on the exact final head and current target",
+      "Resolved review conversations",
+      "Maintainer merge decision"
+    ],
+    "closesIssuesAutomatically": false,
+    "stableReleaseApproved": false
+  }
 }

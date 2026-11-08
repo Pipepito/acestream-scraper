@@ -79,9 +79,10 @@ Docker Hub text is copied manually. Public wiki and release notes remain here.
 
 A repository change is not proof that Jenkins has deployed it. Compare the app
 commit SHA and infrastructure revision in build logs, and distinguish the Jenkins
-result from GitHub's commit status. PR #207 is the current release PR; inspect its
-live state before reporting readiness. A passing historical build does not validate
-new commits. See [collaborator safety](jenkins-collaborator-safety.md).
+result from GitHub's commit status. Release PR #207 is historical (merged, verified
+2026-11-08); inspect the current release PR before reporting readiness. A passing
+historical build does not validate new commits. See
+[collaborator safety](jenkins-collaborator-safety.md).
 
 ## Production image acceptance
 

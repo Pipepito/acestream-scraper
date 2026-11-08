@@ -40,12 +40,13 @@ loads the applicable file when working below those directories.
 ## Start here
 
 - The active integration branch is `develop`; `main` is the release branch.
-- The current release PR is GitHub PR #207, `develop` -> `main`, preparing
-  v2.2.0. PR #162 is historical and has already merged.
+- Release PR #207 (`develop` -> `main`, v2.2.0) is merged, verified
+  2026-11-08. PR #162 is also historical. This branch selects v2.3.0;
+  selecting a version does not establish stable publication.
 - Treat live PR and CI state as volatile. Before reporting it, run
   `gh pr view 207 --json state,mergeable,mergeStateStatus,statusCheckRollup,updatedAt,url`
   or inspect the PR in GitHub. Local validation is not proof of current CI status.
-- `version.txt` records the selected release version (`v2.2.0` for this cycle),
+- `version.txt` records the selected release version (`v2.3.0` for this cycle),
   without a `-dev` suffix. Development images use only floating `develop*` tags;
   versioned tags and `latest` belong exclusively to the manual release from main.
 - `backend/` and `frontend/` are the only canonical application roots. Do not

@@ -99,7 +99,7 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
       <Typography>{tUi("Review the schedule, then select the events to save. Times shown in")}{' '}{zone}.</Typography>
       {preview.warnings.map((warning) => <Typography key={warning} variant="body2" color="text.secondary">{warning}</Typography>)}
       {mode === 'provider' ? <>
-        <EventInterestFields prefix="Import: " value={provider.interests ?? emptyInterests} choices={preview.available_interests} disabled={busy} onChange={(interests) => setProvider({ ...provider, interests })} />
+        <EventInterestFields prefix={tUi('Import: ')} value={provider.interests ?? emptyInterests} choices={preview.available_interests} disabled={busy} onChange={(interests) => setProvider({ ...provider, interests })} />
         <Button disabled={busy} onClick={() => run(() => reviewSource.mutate())}>{tUi("Update preview with interests")}</Button>
         <Typography variant="caption">{tUi("Update the preview after changing interests before saving.")}</Typography>
       </> : null}

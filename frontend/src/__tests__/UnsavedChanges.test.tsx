@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, Link, Outlet, RouterProvider, useLocation } from 'react-router-dom';
-import { UnsavedChangesProvider } from '../components/UnsavedChanges';
+import { UnsavedChangesProvider, useUnsavedChanges } from '../components/UnsavedChanges';
 import { useSettingDraft } from '../hooks/useSettingDraft';
 import { AppPreferencesProvider, useAppPreferences } from '../preferences/AppPreferences';
 
@@ -87,4 +87,20 @@ it('waits for an in-flight save before completing requested navigation', async (
   // Complete the existing request while its page is behind the modal.
   fireEvent.click(screen.getByRole('button', { name: 'Finish save', hidden: true }));
   expect(await screen.findByRole('heading', { name: 'Other page' })).toBeInTheDocument();
+});
+
+it('allows only declared query changes that preserve an editor and still guards host tabs', async () => {
+  function CatalogueDraft() {
+    useUnsavedChanges(true, false, ['folder', 'catalogue']);
+    return <><Link to="?tab=w3u&catalogue=1&folder=sports">Sports folder</Link><Link to="?tab=sources">Sources tab</Link><output>{useLocation().search}</output></>;
+  }
+  const router = createMemoryRouter([{ path: '/scraper', element: <UnsavedChangesProvider><CatalogueDraft /></UnsavedChangesProvider> }], { initialEntries: ['/scraper?tab=w3u&catalogue=1'] });
+  render(<RouterProvider router={router} />);
+  fireEvent.click(screen.getByRole('link', { name: 'Sports folder' }));
+  expect(router.state.location.search).toContain('folder=sports');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('link', { name: 'Sources tab' }));
+  expect(await screen.findByRole('dialog', { name: 'Discard unsaved changes?' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(router.state.location.search).toContain('folder=sports');
 });

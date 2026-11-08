@@ -8,8 +8,8 @@ import { eventService, type BroadcasterLinkView } from '../../services/eventServ
 import { eventErrorMessage as getErrorMessage } from './eventErrors';
 
 function describe(link: BroadcasterLinkView): string {
-  const target = link.target ? link.target.name : link.content_id ? `Stream ${link.content_id.slice(-8)}` : uiText("Unavailable channel");
-  return `${link.label} → ${target} · ${link.source_name} · ${link.event_count} event${link.event_count === 1 ? '' : 's'}`;
+  const target = link.target ? link.target.name : link.content_id ? uiText('Stream {{id}}', { id: link.content_id.slice(-8) }) : uiText("Unavailable channel");
+  return uiText('broadcasterEventCount', { label: link.label, target, source: link.source_name, count: link.event_count });
 }
 
 /** Source-wide broadcaster links: one choice per broadcaster name, applied to every event of that source. */

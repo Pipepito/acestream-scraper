@@ -494,3 +494,28 @@ final repeated interaction/media/memory and full validation remain outstanding.
 - First ARM64 scraper image quality scan (frozen `147a6e7`): completed, report-only,
   427 baseline findings, zero new and zero new priority findings. Remaining image
   scans and final-revision reruns remain required.
+
+### Event, extraction and catalogue editor follow-up
+
+- Event retention retains its independent draft while its panel is hidden and
+  provides Cancel to the latest saved policy. Overlay and broadcaster mapping
+  editors guard pending operations and retain reviewed revisions/selections.
+  Refresh outcomes use their stable status fields, with bilingual interest/search
+  hints and plural broadcaster-link summaries. Focused event regressions: 44 passed.
+- Extraction drafts report pending/dirty state to the installed page; standalone
+  unload protection adds no application router/API dependency. Repeated test/save
+  actions are guarded immediately. Success feedback retranslates without losing
+  the original recipe, and result counts now use singular/plural resources.
+  Focused recipe/language regressions: 9 passed. Shared helper messages regenerated.
+- Catalogue reviews preserve drafts while browsing folders; host tabs remain
+  guarded. Local replacement/discard asks before losing a review. File/preview/save
+  operations have immediate guards and preserve failed inputs. An assignment
+  Autocomplete warning exposed a selected option disappearing during close/refetch;
+  selection now uses stable IDs and retains its display without enabling removed
+  channels. Final focused catalogue/guard/assignment checks: 17 passed, warning-free.
+- Supplemental AMD64 emulated runtime at frozen `147a6e7` passed production probes,
+  both-engine startup, checker crash/recovery, cache reclamation, independent Stop,
+  peer access and container health. The private wrapper's cross-platform layout
+  branch still assumes ARM; no private policy was changed. Its peer invocation
+  lacked an explicit platform and emitted a Docker platform notice; subsequent
+  local supplemental runs must supply that platform explicitly.

@@ -1,7 +1,7 @@
 import { translateKnown } from '../i18n/text';
 import { uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, LinearProgress, Link, MenuItem, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import catalogue from './catalogue.json';
 import { validateRecipe, checkSample } from './engine';
@@ -18,13 +18,14 @@ interface Props {
   preview: (recipe: ExtractionRecipe, sample: string) => Promise<RecipePreview>;
   fetchSample?: () => Promise<string>;
   onSave?: (recipe: ExtractionRecipe | null) => Promise<void>;
+  onDraftState?: (state: { dirty: boolean; pending: boolean }) => void;
 }
 function download(name: string, data: unknown) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = name; anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, fetchSample, onSave }: Props) {
+export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, fetchSample, onSave, onDraftState }: Props) {
   const tUi = useUiText();
   const [recipe, setRecipe] = useState<ExtractionRecipe>(initialRecipe ?? newRecipe());
   const [sample, setSample] = useState('');
@@ -33,7 +34,9 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
   const [target, setTarget] = useState<FieldName | 'records'>('records');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<string | (() => string)>('');
+  const [savedRecipe, setSavedRecipe] = useState(() => JSON.stringify(recipe));
+  const pending = useRef(false);
   const [result, setResult] = useState<RecipePreview | null>(null);
   const [tested, setTested] = useState('');
   const [rawTemplate, setRawTemplate] = useState<{ text: string; start: number; fields: SourceFieldSelection[] } | null>(null);
@@ -44,16 +47,26 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
   const [template, setTemplate] = useState('');
   const [testedSource, setTestedSource] = useState<string | undefined>();
   const revision = useRef(0);
+  const dirty = JSON.stringify(recipe) !== savedRecipe || Boolean(pastedRecipe) || (!onSave && Boolean(sample));
+  useEffect(() => { onDraftState?.({ dirty, pending: busy }); }, [onDraftState, dirty, busy]);
+  useEffect(() => {
+    if (onDraftState || (!dirty && !busy)) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [onDraftState, dirty, busy]);
   const changeRecipe = (next: ExtractionRecipe) => { revision.current++; setRecipe(next); setResult(null); setTested(''); setNotice(''); };
   const changeSample = (next: string) => { checkSample(next); revision.current++; setSample(next); setRawTemplate(null); setSelection({ start: 0, end: 0, text: '' }); setResult(null); setTested(''); setNotice(''); };
   const run = async (action: () => Promise<void>) => {
+    if (pending.current) return;
+    pending.current = true;
     setError(''); setNotice(''); setBusy(true);
-    try { await action(); } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
+    try { await action(); } catch (cause) { setError((cause as Error).message); } finally { pending.current = false; setBusy(false); }
   };
   const readFile = async (file: File | undefined, isRecipe: boolean) => {
     if (!file) return;
     await run(async () => {
-      if (file.size > (isRecipe ? MAX_RECIPE_BYTES : MAX_SAMPLE_BYTES)) throw new Error(isRecipe ? uiText("Recipe exceeds 512 KiB") : uiText("Sample exceeds 32 MiB"));
+      if (file.size > (isRecipe ? MAX_RECIPE_BYTES : MAX_SAMPLE_BYTES)) throw new Error(isRecipe ? "Recipe exceeds 512 KiB" : "Sample exceeds 32 MiB");
       const text = await file.text();
       if (isRecipe) changeRecipe(validateRecipe(JSON.parse(text)));
       else changeSample(text);
@@ -64,7 +77,7 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
     else changeRecipe({ ...recipe, fields: { ...recipe.fields, [target]: { ...emptyField(), ...recipe.fields[target], selector, attribute } } });
     const start = sample.indexOf(value.trim());
     if (start >= 0 && value.trim()) setSelection({ start, end: start + value.trim().length, text: value.trim() });
-    setNotice(`Assigned ${target === 'records' ? 'repeating row' : translateKnown(fieldLabels[target])}. Test all records to check the selection.`);
+    setNotice(() => () => uiText('Assigned {{field}}. Test all records to check the selection.', { field: target === 'records' ? uiText('repeating row') : translateKnown(fieldLabels[target]) }));
   };
   const assignSource = () => {
     if (!selection.text) return;
@@ -91,7 +104,7 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
     </Stack>
     {busy && <LinearProgress aria-label={tUi("Working on recipe")} />}
     {error && <Alert severity="error">{translateKnown(error)}</Alert>}
-    {notice && <Alert severity="success">{notice}</Alert>}
+    {notice && <Alert severity="success">{typeof notice === 'function' ? notice() : translateKnown(notice)}</Alert>}
     <Box component="fieldset" disabled={busy} sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
       <Stack spacing={3}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
@@ -100,7 +113,7 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
           </TextField>
           <Button disabled={!template} onClick={() => {
             const entry = catalogue.find(item => item.id === template);
-            if (entry) { changeRecipe(validateRecipe(entry.recipe)); changeSample(entry.sample); setNotice(`${entry.description} By ${entry.author}.`); }
+            if (entry) { changeRecipe(validateRecipe(entry.recipe)); changeSample(entry.sample); setNotice(() => () => `${entry.description} ${uiText('By {{author}}.', { author: entry.author })}`); }
           }}>{tUi("Load template and sample")}</Button>
         </Stack>
         <Typography variant="caption" color="text.secondary">{tUi("Catalogue entries are versioned. Loading replaces this draft. These initial templates use synthetic samples, not verified websites.")}</Typography>
@@ -146,8 +159,8 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
           })}>{tUi("Fetch and test source URL")}</Button>}
           <Button variant="outlined" onClick={() => void run(async () => { download('extraction-recipe.json', validateRecipe(recipe)); setNotice('Recipe exported without the sample or source URL.'); })}>{tUi("Export recipe")}</Button>
           <Button onClick={() => void run(async () => { await navigator.clipboard.writeText(JSON.stringify(validateRecipe(recipe), null, 2)); setNotice('Recipe copied. Import or paste it into your scraper.'); })}>{tUi("Copy recipe")}</Button>
-          {onSave && <Button variant="contained" color="secondary" disabled={tested !== JSON.stringify(recipe) || testedSource !== sourceIdentity || !result?.channels.length || !!result.invalid_count} onClick={() => void run(async () => { await onSave(validateRecipe(recipe)); setNotice('Recipe saved. Run the source scrape when ready.'); })}>{tUi("Save to source")}</Button>}
-          {onSave && initialRecipe && <Button onClick={() => void run(async () => { await onSave(null); setNotice('Automatic extraction restored for this source.'); })}>{tUi("Use automatic extraction")}</Button>}
+          {onSave && <Button variant="contained" color="secondary" disabled={tested !== JSON.stringify(recipe) || testedSource !== sourceIdentity || !result?.channels.length || !!result.invalid_count} onClick={() => void run(async () => { await onSave(validateRecipe(recipe)); setSavedRecipe(JSON.stringify(recipe)); setNotice('Recipe saved. Run the source scrape when ready.'); })}>{tUi("Save to source")}</Button>}
+          {onSave && initialRecipe && <Button onClick={() => void run(async () => { await onSave(null); const automatic = newRecipe(); changeRecipe(automatic); setSavedRecipe(JSON.stringify(automatic)); setNotice('Automatic extraction restored for this source.'); })}>{tUi("Use automatic extraction")}</Button>}
         </Stack>
       </Stack>
     </Box>

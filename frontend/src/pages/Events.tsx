@@ -44,6 +44,7 @@ export default function Events() {
   const [followed, setFollowed] = useState(false);
   const [offset, setOffset] = useState(0);
   const [managing, setManaging] = useState(false);
+  const [managementVisited, setManagementVisited] = useState(false);
   const [reviewSource, setReviewSource] = useState<EventSource | undefined>();
   const [adding, setAdding] = useState(false);
   const selected = params.get('event');
@@ -78,10 +79,10 @@ export default function Events() {
   const interestCount = Object.values(interests).flat().length + [sport, competition, source].filter(Boolean).length + Number(followed);
   const resetFilters = () => { setInterests(emptyInterests); setSearch(''); setSport(''); setCompetition(''); setSource(''); setFollowed(false); setOffset(0); setTab('all'); };
   return <Box>
-    <PageHeader title={tUi("Events")} subtitle={tUi("Find your next match, race or game.")} actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button disabled={adding} onClick={() => setManaging(!managing)} aria-expanded={managing}>{tUi("Sources & retention")}</Button><Button disabled={adding} variant="contained" onClick={() => { setReviewSource(undefined); setManaging(false); setAdding(true); }}>{tUi("Add events")}</Button></Stack>} />
+    <PageHeader title={tUi("Events")} subtitle={tUi("Find your next match, race or game.")} actions={<Stack direction="row" gap={1} flexWrap="wrap"><Button disabled={adding} onClick={() => { setManagementVisited(true); setManaging(!managing); }} aria-expanded={managing}>{tUi("Sources & retention")}</Button><Button disabled={adding} variant="contained" onClick={() => { setReviewSource(undefined); setManaging(false); setAdding(true); }}>{tUi("Add events")}</Button></Stack>} />
     <StatusLine items={[{ label: uiText("Events"), value: list.isPending ? uiText("Loading…") : list.isError ? uiText("Unavailable") : total }, { label: uiText("Times"), value: zone }]} />
     {message && !selected ? <Alert severity={update.isError ? 'error' : 'success'} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>{message}</Alert> : null}
-    {managing ? <EventSourcesPanel onReview={(source) => { setReviewSource(source); setManaging(false); setAdding(true); }} /> : null}
+    {managementVisited ? <Box hidden={!managing}><EventSourcesPanel onReview={(source) => { setReviewSource(source); setManaging(false); setAdding(true); }} /></Box> : null}
     {adding ? <EventImportPanel key={reviewSource?.id ?? 'new'} source={reviewSource} zone={zone} onClose={() => { setAdding(false); setReviewSource(undefined); }} /> : null}
     <ContentSection title={tUi("Schedule")}>
       <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ mb: 2.5 }}>

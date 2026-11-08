@@ -467,3 +467,18 @@ it('requires a new explicit artwork request when the reviewed event revision cha
   await waitFor(() => expect(service.artwork).toHaveBeenCalledTimes(2));
   await screen.findByText(/Artwork is unavailable/);
 });
+
+it('keeps retention drafts when management is hidden and Cancel restores the saved policy', async () => {
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  const field = await screen.findByLabelText('Keep ended events (days)');
+  await user.clear(field); await user.type(field, '14');
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  expect(field).not.toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  expect(screen.getByLabelText('Keep ended events (days)')).toHaveValue(14);
+  expect(service.saveRetention).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.getByLabelText('Keep ended events (days)')).toHaveValue(0);
+});

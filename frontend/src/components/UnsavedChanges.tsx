@@ -3,7 +3,7 @@ import { useBlocker } from 'react-router-dom';
 import ConfirmDialog from './ConfirmDialog';
 import { useUiText } from '../i18n/useUiText';
 
-interface EditorState { dirty: boolean; pending: boolean }
+interface EditorState { dirty: boolean; pending: boolean; preservedQueryKeys?: string }
 type Register = (id: string, state: EditorState | null) => void;
 const UnsavedContext = createContext<Register | null>(null);
 
@@ -12,7 +12,7 @@ export function UnsavedChangesProvider({ children }: React.PropsWithChildren) {
   const t = useUiText();
   const [editors, setEditors] = useState<Record<string, EditorState>>({});
   const register = useCallback<Register>((id, state) => setEditors(previous => {
-    if (previous[id]?.dirty === state?.dirty && previous[id]?.pending === state?.pending) return previous;
+    if (previous[id]?.dirty === state?.dirty && previous[id]?.pending === state?.pending && previous[id]?.preservedQueryKeys === state?.preservedQueryKeys) return previous;
     const next = { ...previous };
     if (state) next[id] = state;
     else delete next[id];
@@ -20,9 +20,15 @@ export function UnsavedChangesProvider({ children }: React.PropsWithChildren) {
   }), []);
   const dirty = Object.values(editors).some(editor => editor.dirty);
   const pending = Object.values(editors).some(editor => editor.pending);
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => (dirty || pending) && (
-    currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search
-  ));
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => Object.values(editors).some(editor => {
+    if (!editor.dirty && !editor.pending) return false;
+    if (currentLocation.pathname !== nextLocation.pathname) return true;
+    const current = new URLSearchParams(currentLocation.search);
+    const next = new URLSearchParams(nextLocation.search);
+    for (const key of editor.preservedQueryKeys?.split(',') ?? []) { current.delete(key); next.delete(key); }
+    current.sort(); next.sort();
+    return current.toString() !== next.toString();
+  }));
   useEffect(() => {
     if (blocker.state === 'blocked' && !dirty && !pending) blocker.proceed();
   }, [blocker, dirty, pending]);
@@ -44,9 +50,10 @@ export function UnsavedChangesProvider({ children }: React.PropsWithChildren) {
 }
 
 /** Registration does not own drafts: each editor retains its existing save lifecycle. */
-export function useUnsavedChanges(dirty: boolean, pending = false) {
+export function useUnsavedChanges(dirty: boolean, pending = false, preservedQueryKeys: readonly string[] = []) {
   const register = useContext(UnsavedContext);
   const id = useId();
-  useLayoutEffect(() => { register?.(id, { dirty, pending }); }, [register, id, dirty, pending]);
+  const keys = preservedQueryKeys.join(',');
+  useLayoutEffect(() => { register?.(id, { dirty, pending, preservedQueryKeys: keys }); }, [register, id, dirty, pending, keys]);
   useLayoutEffect(() => () => register?.(id, null), [register, id]);
 }

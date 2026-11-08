@@ -68,3 +68,18 @@ Telegram source editors remain mounted if account status changes during editing;
 finish or explicitly discard an editor before locking or replacing it. Pending
 requests have immediate duplicate guards. Secrets remain memory-only and retain
 Telegram's explicit post-submission and lock clearing behavior.
+
+Event retention keeps its editor mounted when its management panel is hidden;
+Cancel restores the latest saved policy and failures retain both fields. Overlay
+and broadcaster mapping operations retain the reviewed input/revision and guard
+repeated submissions. Catalogue reviews survive folder browsing; only their
+`folder` and `catalogue` query keys preserve the same editor. Host tabs and route
+changes still pass through the unsaved-changes guard. Local catalogue replacement
+and discard actions confirm before removing an unsaved review.
+
+The installed extraction page receives draft/pending state from the shared recipe
+component and guards navigation with the same provider. The standalone component
+uses document-unload protection without importing the application router, query
+client or API. A save records the recipe baseline only after its request succeeds;
+changing source URL/type invalidates the prior test. Feedback is resolved in the
+current language, and plural resources are included in the generated helper subset.

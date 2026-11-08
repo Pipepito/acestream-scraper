@@ -1,5 +1,5 @@
 import { useUiText } from '../../i18n/useUiText';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControlLabel, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { catalogueService, type CatalogueEntry, type FolderMatchApplyRequest, type FolderMatchRow } from '../../services/catalogueService';
@@ -10,7 +10,7 @@ interface FolderMatchDialogProps {
   catalogueId: number;
   entries: CatalogueEntry[];
   onClose: () => void;
-  onApplied: (message: string) => void;
+  onApplied: (message: () => string) => void;
 }
 
 type Choice = { folder_id: string; tv_channel_id: number } | { folder_id: string; create: true };
@@ -19,6 +19,7 @@ type Choice = { folder_id: string; tv_channel_id: number } | { folder_id: string
 const FolderMatchDialog: React.FC<FolderMatchDialogProps> = ({ open, catalogueId, entries, onClose, onApplied }) => {
   const tUi = useUiText();
   const preview = useQuery({ queryKey: ['catalogue', catalogueId, 'folder-matches'], queryFn: () => catalogueService.folderMatches(catalogueId), enabled: open, staleTime: 0 });
+  const pending = useRef(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   useEffect(() => {
     if (preview.data) setChecked(Object.fromEntries(preview.data.rows.map((row) => [row.folder_id, row.status === 'match'])));
@@ -43,7 +44,7 @@ const FolderMatchDialog: React.FC<FolderMatchDialogProps> = ({ open, catalogueId
     onSuccess: (result) => {
       const done = result.results.filter((row) => row.tv_channel);
       const streams = done.reduce((sum, row) => sum + (row.assigned ?? 0) + (row.moved ?? 0), 0);
-      onApplied(`${streams} stream${streams === 1 ? '' : 's'} assigned across ${done.length} folder${done.length === 1 ? '' : 's'}.`);
+      onApplied(() => tUi('Assigned across {{folders}}: {{streams}}.', { folders: tUi('folderCount', { count: done.length }), streams: tUi('streamCount', { count: streams }) }));
       onClose();
     },
   });
@@ -57,10 +58,10 @@ const FolderMatchDialog: React.FC<FolderMatchDialogProps> = ({ open, catalogueId
           : <Stack spacing={1}>
             {rows.map((row) => {
               const cover = coveredBy(row);
-              const streams = `${row.stream_count} stream${row.stream_count === 1 ? '' : 's'}`;
+              const streams = tUi('streamCount', { count: row.stream_count });
               if (row.status === 'assigned' && row.current) return <Stack key={row.folder_id} sx={{ overflowWrap: 'anywhere' }}><Typography>{row.path} · {streams}</Typography><Typography variant="body2" color="text.secondary">{tUi("Already on")}{' '}{row.current.name}</Typography></Stack>;
               if (row.status === 'ambiguous') return <Stack key={row.folder_id} sx={{ overflowWrap: 'anywhere' }}><Typography>{row.path} · {streams}</Typography><Typography variant="body2" color="text.secondary">{tUi("More than one TV channel matches; assign it from the folder menu.")}</Typography></Stack>;
-              const label = row.status === 'match' && row.candidate ? `Assign ${row.name} to ${row.candidate.name}` : `Create TV channel ${row.name}`;
+              const label = row.status === 'match' && row.candidate ? tUi('Assign {{folder}} to {{channel}}', { folder: row.name, channel: row.candidate.name }) : tUi('Create TV channel {{name}}', { name: row.name });
               return <Stack key={row.folder_id} sx={{ overflowWrap: 'anywhere' }}>
                 <FormControlLabel control={<Checkbox checked={Boolean(checked[row.folder_id]) && !cover} disabled={Boolean(cover) || apply.isPending} onChange={(_, value) => setChecked((current) => ({ ...current, [row.folder_id]: value }))} />} label={label} />
                 <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>{row.path} · {streams}{cover ? tUi(" · covered by {{value0}}", { value0: cover.name }) : ''}</Typography>
@@ -71,7 +72,7 @@ const FolderMatchDialog: React.FC<FolderMatchDialogProps> = ({ open, catalogueId
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={apply.isPending}>{tUi("Close")}</Button>
-        <Button variant="contained" disabled={apply.isPending || choices.length === 0} onClick={() => apply.mutate({ assignments: choices, reassign: false })}>{tUi("Apply matches")}</Button>
+        <Button variant="contained" disabled={apply.isPending || choices.length === 0} onClick={async () => { if (pending.current) return; pending.current = true; try { await apply.mutateAsync({ assignments: choices, reassign: false }); } catch { /* Mutation keeps the error and choices. */ } finally { pending.current = false; } }}>{tUi("Apply matches")}</Button>
       </DialogActions>
     </Dialog>
   );

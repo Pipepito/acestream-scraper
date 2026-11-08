@@ -12,7 +12,13 @@ for (const name of fs.readdirSync(path.join(root, 'recipes'))) {
   if (!/\.tsx?$/.test(name) || name === 'messages.generated.ts') continue;
   const source = ts.createSourceFile(name, fs.readFileSync(path.join(root, 'recipes', name), 'utf8'), ts.ScriptTarget.Latest, true);
   const visit = (node) => {
-    if (ts.isStringLiteral(node) && Object.hasOwn(en, node.text)) keys.add(node.text);
+    if (ts.isStringLiteral(node)) {
+      if (Object.hasOwn(en, node.text)) keys.add(node.text);
+      for (const plural of ['zero', 'one', 'two', 'few', 'many', 'other']) {
+        const key = `${node.text}_${plural}`;
+        if (Object.hasOwn(en, key)) keys.add(key);
+      }
+    }
     ts.forEachChild(node, visit);
   };
   visit(source);

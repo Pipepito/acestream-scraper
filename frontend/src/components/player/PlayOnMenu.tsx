@@ -122,12 +122,12 @@ const PlayOnMenu: React.FC<PlayOnMenuProps> = ({ contentId, title, label, onDone
         {canCast && capabilities.isFetching && !capabilities.data ? <MenuItem disabled>{tUi("Checking TV casting…")}</MenuItem> : null}
         {serverAllowed ? devices.data?.map(tv => <MenuItem key={tv.id} onClick={() => void sendToTv(tv.id, tv.name)} disabled={casting || !capabilities.data?.media_url_configured}>
           <ListItemIcon><CastRoundedIcon fontSize="small" /></ListItemIcon>
-          <ListItemText primary={tv.name} secondary="Google Cast TV" />
+          <ListItemText primary={tv.name} secondary={tUi('Google Cast TV')} />
         </MenuItem>) : null}
         {serverAllowed ? <MenuItem disabled={finding} onClick={() => void findTvs()}>{finding ? tUi("Finding TVs…") : tUi("Find TVs")}</MenuItem> : null}
         {canCast ? <MenuItem onClick={() => { setAnchor(null); setCastOptions(true); }}>{tUi("Casting options and controls…")}</MenuItem> : null}
         {canCast && (capabilities.isError || devices.isError) ? <MenuItem disabled>{tUi("Could not load TVs. Open casting options to retry.")}</MenuItem> : null}
-        {canCast && capabilities.data && !serverAllowed ? <MenuItem component={RouterLink} to="/integrations/tv-casting" onClick={() => setAnchor(null)}><ListItemText primary="Check TV casting access" secondary={capabilities.data.message} /></MenuItem> : null}
+        {canCast && capabilities.data && !serverAllowed ? <MenuItem component={RouterLink} to="/integrations/tv-casting" onClick={() => setAnchor(null)}><ListItemText primary={tUi('Check TV casting access')} secondary={capabilities.data.message} /></MenuItem> : null}
       </Menu>
       {canCast && castOptions ? <CastDialog contentId={contentId} audioIndex={null} subtitleIndex={null} open onClose={() => setCastOptions(false)} /> : null}
       {notify ? null : (

@@ -1,6 +1,7 @@
 import { Alert,Box,Button,Checkbox,CircularProgress,Collapse,Dialog,DialogActions,DialogContent,DialogTitle,FormControlLabel,MenuItem,Stack,TablePagination,TextField,Typography,useMediaQuery,useTheme } from '@mui/material';
 import { useMutation,useQueryClient } from '@tanstack/react-query';
 import React,{ useMemo,useState } from 'react';
+import { getLocale } from '../i18n/locale';
 import { useUiText } from '../i18n/useUiText';
 import { tvChannelService,TVMatchOptions,TVMatchPreview } from '../services/tvChannelService';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -101,7 +102,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
             apply.reset();
           }}>
             <MenuItem value="">{tUi("No assumption")}</MenuItem>
-            {COUNTRY_OPTIONS.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+            {COUNTRY_OPTIONS.map((option) => <MenuItem key={option.value} value={option.value}>{new Intl.DisplayNames([getLocale()], { type: 'region' }).of(option.value) ?? option.label}</MenuItem>)}
           </TextField>
           <FormControlLabel control={<Checkbox checked={includeSimilar} disabled={busy} onChange={(_, checked) => { setIncludeSimilar(checked); setPreview(null); setSelected(new Map()); analyze.reset(); apply.reset(); }} />} label={tUi("Include similar names for review")} />
           <Button variant="outlined" disabled={busy} onClick={() => analyze.mutate({ assumed_country: assumedCountry || null, include_similar: includeSimilar })}>{preview ? tUi("Analyze again") : tUi("Find matches")}</Button>

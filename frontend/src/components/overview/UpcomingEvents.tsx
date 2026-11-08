@@ -31,7 +31,7 @@ export default function UpcomingEvents() {
     {editing ? <Stack id="dashboard-event-preferences" spacing={2} sx={{ mb: 2 }}>
       <Typography variant="body2">{tUi("Display preferences stay in this browser. Following an event is shared across this installation.")}</Typography>
       {choices.isError ? <Alert severity="warning" action={<Button onClick={() => void choices.refetch()}>{tUi("Retry choices")}</Button>}>{tUi("Interest suggestions could not be loaded. You can still type a name.")}</Alert> : null}
-      <EventInterestFields emptyHint="Select at least one for My interests." value={preferences.interests} choices={choices.data} onChange={interests => setPreferences(current => ({ ...current, interests }))} />
+      <EventInterestFields emptyHint={tUi('Select at least one for My interests.')} value={preferences.interests} choices={choices.data} onChange={interests => setPreferences(current => ({ ...current, interests }))} />
       <TextField size="small" label={tUi("Display timezone")} value={zoneInput} error={zoneError} helperText={zoneError ? tUi("Use a timezone such as Europe/Madrid") : tUi("IANA timezone")} onChange={e => setZoneInput(e.target.value)} onBlur={() => {
         const valid = validEventZone(zoneInput); setZoneError(!valid);
         if (valid) setPreferences(current => ({ ...current, zone: zoneInput }));

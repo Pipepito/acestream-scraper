@@ -113,3 +113,57 @@ def test_two_jumps_back_make_a_source_jumpy():
         watch.feed(_chunk(t))
         clock.now += 0.5
     assert watch.back_jumps == 2 and watch.jumpy and watch.watched_seconds == 2.0
+
+
+def test_a_jump_back_across_the_pcr_wrap_counts_as_a_jump_back(caplog):
+    clock = _Clock()
+    watch = ClockWatch("abc", clock=clock)
+    top = ts_clock.PCR_WRAP
+    with caplog.at_level(logging.INFO, logger=ts_clock.__name__):
+        for t in (5.0, 5.5, top - 10.0):
+            watch.feed(_chunk(t))
+            clock.now += 0.5
+    assert [r.getMessage() for r in caplog.records] == ["TV relay source clock went back 15.5 s content_id=abc"]
+    assert watch.back_jumps == 1
+
+
+def _single_jump(back_seconds, after_seconds):
+    """A source that plays steadily, then jumps back once."""
+    clock = _Clock()
+    watch = ClockWatch("abc", clock=clock)
+    t = 500.0
+    for _ in range(int(after_seconds / 0.5)):
+        watch.feed(_chunk(t))
+        t += 0.5
+        clock.now += 0.5
+    watch.feed(_chunk(t - back_seconds))
+    return watch
+
+
+def test_one_large_jump_back_in_the_first_seconds_makes_a_source_jumpy():
+    watch = _single_jump(161.9, after_seconds=2.0)
+    assert watch.back_jumps == 1 and watch.early_loop and watch.jumpy
+
+
+def test_one_jump_back_is_not_jumpy_when_late_small_or_a_new_clock_base():
+    late = _single_jump(161.9, after_seconds=60.0)
+    small = _single_jump(5.0, after_seconds=2.0)
+    new_base = _single_jump(3000.0, after_seconds=2.0)
+    for watch in (late, small, new_base):
+        assert watch.back_jumps == 1 and not watch.early_loop and not watch.jumpy
+
+
+def test_the_summary_is_written_even_without_jumps_so_a_zero_can_be_read(caplog):
+    clock = _Clock()
+    steady = ClockWatch("abc", clock=clock)
+    blind = ClockWatch("def", clock=clock)
+    for t in (10.0, 10.5, 11.0):
+        steady.feed(_chunk(t))
+        clock.now += 0.5
+    blind.feed(b"not a transport stream")
+    with caplog.at_level(logging.INFO, logger=ts_clock.__name__):
+        steady.summary()
+        blind.summary()
+    lines = [r.getMessage() for r in caplog.records]
+    assert any("content_id=abc back_jumps=0" in m and "pcr_samples=3" in m for m in lines)
+    assert any("content_id=def back_jumps=0" in m and "pcr_samples=0" in m for m in lines)

@@ -16,6 +16,10 @@ but each one still spans a fraction of a second of stream time.
 
 A source whose clock goes back JUMPY_BACK_JUMPS times in one viewing repeats
 what the viewer already saw; ``jumpy`` lets the relay record that against it.
+One jump back is enough when it comes in the first EARLY_SECONDS and is
+between EARLY_MIN_BACK and EARLY_MAX_BACK: a source that opens on a loop (an
+advert repeating) is usually left before it can loop a second time.
+Smaller jumps are jitter, and larger ones are a new clock base, not a loop.
 
 Cost: at most SAMPLE_PACKETS packet headers per chunk, so a small fraction of
 the stream on a 1080p source.
@@ -35,6 +39,9 @@ STEP_SECONDS = 3.0
 JUMPY_BACK_JUMPS = 2
 PCR_WRAP = (1 << 33) / 90000.0  # the 33-bit PCR base wraps every ~26.5 h
 QUIET_SECONDS = 10.0             # at most one line per jump burst
+EARLY_SECONDS = 30.0             # from the first PCR of this attempt
+EARLY_MIN_BACK = 10.0
+EARLY_MAX_BACK = 1800.0
 
 
 def _sync_offset(chunk: bytes) -> Optional[int]:
@@ -64,6 +71,8 @@ class ClockWatch:
         self._last_at = None
         self._quiet_until = 0.0
         self.back_jumps = 0
+        self.early_loop = False
+        self.pcr_samples = 0
         self.worst_back = 0.0
         self.forward_steps = 0
         self.first_at = None
@@ -71,7 +80,7 @@ class ClockWatch:
 
     @property
     def jumpy(self) -> bool:
-        return self.back_jumps >= JUMPY_BACK_JUMPS
+        return self.back_jumps >= JUMPY_BACK_JUMPS or self.early_loop
 
     @property
     def watched_seconds(self) -> float:
@@ -100,14 +109,17 @@ class ClockWatch:
         if self.first_at is None:
             self.first_at = now
         self.last_at = now
+        self.pcr_samples += 1
         if self._last is not None:
-            delta = seconds - self._last
-            if delta < -PCR_WRAP / 2:
-                delta += PCR_WRAP
+            # The 33-bit base wraps both ways: forward when it passes the top,
+            # and back when a jump back crosses zero.
+            delta = (seconds - self._last + PCR_WRAP / 2) % PCR_WRAP - PCR_WRAP / 2
             elapsed = now - self._last_at
             if delta < -BACK_SECONDS:
                 self.back_jumps += 1
                 self.worst_back = max(self.worst_back, -delta)
+                if now - self.first_at <= EARLY_SECONDS and EARLY_MIN_BACK <= -delta <= EARLY_MAX_BACK:
+                    self.early_loop = True
                 self._report("TV relay source clock went back %.1f s content_id=%s", -delta)
             elif delta - elapsed > AHEAD_SECONDS:
                 self._report("TV relay source clock jumped ahead %.1f s content_id=%s", delta - elapsed)
@@ -123,9 +135,12 @@ class ClockWatch:
             self._quiet_until = now + QUIET_SECONDS
 
     def summary(self) -> None:
-        if self.back_jumps or self.forward_steps:
-            logger.info("TV relay source clock summary content_id=%s back_jumps=%d worst_back=%.1f s forward_steps=%d",
-                        self.content_id, self.back_jumps, self.worst_back, self.forward_steps)
+        """Always written, so a viewing without jumps can be told from a
+        watch that saw no PCR at all (pcr_samples=0)."""
+        logger.info("TV relay source clock summary content_id=%s back_jumps=%d worst_back=%.1f s forward_steps=%d"
+                    " pcr_samples=%d early_loop=%s",
+                    self.content_id, self.back_jumps, self.worst_back, self.forward_steps,
+                    self.pcr_samples, self.early_loop)
 
 
 async def watch_clock(iterator: AsyncIterator[bytes], content_id: str,

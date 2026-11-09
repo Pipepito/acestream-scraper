@@ -5,12 +5,13 @@
 .reference-header nav a { min-height: 48px; display: inline-flex; align-items: center; text-decoration: none; font-size: 14px; }
 .reference-header nav a[aria-current] { border-bottom: 3px solid var(--selected-text); font-weight: 600; }
 .reference-main { padding: 0 32px 64px; max-width: 1280px; }
+.reference-main .component-spaced { margin-top: 24px; }
 .reference-hero { display: grid; grid-template-columns: 1.5fr 1fr; gap: 48px; align-items: center; padding: 64px 0 48px; }
 .reference-hero h1 { font-size: clamp(56px, 7.5vw, 100px); max-width: 12ch; }
 .reference-hero .lede { font-size: 18px; max-width: 48ch; margin-top: 24px; }
 .reference-hero .eyebrow { color: var(--link); }
 .identity-field { background: var(--signal); color: var(--ink-950); aspect-ratio: 1; border-radius: var(--radius-card); padding: 40px; display: flex; flex-direction: column; justify-content: space-between; }
-.identity-field img { width: 100%; height: auto; padding: 20px 0; }
+.identity-field img { width: 100%; max-width: 188px; height: auto; padding: 20px 0; object-fit: contain; align-self: center; }
 .identity-field span { font-size: 12px; letter-spacing: .12em; font-weight: 600; }
 .reference-toc { display: flex; gap: 8px 24px; flex-wrap: wrap; border-block: 1px solid var(--line); padding: 12px 0; }
 .reference-toc a { display: inline-flex; min-height: 48px; align-items: center; font-size: 14px; color: var(--link); }
@@ -80,7 +81,7 @@
 .reference-main .field { margin: 0; }
 .reference-main .field input { font-size: 16px; }
 .reference-main .empty { margin: 0; padding: 24px 0; }
-.reference-main .notice { margin-top: 24px; }
+.reference-main .notice { margin-top: 24px; flex-wrap: wrap; }
 .reference-main .notice p { max-width: var(--reading-width); }
 .loading-lines { display: grid; gap: 12px; margin: 24px 0; }
 .loading-lines span { height: 16px; background: var(--subtle); border-radius: 4px; }

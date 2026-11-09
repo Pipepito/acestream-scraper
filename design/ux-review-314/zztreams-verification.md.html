@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>ZZSTREAMS component expansion — verification · ZZSTREAMS reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/zztreams/wordmark-ink.png" alt="ZZSTREAMS design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="components.html">Components</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="zzstreams-component-expansion--verification">ZZSTREAMS component expansion — verification</h1>
+<p>9 November 2026. Static design continuation on <code>pepe/sportzz-brand-system</code>, after
+the published SPORTZZ source <code>c7f11fe9</code> and Pages snapshot <code>3340e195</code>.</p>
+<h2 id="scope">Scope</h2>
+<p>Material-informed reusable component styles and interactive reference catalogue;
+new uppercase ZZSTREAMS identity applied to the current reference, mockup shell, index and
+gallery. Earlier supplied assets remain intact. Production runtime code remains
+unchanged. The three pre-existing E2E test corrections are preserved separately.</p>
+<h2 id="logo-provenance">Logo provenance</h2>
+<p>Two Magnific generations using <strong>Google Nano Banana 2</strong>, <strong>75 credits each</strong>;
+total <strong>150/200 credits</strong>. The first lowercase 2K concept produced 2752×1536.
+The corrected uppercase <strong>ZZSTREAMS</strong> generation requested <strong>1K</strong>, producing
+1376×768; its display copy is 1024×572. Transparent PNG UI derivatives were
+created locally without further charges. Both originals remain in shared assets.
+The public
+<a href="assets/zztreams/provenance.json">provenance record</a> contains prompt, model,
+dimensions, original hash, transformations and per-asset hashes, without signed
+download tokens. Future image requests default to Nano Banana 2 at 1K.</p>
+<h2 id="current-checks">Current checks</h2>
+<p>Component checks passed in isolated Chromium, Firefox and WebKit: <strong>70 explicit
+checks</strong>, <strong>12 layouts</strong>, <strong>8 axe scans</strong>, plus the interaction assertions for
+selection, search, fields, sliders, tabs, menus, snackbar undo, pagination,
+carousel and all five dialogs. Zero failed checks, accessibility violations,
+console/script errors or unexpected requests. Chromium covered both themes at
+320/390/820/1440 pixels; Firefox/WebKit covered both phone themes and the shared
+keyboard/desktop interaction journey. Temporary server 18794 stopped and its
+port was verified free.</p>
+<p>Testing caught an inherited fixed-toast ID collision, unsupported tooltip focus
+handler properties, and carousel tracks shrinking until no scrolling remained.
+The section now has a unique ID, tooltip focus uses event listeners, and carousel
+tracks have fixed responsive widths. The final run retains the interaction
+assertions and the page's restrictive CSP. The corrected logo and desktop/phone
+screenshots were visually inspected, including a white-background transparency
+proof. The symbol specimen is bounded to its source width to avoid enlargement.</p>
+<p>Logs and captures: <code>artifacts/visual-review/zztreams-components/</code> and
+<code>artifacts/visual-review/zzstreams-final/</code>. Reproduce with a temporary local
+server mounting <code>docs/</code> beneath <code>/acestream-scraper/</code>:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh">workspace-test python docs/design/ux-review-314/check_components.py \
+  --base-url http://127.0.0.1:18794/acestream-scraper/design/ux-review-314/ \
+  --output artifacts/visual-review/zztreams-components \
+  --axe frontend/node_modules/axe-core/axe.min.js
+</code></pre>
+<p>The refreshed static suite passed: <strong>146 workflows, 1,752 layouts, 877 axe scans,
+105 functional assertions and 14 reflow cases</strong>; all <strong>876 gallery exports</strong> were
+refreshed. Connected journeys passed all <strong>48 assertions</strong>. Contrast checks passed
+<strong>24 contexts / 232 text rectangles</strong>, minimum measured ratio <strong>5.377:1</strong>.
+Artifact checks passed <strong>4,076 local links, 674 fragments and ten generated files</strong>
+without drift. No browser errors, blocked requests or failed checks were reported.
+The brand pass had <strong>1,059 checks</strong>, zero axe violations and no console errors.
+Temporary server 18795 stopped and its port was verified free. Immutable Pages
+packaging is verified separately before publishing; its manifest pins the source.
+This record does not claim completion of application/image validation.</p>
+<h2 id="application-validation-boundary">Application validation boundary</h2>
+<p>The previous complete backend/frontend gate passed as recorded in
+<a href="brand-verification.md.html">brand verification</a>. Its Docker/architecture and browser
+jobs were stopped at the owner's request to retain only the newest static checks.
+All five amd64 image variants passed build, HTTP startup and acceptance
+(15 stages). The emulated arm64 scraper built, but its HTTP startup smoke timed
+out with connection refused; this is an outstanding failure, not a pass. The
+remaining matrix was cancelled during the arm64 AceStream image build; the two
+queued native/Docker browser jobs were cancelled before starting. Their process
+groups and emulated build children exited, no task containers remained running,
+and ports 18839/18840/18849/18850 were verified free. Completed logs are retained.
+These cancelled stages remain incomplete and are not automatically restarted. The
+owner-selected local ARM scope is now QEMU emulation; actual native
+ARM acceptance remains in CI. Static Pages uses its approved subtree-only route.
+No application/source branch push or CI/CD mutation is part of this continuation.</p>
+</main><footer class="document-footer">Design source <code>b734548068c469a40fda7b5bc3b6e3b6114ad4da</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
-<title>docs/design/ux-review-314/check_design.py · SPORTZZ reference</title>
+<title>docs/design/ux-review-314/check_design.py · ZZSTREAMS reference</title>
 <link rel="stylesheet" href="admin-prototype.css">
 <link rel="stylesheet" href="sportzz-tokens.css">
 <link rel="stylesheet" href="sportzz-system.css">
@@ -10,8 +10,8 @@
 <link rel="stylesheet" href="pages-documents.css"></head>
 <body class="brand-index"><a class="skip" href="#main">Skip to content</a>
 <header class="reference-header"><div>
-<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
-<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/zztreams/wordmark-ink.png" alt="ZZSTREAMS design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="components.html">Components</a><a href="README.md.html">Reference index</a></nav>
 </div></header><main id="main" class="document-main" tabindex="-1">
 <p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1>Source snapshot</h1><p><code>docs/design/ux-review-314/check_design.py</code></p><p>Read-only design-source reference. This file is displayed as text and is never executed.</p><pre tabindex="0" aria-label="Source code"><code><span id="L1">&quot;&quot;&quot;Isolated design checks; never contacts an application installation.</span>
 <span id="L2">Usage: python3 docs/design/ux-review-314/check_design.py --output /tmp/ux-design-checks</span>
@@ -142,4 +142,4 @@
 <span id="L127">fail=bool(data[&#x27;layout_failures&#x27;] or errors or console or blocked or missing or checks[&#x27;historical_layouts&#x27;][&#x27;failures&#x27;] or any(x is False for x in checks.values()) or any(x[&#x27;violations&#x27;] for x in a11y) or any(g[&#x27;brokenImages&#x27;] or g[&#x27;overflow&#x27;] or g[&#x27;images&#x27;]!=39 for g in gallery))</span>
 <span id="L128">print(json.dumps({&#x27;cases&#x27;:len(results),&#x27;layoutFailures&#x27;:len(data[&#x27;layout_failures&#x27;]),&#x27;errors&#x27;:errors,&#x27;links&#x27;:checks[&#x27;local_links&#x27;],&#x27;a11yCasesWithViolations&#x27;:sum(bool(x[&#x27;violations&#x27;]) for x in a11y),&#x27;functional&#x27;:{k:v for k,v in checks.items() if isinstance(v,bool)},&#x27;gallery&#x27;:gallery,&#x27;historical&#x27;:checks[&#x27;historical_layouts&#x27;],&#x27;failed&#x27;:fail},indent=2))</span>
 <span id="L129">raise SystemExit(1 if fail else 0)</span></code></pre>
-</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>
+</main><footer class="document-footer">Design source <code>b734548068c469a40fda7b5bc3b6e3b6114ad4da</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

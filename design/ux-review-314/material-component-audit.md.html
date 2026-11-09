@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Material Design 3 → ZZSTREAMS component audit · ZZSTREAMS reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/zztreams/wordmark-ink.png" alt="ZZSTREAMS design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="components.html">Components</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="material-design-3--zzstreams-component-audit">Material Design 3 → ZZSTREAMS component audit</h1>
+<p>Reviewed 9 November 2026 against Google's official Material Design 3 catalogue,
+including its current Expressive button, menu and progress guidance. This is a
+component-coverage reference for the static design system, not an adoption of
+Google's brand or a production frontend implementation.</p>
+<p><a href="components.html">Interactive component library</a> · <a href="brand-system.html">Brand foundations</a></p>
+<h2 id="what-was-missing">What was missing</h2>
+<p>The previous brand page demonstrated primary/secondary/destructive buttons,
+basic fields, badges, a confirmation dialog, filter buttons, loading skeletons,
+empty/error states and playback controls. Actual mockups already had navigation,
+tables and forms, but many primitives lacked a reusable visual/interaction contract
+or a live specimen. Selection controls, field variants, chips, menus, tabs, sheets,
+snackbars, tooltips and progress were the largest gaps.</p>
+<h2 id="coverage-map">Coverage map</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Material family</th>
+<th>Before</th>
+<th>ZZSTREAMS treatment / live location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Buttons</td>
+<td>Primary, outline and destructive only</td>
+<td><a href="components.html#actions">Five emphasis levels</a>: filled, tonal, outlined, elevated and text; shared hover/focus/press/disabled rules</td>
+</tr>
+<tr>
+<td>Toggle / icon / toggle icon buttons</td>
+<td>Ad hoc favorite and player controls</td>
+<td>Named 48px icon buttons, pressed semantics and visible toggle labels</td>
+</tr>
+<tr>
+<td>Floating / extended FAB / FAB menu</td>
+<td>No reference</td>
+<td>Extended creation action; related Add actions use a modal bottom sheet rather than a floating radial menu</td>
+</tr>
+<tr>
+<td>Button groups / segmented buttons</td>
+<td>Filter buttons without a dedicated group style</td>
+<td>Player toolbar with roving focus; connected native radio segments for single-view selection</td>
+</tr>
+<tr>
+<td>Split buttons / menus</td>
+<td>No reference</td>
+<td>Split Schedule action with Arrow/Home/End navigation, disabled item, Escape and focus return</td>
+</tr>
+<tr>
+<td>Checkbox</td>
+<td>Browser defaults in mockups</td>
+<td><a href="components.html#selection">Native selection family</a>, visible labels, disabled and parent mixed state</td>
+</tr>
+<tr>
+<td>Radio buttons</td>
+<td>Browser defaults in mockups</td>
+<td>Native, mutually exclusive vertical group and connected view selector</td>
+</tr>
+<tr>
+<td>Switch</td>
+<td>No shared contract</td>
+<td>Immediate preview preference, labelled on/off state and visible thumb movement; saved forms retain checkboxes</td>
+</tr>
+<tr>
+<td>Chips</td>
+<td>Generic buttons</td>
+<td>Assist, filter, input/removal and suggestion variants; named removal plus Delete/Backspace support</td>
+</tr>
+<tr>
+<td>Sliders</td>
+<td>No shared contract</td>
+<td>Native stepped slider and two labelled endpoints with cross-field validation</td>
+</tr>
+<tr>
+<td>Text fields</td>
+<td>Basic outline and one error</td>
+<td><a href="components.html#inputs">Outlined/filled fields</a>, helper/error copy, read-only, disabled, textarea count, native select</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>Basic catalogue search</td>
+<td>Contained labelled search, explicit Clear, filtered example list, count and no-results recovery</td>
+</tr>
+<tr>
+<td>Date / time pickers</td>
+<td>Form fields but no specimen</td>
+<td>Modal native date/time inputs, manual entry, explicit timezone and local display-only result; platform-owned calendar/clock interiors</td>
+</tr>
+<tr>
+<td>App bars</td>
+<td>Present in shell only</td>
+<td><a href="components.html#navigation">Context app-bar specimen</a> with named drawer action</td>
+</tr>
+<tr>
+<td>Navigation bar / rail / drawer</td>
+<td>Existing responsive mockup navigation</td>
+<td>Dedicated bar/rail/drawer specimens, current-state shape and underline, retained production-independent links</td>
+</tr>
+<tr>
+<td>Tabs</td>
+<td>No reference</td>
+<td>Labelled tabs and panels, manual keyboard activation, roving focus, Home/End and ordinary Tab exit</td>
+</tr>
+<tr>
+<td>Cards</td>
+<td>Image-led cards only</td>
+<td><a href="components.html#containment">Outlined, filled, elevated</a> surface variants; image dimensions and independent actions</td>
+</tr>
+<tr>
+<td>Lists / dividers</td>
+<td>Existing workflow rows</td>
+<td>Leading identity, one/two-line text, trailing count/action and tokenized dividers</td>
+</tr>
+<tr>
+<td>Carousel</td>
+<td>No reference</td>
+<td>Horizontal scroll-snap collection with named Previous/Next, ordinary keyboard links and no autoplay</td>
+</tr>
+<tr>
+<td>Dialogs</td>
+<td>One confirmation example</td>
+<td>Destructive confirmation plus scheduling modal with initial focus, Escape, wrapping and return focus</td>
+</tr>
+<tr>
+<td>Bottom / side sheets</td>
+<td>No reference</td>
+<td>Native modal sheet surfaces, explicit dismissal, supporting inline standard-sheet specimen</td>
+</tr>
+<tr>
+<td>Badges</td>
+<td>Semantic status pills</td>
+<td>Retained text+color statuses and contextual count badge; no unexplained live dots</td>
+</tr>
+<tr>
+<td>Progress / loading indicators</td>
+<td>Static skeleton only</td>
+<td><a href="components.html#communication">Measured linear example</a>, unknown-duration circular indicator, skeleton and reduced-motion behavior</td>
+</tr>
+<tr>
+<td>Snackbar</td>
+<td>Generic status text</td>
+<td>Undoable persistent snackbar, polite message, no focus stealing, Alt+G action access and focused Escape dismissal</td>
+</tr>
+<tr>
+<td>Tooltips</td>
+<td>No reference</td>
+<td>Plain pointer/focus tooltip with Escape, hoverable target region and delayed pointer dismissal; rich help uses explicit native disclosure</td>
+</tr>
+<tr>
+<td>Toolbars</td>
+<td>No standalone specimen</td>
+<td>Contextual action group with one Tab entry and arrow-key navigation</td>
+</tr>
+</tbody>
+</table></div>
+<p>Product-specific complements include breadcrumbs, pagination, accessible data
+tables, empty/retry outcomes and disclosures. They use the same tokens without
+claiming to be newly supplied Material 3 components.</p>
+<h2 id="what-stays-ours">What stays ours</h2>
+<ul>
+<li><strong>Color:</strong> Signal Pitch cyan, ink/paper neutrals, original lime/coral composition
+  accents and accessible semantic pairs. Light controls use dark teal for contrast.</li>
+<li><strong>Type:</strong> supplied Inter for reading/controls, Barlow Condensed for display.</li>
+<li><strong>Shape:</strong> existing 8px controls and 12px cards. Pills belong to search and switch
+  tracks; a sheet gets a larger corner only where its layer needs distinction.</li>
+<li><strong>Density:</strong> four-point spacing, 48px target goal, readable 16px phone inputs.</li>
+<li><strong>Identity:</strong> new uppercase ZZSTREAMS PNG signature, retaining the supplied icon family,
+  photographer attribution and the earlier SPORTZZ originals as provenance.</li>
+<li><strong>Motion:</strong> short feedback, no decorative morphing in administration, no carousel
+  autoplay and no animated rotation when reduced motion is requested.</li>
+</ul>
+<h2 id="behavioral-decisions">Behavioral decisions</h2>
+<ol>
+<li><strong>Switches act immediately.</strong> Saved or restart-dependent settings must not adopt
+   switch semantics merely for appearance. Existing mockup forms are not rewritten.</li>
+<li><strong>Tabs and navigation differ.</strong> Tabs reveal related local panels; destinations
+   use links and <code>aria-current</code>. Selection never destroys unrelated drafts.</li>
+<li><strong>Unknown work stays unknown.</strong> No percentage on indeterminate progress. The
+   catalogue's advance button is visibly labelled a simulation.</li>
+<li><strong>Undo remains available.</strong> The actionable snackbar does not time out. Errors
+   persist beside the relevant field/action. No live region receives focus merely
+   because its text changed.</li>
+<li><strong>Native controls preserve access.</strong> Date/time interiors, select popups and
+   range interaction remain platform-native. A branded custom calendar, analog
+   clock, multi-thumb slider and gesture-driven dismissals are not implemented.</li>
+<li><strong>Styles are shared, examples are isolated.</strong> Component CSS is in the shared
+   system file, with no remote fonts, JavaScript framework or Material dependency.
+   Existing mockup actions retain their own engine. No production application
+   APIs, player ownership or saved settings are changed by this static extension.</li>
+</ol>
+<h2 id="official-references">Official references</h2>
+<ul>
+<li><a href="https://m3.material.io/components">Component catalogue</a></li>
+<li><a href="https://m3.material.io/components/all-buttons">Button types and hierarchy</a></li>
+<li><a href="https://m3.material.io/components/chips/guidelines">Chips: variants and usage</a></li>
+<li><a href="https://m3.material.io/components/checkbox/guidelines">Checkbox selection</a></li>
+<li><a href="https://m3.material.io/components/radio-button/guidelines">Radio groups</a></li>
+<li><a href="https://m3.material.io/components/switch/guidelines">Switches and immediate application</a></li>
+<li><a href="https://m3.material.io/components/sliders/overview">Sliders</a></li>
+<li><a href="https://m3.material.io/components/search/overview">Search</a></li>
+<li><a href="https://m3.material.io/components/menus/guidelines">Menus</a></li>
+<li><a href="https://m3.material.io/components/tabs/accessibility">Tabs and keyboard access</a></li>
+<li><a href="https://m3.material.io/components/cards/overview">Cards</a></li>
+<li><a href="https://m3.material.io/components/bottom-sheets/overview">Bottom sheets</a></li>
+<li><a href="https://m3.material.io/components/side-sheets/overview">Side sheets</a></li>
+<li><a href="https://m3.material.io/components/date-pickers/overview">Date pickers</a></li>
+<li><a href="https://m3.material.io/components/time-pickers/overview">Time pickers</a></li>
+<li><a href="https://m3.material.io/components/progress-indicators/guidelines">Progress guidance</a></li>
+<li><a href="https://m3.material.io/components/snackbar/accessibility">Snackbar accessibility</a></li>
+<li><a href="https://m3.material.io/components/tooltips/guidelines">Tooltip behavior</a></li>
+<li><a href="https://m3.material.io/foundations/designing/flow">Keyboard traversal</a></li>
+</ul>
+<p>Read these as interaction guidance. Native assistive-technology and physical-device
+acceptance remain separate from automated browser/axe checks; see the current
+<a href="zztreams-verification.md.html">verification record</a>.</p>
+</main><footer class="document-footer">Design source <code>b734548068c469a40fda7b5bc3b6e3b6114ad4da</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

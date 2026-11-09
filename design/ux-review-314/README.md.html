@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
-<title>SPORTZZ — whole-app design review and brand reference · SPORTZZ reference</title>
+<title>ZZSTREAMS — whole-app design review and brand reference · ZZSTREAMS reference</title>
 <link rel="stylesheet" href="admin-prototype.css">
 <link rel="stylesheet" href="sportzz-tokens.css">
 <link rel="stylesheet" href="sportzz-system.css">
@@ -10,16 +10,39 @@
 <link rel="stylesheet" href="pages-documents.css"></head>
 <body class="brand-index"><a class="skip" href="#main">Skip to content</a>
 <header class="reference-header"><div>
-<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
-<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/zztreams/wordmark-ink.png" alt="ZZSTREAMS design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="components.html">Components</a><a href="README.md.html">Reference index</a></nav>
 </div></header><main id="main" class="document-main" tabindex="-1">
-<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="sportzz--whole-app-design-review-and-brand-reference">SPORTZZ — whole-app design review and brand reference</h1>
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="zzstreams--whole-app-design-review-and-brand-reference">ZZSTREAMS — whole-app design review and brand reference</h1>
+<h2 id="current-revision--component-expansion">Current revision — component expansion</h2>
+<p>The working name is <strong>ZZSTREAMS</strong>, always uppercase with the S after ZZ. The current
+<a href="brand-system.html">brand reference</a> and <a href="components.html">component library</a> keep
+the Signal Pitch palette, typography and supplied icons, with a new generated
+double-z symbol and wordmark. <a href="material-component-audit.md.html">Material Design 3 comparison</a>
+records the missing families, adopted interactions and deliberate web adaptations.
+The earlier SPORTZZ assets and decisions below are provenance; the current identity
+section supersedes their use as the active signature. CSS filenames and selectors
+retain their existing names for continuity.</p>
+<p>The shared tokens and <code>sportzz-system.css</code> now own button emphasis, selection,
+chips, tabs, cards/lists, menus, sheets, search, fields, progress, navigation and
+feedback primitives. <code>components.css</code> owns catalogue layout; <code>components.js</code> only
+demonstrates local interactions. No Material runtime dependency is introduced.
+The Pages exporter includes the catalogue and renders its linked documents locally.</p>
+<p>Two logo generations through Magnific used Nano Banana 2: the first lowercase
+concept at 2K and the corrected <strong>ZZSTREAMS</strong> logo at <strong>1K</strong>. Each cost 75 credits,
+for <strong>150 of the authorized 200 credits</strong>. Both originals are retained. Transparent
+UI variants were derived locally without further charges. Legacy asset filenames
+remain stable; their contents are the corrected uppercase identity.
+<a href="assets/zztreams/provenance.json">Provenance</a> records
+the prompt, model, dimensions, original hash and transformations. These are PNG
+assets, not claimed vector masters. New image requests default to Nano Banana 2
+at 1K unless explicitly overridden. Current evidence: <a href="zztreams-verification.md.html">verification</a>.</p>
 <p><strong>Design-only continuation.</strong> Earlier statements that design was closed or implementation would begin next are superseded. The owner approved executing the design plan, including static preview publication. Application implementation requires a separately authorized later session.</p>
-<p>The package uses <strong>one shared application structure and three presentation presets</strong>: lime, coral and immersive cyan. The current SPORTZZ identity pass uses the supplied designer wordmark and symbol, shared Signal Pitch foundations and the existing <strong>Watch, Recordings, Events, Channels, Connections, Settings and System</strong> navigation. Immersive remains the first-visit/unknown-value default. The static mockup identity does not change the production application's name or code.</p>
+<p>The package uses <strong>one shared application structure and three presentation presets</strong>: lime, coral and immersive cyan. The current ZZSTREAMS identity uses the corrected uppercase wordmark, shared Signal Pitch foundations and the existing <strong>Watch, Recordings, Events, Channels, Connections, Settings and System</strong> navigation. Immersive remains the first-visit/unknown-value default. The static mockup identity does not change the production application's name or code.</p>
 <h2 id="explore-and-review">Explore and review</h2>
 <ul>
 <li><a href="index.html">Preview home</a> and <a href="https://pipepito.github.io/acestream-scraper/design/ux-review-314/">published previews</a>.</li>
-<li><a href="brand-system.html">Brand system</a> — current visual reference, actual supplied marks, theme-aware colors, type, imagery and interactive component specimens. Local changes are not automatically published.</li>
+<li><a href="brand-system.html">Brand system</a> — current identity, preserved supplied marks, theme-aware colors, type and imagery. <a href="components.html">Components</a> — expanded interactive catalogue. Local changes are not automatically published.</li>
 <li><a href="workflow-prototype.html?screen=dashboard">Interactive prototype</a> — use Interface to change presets; review controls select workflows/states. Synthetic local outcomes only.</li>
 <li><a href="workflow-gallery.html">Whole-app gallery</a> — 146 contextual compositions across all three presets. This is not a target page count.</li>
 <li><a href="simplification-06.md.html">Simplification and six task paths</a>, <a href="before-after-map.md.html">exhaustive before/after ownership and saves</a>.</li>
@@ -31,13 +54,13 @@
 <h2 id="what-changed">What changed</h2>
 <p>Watch joins the home overview and Live TV while preserving both existing routes. Channels owns source setup, guide matching and advanced streams. Recordings owns its settings. Connections groups browser playback, TVs/players, media servers, playlists and notifications by purpose. Telegram ingestion stays with sources. Settings is a concise index to canonical editors. System includes WARP, services, job history, storage, diagnostics and advanced setup/recovery.</p>
 <p>The prototype has one field catalogue, state/interaction engine and semantic component set. Lime uses compact broadcast rows and condensed headings; coral uses editorial image/text balance; cyan uses a featured illustrated viewing area and richer cards, with separate phone composition. Administration remains calm in each. The selector preserves draft, query, focus, selection, pending action and synthetic player ownership, with namespaced preference storage and a usable failure state.</p>
-<p>Supplier Football/Tennis photos are reused with attribution, joined by Basketball and Formula 1 examples in the reference. Existing selected Inter/Barlow fonts retain OFL notices. The earlier generic nature illustration remains visibly distinguished from programme artwork. This pass copies the requested SPORTZZ marks and supplied icon family, without new artwork generation. Sports concept masters remain outside the deployed payload.</p>
+<p>Supplier Football/Tennis photos are reused with attribution, joined by Basketball and Formula 1 examples in the reference. Existing selected Inter/Barlow fonts retain OFL notices. The earlier generic nature illustration remains visibly distinguished from programme artwork. The first identity pass copied SPORTZZ marks and the supplied icon family; the current logo generation is recorded above. Sports concept masters remain outside the deployed payload.</p>
 <h2 id="brand-maintenance">Brand maintenance</h2>
 <ul>
 <li>Authoritative values: <code>sportzz-tokens.css</code>. Shared component treatment: <code>sportzz-system.css</code>, loaded after existing structural styles. <code>presentation-presets.css</code> owns composition differences, not a competing palette. <code>brand-reference.css</code> owns only the reference/index editorial layouts.</li>
 <li>Current reference: <code>brand-system.html</code>; specimen interactions: <code>brand-reference.js</code>. Mockup interactions remain in <code>workflow-engine.js</code>; do not fork the field catalogue or workflow contracts to change appearance.</li>
 <li>Designer originals: <code>/srv/opencode-workspace/assets/designer-reference/sportzz-frontend/</code>. Read its parent README, inspect actual graphics, then select optimized runtime files. Keep originals unchanged. VM paths are maintenance context only, never runtime URLs.</li>
-<li>Preserve logo geometry. Use provided black/white/lime variants. The actual lime SVGs are #B6FF00, not the v2 cyan proposal. Cyan is applied as a background/action token. Conservative digital wordmark sizes and accessible light-theme ramps are documented refinements.</li>
+<li>Preserve the current ZZSTREAMS geometry and capitalization; use its ink/paper wordmarks or cyan lockups. Earlier SPORTZZ black/white/lime SVGs remain historical reference. The supplied lime SVGs are #B6FF00, not cyan. Digital wordmark sizes and accessible light-theme ramps are documented refinements.</li>
 <li>Every selected asset is mapped in <a href="assets/sportzz/asset-map.json">assets/sportzz/asset-map.json</a>, with source, purpose and SHA256. Keep category attribution JSON and font OFL notices; the earlier <a href="assets/selected/asset-manifest.json">image manifest</a> remains authoritative for existing imagery. Do not infer rights or factual event identity from a filename.</li>
 <li>Use the existing <code>.button</code>, <code>.field</code>, <code>.badge</code>, <code>.notice</code>, native dialog and supplied <code>.icon</code> patterns. New variants belong in the shared stylesheet; add a live specimen here and inspect the corresponding workflow in both themes. Avoid unlabelled icon controls and unrelated decorative photos.</li>
 <li>Update tokens, affected mockups and reference together. Inspect and reuse existing assets before proposing generation; generation needs explicit user authorization. Preserve the static no-backend boundary and relative URLs.</li>
@@ -59,4 +82,4 @@ python3 docs/design/ux-review-314/check_artifacts.py --output /tmp/ux-artifacts-
 </code></pre>
 <p>Playwright uses cached tooling and an intercepted <code>design.invalid</code> origin: only local files below this design directory can load. There are no application imports, network APIs, media playback or live mutations. Reports/private captures stay outside Git; deliberately synthetic gallery exports are public design artifacts. See the verification report for exact commands and observed counts.</p>
 <p>The earlier <a href="admin-prototype.html">administration prototype</a>, <a href="prototype.html">illustrative viewing concept</a>, reviews 03–05 and their verification logs are historical context. They neither override review 06 nor establish new passes. The supplied frontend and translation helper remain references, never canonical application roots.</p>
-</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>
+</main><footer class="document-footer">Design source <code>b734548068c469a40fda7b5bc3b6e3b6114ad4da</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

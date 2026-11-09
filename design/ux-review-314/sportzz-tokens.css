@@ -31,6 +31,10 @@
   --ease: cubic-bezier(.2, 0, 0, 1);
   --layer-nav: 4;
   --layer-feedback: 6;
+  --radius-pill: 999px;
+  --target-size: 48px;
+  --state-hover: 8%;
+  --state-pressed: 12%;
 }
 body, body.cyan, body.lime, body.dark, body.cyan.dark, body.lime.dark {
   --space: var(--space-6);
@@ -60,6 +64,9 @@ body, body.cyan, body.lime, body.dark, body.cyan.dark, body.lime.dark {
   --info-bg: #e1efff;
   --shadow: 0 8px 28px #0a0f0d14;
   --shadow-dialog: 0 24px 80px #0005;
+  --inverse-surface: #1a2320;
+  --inverse-text: #f2f5f3;
+  --inverse-action: #2ee6d6;
 }
 body.dark, body.cyan.dark, body.lime.dark {
   color-scheme: dark;

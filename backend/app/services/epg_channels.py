@@ -21,22 +21,20 @@ class EPGChannelOperations:
         skip = max(skip, 0)
         limit = 50 if limit <= 0 else min(limit, 100)
 
-        query = self.db.query(EPGChannel)
-
-        if source_id is not None:
-            query = query.filter(EPGChannel.epg_source_id == source_id)
-
-        total = query.count()
-        items = query.order_by(EPGChannel.name.asc(), EPGChannel.id.asc()).offset(skip).limit(limit).all()
-        return items, total
+        from app.repositories.epg_inventory_repository import EPGInventoryRepository
+        return EPGInventoryRepository(self.db).page(source_id, skip, limit)
 
     def get_channel(self, channel_id: int) -> Optional[EPGChannel]:
         """Get an EPG channel by ID"""
-        return self.db.query(EPGChannel).filter(EPGChannel.id == channel_id).first()
+        from app.repositories.epg_inventory_repository import EPGInventoryRepository
+        row = self.db.query(EPGChannel).filter(EPGChannel.id == channel_id).first()
+        if row:
+            EPGInventoryRepository(self.db).attach_sources([row])
+        return row
 
     def get_channel_by_source_and_xml_id(self, source_id: int, channel_xml_id: str) -> Optional[EPGChannel]:
         """Resolve an EPG channel by source and XML identifier."""
-        return (
+        row = (
             self.db.query(EPGChannel)
             .filter(
                 EPGChannel.epg_source_id == source_id,
@@ -44,6 +42,10 @@ class EPGChannelOperations:
             )
             .first()
         )
+        if row:
+            from app.repositories.epg_inventory_repository import EPGInventoryRepository
+            EPGInventoryRepository(self.db).attach_sources([row])
+        return row
 
     def map_channel_to_tv(self, epg_channel_id: int, tv_channel_id: int) -> bool:
         """Map an EPG channel to a TV channel"""

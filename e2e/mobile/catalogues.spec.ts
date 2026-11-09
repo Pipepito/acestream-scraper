@@ -66,7 +66,7 @@ for (const theme of ['light', 'dark']) {
     await page.getByRole('checkbox', { name: 'Reviewed match · unknown' }).check();
     await page.getByRole('button', { name: 'Save selected (1)' }).click();
     await expect(page.getByRole('heading', { name: 'Add events', exact: true })).toHaveCount(0);
-    expect(eventWrites).toEqual([{ token: 'event-review', selected_ids: [event.id], refresh_source: false }]);
+    expect(eventWrites).toEqual([{ token: 'event-review', selected_ids: [event.id], refresh_source: false, import_new: false }]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: test.info().outputPath(`catalogue-${theme}.png`), fullPage: true });

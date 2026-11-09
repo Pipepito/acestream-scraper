@@ -33,8 +33,8 @@ export const eventService = {
     (await apiClient.get('/v1/events', { params })).data,
   get: async (id: string): Promise<SportingEvent> => (await apiClient.get(`/v1/events/${id}`)).data,
   preview: async (input: EventImport): Promise<EventPreview> => (await apiClient.post('/v1/events/preview', input)).data,
-  apply: async (token: string, selected_ids: string[], refresh_source = false): Promise<SportingEvent[]> =>
-    (await apiClient.post('/v1/events/apply', { token, selected_ids, refresh_source })).data,
+  apply: async (token: string, selected_ids: string[], refresh_source = false, import_new = false): Promise<SportingEvent[]> =>
+    (await apiClient.post('/v1/events/apply', { token, selected_ids, refresh_source, import_new })).data,
   providers: async (): Promise<components['schemas']['EventProviderCatalog']> => (await apiClient.get('/v1/events/providers')).data,
   interests: async (): Promise<EventInterests> => (await apiClient.get('/v1/events/interests')).data,
   broadcastTargets: async (search: string): Promise<EventChannelTarget[]> => (await apiClient.get('/v1/events/broadcast-targets', { params: { search } })).data,

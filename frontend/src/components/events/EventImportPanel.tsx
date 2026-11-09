@@ -5,7 +5,7 @@ import { getLocale } from '../../i18n/locale';
 import { statusLabel } from '../../i18n/status';
 import { useUiText } from '../../i18n/useUiText';
 import { catalogueService } from '../../services/catalogueService';
-import { eventService,type EventImport,type EventPreview,type EventProviderOptions,type EventSource } from '../../services/eventService';
+import { eventService,type EventImport,type EventPreview,type EventProviderOptions,type EventSource,type EventInterests } from '../../services/eventService';
 import { useConfirm } from '../ConfirmDialog';
 import ContentSection from '../layout/ContentSection';
 import { useUnsavedChanges } from '../UnsavedChanges';
@@ -37,6 +37,9 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
   const validTimeout = /^\d+$/.test(timeoutSeconds) && Number(timeoutSeconds) >= 5 && Number(timeoutSeconds) <= 300;
   const [scheduleUrl, setScheduleUrl] = useState('');
   const [refreshSource, setRefreshSource] = useState(source?.enabled ?? false);
+  const [windowDays, setWindowDays] = useState(source?.window_days ?? 14);
+  const [sourceInterests, setSourceInterests] = useState<EventInterests>(source?.interests ?? emptyInterests);
+  const [importNew, setImportNew] = useState(source?.import_new ?? true);
   const [url, setUrl] = useState('');
   const [label, setLabel] = useState('');
   const [raw, setRaw] = useState('');
@@ -54,15 +57,15 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
     }) : eventService.preview(input),
     onSuccess: (result) => { setPreview(result); setSelected([]); setFailure(null); },
     onError: (err) => setFailure({ remote: err }), onSettled: () => { action.current = false; } });
-  const reviewSource = useMutation({ mutationFn: () => eventService.previewSource({ timeout_seconds: Number(timeoutSeconds), ...(mode === 'provider' ? { source_id: source?.id, provider_options: provider, timezone: sourceZone } : source ? { source_id: source.id } : { url: scheduleUrl, format, timezone: sourceZone }) }),
+  const reviewSource = useMutation({ mutationFn: () => eventService.previewSource({ timeout_seconds: Number(timeoutSeconds), ...(mode === 'provider' ? { source_id: source?.id, provider_options: provider, timezone: sourceZone } : source ? { source_id: source.id, window_days: windowDays, interests: sourceInterests } : { url: scheduleUrl, format, timezone: sourceZone, window_days: windowDays, interests: sourceInterests }) }),
     onSuccess: (result) => { setPreview(result); setSelected([]); setFailure(null); setReviewedProvider(JSON.stringify(provider)); },
     onError: (err) => setFailure({ remote: err }), onSettled: () => { action.current = false; } });
-  const save = useMutation({ mutationFn: () => (mode === 'url' || mode === 'provider') ? eventService.apply(preview!.token, selected, refreshSource) : eventService.apply(preview!.token, selected),
+  const save = useMutation({ mutationFn: () => (mode === 'url' || mode === 'provider') ? eventService.apply(preview!.token, selected, refreshSource, importNew) : eventService.apply(preview!.token, selected),
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['events'] }); void queryClient.invalidateQueries({ queryKey: ['catalogue'] }); onClose(); },
     onError: (err) => setFailure({ remote: err }), onSettled: () => { action.current = false; } });
   const previewStale = mode === 'provider' && reviewedProvider !== JSON.stringify(provider);
   const busy = review.isPending || reviewSource.isPending || save.isPending;
-  const draft = JSON.stringify({ mode, provider, title, start, sport, competition, format, sourceZone, timeoutSeconds, scheduleUrl, refreshSource, url, label, raw });
+  const draft = JSON.stringify({ mode, provider, title, start, sport, competition, format, sourceZone, timeoutSeconds, scheduleUrl, refreshSource, windowDays, sourceInterests, importNew, url, label, raw });
   const initialDraft = useRef(draft);
   const dirty = draft !== initialDraft.current || Boolean(preview);
   useUnsavedChanges(dirty, busy);
@@ -115,8 +118,15 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
       </Box>)}
       </Box>
       {mode === 'url' || mode === 'provider' ? <FormControlLabel control={<Checkbox checked={refreshSource} disabled={busy} onChange={(_, checked) => setRefreshSource(checked)} />} label={tUi("Refresh selected events automatically with scheduled scraping")} /> : null}
+      {(mode === 'url' || mode === 'provider') && refreshSource ? <>
+        <FormControlLabel control={<Checkbox checked={importNew} disabled={busy} onChange={(_, checked) => setImportNew(checked)} />}
+          label={tUi("Also import new matching events automatically")} />
+        <Typography variant="body2">{importNew
+          ? tUi('Each refresh checks the next {{days}} days, updates existing events and adds new matches. Future runs include every matching event, including rows not selected above.', { days: mode === 'provider' ? provider.window_days ?? 14 : windowDays })
+          : tUi('Each refresh updates previously selected events present in this window. New events need review.')} {' '}{tUi('Manual corrections are kept.')}</Typography>
+      </> : null}
       <Stack direction="row" spacing={1} flexWrap="wrap">
-        <Button variant="contained" disabled={(!selected.length && mode !== 'provider') || busy || previewStale} onClick={() => run(() => save.mutate())}>{mode === 'provider' && !selected.length ? tUi("Save source without events") : tUi("Save selected ({{value0}})", { value0: selected.length })}</Button>
+        <Button variant="contained" disabled={(!selected.length && mode !== 'provider' && mode !== 'url') || busy || previewStale} onClick={() => run(() => save.mutate())}>{(mode === 'provider' || mode === 'url') && !selected.length ? tUi("Save source without events") : tUi("Save selected ({{value0}})", { value0: selected.length })}</Button>
         <Button disabled={busy} onClick={() => setPreview(null)}>{tUi("Back to input")}</Button>
         <Button disabled={busy} onClick={() => void close()}>{tUi("Cancel")}</Button>
       </Stack>
@@ -146,6 +156,10 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
           </TextField>
           {format === 'schema_org' ? <TextField label={tUi("Source timezone")} value={sourceZone} onChange={(e) => setSourceZone(e.target.value)} helperText={tUi("IANA timezone used by this guide for times without an offset. Check the source; do not assume your display timezone.")} /> : null}
         </> : null}
+        <TextField select label={tUi("Import window")} value={windowDays} disabled={busy} onChange={(e) => setWindowDays(Number(e.target.value))}>
+          {Array.from(new Set([7, 14, 30, windowDays])).sort((a, b) => a - b).map((days) => <MenuItem key={days} value={days}>{tUi("Next")}{' '}{days}{' '}{tUi("days")}</MenuItem>)}
+        </TextField>
+        <EventInterestFields prefix={tUi("Import: ")} value={sourceInterests} onChange={setSourceInterests} disabled={busy} />
         <Typography variant="body2">{tUi("Structured guides need SportsEvent records with stable IDs and explicit dates. Pages without this metadata and Telegram messages need adapters. Open raw W3U lists in Scraper → W3U catalogues and use Add as event. Preview fetches the guide without saving it.")}</Typography>
       </> : <>
         <Typography variant="body2">{tUi("Use the version 1 event schedule format documented in the Sports events guide. Open raw W3U lists in Scraper → W3U catalogues and use Add as event. Telegram messages need an adapter.")}</Typography>

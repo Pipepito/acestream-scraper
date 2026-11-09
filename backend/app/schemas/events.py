@@ -236,7 +236,7 @@ def current_football_season():
 
 
 class EventProviderOptions(StrictModel):
-    provider: Literal['wosti_es', 'openfootball']
+    provider: Literal['wosti_es', 'openfootball', 'marca_es']
     feeds: list[str] = Field(default_factory=lambda: ['all', 'automovilismo'], min_length=1, max_length=20)
     football_competitions: list[str] = Field(default_factory=list, max_length=20)
     season: str = Field(default_factory=current_football_season, pattern=r'^20\d{2}-\d{2}$')
@@ -276,6 +276,7 @@ class EventApply(StrictModel):
     token: str = Field(min_length=1, max_length=128)
     selected_ids: list[str] = Field(max_length=500)
     refresh_source: bool = False
+    import_new: bool = False
 
 
 class EventUpdate(StrictModel):
@@ -286,6 +287,8 @@ class EventUpdate(StrictModel):
 
 
 class EventSourcePreviewRequest(StrictModel):
+    window_days: int = Field(default=14, ge=1, le=30)
+    interests: EventInterests = Field(default_factory=EventInterests)
     timeout_seconds: int | None = Field(default=None, ge=5, le=300)
     provider_options: EventProviderOptions | None = None
     format: Literal['event_import', 'schema_org'] = 'event_import'
@@ -316,6 +319,7 @@ class EventSourceUpdate(StrictModel):
 
 
 class EventRefreshResult(StrictModel):
+    created: int = 0
     updated: int = 0
     pending: int = 0
     status: Literal['updated', 'error', 'unchanged']
@@ -323,6 +327,9 @@ class EventRefreshResult(StrictModel):
 
 
 class EventSourceView(StrictModel):
+    import_new: bool = False
+    window_days: int = Field(default=14, ge=1, le=30)
+    interests: EventInterests = Field(default_factory=EventInterests)
     timeout_seconds: int = Field(default=15, ge=5, le=300)
     provider_options: EventProviderOptions | None = None
     format: Literal['event_import', 'schema_org'] = 'event_import'

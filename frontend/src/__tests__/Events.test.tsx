@@ -168,12 +168,30 @@ it('reviews a URL before enabling scheduled refresh and saves explicit retention
   await user.click(screen.getByRole('option', { name: 'Load schedule URL' }));
   await user.type(screen.getByLabelText('Schedule URL'), 'https://guide.example/events.json');
   await user.click(screen.getByRole('button', { name: 'Preview events' }));
-  expect(await screen.findByRole('button', { name: 'Save selected (0)' })).toBeDisabled();
+  expect(await screen.findByRole('button', { name: 'Save source without events' })).toBeEnabled();
   expect(service.apply).not.toHaveBeenCalled();
   await user.click(screen.getByRole('checkbox', { name: /Refresh selected events automatically/ }));
   await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · Scheduled' }));
   await user.click(screen.getByRole('button', { name: 'Save selected (1)' }));
-  await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [event.id], true));
+  await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [event.id], true, true));
+});
+
+it('offers MARCA and saves automatic imports with the rolling window and sport filters', async () => {
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(screen.getByRole('button', { name: 'Add events' }));
+  await user.click(screen.getByLabelText('Provider'));
+  await user.click(screen.getByRole('option', { name: /MARCA/ }));
+  await user.type(screen.getByRole('combobox', { name: 'Import: Sports' }), 'Football{enter}');
+  await user.click(screen.getByRole('button', { name: 'Preview events' }));
+  await screen.findByRole('button', { name: 'Save source without events' });
+  expect(service.previewSource).toHaveBeenCalledWith(expect.objectContaining({ provider_options: expect.objectContaining({
+    provider: 'marca_es', window_days: 14, interests: expect.objectContaining({ sports: ['Football'] }),
+  }) }));
+  await user.click(screen.getByRole('checkbox', { name: /Refresh selected events automatically/ }));
+  expect(screen.getByRole('checkbox', { name: 'Also import new matching events automatically' })).toBeChecked();
+  await user.click(screen.getByRole('button', { name: 'Save source without events' }));
+  await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [], true, true));
 });
 
 it('requires selecting an exact stream to map an unresolved broadcaster', async () => {
@@ -245,7 +263,7 @@ it('starts with providers, previews mixed interests again before saving, and kee
   await waitFor(() => expect(service.previewSource).toHaveBeenLastCalledWith(expect.objectContaining({ provider_options: expect.objectContaining({ window_days: 14, interests: { sports: [], competitions: ['Premier League'], teams: ['North United'] } }) })));
   await user.click(screen.getByRole('checkbox', { name: 'Select all shown events' }));
   await user.click(screen.getByRole('button', { name: 'Save selected (1)' }));
-  await waitFor(() => expect(service.apply).toHaveBeenCalledWith('provider-review', [event.id], false));
+  await waitFor(() => expect(service.apply).toHaveBeenCalledWith('provider-review', [event.id], false, true));
 });
 
 it('links a differently named regional TV channel and displays TV or EPG destinations', async () => {

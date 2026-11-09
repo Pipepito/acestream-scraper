@@ -21,5 +21,7 @@ class EPGIdentityService:
                 or any(char in xml_id for char in '\"\r\n')):
             if source_id is None:
                 return None  # an unqualified raw stream cannot choose a source
-            return f'{PREFIX}{source_id}:{quote(xml_id, safe="")}'
+            # These are quoted M3U/XML attribute values, not URLs. Spaces can
+            # stay literal; keep percent signs encoded to avoid ID collisions.
+            return f'{PREFIX}{source_id}:{quote(xml_id, safe=" ")}'
         return xml_id

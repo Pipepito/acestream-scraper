@@ -137,3 +137,46 @@ for (const mode of ['light', 'dark']) {
     expect(errors).toEqual([]);
   });
 }
+
+for (const mode of ['light', 'dark']) {
+  test(`${mode}: MARCA rolling source imports save filters before fetching`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    let previewBody: Record<string, unknown> | undefined;
+    let applyBody: Record<string, unknown> | undefined;
+    await page.route('**/api/**', async route => {
+      const path = new URL(route.request().url()).pathname;
+      let json: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
+      if (path === '/api/v1/events') json = { events: [], total: 0 };
+      if (path === '/api/v1/events/providers') json = { feeds: [], football_competitions: [], leagues: [] };
+      if (path === '/api/v1/events/sources/preview') {
+        previewBody = route.request().postDataJSON();
+        json = { token: 'marca-preview', events: [fixture], warnings: [], available_interests: { sports: ['Football'], competitions: ['Example Cup'], teams: [] } };
+      }
+      if (path === '/api/v1/events/apply') { applyBody = route.request().postDataJSON(); json = [fixture]; }
+      await route.fulfill({ json });
+    });
+    await page.addInitScript(value => {
+      localStorage.setItem('app-theme-mode', value);
+      localStorage.setItem('acestream.changelog.seen.v1', 'v2.2.1');
+    }, mode);
+    await page.goto('/events');
+    await page.getByTestId('page-header-primary-actions').getByRole('button', { name: 'Add events', exact: true }).click();
+    await page.getByRole('combobox', { name: /^Provider/ }).click();
+    await page.getByRole('option', { name: /MARCA/ }).click();
+    await page.getByRole('combobox', { name: 'Import: Sports', exact: true }).fill('Football');
+    await page.keyboard.press('Enter');
+    expect(previewBody).toBeUndefined();
+    await page.getByRole('button', { name: 'Preview events', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Save source without events', exact: true })).toBeVisible();
+    expect(previewBody?.provider_options).toMatchObject({ provider: 'marca_es', window_days: 14, interests: { sports: ['Football'] } });
+    await page.getByRole('checkbox', { name: /Refresh selected events automatically/ }).check();
+    await expect(page.getByRole('checkbox', { name: 'Also import new matching events automatically' })).toBeChecked();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`marca-rolling-${mode}.png`), fullPage: true, animations: 'disabled' });
+    await page.getByRole('button', { name: 'Save source without events', exact: true }).click();
+    await expect.poll(() => applyBody).toEqual({ token: 'marca-preview', selected_ids: [], refresh_source: true, import_new: true });
+    expect(errors).toEqual([]);
+  });
+}

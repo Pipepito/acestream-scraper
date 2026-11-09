@@ -38,15 +38,20 @@ export const useEPGChannelSelection = ({
   const [selectedEPGChannelIds, setSelectedEPGChannelIds] = useState<number[]>([]);
 
   // EPG Channels selection handlers
-  // Build a set of mapped EPG XML IDs (or channel_xml_id)
-  const mappedEpgXmlIds = useMemo(() => {
+  // A TV assignment to either member links the shared logical channel.
+  const mappedEpgIds = useMemo(() => {
     if (!tvChannels) return new Set<string>();
-    return new Set(tvChannels.filter((channel: any) => channel.epg_id).map((channel: any) => channel.epg_id));
+    return new Set(tvChannels.filter((channel) => channel.epg_id).map((channel) => `${channel.epg_source_id ?? ''}:${channel.epg_id}`));
   }, [tvChannels]);
 
+  const mappedChannelIds = useMemo(() => new Set(epgChannels.filter((channel) =>
+    mappedEpgIds.has(`:${channel.channel_xml_id}`) ||
+    (channel.sources?.map((source) => source.source_id) ?? [channel.epg_source_id])
+      .some((id) => mappedEpgIds.has(`${id}:${channel.channel_xml_id}`))).map((channel) => channel.id)), [epgChannels, mappedEpgIds]);
+
   const visibleUnmappedChannelIds = useMemo(
-    () => epgChannels.filter((channel) => !mappedEpgXmlIds.has(channel.channel_xml_id)).map((channel) => channel.id),
-    [epgChannels, mappedEpgXmlIds]
+    () => epgChannels.filter((channel) => !mappedChannelIds.has(channel.id)).map((channel) => channel.id),
+    [epgChannels, mappedChannelIds]
   );
 
   const isTVChannelCatalogReady = !isLoadingTVChannelCatalog && !tvChannelCatalogError && Boolean(tvChannels);
@@ -55,7 +60,7 @@ export const useEPGChannelSelection = ({
     setSelectedEPGChannelIds([]);
   }, [selectedSourceId, channelPage, channelPageSize]);
 
-  const isChannelMapped = (channel: EPGChannel) => mappedEpgXmlIds.has(channel.channel_xml_id);
+  const isChannelMapped = (channel: EPGChannel) => mappedChannelIds.has(channel.id);
 
   const handleSelectAllChannels = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!isTVChannelCatalogReady) {

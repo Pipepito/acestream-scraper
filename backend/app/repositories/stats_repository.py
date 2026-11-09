@@ -50,7 +50,7 @@ class StatsRepository:
             "scraped_urls_error": self.db.query(ScrapedURL).filter(ScrapedURL.status.ilike("error%")).count(),
             "tv_channels": self.db.query(TVChannel).count(),
             "epg_sources": self.db.query(EPGSource).count(),
-            "epg_channels": self.db.query(EPGChannel).count(),
+            "epg_channels": self.db.query(func.count(func.distinct(func.coalesce(EPGChannel.identity_id, -EPGChannel.id)))).scalar(),
             "epg_programs": self.db.query(EPGProgram).count(),
             "scraped_urls": self.db.query(ScrapedURL).count(),
         }

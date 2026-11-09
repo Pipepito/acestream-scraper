@@ -72,6 +72,22 @@ describe('EPGChannelDetail', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('EPG channel not found');
   });
 
+  it('shows both linked sources and opens the selected source schedule', async () => {
+    mockUseEPGChannel.mockImplementation((id: number) => ({ data: {
+      id, name: 'Shared Sports', channel_xml_id: 'sports.es', epg_source_id: id === 42 ? 1 : 2,
+      identity_id: 7, sources: [
+        { channel_id: 42, source_id: 1, name: 'Guide A', enabled: true },
+        { channel_id: 43, source_id: 2, name: 'Guide B', enabled: true },
+      ],
+    }, isLoading: false }));
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Guide A' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByTestId('schedule-view')).toHaveTextContent('schedule for 42');
+    fireEvent.click(screen.getByRole('link', { name: 'Guide B' }));
+    await waitFor(() => expect(screen.getByTestId('schedule-view')).toHaveTextContent('schedule for 43'));
+    expect(screen.getByRole('link', { name: 'Guide B' })).toHaveAttribute('aria-current', 'page');
+  });
+
   it('shows the xml id, language and link state as chips with mapping actions when unlinked', () => {
     renderPage();
 

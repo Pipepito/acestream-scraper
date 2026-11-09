@@ -44,9 +44,18 @@ class EPGChannelBase(BaseModel):
     language: Optional[str] = None
 
 
+class EPGChannelSource(BaseModel):
+    channel_id: int
+    source_id: int
+    name: str
+    enabled: bool
+
+
 class EPGChannelResponse(EPGChannelBase):
     """Schema for EPG channel response"""
     id: int
+    identity_id: int | None = None
+    sources: list[EPGChannelSource] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

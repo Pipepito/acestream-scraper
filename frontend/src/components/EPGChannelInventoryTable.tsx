@@ -72,7 +72,7 @@ const EPGChannelInventoryTable: React.FC<EPGChannelInventoryTableProps> = ({
                   </Box>
                 </TableCell>
                 <TableCell sx={{ fontFamily: 'monospace', fontSize: 12.5 }}>{channel.channel_xml_id}</TableCell>
-                {showSource ? <TableCell>{sources?.find((s) => s.id === channel.epg_source_id)?.name || channel.epg_source_id}</TableCell> : null}
+                {showSource ? <TableCell>{channel.sources?.length ? channel.sources.map((source) => source.name + (source.enabled ? '' : ' (disabled)')).join(', ') : sources?.find((s) => s.id === channel.epg_source_id)?.name || channel.epg_source_id}</TableCell> : null}
                 {showLanguage ? <TableCell>{channel.language || '—'}</TableCell> : null}
                 <TableCell>
                   {mapped ? <Chip label="Linked" size="small" color="success" variant="outlined" /> : <Chip label="Not linked" size="small" variant="outlined" />}

@@ -69,6 +69,8 @@ def digest(parts):
 
 
 def provider_location(options):
+    if options.provider == 'marca_es':
+        return 'https://www.marca.com/programacion-tv.html', 'provider:marca:es', 'MARCA · Spain'
     if options.provider == 'wosti_es':
         if any(feed not in FEEDS for feed in options.feeds):
             raise ValueError('Choose a supported sports feed')
@@ -164,6 +166,7 @@ class ProviderSchedule:
     observations: list[EventObservation]
     available_interests: EventInterestChoices = field(default_factory=EventInterestChoices)
     warnings: list[str] = field(default_factory=list)
+    truncated: bool = False
 
 
 def provider_urls(options):
@@ -184,7 +187,7 @@ def provider_urls(options):
 async def fetch_provider(options, *, zone, timeout=15, now=None):
     options = EventProviderOptions.model_validate(options)
     urls = provider_urls(options)
-    if options.provider == 'wosti_es':
+    if options.provider in ('wosti_es', 'marca_es'):
         zone = 'Europe/Madrid'
     semaphore = asyncio.Semaphore(3)
     total_bytes = 0
@@ -201,6 +204,10 @@ async def fetch_provider(options, *, zone, timeout=15, now=None):
                             total_bytes += len(chunk)
                             if len(data) > 2 * 1024 * 1024 or total_bytes > 12 * 1024 * 1024:
                                 raise ValueError('Provider response exceeds size limit')
+                    if options.provider == 'marca_es':
+                        from app.services.event_marca import parse_marca
+                        # The publisher's legacy page declares ISO-8859-1.
+                        return await asyncio.to_thread(parse_marca, bytes(data))
                     raw = data.decode('utf-8-sig')
                     return await asyncio.to_thread(parse_wosti, raw, feed=feed) if options.provider == 'wosti_es' else await asyncio.to_thread(parse_openfootball, raw, options, zone)
             # TaskGroup cancels sibling requests on failure, before closing the session.
@@ -233,8 +240,10 @@ def select_provider_rows(observations, options, *, zone, now=None):
     if options.provider == 'wosti_es':
         warnings += ['Spain selects the broadcast market, not the countries of the teams or competition.',
             'This guide has no stable fixture IDs. Changed dates/times appear as new occurrences for review; archive the old occurrence if it was rescheduled.']
+    elif options.provider == 'marca_es':
+        warnings.append('MARCA publishes a limited daily agenda without fixture IDs. Same-day time changes update the listing; changed dates or titles create separate occurrences.')
     else:
         warnings.append('OpenFootball has no TV listings. Dates and kickoff times may be incomplete; verify the configured source timezone.')
     if len(selected) > 500:
         warnings.append(f'{len(selected)} events match. Only the first 500 are shown; narrow your interests and preview again.')
-    return ProviderSchedule(selected[:500], choices, warnings)
+    return ProviderSchedule(selected[:500], choices, warnings, len(selected) > 500)

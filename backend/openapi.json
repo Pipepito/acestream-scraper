@@ -13808,7 +13808,7 @@
   "info": {
     "description": "API for scraping and managing Acestream channels",
     "title": "Acestream Scraper API",
-    "version": "v2.2.0"
+    "version": "v2.2.1"
   },
   "openapi": "3.1.0",
   "paths": {

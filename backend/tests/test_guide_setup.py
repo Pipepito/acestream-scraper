@@ -78,8 +78,16 @@ def test_authenticated_header_carriers(client, monkeypatch, header):
     assert client.get(url).status_code == 200
 
 
-def test_cross_source_ids_are_consistent_in_filtered_exports(client, db_session, inventory):
+@pytest.mark.parametrize(('xml_id', 'exported_suffix'), [
+    ('news.one', 'news.one'),
+    ('News One HD', 'News One HD'),
+    ('News%20One HD', 'News%2520One HD'),
+    ('News "One"\nHD', 'News %22One%22%0AHD'),
+])
+def test_cross_source_ids_are_consistent_in_filtered_exports(client, db_session, inventory, xml_id, exported_suffix):
     source, epg, _ = inventory
+    epg.channel_xml_id = xml_id
+    db_session.commit()
     apply(db_session, analyze(db_session)[0])
     second = EPGSource(name='Other guide', url='https://example.com/other', enabled=True)
     db_session.add(second); db_session.flush()
@@ -93,6 +101,10 @@ def test_cross_source_ids_are_consistent_in_filtered_exports(client, db_session,
     xml = ET.fromstring(client.get('/api/v1/epg/xml').text)
     ids = [c.attrib['id'] for c in xml.findall('channel')]
     assert len(set(ids)) == 2
+    assert set(ids) == {
+        f'acestream-scraper:{source.id}:{exported_suffix}',
+        f'acestream-scraper:{second.id}:{exported_suffix}',
+    }
     playlist = client.get('/api/v1/playlists/m3u').text
     assert set(re.findall('tvg-id="([^"]+)"', playlist)) == set(ids)
     filtered = client.get('/api/v1/playlists/tv-channels/m3u', params={'search': 'Other station'}).text

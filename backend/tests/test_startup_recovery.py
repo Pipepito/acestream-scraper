@@ -178,6 +178,9 @@ def test_warp_failure_preserves_authenticated_diagnostics_and_blocks_work(isolat
         status = client.get('/api/v1/startup', headers=headers).json()
         assert status['status'] == 'failed'
         assert not status['recovery_available']
+        assert status['startup_dependency'] == 'warp'
+        from datetime import datetime, timedelta
+        assert datetime.fromisoformat(status['server_time']).utcoffset() == timedelta(0)
         assert 'WARP' in status['guidance']
         if failure == 'prerequisites':
             assert 'NET_ADMIN' in status['guidance']

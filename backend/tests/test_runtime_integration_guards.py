@@ -298,7 +298,9 @@ def test_entrypoint_stops_the_app_before_sidecars_on_signals():
     entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
     # The lifespan's engine `stop` calls must reach a live engine, so the app
     # goes down first on INT/TERM (it already does on the normal exit path).
-    assert """trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT""" in entrypoint
+    assert "trap 'shutdown_runtime' INT TERM EXIT" in entrypoint
+    shutdown = entrypoint.split("shutdown_runtime() {", 1)[1].split("\n}", 1)[0]
+    assert 'shutdown_children "${app_pid:-}" "${child_pids[@]:-}"' in shutdown
 
 
 def test_entrypoint_appends_bind_all_to_engine_command_by_default():

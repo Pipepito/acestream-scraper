@@ -895,6 +895,14 @@ bounded automatic TV discovery when the inventory is empty, including after rest
 
 ## WARP management
 
+WARP startup uses a per-boot coordinator under `SUPERVISOR_RUN_DIR`. Configuration
+retries within a 600-second monotonic budget, then the authenticated startup Retry
+opens a new window. Keep daemon supervision alive, serialize configuration across
+daemon generations, and let only the entrypoint release sidecars once. Block app
+startup until that release; WARP failures never enable database recovery. Clock
+warnings compare server/browser UTC as advisory only; never set host time or
+bypass TLS. See `docs/ops/startup-recovery.md`.
+
 WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and
 `backend/warp_exclusions.py`, shared with `warp-setup.sh`. Persist desired and
 previously managed hosts beside the database; retain pending removals after partial

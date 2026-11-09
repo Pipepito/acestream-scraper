@@ -204,6 +204,8 @@ Cloudflare WARP provides enhanced privacy and secure connection options:
 |----------|-------------|---------|-------|
 | `ENABLE_WARP` | Start Cloudflare WARP | `false` | Available on amd64/arm64; full tunneling on `develop` requires `NET_ADMIN` and `/dev/net/tun`. The builder retains `SYS_ADMIN` for older releases |
 | `WARP_ENABLE_NAT` | Connect the selected WARP mode at startup | `false` | Waits for connection before starting network services; adds NAT only for full tunneling. Leave false to connect from the WARP page |
+| `WARP_READY_ATTEMPTS` | Status polls per WARP readiness wait | `30` | Deployment-only; each wait is capped by the remaining ten-minute startup recovery window |
+| `WARP_READY_INTERVAL` | Seconds between WARP readiness polls | `1` | Deployment-only; automatic recovery uses monotonic elapsed time and Retry starts another window |
 | `WARP_DNS_ONLY` | Use encrypted DNS without tunneling traffic (`develop`) | `false` | Requires `NET_ADMIN`, but no `SYS_ADMIN` or `/dev/net/tun`. Video and other traffic keep the normal connection |
 | `WARP_LICENSE_KEY` | WARP license key | - | Optional: For WARP+ or Team accounts |
 

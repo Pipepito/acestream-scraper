@@ -38,6 +38,11 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
 
 ## Database and startup invariants
 
+- Observe the entrypoint's per-boot WARP release before catalogue startup. Retry
+  submits a private recovery request, never launches daemons from the API. Keep
+  WARP waiting cancellable, database work protected on shutdown, and clock hints
+  advisory. See `docs/ops/startup-recovery.md`.
+
 - Production schema ownership belongs to Alembic. Add a revision for model changes,
   and test both a fresh upgrade and an upgrade from the relevant prior revision.
 - `initialize_database()` migrates a legacy v1 SQLite database in two phases. Small

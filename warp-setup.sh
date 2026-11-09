@@ -150,7 +150,24 @@ if [ "$WARP_ENABLE_NAT" = "true" ]; then
     if [ "$WARP_DNS_ONLY" != "true" ]; then
         run_privileged nft add table ip nat >> "$WARP_LOG" 2>&1 || true
         run_privileged nft add chain ip nat WARP_NAT '{ type nat hook postrouting priority 100 ; }' >> "$WARP_LOG" 2>&1 || true
-        run_privileged nft add rule ip nat WARP_NAT oifname CloudflareWARP masquerade >> "$WARP_LOG" 2>&1 || true
+        # Configuration can be retried after a later exclusions/connect failure.
+        # Reuse the exact existing rule; never flush operator-owned rules.
+        if run_privileged nft -j list chain ip nat WARP_NAT 2>> "$WARP_LOG" | python3 -c '
+import json, sys
+expected = [{"match": {"op": "==", "left": {"meta": {"key": "oifname"}}, "right": "CloudflareWARP"}}, {"masquerade": None}]
+try:
+    rules = json.load(sys.stdin)["nftables"]
+    found = any(item.get("rule", {}).get("expr") == expected for item in rules)
+except (ValueError, KeyError, TypeError):
+    sys.exit(2)
+sys.exit(0 if found else 1)
+' 2>> "$WARP_LOG"; then
+            :
+        else
+            nat_status=$?
+            [ "$nat_status" -eq 1 ] || fail "Could not inspect WARP NAT rules"
+            run_privileged nft add rule ip nat WARP_NAT oifname CloudflareWARP masquerade >> "$WARP_LOG" 2>&1 || fail "Could not configure WARP NAT"
+        fi
     fi
 elif [ "$WARP_DNS_ONLY" = "true" ]; then
     # Apply the explicitly selected mode even when connection is manual.

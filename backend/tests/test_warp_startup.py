@@ -12,7 +12,7 @@ SCRIPT = Path(__file__).resolve().parents[2] / "warp-setup.sh"
 
 def run_setup(tmp_path, states, auto_connect=True, force_ipv4="true", dns_only=False):
     bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
+    bin_dir.mkdir(exist_ok=True)
     (tmp_path / "states.json").write_text(json.dumps(states))
     cli = bin_dir / "warp-cli"
     cli.write_text(
@@ -33,7 +33,14 @@ def run_setup(tmp_path, states, auto_connect=True, force_ipv4="true", dns_only=F
     cli.chmod(0o755)
     for name, script in {
         "sudo": '#!/bin/sh\nexec "$@"\n',
-        "nft": '#!/bin/sh\nprintf "nft\\n" >> "$WARP_TEST_DIR/calls"\n',
+        "nft": f'#!{sys.executable}\n'
+        'import os, sys, json\nfrom pathlib import Path\n'
+        'root = Path(os.environ["WARP_TEST_DIR"])\n'
+        'with (root / "calls").open("a") as f: f.write("nft\\n")\n'
+        'rule = {"rule": {"expr": [{"match": {"op": "==", "left": {"meta": {"key": "oifname"}}, "right": "CloudflareWARP"}}, {"masquerade": None}]}}\n'
+        'if "-j" in sys.argv: print(json.dumps({"nftables": [rule] if (root / "nat-rule").exists() else []}))\n'
+        'if "rule" in sys.argv:\n'
+        '    with (root / "nat-rule").open("a") as f: f.write("added\\n")\n',
     }.items():
         path = bin_dir / name
         path.write_text(script)
@@ -99,3 +106,10 @@ def test_dns_only_manual_mode_is_set_without_connecting(tmp_path):
     assert "--accept-tos mode doh" in calls
     assert "--accept-tos connect" not in calls
     assert "nft" not in calls
+
+
+def test_repeated_configuration_does_not_duplicate_nat_rule(tmp_path):
+    for _ in range(2):
+        result, _ = run_setup(tmp_path, ["Connected"])
+        assert result.returncode == 0, result.stderr
+    assert (tmp_path / 'nat-rule').read_text() == 'added\n'

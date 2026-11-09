@@ -42,13 +42,14 @@ export default function EventSourcesPanel({ onReview }: { onReview: (source: Eve
     {dialog}
     <Stack spacing={2}>
       {remove.isError ? <Alert severity="error">{getErrorMessage(remove.error)}</Alert> : null}
-      <Typography variant="body2">Saved sources refresh with the scraping schedule in Settings → Automation. Run scraping and event refresh below to queue a pass now. Only reviewed events update automatically; use Review schedule to add new events.</Typography>
+      <Typography variant="body2">Saved sources refresh with the scraping schedule in Settings → Automation (daily by default). Automatic import adds new events in the rolling window and updates existing ones. Use Review schedule to change the window, interests or import mode.</Typography>
       <Box><Button disabled={refresh.isPending || !sources.data?.some((source) => source.enabled)} onClick={() => refresh.mutate()}>Run scraping & event refresh</Button></Box>
       {refresh.isSuccess ? <Alert severity="info">{refresh.data.message}</Alert> : null}
       {refresh.isError ? <Alert severity="error">{getErrorMessage(refresh.error)}</Alert> : null}
       {update.isError ? <Alert severity="error">{getErrorMessage(update.error)}</Alert> : null}
       {sources.isPending ? <CircularProgress aria-label="Loading schedule sources" /> : sources.isError ? <Alert severity="error" action={<Button onClick={() => void sources.refetch()}>Retry sources</Button>}>Could not load schedule sources.</Alert> : sources.data.length === 0 ? <Typography>No saved schedule URLs or providers. Choose Add events → Built-in provider to get started.</Typography> : sources.data.map((source) => <Stack key={source.id} spacing={1} sx={{ borderBottom: 1, borderColor: 'divider', pb: 2, overflowWrap: 'anywhere' }}>
         <Typography fontWeight={600}>{source.name}</Typography>
+        <Typography variant="body2">{source.import_new ? 'Updates existing events and imports new matches' : 'Updates reviewed events only'}</Typography>
         <Typography variant="body2">{source.origin} · {source.timeout_seconds ?? 15}s timeout · {source.reviewed} reviewed events · {source.last_success ? `Last success ${formatRelativeTime(source.last_success)}` : 'Not refreshed yet'}</Typography>
         {source.provider_options ? <Typography variant="body2">Next {source.provider_options.window_days} days · Interests: {Object.values(source.provider_options.interests ?? {}).flat().join(", ") || "All events in the selected feeds"}</Typography> : null}
         {source.last_result ? <Alert severity={source.last_result.status === 'error' ? 'warning' : 'info'}>{source.last_result.message}{source.last_result.pending ? ` ${source.last_result.pending} new events available for review.` : ''}</Alert> : null}

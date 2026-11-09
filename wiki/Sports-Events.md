@@ -26,15 +26,14 @@ it for this page visit.
   Spain is the **broadcast market**, not a restriction on teams or competition countries.
   The all-sports page currently publishes a short-range schedule; individual sport
   pages can cover more days. The default includes all sports and the motorsport page.
+- **MARCA** imports the [daily sports TV agenda](https://www.marca.com/programacion-tv.html), including sport, competition, times and TV channels in Spain. Times use Europe/Madrid; coverage depends on the dates MARCA has published.
 - **OpenFootball** reads the selected league/season from
   [football.json](https://github.com/openfootball/football.json). Choose a published
   season and confirm the source timezone. Community fixture coverage varies, and
   this source does **not** include TV broadcasters. A date without kickoff time
   stays date-only; the app does not invent a midnight start.
 
-Choose an import window (7, **14** or 30 days) and **Preview events**. In the preview,
-select any sports, competitions and teams you want, then **Update preview with
-interests**. Selections combine with OR; empty selections include everything in the
+Choose an import window (7, **14** or 30 days) and any sports, competitions or teams before **Preview events**. The preview discovers available names; refine your selections there and use **Update preview with interests**. Selections combine with OR; empty selections include everything in the
 chosen feeds. Choose events individually or **Select all shown events**, then save.
 The available-interest list comes from the published window; an exact name can also
 be typed and accepted with Enter. At most 500 matching events appear per preview;
@@ -43,18 +42,16 @@ narrow the interests if the provider publishes more.
 Each provider has one saved configuration (one per league/season for OpenFootball).
 The source remembers its feeds, interests and window. **Sources & retention →
 Review schedule** reopens them. An empty preview can still save the source for later
-review. Scheduled refresh updates selected, previously reviewed events; new events
-still need review. A shorter window or changed interest never deletes saved events
+review. Enable scheduled refresh and **Also import new matching events automatically** to keep the window moving. With a 14-day window, tomorrow’s refresh updates the overlapping 13 days and adds the newly available day. It re-reads upstream data to catch corrections. Every matching event is eligible on future runs, including initially unselected rows. Turn this option off to refresh only reviewed events. Existing sources retain that reviewed-only mode until changed. The scraping schedule in Settings → Automation runs daily by default. A shorter window or changed interest never deletes saved events
 or manual links. Display interests on the Events page are independent of import
 interests and apply for the current page visit.
 
 Fútbol en la TV does not publish stable fixture IDs in these pages. The integration
 therefore identifies exact published occurrences, including their date and time.
-An edited kickoff appears as a **new occurrence requiring review**, not an automatic
-reschedule. Check it and archive the older occurrence when appropriate. Doubleheaders,
+An edited kickoff appears as a **new occurrence**, not an inferred reschedule. Automatic import can add it when enabled; otherwise it needs review. Check it and archive the older occurrence when appropriate. Doubleheaders,
 practice sessions and races are not merged just because their titles match.
 OpenFootball uses season, league, round and teams, so a kickoff edit retains identity.
-Neither source creates playable streams or promises complete 14-day coverage.
+MARCA identifies a daily listing by date, sport, competition and title. Same-day time changes update it; changed dates or titles create a separate occurrence. None of these providers creates playable streams or promises complete 14-day coverage.
 
 ## Add and review
 

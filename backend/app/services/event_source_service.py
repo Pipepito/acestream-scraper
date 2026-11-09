@@ -23,6 +23,19 @@ MAX_SOURCES = 20
 REFRESH_BUDGET_SECONDS = 120
 
 
+def select_source_rows(observations, adapter, moment):
+    from zoneinfo import ZoneInfo
+    from app.schemas.events import EventInterests
+    from app.services.event_providers import matches_interests
+    zone = ZoneInfo(adapter.get('timezone', 'UTC'))
+    today = moment.astimezone(zone).date()
+    end = today + timedelta(days=adapter.get('window_days', 14))
+    interests = EventInterests.model_validate(adapter.get('interests', {}))
+    return [o for o in observations if matches_interests(o.model_dump(), interests)
+        and (day := o.starts_at.astimezone(zone).date() if o.starts_at else o.scheduled_date)
+        and today <= day < end]
+
+
 async def fetch_schedule(url, *, timeout=None, adapter=None):
     timeout = timeout if timeout is not None else (adapter or {}).get('timeout_seconds', 15)
     # aiohttp's total deadline includes DNS, every redirect and body delivery.
@@ -55,7 +68,7 @@ async def fetch_schedule(url, *, timeout=None, adapter=None):
         raise ValueError('Could not load this guide. Check its format, stable event IDs, explicit dates and source timezone (including DST); limit 2 MiB. Check the configured request timeout. Existing events were preserved.') from None
 
 
-def save_reviewed_source(db, context, selected, observations, enabled):
+def save_reviewed_source(db, context, selected, observations, enabled, import_new=False):
     """Called inside the same transaction as accepted event rows."""
     repo = EventSourceRepository(db)
     current = repo.by_identity(context['identity'])
@@ -63,10 +76,12 @@ def save_reviewed_source(db, context, selected, observations, enabled):
         raise ValueError('Schedule source changed; review it again')
     accepted = {row.external_id for row in observations.values()
                 if row.event_id in selected and row.source_id == context['identity']}
-    accepted |= set(current.reviewed_ids) if current else set()
+    if current:
+        existing_ids = {row.external_id for row in repo.observations(context['identity'])}
+        accepted |= set(current.reviewed_ids) & existing_ids
     if len(accepted) > 2000:
         raise ValueError('Source review limit reached; create a separate source identity')
-    values = dict(adapter=context['adapter'], name=context['name'], url=context['url'], enabled=enabled, reviewed_ids=sorted(accepted))
+    values = dict(adapter={**context['adapter'], 'import_new': import_new}, name=context['name'], url=context['url'], enabled=enabled, reviewed_ids=sorted(accepted))
     if current:
         repo.update(current.id, current.revision, **values)
     else:
@@ -94,7 +109,11 @@ class EventSourceService:
         if request.source_id and not row:
             raise LookupError('Schedule source not found')
         url = row.url if row else request.url
-        adapter = dict(row.adapter or {}) if row else {'format': request.format, 'timezone': request.timezone}
+        adapter = dict(row.adapter or {}) if row else {'format': request.format, 'timezone': request.timezone,
+            'window_days': request.window_days, 'interests': request.interests.model_dump()}
+        for key in ('window_days', 'interests'):
+            if key in request.model_fields_set:
+                adapter[key] = request.model_dump()[key]
         options = request.provider_options or (adapter.get('provider_options') if row else None)
         provider_info = None
         if options:
@@ -103,7 +122,7 @@ class EventSourceService:
             options = EventProviderOptions.model_validate(options)
             provider_info = provider_location(options)
             url = provider_info[0]
-            adapter = {'format': 'event_import', 'timezone': 'Europe/Madrid' if options.provider == 'wosti_es' else request.timezone if request.provider_options else adapter['timezone'],
+            adapter = {'format': 'event_import', 'timezone': 'Europe/Madrid' if options.provider in ('wosti_es', 'marca_es') else request.timezone if request.provider_options else adapter['timezone'],
                        'provider_options': options.model_dump(mode='json')}
             if row and (row.source_identity != provider_info[1] or row.url != url):
                 raise ValueError('Choose the same provider and competition when editing a saved source')
@@ -121,11 +140,13 @@ class EventSourceService:
             raise ValueError('This source identity belongs to another URL; use a distinct publisher identity')
         context = dict(id=row.id if row else None, revision=row.revision if row else None,
             identity=identity, url=url, name=provider_info[2] if provider_info else data.observations[0].source_name, adapter=adapter)
+        if not provider_info and ({'window_days', 'interests'} & request.model_fields_set or adapter.get('import_new')):
+            data = data.model_copy(update={'observations': select_source_rows(data.observations, adapter, datetime.now(timezone.utc))})
         result = EventService(self.db).preview(data, context=context)
         if provider_info:
             result.available_interests = data.available_interests
             result.warnings.extend(data.warnings)
-        result.warnings.append('Only selected events will refresh. New events always need review; omitted events remain saved.')
+        result.warnings.append('Automatic refresh updates saved events. Enable automatic import to add new matching events in the rolling window; omitted events remain saved.')
         return result
 
     def update(self, source_id, request):
@@ -156,17 +177,32 @@ class EventSourceService:
         token = None
         try:
             data = asyncio.run(fetch_schedule(url, timeout=timeout, adapter=adapter))
+            if getattr(data, 'truncated', False):
+                raise ValueError('Narrow the source interests before automatic refresh')
             if any(o.source_id != identity for o in data.observations):
                 raise ValueError('Source identity changed')
             existing = {o.external_id: o.event_id for o in self.repo.observations(identity)}
-            accepted = [o.model_copy(update={'event_id': existing[o.external_id]}) for o in data.observations
-                        if o.external_id in reviewed and o.external_id in existing]
-            result = EventRefreshResult(status='updated' if accepted else 'unchanged', updated=len(accepted),
-                pending=sum(o.external_id not in reviewed for o in data.observations),
-                message='Reviewed events refreshed; new events need review.' if accepted else 'No reviewed events were present. Existing events were preserved.')
+            import_new = (adapter or {}).get('import_new', False)
+            candidates = data.observations
+            if import_new and not (adapter or {}).get('provider_options'):
+                candidates = select_source_rows(candidates, adapter or {}, moment)
+            accepted = [o.model_copy(update={'event_id': existing.get(o.external_id)}) for o in candidates
+                        if import_new or (o.external_id in reviewed and o.external_id in existing)]
+            created = sum(o.external_id not in existing for o in accepted)
+            result = EventRefreshResult(status='updated' if accepted else 'unchanged',
+                updated=len(accepted) - created, created=created,
+                pending=0 if import_new else sum(o.external_id not in reviewed for o in candidates),
+                message=(f'{created} new events imported; {len(accepted) - created} existing events refreshed.' if import_new else
+                    'Reviewed events refreshed; new events need review.' if accepted else
+                    'No reviewed events were present. Existing events were preserved.'))
             # Reserve the source revision before touching events; disabling or editing
             # the source while fetching invalidates this entire refresh transaction.
-            self.repo.update(source_id, revision, last_attempt=moment, last_success=moment, last_result=result.model_dump())
+            # Retention/manual deletion must release old review IDs too; otherwise
+            # a rolling source reaches a lifetime limit despite an empty inventory.
+            approvals = (reviewed & existing.keys()) | {o.external_id for o in accepted}
+            if len(approvals) > 2000:
+                raise ValueError('Source review limit reached')
+            self.repo.update(source_id, revision, reviewed_ids=sorted(approvals), last_attempt=moment, last_success=moment, last_result=result.model_dump())
             if accepted:
                 service = EventService(self.db)
                 preview = service.preview(EventImport(observations=accepted), background=True)
@@ -177,7 +213,7 @@ class EventSourceService:
             return result
         except Exception:
             self.db.rollback()
-            result = EventRefreshResult(status='error', message='Schedule refresh failed or changed during the request. Existing events were preserved.')
+            result = EventRefreshResult(status='error', message='Schedule refresh failed, exceeded its limits or changed during the request. Check the source and narrow its window or interests. Existing events were preserved.')
             try:
                 self.repo.update(source_id, revision, last_attempt=moment, last_result=result.model_dump())
                 self.db.commit()
@@ -194,7 +230,7 @@ class EventSourceService:
         ids = [(row.id, (row.adapter or {}).get('timeout_seconds', 15)) for row in rows if row.enabled]
         self.db.rollback()
         deadline = time.monotonic() + REFRESH_BUDGET_SECONDS
-        result = {'updated': 0, 'pending': 0, 'failures': 0, 'deferred': 0}
+        result = {'updated': 0, 'created': 0, 'pending': 0, 'failures': 0, 'deferred': 0}
         for index, (source_id, timeout) in enumerate(ids):
             remaining = deadline - time.monotonic()
             if remaining <= 0 or (shutdown and shutdown.is_set()):
@@ -203,6 +239,7 @@ class EventSourceService:
             refreshed = self.refresh(source_id, timeout=timeout)
             if refreshed:
                 result['updated'] += refreshed.updated
+                result['created'] += refreshed.created
                 result['pending'] += refreshed.pending
                 result['failures'] += refreshed.status == 'error'
         return result

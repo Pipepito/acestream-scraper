@@ -14,6 +14,70 @@ HTML = (Path(__file__).parent / 'fixtures/events/providers/wosti.html').read_tex
 NOW = datetime(2026, 10, 26, tzinfo=timezone.utc)
 
 
+def test_marca_daily_agenda_identity_encoding_and_bounds():
+    from app.services.event_marca import parse_marca
+    raw = (Path(__file__).parent / 'fixtures/events/providers/marca.html').read_text()
+    rows = parse_marca(raw)
+    assert len(rows) == 3
+    assert rows[0].sport == 'Basketball' and rows[0].competition == 'NBA'
+    assert rows[0].starts_at.isoformat() == '2026-11-08T23:00:00+00:00'
+    assert rows[1].sport == 'Football' and rows[1].participants == ['East', 'West']
+    assert [b.label for b in rows[1].broadcasts] == ['TV Uno', 'TV Dos']
+    assert rows[2].sport == 'American football'  # Publisher's icon incorrectly says rugby.
+    assert all(b.url is None for row in rows for b in row.broadcasts)
+    assert parse_marca(raw.replace('19:00', '20:00'))[1].external_id == rows[1].external_id
+    encoded = raw.replace('utf-8', 'iso-8859-1').encode('iso-8859-1')
+    assert parse_marca(encoded)[1].sport == 'Football'
+    with pytest.raises(ValueError, match='markup'):
+        parse_marca('<html>Unavailable</html>')
+    with pytest.raises(ValueError, match='date'):
+        parse_marca(raw.replace('9 de Noviembre de 2026', 'Today'))
+    with pytest.raises(ValueError, match='Incomplete'):
+        parse_marca(raw.replace('19:00', 'TBC'))
+    options = EventProviderOptions(provider='marca_es', window_days=1, interests={'sports': ['Football']})
+    selected = select_provider_rows(rows, options, zone='Europe/Madrid', now=datetime(2026, 11, 9, tzinfo=timezone.utc))
+    assert len(selected.observations) == 1 and 'NBA' in selected.available_interests.competitions
+    assert provider_location(options)[0] == 'https://www.marca.com/programacion-tv.html'
+
+
+def test_rolling_provider_refresh_adds_next_day_and_preserves_corrections(client, db_session, monkeypatch):
+    from datetime import timedelta
+    from app.schemas.events import EventObservation
+    from app.services import event_source_service
+    from app.services.event_source_service import EventSourceService
+    now = NOW
+    rows = [EventObservation(source_id='provider:marca:es', source_name='MARCA · Spain', source_kind='guide',
+        external_id=f'day-{day}', title=f'Fixture {day}', sport='Football', competition='Cup',
+        timezone='Europe/Madrid', scheduled_date=(NOW + timedelta(days=day)).date()) for day in range(15)]
+    rows.append(rows[0].model_copy(update={'external_id': 'other-sport', 'sport': 'Tennis'}))
+    async def fetch(url, **kwargs):
+        options = EventProviderOptions.model_validate(kwargs['adapter']['provider_options'])
+        return select_provider_rows(rows, options, zone='Europe/Madrid', now=now)
+    monkeypatch.setattr(event_source_service, 'fetch_schedule', fetch)
+    previewed = client.post('/api/v1/events/sources/preview', json={'provider_options': {
+        'provider': 'marca_es', 'window_days': 14, 'interests': {'sports': ['Football']}}}).json()
+    assert len(previewed['events']) == 14
+    saved = client.post('/api/v1/events/apply', json={'token': previewed['token'],
+        'selected_ids': [e['id'] for e in previewed['events']], 'refresh_source': True, 'import_new': True})
+    assert saved.status_code == 200, saved.text
+    event = next(e for e in saved.json() if e['title'] == 'Fixture 1')
+    assert client.patch('/api/v1/events/' + event['id'], json={'revision': event['revision'], 'followed': True,
+        'correction': {'title': 'My correction', 'timezone': 'UTC'}}).status_code == 200
+    source = client.get('/api/v1/events/sources').json()[0]
+    assert source['import_new']
+    now += timedelta(days=1)
+    rows[1] = rows[1].model_copy(update={'title': 'Publisher correction'})
+    result = EventSourceService(db_session).refresh(source['id'])
+    assert (result.created, result.updated, result.pending) == (1, 13, 0)
+    assert client.get('/api/v1/events').json()['total'] == 15
+    current = client.get('/api/v1/events/' + event['id']).json()
+    assert current['title'] == 'My correction' and current['followed']
+    result = EventSourceService(db_session).refresh(source['id'])
+    assert result.created == 0 and result.updated == 14
+    assert client.get('/api/v1/events').json()['total'] == 15
+    assert client.patch('/api/v1/events/' + event['id'], json={'revision': current['revision'] + 1, 'correction': None}).json()['title'] == 'Publisher correction'
+
+
 def test_wosti_multisport_snapshots_never_expose_affiliates_or_merge_doubleheaders():
     rows = parse_wosti(HTML)
     assert len(rows) == 4

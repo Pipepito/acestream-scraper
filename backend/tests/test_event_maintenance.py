@@ -82,6 +82,56 @@ def test_disable_during_fetch_invalidates_changes(client, db_session, feed, monk
     assert not client.get('/api/v1/events/sources').json()[0]['enabled']
 
 
+def test_url_subscription_filters_new_events_and_cannot_inject_associations(client, db_session, feed):
+    import copy
+    from app.models.models import EventObservationRecord, EventScheduleSource
+    today = datetime.now(timezone.utc).date()
+    for index, row in enumerate(feed['observations']):
+        row.update(starts_at=None, ends_at=None, scheduled_date=today.isoformat(), sport='Football')
+    data = source_preview(client)
+    saved = client.post('/api/v1/events/apply', json={'token': data['token'],
+        'selected_ids': [data['events'][0]['id']], 'refresh_source': True, 'import_new': True})
+    assert saved.status_code == 200
+    source = client.get('/api/v1/events/sources').json()[0]
+    stored = db_session.get(EventScheduleSource, source['id'])
+    stored.reviewed_ids = list(stored.reviewed_ids) + [f'retained-then-deleted-{i}' for i in range(1999)]
+    db_session.commit()
+    first = data['events'][0]['id']
+    feed['observations'][1]['event_id'] = first
+    outside = copy.deepcopy(feed['observations'][1])
+    outside.update(external_id='outside-window', event_id=None, scheduled_date=(today + timedelta(days=14)).isoformat())
+    feed['observations'].append(outside)
+    result = EventSourceService(db_session).refresh(source['id'])
+    assert (result.created, result.updated) == (1, 1)
+    assert client.get('/api/v1/events/sources').json()[0]['reviewed'] == 2
+    assert client.get('/api/v1/events').json()['total'] == 2
+    other = db_session.query(EventObservationRecord).filter_by(external_id=feed['observations'][1]['external_id']).one()
+    assert other.event_id != first
+
+
+def test_empty_url_selection_can_save_bounded_subscription(client, feed):
+    data = source_preview(client)
+    result = client.post('/api/v1/events/apply', json={'token': data['token'], 'selected_ids': [],
+        'refresh_source': True, 'import_new': True})
+    assert result.status_code == 200
+    assert client.get('/api/v1/events').json()['total'] == 0
+    assert client.get('/api/v1/events/sources').json()[0]['import_new']
+
+
+def test_truncated_provider_refresh_is_atomic(client, db_session, feed, monkeypatch):
+    from app.services import event_source_service
+    from app.services.event_providers import ProviderSchedule
+    source = save_source(client, source_preview(client))
+    before = client.get('/api/v1/events').json()
+    async def truncated(*args, **kwargs):
+        feed['observations'][0]['title'] = 'Must remain unapplied'
+        return ProviderSchedule(EventImport.model_validate(feed).observations, truncated=True)
+    monkeypatch.setattr(event_source_service, 'fetch_schedule', truncated)
+    result = EventSourceService(db_session).refresh(source['id'])
+    assert result.status == 'error'
+    assert client.get('/api/v1/events').json() == before
+
+
 def test_source_stale_review_rolls_back_events_and_never_overwrites_other_url(client, feed):
     data = source_preview(client)
     source = save_source(client, data)

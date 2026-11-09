@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Design-only verification — review 06 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="design-only-verification--review-06">Design-only verification — review 06</h1>
+<p>Observed 2026-11-07. This report covers documentation, selected assets and disposable prototypes in <code>docs/design/ux-review-314/</code>. The owner explicitly waived the full application/Docker/E2E matrix for this design-only session. Those suites were <strong>not run</strong>, and no application, API, media, device or participant pass is implied.</p>
+<h2 id="revision-environment-and-isolation">Revision, environment and isolation</h2>
+<p>Tested worktree: <code>/tmp/acestream-ux-review-314</code>, branch <code>design/ux-review-314</code>, based on <code>7b2d8e204d3a58f8013f826621dc137e867abc38</code>. Current application evidence is pinned to <code>cf952afc6b4489c02b7a675ff3d634cc13d98e0b</code>. At the final source recheck, <code>main</code> advanced to merge commit <code>180f544c140f2f0361c386ebd395dcf366ae343d</code>; its <code>backend/</code> and <code>frontend/</code> trees have no difference from that reviewed develop source. No application merge or rebase was performed in the design branch.</p>
+<p>Cached Python Playwright 1.61.0, Chromium 149 and axe-core 4.14.0 were used, without installing dependencies. Browser requests were intercepted at <code>design.invalid</code>: GETs could load only local files below this design directory; all other requests were rejected. Service workers were blocked, reduced motion enabled, and fixtures were synthetic. There was no installation connection, playback, recording, source import, device discovery/control, notification or recovery. The only browser persistence is the namespaced design-preset preference.</p>
+<p>Raw reports and diagnostic screenshots remain outside Git under <code>/tmp/ux314-review06/</code>. <a href="verification-summary-06.json">Verification summary</a> records report hashes, observed counts and final prototype hashes; it contains no installation data. The 876 current gallery exports are intentionally public synthetic artifacts, separate from 288 historical exports.</p>
+<h2 id="observed-checks">Observed checks</h2>
+<p>Rows overlap; do not add them as unique test totals. The full matrix is broader than the later focused reruns. A failing earlier run is retained as evidence, not relabelled as passing.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Run / report directory</th>
+<th>Scope</th>
+<th>Observed result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>full</code></td>
+<td>All 146 contexts; three presets; EN/ES; light/dark; 320/820/1440; open advanced controls; base and workflow-specific states</td>
+<td>10,077 layout cases; <strong>4 failures</strong>, all the coral Documentary category label at 320 px. 877 axe cases with 0 violations, 105 functional assertions passing, 14 reflow/text-stress cases passing. 876 exports</td>
+</tr>
+<tr>
+<td><code>final-affected</code></td>
+<td>Eight affected viewing, detail and source compositions after layout/current-section/advanced indicator fixes</td>
+<td>675 layouts, 48 axe cases; 0 failures/violations</td>
+</tr>
+<tr>
+<td><code>final-exports</code></td>
+<td>All 146 contexts after those corrections, EN/light desktop and ES/dark phone, all presets and advanced controls</td>
+<td>1,752 layouts, 105 functional assertions and 14 reflow/text-stress cases passing; 876 regenerated exports</td>
+</tr>
+<tr>
+<td><code>final-source-copy</code></td>
+<td>Five source variants and account permissions after primary-action and plain-language refinements</td>
+<td>414 layouts, 36 axe cases; 0 failures/violations; 36 refreshed exports</td>
+</tr>
+<tr>
+<td><code>final-recovery</code></td>
+<td>Both consequential recovery choices after plain-language refinements</td>
+<td>126 layouts, 12 axe cases; 0 failures/violations; 12 refreshed exports</td>
+</tr>
+<tr>
+<td><code>final-hero</code></td>
+<td>Watch hero after image-overlay and illustration-label fixes</td>
+<td>105 layouts, 6 axe cases; 0 failures/violations; 6 refreshed exports</td>
+</tr>
+<tr>
+<td><code>final-interactions</code></td>
+<td>Final shared renderer: drafts, locale/theme/preset, query context, selection, pending work, synthetic player ownership, validation, dialogs, independent saves and consequences</td>
+<td><strong>105 passing, 0 failing</strong>; 14 reflow/text-stress cases passing; 1 dialog axe case with 0 violations</td>
+</tr>
+<tr>
+<td><code>journeys-final</code></td>
+<td>Six connected task paths through the shared navigation in all three presets, including invalid source submission and canonical setup aliases</td>
+<td><strong>48 passing, 0 failing</strong></td>
+</tr>
+<tr>
+<td><code>gallery-final</code></td>
+<td>Gallery at 320/390/768/1440, plus 23 critical states × three presets × two locale/theme/viewport combinations</td>
+<td>146 images decoded at each width; 0 overflow/broken images. 138 axe cases, 0 violations</td>
+</tr>
+<tr>
+<td><code>gallery-final</code></td>
+<td>Computed semantic color pairs in all presets/themes</td>
+<td><strong>78 pairs pass</strong>; minimum normal-text ratio <strong>4.988:1</strong>, minimum focus/control ratio <strong>3.510:1</strong></td>
+</tr>
+<tr>
+<td><code>image-contrast-final</code></td>
+<td>Actual selected hero art and overlays, three presets × EN/light and ES/dark × 320/390/820/1440</td>
+<td><strong>215 text rectangles across 24 contexts pass</strong>; minimum measured ratio <strong>4.886:1</strong></td>
+</tr>
+<tr>
+<td><code>pages</code></td>
+<td>Current preview home/gallery, four widths each, plus long original title and expanded action text in six preset/locale combinations</td>
+<td>8 static cases and 6 long-content cases pass; 0 axe violations, broken images or overflow</td>
+</tr>
+<tr>
+<td><code>artifacts</code></td>
+<td>Generated-file reproducibility, links/fragments, asset hashes/notices, exports, field inventory and script syntax</td>
+<td>Final counts are in the linked machine-readable summary; 0 drift or failures</td>
+</tr>
+<tr>
+<td>OpenAPI reference checker</td>
+<td>333 operations, 130 design/resource bindings, 473 field occurrences, 24 explicit model-property references</td>
+<td>Pass; three negative tests reject a fabricated path, wrong method and nonexistent field. The remaining 449 field occurrences are <strong>not claimed runtime payload-validated</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>All final browser runs above recorded zero JavaScript errors, warning/error console entries and attempted blocked external requests. The first image-check iteration emitted a Pillow deprecation warning; the checker now uses the supported API and the final run was warning-free. No warning suppression was added. <code>node --check</code> and <code>git diff --check</code> pass.</p>
+<p>The first rendered-image measurement found three small-text contrast failures in the lime 320 px hero (minimum 3.097:1). The phone overlay was strengthened. Visual review then found that the illustration label itself was underneath the overlay; it now sits above it. The final measurement and exports cover both corrections. This demonstrates why overflow and axe alone were insufficient.</p>
+<h2 id="accessibility-and-visual-interpretation">Accessibility and visual interpretation</h2>
+<p>The initial full axe run had 25 cases marked incomplete for color contrast, involving image/pseudo-element backgrounds or non-text player glyphs. In the 138 critical-state run, 12 incomplete cases were the decorative, <code>aria-hidden</code> player glyph. These are not silently counted as automatic passes. The hero cases received the separate rendered-image measurement: glyphs were hidden without changing layout, actual background pixels were sampled over each text rectangle, and computed foreground colors were compared. Large text was assessed at 3:1 and ordinary text at 4.5:1. The label was moved above the overlay before the final measurement. Other illustrated labels use the same dark backing and were visually inspected. This is bounded evidence, not a general WCAG conformance certificate.</p>
+<p>Author visual inspection covered the three viewing compositions on desktop and phone, the landing page, and representative source, guide matching, account permissions, recording/DST, WARP partial application and recovery compositions. Controls, original content names, long EN/ES copy, image identity/fallbacks and destructive consequences were checked. Every context was rendered automatically; this does <strong>not</strong> claim a separate full-resolution human review of all 876 exports.</p>
+<p>The built-in browser was also used on the Spanish recording editor: the Adjust programme times draft survived a switch to Coral; Escape closed the interface dialog and returned focus to its opener. The native accessibility tree exposed the controls and state. This was keyboard/AX observation, <strong>not VoiceOver listening</strong>. The built-in browser's zoom shortcut produced no change to viewport or scale, so it was not recorded as a zoom pass. The owner declined access to personal Firefox; no further access was attempted. Playwright 320 CSS-pixel reflow and 200% text enlargement are explicitly different from actual browser zoom.</p>
+<h2 id="reproducible-commands">Reproducible commands</h2>
+<p>Run from the design worktree. Set <code>AXE</code> to the already cached <code>axe-core/axe.min.js</code>; no application dependency installation is required. Output directories below are disposable and excluded from Git.</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh">python3 docs/design/ux-review-314/compose_workflows.py
+python3 docs/design/ux-review-314/openapi_contracts.py --check --self-test
+python3 docs/design/ux-review-314/check_workflows.py --output /tmp/ux314-review06/full --exports --axe &quot;$AXE&quot;
+python3 docs/design/ux-review-314/check_workflows.py --output /tmp/ux314-review06/final-exports --smoke --exports
+python3 docs/design/ux-review-314/check_workflows.py --output /tmp/ux314-review06/final-interactions --interactions-only --axe &quot;$AXE&quot;
+python3 docs/design/ux-review-314/check_journeys06.py --output /tmp/ux314-review06/journeys-final
+python3 docs/design/ux-review-314/check_gallery.py --output /tmp/ux314-review06/gallery-final --axe &quot;$AXE&quot;
+python3 docs/design/ux-review-314/check_image_contrast06.py --output /tmp/ux314-review06/image-contrast-final
+python3 docs/design/ux-review-314/check_pages06.py --output /tmp/ux314-review06/pages --axe &quot;$AXE&quot;
+python3 docs/design/ux-review-314/check_artifacts.py --output /tmp/ux314-review06/artifacts
+node --check docs/design/ux-review-314/workflow-engine.js
+git diff --check
+</code></pre>
+<p>Focused workflow reruns use the same command with <code>--only</code> and these exact lists: <code>dashboard,channel-detail,recording-parts,source-web,source-auto,source-provider,source-zeronet,source-ipfs</code>; <code>source-web,source-auto,source-zeronet,source-ipfs,source-provider,access-account</code>; <code>recovery-readable,recovery-fresh</code>; and <code>dashboard</code>. The latter three use <code>--exports --axe "$AXE"</code>; the first uses <code>--axe "$AXE"</code> only. Reports record the exercised cases rather than extrapolating to unexecuted combinations.</p>
+<h2 id="remaining-acceptance-and-publication">Remaining acceptance and publication</h2>
+<p>All requested capability families have composed contexts and a linked field/state/source specification. Detailed visual approval remains with the owner under #316. Native VoiceOver/NVDA/TalkBack listening, actual 200/400% browser zoom, native input popups and physical phone/keyboard checks remain under #317/#324. Fluent Spanish review and nontechnical participant sessions remain under #317 and #316/#324. <a href="acceptance-protocols.md.html">Exact protocols and recording requirements</a> are provided. Equipment/participants were not available through the authorized tools; no results were invented.</p>
+<p>Observed application defects remain open in #315. F15 is a source finding requiring isolated reproduction in #315/#320; general slowdown is unproven in #323. OpenAPI security/error descriptions and programme-image adapter decisions remain future work in #318–#320/#324. Actual consumer/provider contract tests, media ownership, access/transport and independent-transaction behavior require separately authorized application work. See <a href="source-findings-06.md.html">source findings</a> and <a href="openapi-contracts-06.md.html">OpenAPI acceptance</a>.</p>
+<h2 id="published-result">Published result</h2>
+<p>The <a href="https://pipepito.github.io/acestream-scraper/design/ux-review-314/">live preview</a> is built from design commit <a href="https://github.com/Pipepito/acestream-scraper/commit/530b366996265d351fe2ede9b29f462b1d3d6178"><code>530b366996265d351fe2ede9b29f462b1d3d6178</code></a>. Static publication commit <a href="https://github.com/Pipepito/acestream-scraper/commit/c20548ab0dedaecdfec5a322595183c498091eaa"><code>c20548ab0dedaecdfec5a322595183c498091eaa</code></a> advances the prior <code>gh-pages</code> snapshot <code>ebea374d0e62da1ac7bf52c322ccad8daf1990fd</code> by a normal fast-forward. The GitHub-managed Pages build reported <strong>built</strong> at <code>2026-11-07T21:19:33Z</code>, with no build error. This is static hosting, not application CI or deployment.</p>
+<p>Preparation copied 1,187 design files and preserved <strong>all 102 non-preview site files byte for byte</strong>. The <a href="https://pipepito.github.io/acestream-scraper/design/ux-review-314/publication-manifest.json">public manifest</a> pins the design and site sources. The candidate passed 8 static page checks and 6 long-content checks with no failures. HTTP verification then matched <strong>all 1,290 hosted files</strong>, including the manifest itself and the preserved site content: 87,498,385 bytes checked, zero mismatches. The initial Python attempt had no configured CA root; the final run used the already installed trusted CA bundle with TLS verification enabled. No certificate check was bypassed.</p>
+<p>Hosted Chromium smoke checks covered all three presets in EN/light desktop and ES/dark phone: <strong>6 cases, 42 assertions, zero failures, JavaScript errors, warning/error console entries or blocked requests</strong>. They verified the selected preset, locale, decoded hero, control reflow and recording-draft retention across an interface change, followed by Escape and focus return. The first probe read focus before the native dialog's scheduled restoration; the final probe explicitly waited for dialog closure and focus, with no prototype change. One hosted phone composition was visually inspected again. This remains synthetic preview behavior.</p>
+<p>This publication evidence is recorded in a subsequent documentation commit; the preview's HTML specification links remain pinned to its original design source. The later documentation commit changes no rendered prototype or application code. The latest evidence is also available on the <a href="https://github.com/Pipepito/acestream-scraper/blob/design/ux-review-314/docs/design/ux-review-314/verification-review-06.md">design branch</a>. Existing tasks #314–#324 retain future implementation and manual acceptance ownership; none should be closed for these design artifacts.</p>
+<p>Reproduce the public hash check after preparing the same staged snapshot:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh">python3 docs/design/ux-review-314/check_hosted06.py \
+  --staged-root /tmp/acestream-pages-review06-stage \
+  --ca-bundle /path/to/already-installed/trusted-ca-bundle.pem \
+  --output /tmp/ux314-review06/hosted-final
+</code></pre>
+<p><code>--ca-bundle</code> can be omitted where Python's normal trust store is configured. This checker makes only read-only requests to the fixed public Pages origin. Reports and full hosted browser screenshots remain outside Git; their hashes and counts are in the verification summary.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

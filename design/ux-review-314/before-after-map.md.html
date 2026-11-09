@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Before / after location and save map · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="before--after-location-and-save-map">Before / after location and save map</h1>
+<p>Review 06 · proposed composition, not application implementation. Seven primary destinations in every preset. Existing application routes and query aliases remain valid. A workflow ID identifies a reviewable state/editor, not a new application page.</p>
+<p>Read <a href="simplification-06.md.html">the simplification decisions</a>, <a href="shared-foundations-06.md.html">shared architecture</a> and <a href="workflow-specification.md.html">field specification</a>.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Current surface</th>
+<th>Proposed location and access path</th>
+<th>Treatment / canonical editor</th>
+<th>Save boundary</th>
+<th>Evidence / acceptance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/live-tv?channel=demo</code> · Schedule a programme</td>
+<td><a href="workflow-prototype.html?screen=recording-schedule">Your recordings → Schedule a programme</a></td>
+<td>contextual editor or detail · <code>recording-schedule</code></td>
+<td><code>schedule</code>: explicit action · <code>recordingService.create</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/RecordingDialog.tsx">RecordingDialog.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Choose the exact time</td>
+<td><a href="workflow-prototype.html?screen=recording-dst">Your recordings → Choose the exact time</a></td>
+<td>contextual editor or detail · <code>recording-dst</code></td>
+<td><code>dst</code>: explicit action · <code>recordingService.create / edit</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/utils/recordingTimes.ts">recordingTimes.ts</a>; #319</td>
+</tr>
+<tr>
+<td><code>/live-tv</code> · Record now</td>
+<td><a href="workflow-prototype.html?screen=recording-now">Your recordings → Record now</a></td>
+<td>contextual editor or detail · <code>recording-now</code></td>
+<td><code>now</code>: explicit action · <code>recordingService.create</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/RecordingDialog.tsx">RecordingDialog.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Recording in progress</td>
+<td><a href="workflow-prototype.html?screen=recording-active">Your recordings → Recording in progress</a></td>
+<td>contextual editor or detail · <code>recording-active</code></td>
+<td><code>end</code>: explicit action · <code>recordingService.edit</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Recordings.tsx">Recordings.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Parts and playback</td>
+<td><a href="workflow-prototype.html?screen=recording-parts">Your recordings → Parts and playback</a></td>
+<td>contextual editor or detail · <code>recording-parts</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/RecordingPlayback.tsx">RecordingPlayback.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Prepare a compatible copy</td>
+<td><a href="workflow-prototype.html?screen=recording-copy">Your recordings → Prepare a compatible copy</a></td>
+<td>contextual editor or detail · <code>recording-copy</code></td>
+<td><code>copy</code>: explicit action · <code>recordingService.convert</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Recordings.tsx">Recordings.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/settings?tab=automation</code> · Recording settings</td>
+<td><a href="workflow-prototype.html?screen=recording-settings">Your recordings → Recording settings</a></td>
+<td>contextual editor or detail · <code>recording-settings</code></td>
+<td><code>recording-settings</code>: explicit action · <code>recordingService.configure</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/RecordingSettingsFields.tsx">RecordingSettingsFields.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Storage for recordings</td>
+<td><a href="workflow-prototype.html?screen=recording-storage">Your recordings → Storage for recordings</a></td>
+<td>contextual editor or detail · <code>recording-storage</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/RecordingOverview.tsx">RecordingOverview.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Cancel this schedule</td>
+<td><a href="workflow-prototype.html?screen=recording-cancel">Your recordings → Cancel this schedule</a></td>
+<td>contextual editor or detail · <code>recording-cancel</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Recordings.tsx">Recordings.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Delete saved files</td>
+<td><a href="workflow-prototype.html?screen=recording-delete">Your recordings → Delete saved files</a></td>
+<td>contextual editor or detail · <code>recording-delete</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Recordings.tsx">Recordings.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Disable all recording</td>
+<td><a href="workflow-prototype.html?screen=recording-disable">Your recordings → Disable all recording</a></td>
+<td>contextual editor or detail · <code>recording-disable</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Recordings.tsx">Recordings.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Choose who can use this installation</td>
+<td><a href="workflow-prototype.html?screen=access-activate">Settings → Account permissions → Choose who can use this installation</a></td>
+<td>contextual editor or detail · <code>access-activate</code></td>
+<td><code>activate</code>: explicit action · <code>accessService.bootstrap</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccountSetup.tsx">AccountSetup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/watch</code> · Sign in</td>
+<td><a href="workflow-prototype.html?screen=access-login">Settings → Account permissions → Sign in</a></td>
+<td>contextual editor or detail · <code>access-login</code></td>
+<td><code>login</code>: explicit action · <code>accessService.login</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/LoginForm.tsx">LoginForm.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Account permissions</td>
+<td><a href="workflow-prototype.html?screen=access-account">Settings → Account permissions</a></td>
+<td>section · <code>access-account</code></td>
+<td><code>account</code>: explicit action · <code>accessService.updateUser</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Create an account</td>
+<td><a href="workflow-prototype.html?screen=access-create">Settings → Account permissions → Create an account</a></td>
+<td>contextual editor or detail · <code>access-create</code></td>
+<td><code>create-account</code>: explicit action · <code>accessService.createUser</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Viewing without signing in</td>
+<td><a href="workflow-prototype.html?screen=access-policy">Settings → Account permissions → Viewing without signing in</a></td>
+<td>contextual editor or detail · <code>access-policy</code></td>
+<td><code>policy</code>: explicit action · <code>accessService.savePolicy</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Change your password</td>
+<td><a href="workflow-prototype.html?screen=access-password">Settings → Account permissions → Change your password</a></td>
+<td>contextual editor or detail · <code>access-password</code></td>
+<td><code>password</code>: explicit action · <code>accessService.password</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/PasswordForm.tsx">PasswordForm.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Login sessions</td>
+<td><a href="workflow-prototype.html?screen=access-sessions">Settings → Account permissions → Login sessions</a></td>
+<td>contextual editor or detail · <code>access-sessions</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Playback and API credentials</td>
+<td><a href="workflow-prototype.html?screen=access-credentials">Settings → Account permissions → Playback and API credentials</a></td>
+<td>contextual editor or detail · <code>access-credentials</code></td>
+<td><code>credential</code>: explicit action · <code>accessService.issueCredential</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Save your new credential</td>
+<td><a href="workflow-prototype.html?screen=access-secret">Settings → Account permissions → Save your new credential</a></td>
+<td>contextual editor or detail · <code>access-secret</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Remove account protection</td>
+<td><a href="workflow-prototype.html?screen=access-disable">Settings → Account permissions → Remove account protection</a></td>
+<td>contextual editor or detail · <code>access-disable</code></td>
+<td><code>disable-access</code>: explicit action · <code>accessService.disable</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=access</code> · Use a supported connection</td>
+<td><a href="workflow-prototype.html?screen=access-transport">Settings → Account permissions → Use a supported connection</a></td>
+<td>contextual editor or detail · <code>access-transport</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccountTransportNotice.tsx">AccountTransportNotice.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/tv-channels</code> · TV channels</td>
+<td><a href="workflow-prototype.html?screen=channels">TV channels</a></td>
+<td>primary destination · <code>channels</code></td>
+<td><code>channel-filter</code>: explicit action · <code>local URL / catalogue query</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/TVChannels.tsx">TVChannels.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/tv-channels/:id</code> · Edit TV channel</td>
+<td><a href="workflow-prototype.html?screen=channel-edit">TV channels → Edit TV channel</a></td>
+<td>contextual editor or detail · <code>channel-edit</code></td>
+<td><code>tv</code>: explicit action · <code>tvChannelService.create / update</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelFormDialog.tsx">TVChannelFormDialog.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/tv-channels/:id</code> · Northlight</td>
+<td><a href="workflow-prototype.html?screen=channel-detail">TV channels → Northlight</a></td>
+<td>contextual editor or detail · <code>channel-detail</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/TVChannelDetail.tsx">TVChannelDetail.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/tv-channels</code> · Reorder all TV channels</td>
+<td><a href="workflow-prototype.html?screen=channel-reorder">TV channels → Reorder all TV channels</a></td>
+<td>contextual editor or detail · <code>channel-reorder</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelReorder.tsx">TVChannelReorder.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/tv-channels</code> · Preferred streams for Northlight</td>
+<td><a href="workflow-prototype.html?screen=channel-preferences">TV channels → Preferred streams for Northlight</a></td>
+<td>contextual editor or detail · <code>channel-preferences</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/TVChannelDetail.tsx">TVChannelDetail.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/acestream-channels</code> · Streams</td>
+<td><a href="workflow-prototype.html?screen=streams">TV channels → Streams</a></td>
+<td>section · <code>streams</code></td>
+<td><code>streams-filter</code>: explicit action · <code>channelService query</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/AcestreamChannels.tsx">AcestreamChannels.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/acestream-channels</code> · Northlight HD · observations</td>
+<td><a href="workflow-prototype.html?screen=stream-stats">TV channels → Streams → Northlight HD · observations</a></td>
+<td>contextual editor or detail · <code>stream-stats</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/channels/StreamStatistics.tsx">StreamStatistics.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/acestream-channels</code> · Add and link a stream</td>
+<td><a href="workflow-prototype.html?screen=stream-edit">TV channels → Streams → Add and link a stream</a></td>
+<td>contextual editor or detail · <code>stream-edit</code></td>
+<td><code>stream</code>: explicit action · <code>channelService.create</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/QuickEditDialog.tsx">QuickEditDialog.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/acestream-channels</code> · Bulk stream actions</td>
+<td><a href="workflow-prototype.html?screen=stream-bulk">TV channels → Streams → Bulk stream actions</a></td>
+<td>contextual editor or detail · <code>stream-bulk</code></td>
+<td><code>bulk</code>: explicit action · <code>channelService bulk commands</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/BulkOperations.tsx">BulkOperations.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/tv-channels/:id</code> · Assign existing streams</td>
+<td><a href="workflow-prototype.html?screen=channel-assign">TV channels → Assign existing streams</a></td>
+<td>contextual editor or detail · <code>channel-assign</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/BatchAcestreamAssignment.tsx">BatchAcestreamAssignment.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/tv-channels</code> · Match streams to TV channels</td>
+<td><a href="workflow-prototype.html?screen=stream-match">TV channels → Streams → Match streams to TV channels</a></td>
+<td>contextual editor or detail · <code>stream-match</code></td>
+<td><code>similar-options</code>: explicit action · <code>TVMatchOptions preview</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVAutoMatchDialog.tsx">TVAutoMatchDialog.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/tv-channels</code> · Delete Northlight?</td>
+<td><a href="workflow-prototype.html?screen=channel-delete">TV channels → Delete Northlight?</a></td>
+<td>contextual editor or detail · <code>channel-delete</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelDeleteDialog.tsx">TVChannelDeleteDialog.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg?tab=sources</code> · Programme guides</td>
+<td><a href="workflow-prototype.html?screen=guide-sources">TV channels → Programme guides</a></td>
+<td>section · <code>guide-sources</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGSourcesTable.tsx">EPGSourcesTable.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg?tab=sources</code> · Edit guide source</td>
+<td><a href="workflow-prototype.html?screen=guide-source">TV channels → Programme guides → Edit guide source</a></td>
+<td>contextual editor or detail · <code>guide-source</code></td>
+<td><code>guide-source</code>: explicit action · <code>epgService.createSource / updateSource</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGSourceDialog.tsx">EPGSourceDialog.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg/channels/:id</code> · Northlight · Sample guide</td>
+<td><a href="workflow-prototype.html?screen=guide-detail">TV channels → Programme guides → Northlight · Sample guide</a></td>
+<td>contextual editor or detail · <code>guide-detail</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/EPGChannelDetail.tsx">EPGChannelDetail.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg?tab=matching</code> · Choose the correct guide source</td>
+<td><a href="workflow-prototype.html?screen=guide-choice">TV channels → Programme guides → Choose the correct guide source</a></td>
+<td>contextual editor or detail · <code>guide-choice</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGMatchAnalysisPanel.tsx">EPGMatchAnalysisPanel.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg?tab=matching</code> · Review guide matches</td>
+<td><a href="workflow-prototype.html?screen=guide-match">TV channels → Programme guides → Review guide matches</a></td>
+<td>contextual editor or detail · <code>guide-match</code></td>
+<td><code>guide-scope</code>: explicit action · <code>guideSetupService preview</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGMatchAnalysisPanel.tsx">EPGMatchAnalysisPanel.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg/channels/:id</code> · Guide matching rule</td>
+<td><a href="workflow-prototype.html?screen=guide-rule">TV channels → Programme guides → Guide matching rule</a></td>
+<td>contextual editor or detail · <code>guide-rule</code></td>
+<td><code>rule</code>: explicit action · <code>epgService stringMappings</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/EPGChannelDetail.tsx">EPGChannelDetail.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/settings?tab=automation</code> · Automatic exact matching</td>
+<td><a href="workflow-prototype.html?screen=guide-auto">TV channels → Programme guides → Automatic exact matching</a></td>
+<td>contextual editor or detail · <code>guide-auto</code></td>
+<td><code>guide-auto</code>: immediate · <code>configService epg-matching</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/GuideMatchingFields.tsx">GuideMatchingFields.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg?tab=export</code> · Export programme guide</td>
+<td><a href="workflow-prototype.html?screen=guide-export">TV channels → Programme guides → Export programme guide</a></td>
+<td>contextual editor or detail · <code>guide-export</code></td>
+<td><code>xml</code>: explicit action · <code>epgService.generateXml</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGXmlOutputPanel.tsx">EPGXmlOutputPanel.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg</code> · Guide coverage</td>
+<td><a href="workflow-prototype.html?screen=guide-coverage">TV channels → Programme guides → Guide coverage</a></td>
+<td>contextual editor or detail · <code>guide-coverage</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/GuideCoverage.tsx">GuideCoverage.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/playlist</code> · Your playlist</td>
+<td><a href="workflow-prototype.html?screen=playlist">Where would you like to watch? → Your playlist</a></td>
+<td>section · <code>playlist</code></td>
+<td><code>playlist</code>: explicit action · <code>usePlaylistLink / playlistService</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/playlist/PlaylistOptionsForm.tsx">PlaylistOptionsForm.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/settings?tab=links</code> · Stream link formats</td>
+<td><a href="workflow-prototype.html?screen=formats">Where would you like to watch? → Your playlist → Stream link formats</a></td>
+<td>contextual editor or detail · <code>formats</code></td>
+<td><code>format</code>: explicit action · <code>baseUrlService.createBaseUrl</code>; <code>link-identifiers-0</code>: explicit action · <code>configService independent setting: links.add_pid</code>; <code>link-identifiers-1</code>: explicit action · <code>configService independent setting: links.app_id</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StreamLinkFormatsSection.tsx">StreamLinkFormatsSection.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/settings?tab=links</code> · Edit Demo relay</td>
+<td><a href="workflow-prototype.html?screen=format-edit">Where would you like to watch? → Your playlist → Edit Demo relay</a></td>
+<td>contextual editor or detail · <code>format-edit</code></td>
+<td><code>edit-format</code>: explicit action · <code>baseUrlService.updateBaseUrl</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StreamLinkFormatsSection.tsx">StreamLinkFormatsSection.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=sources</code> · Web or playlist source</td>
+<td><a href="workflow-prototype.html?screen=source-web">TV channels → Channel sources → Web or playlist source</a></td>
+<td>contextual editor or detail · <code>source-web</code></td>
+<td><code>source</code>: explicit action · <code>scraperService createURL / updateURL</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=sources</code> · Automatic source detection</td>
+<td><a href="workflow-prototype.html?screen=source-auto">TV channels → Channel sources → Automatic source detection</a></td>
+<td>contextual editor or detail · <code>source-auto</code></td>
+<td><code>source</code>: explicit action · <code>scraperService createURL / updateURL</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=sources</code> · ZeroNet source</td>
+<td><a href="workflow-prototype.html?screen=source-zeronet">TV channels → Channel sources → ZeroNet source</a></td>
+<td>contextual editor or detail · <code>source-zeronet</code></td>
+<td><code>source</code>: explicit action · <code>scraperService createURL / updateURL</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=sources</code> · IPFS source</td>
+<td><a href="workflow-prototype.html?screen=source-ipfs">TV channels → Channel sources → IPFS source</a></td>
+<td>contextual editor or detail · <code>source-ipfs</code></td>
+<td><code>source</code>: explicit action · <code>scraperService createURL / updateURL</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=sources</code> · Built-in broadcaster</td>
+<td><a href="workflow-prototype.html?screen=source-provider">TV channels → Channel sources → Built-in broadcaster</a></td>
+<td>contextual editor or detail · <code>source-provider</code></td>
+<td><code>source</code>: explicit action · <code>scraperService createURL / updateURL</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper</code> · Import result</td>
+<td><a href="workflow-prototype.html?screen=source-results">TV channels → Channel sources → Import result</a></td>
+<td>contextual editor or detail · <code>source-results</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper</code> · Remove Family channels?</td>
+<td><a href="workflow-prototype.html?screen=source-remove">TV channels → Channel sources → Remove Family channels?</a></td>
+<td>contextual editor or detail · <code>source-remove</code></td>
+<td><code>remove-source</code>: explicit action · <code>DELETE scrapers/urls/{id}?delete_streams=</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/scraper/DeleteSourceDialog.tsx">DeleteSourceDialog.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper</code> · Streams without a saved source</td>
+<td><a href="workflow-prototype.html?screen=sources-orphans">TV channels → Channel sources → Streams without a saved source</a></td>
+<td>contextual editor or detail · <code>sources-orphans</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/scraper/OrphanedSourcesDialog.tsx">OrphanedSourcesDialog.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=w3u</code> · Review W3U catalogue</td>
+<td><a href="workflow-prototype.html?screen=w3u">TV channels → Channel sources → Review W3U catalogue</a></td>
+<td>contextual editor or detail · <code>w3u</code></td>
+<td><code>catalogue-preview</code>: explicit action · <code>catalogueService preview</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Catalogues.tsx">Catalogues.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=w3u</code> · Save reviewed catalogue</td>
+<td><a href="workflow-prototype.html?screen=w3u-save">TV channels → Channel sources → Save reviewed catalogue</a></td>
+<td>contextual editor or detail · <code>w3u-save</code></td>
+<td><code>catalogue-save</code>: explicit action · <code>catalogueService save</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Catalogues.tsx">Catalogues.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=w3u</code> · Catalogue entry details</td>
+<td><a href="workflow-prototype.html?screen=w3u-detail">TV channels → Channel sources → Catalogue entry details</a></td>
+<td>contextual editor or detail · <code>w3u-detail</code></td>
+<td><code>w3u-browse</code>: explicit action · <code>local catalogue view</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Catalogues.tsx">Catalogues.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=w3u</code> · Assign a catalogue folder</td>
+<td><a href="workflow-prototype.html?screen=w3u-folder">TV channels → Channel sources → Assign a catalogue folder</a></td>
+<td>contextual editor or detail · <code>w3u-folder</code></td>
+<td><code>folder</code>: explicit action · <code>catalogueService folder assignment</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/catalogues/FolderMatchDialog.tsx">FolderMatchDialog.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=searches</code> · Saved search</td>
+<td><a href="workflow-prototype.html?screen=saved-search">TV channels → Channel sources → Saved search</a></td>
+<td>contextual editor or detail · <code>saved-search</code></td>
+<td><code>saved-search</code>: explicit action · <code>savedSearchService save</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/imports/SavedSearchDialog.tsx">SavedSearchDialog.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=searches</code> · Preview a saved search</td>
+<td><a href="workflow-prototype.html?screen=saved-search-preview">TV channels → Channel sources → Preview a saved search</a></td>
+<td>contextual editor or detail · <code>saved-search-preview</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/imports/SavedSearches.tsx">SavedSearches.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper?tab=exclusions</code> · Import exclusion rule</td>
+<td><a href="workflow-prototype.html?screen=exclusion">TV channels → Channel sources → Import exclusion rule</a></td>
+<td>contextual editor or detail · <code>exclusion</code></td>
+<td><code>exclusion</code>: explicit action · <code>importExclusionService save</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/imports/ImportExclusions.tsx">ImportExclusions.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/search</code> · Find new streams</td>
+<td><a href="workflow-prototype.html?screen=search">TV channels → Channel sources → Find new streams</a></td>
+<td>contextual editor or detail · <code>search</code></td>
+<td><code>search</code>: explicit action · <code>searchService.search</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Search.tsx">Search.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/search</code> · Add and link Northlight HD</td>
+<td><a href="workflow-prototype.html?screen=search-add-link">TV channels → Channel sources → Add and link Northlight HD</a></td>
+<td>contextual editor or detail · <code>search-add-link</code></td>
+<td><code>add-link</code>: explicit action · <code>searchService.resolve + import tv_channel_id</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/search/AddAndLinkDialog.tsx">AddAndLinkDialog.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper/builder</code> · Test a source recipe</td>
+<td><a href="workflow-prototype.html?screen=helper-installed">TV channels → Channel sources → Test a source recipe</a></td>
+<td>contextual editor or detail · <code>helper-installed</code></td>
+<td><code>fetch</code>: explicit action · <code>recipeService.fetch</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/ExtractionBuilder.tsx">ExtractionBuilder.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>standalone helper</code> · Build a recipe offline</td>
+<td><a href="workflow-prototype.html?screen=helper-standalone">TV channels → Channel sources → Build a recipe offline</a></td>
+<td>contextual editor or detail · <code>helper-standalone</code></td>
+<td><code>sample</code>: explicit action · <code>standalone recipe worker</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/standalone.tsx">standalone.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper/builder</code> · Pick fields in HTML</td>
+<td><a href="workflow-prototype.html?screen=helper-html">TV channels → Channel sources → Pick fields in HTML</a></td>
+<td>contextual editor or detail · <code>helper-html</code></td>
+<td><code>recipe-html</code>: explicit action · <code>recipeService.preview / standalone worker</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/RecipeFields.tsx">RecipeFields.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper/builder</code> · Read fields from JSON</td>
+<td><a href="workflow-prototype.html?screen=helper-json">TV channels → Channel sources → Read fields from JSON</a></td>
+<td>contextual editor or detail · <code>helper-json</code></td>
+<td><code>recipe-json</code>: explicit action · <code>recipeService.preview / standalone worker</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/RecipeFields.tsx">RecipeFields.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper/builder</code> · Read paired text records</td>
+<td><a href="workflow-prototype.html?screen=helper-regex">TV channels → Channel sources → Read paired text records</a></td>
+<td>contextual editor or detail · <code>helper-regex</code></td>
+<td><code>recipe-regex</code>: explicit action · <code>recipeService.preview / standalone worker</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/RecipeFields.tsx">RecipeFields.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper/builder</code> · Select fields manually</td>
+<td><a href="workflow-prototype.html?screen=helper-manual">TV channels → Channel sources → Select fields manually</a></td>
+<td>contextual editor or detail · <code>helper-manual</code></td>
+<td><code>manual</code>: explicit action · <code>RecipeBuilder source selection</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/RecipeBuilder.tsx">RecipeBuilder.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper/builder</code> · This sample is too large to draw safely</td>
+<td><a href="workflow-prototype.html?screen=helper-large">TV channels → Channel sources → This sample is too large to draw safely</a></td>
+<td>contextual editor or detail · <code>helper-large</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/VisualPicker.tsx">VisualPicker.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/scraper/builder</code> · Review extraction results</td>
+<td><a href="workflow-prototype.html?screen=helper-results">TV channels → Channel sources → Review extraction results</a></td>
+<td>contextual editor or detail · <code>helper-results</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/RecipeResults.tsx">RecipeResults.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/</code> · Watch</td>
+<td><a href="workflow-prototype.html?screen=dashboard">Watch</a></td>
+<td>primary destination · <code>dashboard</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/TVDashboard.tsx">TVDashboard.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/live-tv</code> · Watch</td>
+<td><a href="workflow-prototype.html?screen=live">Watch</a></td>
+<td>contextual editor or detail · <code>live</code></td>
+<td><code>browse</code>: explicit action · <code>LiveTV URL state</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/LiveTV.tsx">LiveTV.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>player dialog</code> · Playback options</td>
+<td><a href="workflow-prototype.html?screen=player-tracks">Watch → Playback options</a></td>
+<td>contextual editor or detail · <code>player-tracks</code></td>
+<td><code>tracks</code>: explicit action · <code>playerService shared viewer lifecycle</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/StreamPlayerDialog.tsx">StreamPlayerDialog.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/watch</code> · Your viewing access</td>
+<td><a href="workflow-prototype.html?screen=viewer">Watch → Your viewing access</a></td>
+<td>contextual editor or detail · <code>viewer</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Watch.tsx">Watch.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/events</code> · Event agenda</td>
+<td><a href="workflow-prototype.html?screen=events">Event agenda</a></td>
+<td>primary destination · <code>events</code></td>
+<td><code>agenda</code>: explicit action · <code>eventPreferences</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventAgenda.tsx">EventAgenda.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events?event=demo&amp;zone=Europe/Madrid</code> · Northlight Cup</td>
+<td><a href="workflow-prototype.html?screen=event-detail">Event agenda → Northlight Cup</a></td>
+<td>contextual editor or detail · <code>event-detail</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventDetails.tsx">EventDetails.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events</code> · Add provider events</td>
+<td><a href="workflow-prototype.html?screen=event-provider">Event agenda → Add provider events</a></td>
+<td>contextual editor or detail · <code>event-provider</code></td>
+<td><code>provider</code>: explicit action · <code>eventService provider preview</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventProviderFields.tsx">EventProviderFields.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events</code> · Add events</td>
+<td><a href="workflow-prototype.html?screen=event-import">Event agenda → Add events</a></td>
+<td>contextual editor or detail · <code>event-import</code></td>
+<td><code>event-import</code>: explicit action · <code>eventService preview</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventImportPanel.tsx">EventImportPanel.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events</code> · Review new events</td>
+<td><a href="workflow-prototype.html?screen=event-review">Event agenda → Review new events</a></td>
+<td>contextual editor or detail · <code>event-review</code></td>
+<td><code>event-refresh</code>: explicit action · <code>EventApply.refresh_source</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventImportPanel.tsx">EventImportPanel.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events?event=demo</code> · Correct Northlight Cup</td>
+<td><a href="workflow-prototype.html?screen=event-correct">Event agenda → Correct Northlight Cup</a></td>
+<td>contextual editor or detail · <code>event-correct</code></td>
+<td><code>correction</code>: explicit action · <code>eventService.update</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventDetails.tsx">EventDetails.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events?event=demo</code> · Link the broadcaster Atelier</td>
+<td><a href="workflow-prototype.html?screen=event-mapping">Event agenda → Link the broadcaster Atelier</a></td>
+<td>contextual editor or detail · <code>event-mapping</code></td>
+<td><code>broadcast-link</code>: explicit action · <code>eventService broadcaster mapping</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventBroadcastMapper.tsx">EventBroadcastMapper.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events?event=demo</code> · Review XMLTV overlay</td>
+<td><a href="workflow-prototype.html?screen=event-overlay">Event agenda → Review XMLTV overlay</a></td>
+<td>contextual editor or detail · <code>event-overlay</code></td>
+<td><code>overlay</code>: explicit action · <code>eventService overlay preview</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventGuideOverlay.tsx">EventGuideOverlay.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events</code> · Event sources and retention</td>
+<td><a href="workflow-prototype.html?screen=event-sources">Event agenda → Event sources and retention</a></td>
+<td>contextual editor or detail · <code>event-sources</code></td>
+<td><code>event-retention</code>: explicit action · <code>eventService retention</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventSourcesPanel.tsx">EventSourcesPanel.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>proposed orientation layer</code> · Where would you like to watch?</td>
+<td><a href="workflow-prototype.html?screen=connections">Where would you like to watch?</a></td>
+<td>primary destination · <code>connections</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/IntegrationPage.tsx">IntegrationPage.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/web-player</code> · Browser player</td>
+<td><a href="workflow-prototype.html?screen=browser-player">Where would you like to watch? → Browser player</a></td>
+<td>section · <code>browser-player</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/WebPlayerSection.tsx">WebPlayerSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/public-address</code> · Address for players</td>
+<td><a href="workflow-prototype.html?screen=public-address">Where would you like to watch? → Address for players</a></td>
+<td>contextual editor or detail · <code>public-address</code></td>
+<td><code>address</code>: explicit action · <code>configService public-base-url</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/PublicAddressSection.tsx">PublicAddressSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/tv-casting</code> · TV casting</td>
+<td><a href="workflow-prototype.html?screen=casting">Where would you like to watch? → TV casting</a></td>
+<td>contextual editor or detail · <code>casting</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/integrations/TvCasting.tsx">TvCasting.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/tv-casting</code> · Casting settings</td>
+<td><a href="workflow-prototype.html?screen=casting-settings">Where would you like to watch? → Casting settings</a></td>
+<td>contextual editor or detail · <code>casting-settings</code></td>
+<td><code>cast-settings</code>: explicit action · <code>castService.saveSettings</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/integrations/TvCasting.tsx">TvCasting.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/tv-casting</code> · Public HTTPS at home</td>
+<td><a href="workflow-prototype.html?screen=casting-trust">Where would you like to watch? → Public HTTPS at home</a></td>
+<td>contextual editor or detail · <code>casting-trust</code></td>
+<td><code>trust</code>: explicit action · <code>castService.trustHome</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/integrations/TvCasting.tsx">TvCasting.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>player casting options</code> · Living room DEMO</td>
+<td><a href="workflow-prototype.html?screen=casting-control">Where would you like to watch? → Living room DEMO</a></td>
+<td>contextual editor or detail · <code>casting-control</code></td>
+<td><code>cast-control</code>: explicit action · <code>castService.command</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/CastControls.tsx">CastControls.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/remote-players</code> · Set up VLC or Kodi</td>
+<td><a href="workflow-prototype.html?screen=remote-player">Where would you like to watch? → Set up VLC or Kodi</a></td>
+<td>contextual editor or detail · <code>remote-player</code></td>
+<td><code>remote</code>: explicit action · <code>remotePlayerService create / update</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/RemotePlayerDialog.tsx">RemotePlayerDialog.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/remote-players</code> · Pair VLC Android</td>
+<td><a href="workflow-prototype.html?screen=remote-android">Where would you like to watch? → Pair VLC Android</a></td>
+<td>contextual editor or detail · <code>remote-android</code></td>
+<td><code>android-pair</code>: explicit action · <code>remotePlayerService.finishAndroidPairing</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/RemotePlayerDialog.tsx">RemotePlayerDialog.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/remote-players</code> · Find remote players</td>
+<td><a href="workflow-prototype.html?screen=remote-discovery">Where would you like to watch? → Find remote players</a></td>
+<td>contextual editor or detail · <code>remote-discovery</code></td>
+<td><code>scan</code>: explicit action · <code>remotePlayerService.scan</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/FindPlayersDialog.tsx">FindPlayersDialog.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>PlayOnMenu</code> · Send to a player</td>
+<td><a href="workflow-prototype.html?screen=remote-control">Where would you like to watch? → Send to a player</a></td>
+<td>contextual editor or detail · <code>remote-control</code></td>
+<td><code>remote-command</code>: explicit action · <code>remotePlayerService.command</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/PlayOnMenu.tsx">PlayOnMenu.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/media-servers</code> · Connect a media server</td>
+<td><a href="workflow-prototype.html?screen=media-server">Where would you like to watch? → Connect a media server</a></td>
+<td>contextual editor or detail · <code>media-server</code></td>
+<td><code>media</code>: explicit action · <code>mediaServerService create / update</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/MediaServerDialog.tsx">MediaServerDialog.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/media-servers</code> · Tuner settings</td>
+<td><a href="workflow-prototype.html?screen=tuner">Where would you like to watch? → Tuner settings</a></td>
+<td>contextual editor or detail · <code>tuner</code></td>
+<td><code>tuner</code>: explicit action · <code>tunerService.updateSettings</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/MediaServersSection.tsx">MediaServersSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/telegram</code> · Authorize Telegram sources</td>
+<td><a href="workflow-prototype.html?screen=telegram-auth">TV channels → Channel sources → Authorize Telegram sources</a></td>
+<td>contextual editor or detail · <code>telegram-auth</code></td>
+<td><code>telegram-auth</code>: explicit action · <code>telegramService login</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/TelegramSection.tsx">TelegramSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/telegram</code> · Complete Telegram sign-in</td>
+<td><a href="workflow-prototype.html?screen=telegram-code">TV channels → Channel sources → Complete Telegram sign-in</a></td>
+<td>contextual editor or detail · <code>telegram-code</code></td>
+<td><code>telegram-code</code>: explicit action · <code>telegramService code</code>; <code>telegram-password</code>: explicit action · <code>telegramService password</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/TelegramSection.tsx">TelegramSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/integrations/telegram</code> · Telegram source</td>
+<td><a href="workflow-prototype.html?screen=telegram-source">TV channels → Channel sources → Telegram source</a></td>
+<td>contextual editor or detail · <code>telegram-source</code></td>
+<td><code>telegram-source</code>: explicit action · <code>telegramService source</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/TelegramSourceEditor.tsx">TelegramSourceEditor.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/settings?tab=automation</code> · Notifications</td>
+<td><a href="workflow-prototype.html?screen=notifications">Where would you like to watch? → Notifications</a></td>
+<td>contextual editor or detail · <code>notifications</code></td>
+<td><code>webhook</code>: explicit action · <code>configService notification-webhook</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/NotificationsSection.tsx">NotificationsSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/warp</code> · WARP</td>
+<td><a href="workflow-prototype.html?screen=warp">System status → WARP</a></td>
+<td>section · <code>warp</code></td>
+<td><code>warp-mode</code>: explicit action · <code>warpService.setMode</code>; <code>warp-license</code>: explicit action · <code>warpService.registerLicense</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/WARP.tsx">WARP.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/warp</code> · WARP excluded hosts</td>
+<td><a href="workflow-prototype.html?screen=warp-exclusions">System status → WARP → WARP excluded hosts</a></td>
+<td>contextual editor or detail · <code>warp-exclusions</code></td>
+<td><code>exclusions</code>: explicit action · <code>warpService exclusions</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/WarpExclusionsSection.tsx">WarpExclusionsSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/warp</code> · WARP at startup</td>
+<td><a href="workflow-prototype.html?screen=warp-startup">System status → WARP → WARP at startup</a></td>
+<td>contextual editor or detail · <code>warp-startup</code></td>
+<td><code>warp-runtime</code>: explicit action · <code>runtime setup API</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/WarpStartupSection.tsx">WarpStartupSection.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/settings</code> · Settings</td>
+<td><a href="workflow-prototype.html?screen=settings">Settings</a></td>
+<td>primary destination · <code>settings</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Settings.tsx">Settings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=playback</code> · Playback settings</td>
+<td><a href="workflow-prototype.html?screen=playback-settings">Where would you like to watch? → Browser player → Playback settings</a></td>
+<td>contextual editor or detail · <code>playback-settings</code></td>
+<td><code>engine-url</code>: explicit action · <code>configService ace-engine-url</code>; <code>route</code>: explicit action · <code>configService playback-routing</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/PlaybackRoutingFields.tsx">PlaybackRoutingFields.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=automation</code> · Background updates</td>
+<td><a href="workflow-prototype.html?screen=automation">Settings → Background updates</a></td>
+<td>section · <code>automation</code></td>
+<td><code>intervals-0</code>: explicit action · <code>configService independent setting: schedule.rescrape_interval</code>; <code>intervals-1</code>: explicit action · <code>configService independent setting: schedule.epg_refresh_interval</code>; <code>intervals-2</code>: explicit action · <code>configService independent setting: schedule.channel_status_interval</code>; <code>checker</code>: explicit action · <code>configService check-engine</code>; <code>scope</code>: immediate · <code>configService stream-check-scope</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Settings.tsx">Settings.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=automation</code> · Schedule start times</td>
+<td><a href="workflow-prototype.html?screen=schedule-anchors">Settings → Background updates → Schedule start times</a></td>
+<td>contextual editor or detail · <code>schedule-anchors</code></td>
+<td><code>anchors</code>: explicit action · <code>configService schedule-anchors</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ScheduleAnchorFields.tsx">ScheduleAnchorFields.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=automation</code> · Offline stream cleanup</td>
+<td><a href="workflow-prototype.html?screen=offline-cleanup">Settings → Background updates → Offline stream cleanup</a></td>
+<td>contextual editor or detail · <code>offline-cleanup</code></td>
+<td><code>offline</code>: explicit action · <code>configService offline-cleanup</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/settings/OfflineCleanupFields.tsx">OfflineCleanupFields.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/settings?tab=network</code> · Network settings</td>
+<td><a href="workflow-prototype.html?screen=network">System status → Playback runtime → Network settings</a></td>
+<td>contextual editor or detail · <code>network</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/settings/NetworkSettingsFields.tsx">NetworkSettingsFields.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/system</code> · System status</td>
+<td><a href="workflow-prototype.html?screen=system">System status</a></td>
+<td>primary destination · <code>system</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/SystemDashboard.tsx">SystemDashboard.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/system</code> · Service controls</td>
+<td><a href="workflow-prototype.html?screen=services">System status → Service controls</a></td>
+<td>contextual editor or detail · <code>services</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ServicesPanel.tsx">ServicesPanel.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/system</code> · Scheduled job history</td>
+<td><a href="workflow-prototype.html?screen=jobs">System status → Scheduled job history</a></td>
+<td>contextual editor or detail · <code>jobs</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/overview/ScheduledJobs.tsx">ScheduledJobs.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/system</code> · Job run details</td>
+<td><a href="workflow-prototype.html?screen=job-detail">System status → Job run details</a></td>
+<td>contextual editor or detail · <code>job-detail</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/overview/ScheduledJobs.tsx">ScheduledJobs.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/system</code> · Storage details</td>
+<td><a href="workflow-prototype.html?screen=storage">System status → Storage details</a></td>
+<td>contextual editor or detail · <code>storage</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/overview/StoragePanel.tsx">StoragePanel.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/system</code> · Logs and diagnostics</td>
+<td><a href="workflow-prototype.html?screen=diagnostics">System status → Logs and diagnostics</a></td>
+<td>contextual editor or detail · <code>diagnostics</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/DiagnosticsDownload.tsx">DiagnosticsDownload.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>/setup</code> · Start with channels</td>
+<td><a href="workflow-prototype.html?screen=setup">TV channels → Channel sources → Start with channels</a></td>
+<td>contextual editor or detail · <code>setup</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Setup.tsx">Setup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>outer startup gate</code> · Starting AceStream Scraper</td>
+<td><a href="workflow-prototype.html?screen=startup">System status → Starting AceStream Scraper</a></td>
+<td>contextual editor or detail · <code>startup</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StartupGate.tsx">StartupGate.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>startup failure gate</code> · Startup needs attention</td>
+<td><a href="workflow-prototype.html?screen=recovery">System status → Startup needs attention</a></td>
+<td>contextual editor or detail · <code>recovery</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StartupGate.tsx">StartupGate.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>startup recovery</code> · Recover readable catalogue</td>
+<td><a href="workflow-prototype.html?screen=recovery-readable">System status → Recover readable catalogue</a></td>
+<td>contextual editor or detail · <code>recovery-readable</code></td>
+<td><code>recovery-readable</code>: explicit action · <code>startupService recovery</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StartupGate.tsx">StartupGate.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>startup recovery</code> · Start a fresh catalogue</td>
+<td><a href="workflow-prototype.html?screen=recovery-fresh">System status → Start a fresh catalogue</a></td>
+<td>contextual editor or detail · <code>recovery-fresh</code></td>
+<td><code>recovery-fresh</code>: explicit action · <code>startupService recovery</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StartupGate.tsx">StartupGate.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>startup recovery</code> · Recovery result</td>
+<td><a href="workflow-prototype.html?screen=recovery-result">System status → Recovery result</a></td>
+<td>contextual editor or detail · <code>recovery-result</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StartupGate.tsx">StartupGate.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>shared shell preferences</code> · Language and appearance</td>
+<td><a href="workflow-prototype.html?screen=preferences">Settings → Language and appearance</a></td>
+<td>section · <code>preferences</code></td>
+<td><code>preferences</code>: explicit action · <code>proposed browser preference resource</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/layout/AppShell.tsx">AppShell.tsx</a>; #317</td>
+</tr>
+<tr>
+<td><code>shared shell</code> · Notices and session feedback</td>
+<td><a href="workflow-prototype.html?screen=notices">System status → Settings → Notices and session feedback</a></td>
+<td>contextual editor or detail · <code>notices</code></td>
+<td><code>api-token</code>: explicit action · <code>apiToken browser credential</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ApiTokenNotice.tsx">ApiTokenNotice.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>*</code> · This page is not available</td>
+<td><a href="workflow-prototype.html?screen=not-found">Watch → Settings → This page is not available</a></td>
+<td>contextual editor or detail · <code>not-found</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/NotFound.tsx">NotFound.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/changelog</code> · What changed</td>
+<td><a href="workflow-prototype.html?screen=changelog">System status → Settings → What changed</a></td>
+<td>contextual editor or detail · <code>changelog</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Changelog.tsx">Changelog.tsx</a>; #322</td>
+</tr>
+<tr>
+<td><code>shared dirty guard</code> · Leave with unsaved changes?</td>
+<td><a href="workflow-prototype.html?screen=unsaved">Settings → Leave with unsaved changes?</a></td>
+<td>contextual editor or detail · <code>unsaved</code></td>
+<td><code>unsaved-example</code>: explicit action · <code>proposed form dirty guard</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ConfirmDialog.tsx">ConfirmDialog.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/setup · Connection settings (advanced)</code> · Playback runtime</td>
+<td><a href="workflow-prototype.html?screen=runtime-playback">System status → Playback runtime</a></td>
+<td>section · <code>runtime-playback</code></td>
+<td><code>runtime-playback</code>: explicit action · <code>setupService.update expected_revision</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/RuntimeSetup.tsx">RuntimeSetup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/setup · Connection settings (advanced)</code> · Network runtime</td>
+<td><a href="workflow-prototype.html?screen=runtime-network">System status → Playback runtime → Network runtime</a></td>
+<td>contextual editor or detail · <code>runtime-network</code></td>
+<td><code>runtime-network</code>: explicit action · <code>setupService.update expected_revision</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/RuntimeSetup.tsx">RuntimeSetup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/setup · Connection settings (advanced)</code> · Installed services</td>
+<td><a href="workflow-prototype.html?screen=runtime-services">System status → Playback runtime → Installed services</a></td>
+<td>contextual editor or detail · <code>runtime-services</code></td>
+<td><code>runtime-services</code>: explicit action · <code>setupService.update expected_revision</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/RuntimeSetup.tsx">RuntimeSetup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/setup · Connection settings (advanced)</code> · Advanced source runtime</td>
+<td><a href="workflow-prototype.html?screen=runtime-advanced">System status → Playback runtime → Advanced source runtime</a></td>
+<td>contextual editor or detail · <code>runtime-advanced</code></td>
+<td><code>runtime-advanced</code>: explicit action · <code>setupService.update expected_revision</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/RuntimeSetup.tsx">RuntimeSetup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/setup · Connection settings (advanced)</code> · Engine and Acexy connections</td>
+<td><a href="workflow-prototype.html?screen=runtime-engine-ports">System status → Playback runtime → Engine and Acexy connections</a></td>
+<td>contextual editor or detail · <code>runtime-engine-ports</code></td>
+<td><code>runtime-engine-ports</code>: explicit action · <code>setupService.update expected_revision</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/RuntimeSetup.tsx">RuntimeSetup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/setup · Connection settings (advanced)</code> · ZeroNet and IPFS connections</td>
+<td><a href="workflow-prototype.html?screen=runtime-gateway-ports">System status → Playback runtime → ZeroNet and IPFS connections</a></td>
+<td>contextual editor or detail · <code>runtime-gateway-ports</code></td>
+<td><code>runtime-gateway-ports</code>: explicit action · <code>setupService.update expected_revision</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/RuntimeSetup.tsx">RuntimeSetup.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/recordings</code> · Your recordings</td>
+<td><a href="workflow-prototype.html?screen=recordings">Your recordings</a></td>
+<td>primary destination · <code>recordings</code></td>
+<td><code>recording-filter</code>: explicit action · <code>recordingService.list</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Recordings.tsx">Recordings.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/acestream-channels</code> · Stream activity</td>
+<td><a href="workflow-prototype.html?screen=channel-activity">TV channels → Streams → Stream activity</a></td>
+<td>contextual editor or detail · <code>channel-activity</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ChannelActivityLogDialog.tsx">ChannelActivityLogDialog.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/acestream-channels</code> · Bulk metadata changes</td>
+<td><a href="workflow-prototype.html?screen=stream-bulk-fields">TV channels → Streams → Bulk metadata changes</a></td>
+<td>contextual editor or detail · <code>stream-bulk-fields</code></td>
+<td><code>bulk-fields</code>: explicit action · <code>BulkChannelEditRequest</code>; <code>bulk-tv-properties</code>: explicit action · <code>source-only contract mismatch → TVChannelUpdate</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/AcestreamChannels.tsx">AcestreamChannels.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/epg?tab=channels</code> · Browse guide channels</td>
+<td><a href="workflow-prototype.html?screen=guide-inventory">TV channels → Programme guides → Browse guide channels</a></td>
+<td>contextual editor or detail · <code>guide-inventory</code></td>
+<td><code>guide-browse</code>: explicit action · <code>epgService inventory</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGChannelInventoryTable.tsx">EPGChannelInventoryTable.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>shared player dialog</code> · Choose what to play</td>
+<td><a href="workflow-prototype.html?screen=player-picker">Watch → Choose what to play</a></td>
+<td>contextual editor or detail · <code>player-picker</code></td>
+<td><code>picker</code>: explicit action · <code>player channel picker</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/ChannelPickerDialog.tsx">ChannelPickerDialog.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>shared player controls</code> · Playback sessions</td>
+<td><a href="workflow-prototype.html?screen=player-sessions">Watch → Playback sessions</a></td>
+<td>contextual editor or detail · <code>player-sessions</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/ActiveStreamsList.tsx">ActiveStreamsList.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/</code> · Events on your home page</td>
+<td><a href="workflow-prototype.html?screen=dashboard-events">Watch → Events on your home page</a></td>
+<td>contextual editor or detail · <code>dashboard-events</code></td>
+<td><code>dashboard-events</code>: explicit action · <code>readEventPreferences / writeEventPreferences</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/overview/UpcomingEvents.tsx">UpcomingEvents.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/events</code> · Broadcaster links</td>
+<td><a href="workflow-prototype.html?screen=event-broadcasters">Event agenda → Broadcaster links</a></td>
+<td>contextual editor or detail · <code>event-broadcasters</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/BroadcasterLinks.tsx">BroadcasterLinks.tsx</a>; #319</td>
+</tr>
+<tr>
+<td><code>/setup</code> · Add your first channel source</td>
+<td><a href="workflow-prototype.html?screen=source-web">TV channels → Channel sources → Add your first channel source</a></td>
+<td>reuse canonical editor · <code>source-web</code></td>
+<td><code>source</code>: explicit action · <code>scraperService createURL / updateURL</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/setup/SetupSources.tsx">SetupSources.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/setup</code> · Optional programme guide</td>
+<td><a href="workflow-prototype.html?screen=guide-source">TV channels → Programme guides → Optional programme guide</a></td>
+<td>reuse canonical editor · <code>guide-source</code></td>
+<td><code>guide-source</code>: explicit action · <code>epgService.createSource / updateSource</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/setup/SetupGuide.tsx">SetupGuide.tsx</a>; #318</td>
+</tr>
+<tr>
+<td><code>/tv-channels</code> · Number and favorite</td>
+<td><a href="workflow-prototype.html?screen=channel-inline">TV channels → Number and favorite</a></td>
+<td>contextual editor or detail · <code>channel-inline</code></td>
+<td><code>inline-number</code>: enter-blur · <code>TVChannelUpdate.channel_number</code>; <code>inline-favorite</code>: immediate · <code>TVChannelUpdate.is_favorite</code></td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ChannelNumberField.tsx">ChannelNumberField.tsx</a>; #320</td>
+</tr>
+<tr>
+<td><code>/sources</code> · Channel sources</td>
+<td><a href="workflow-prototype.html?screen=sources">TV channels → Channel sources</a></td>
+<td>section · <code>sources</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+<tr>
+<td><code>/sources</code> · Add channels</td>
+<td><a href="workflow-prototype.html?screen=add-channels">TV channels → Channel sources → Add channels</a></td>
+<td>contextual editor or detail · <code>add-channels</code></td>
+<td>Read-only, local view or named command; see workflow-specific consequence.</td>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper.tsx</a>; #321</td>
+</tr>
+</tbody>
+</table></div>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

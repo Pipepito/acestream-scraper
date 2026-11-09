@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>frontend/src/components/settings/NetworkSettingsFields.tsx · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1>Source snapshot</h1><p><code>frontend/src/components/settings/NetworkSettingsFields.tsx</code></p><p>Read-only design-source reference. This file is displayed as text and is never executed.</p><pre tabindex="0" aria-label="Source code"><code><span id="L1">import React from &#x27;react&#x27;;</span>
+<span id="L2">import { Alert, Box, Checkbox, FormControlLabel, Link, TextField, Typography } from &#x27;@mui/material&#x27;;</span>
+<span id="L3">import { Link as RouterLink } from &#x27;react-router-dom&#x27;;</span>
+<span id="L4">import type { SetupState } from &#x27;../../services/setupService&#x27;;</span>
+<span id="L5"></span>
+<span id="L6">interface NetworkSettingsFieldsProps {</span>
+<span id="L7">  initial: SetupState;</span>
+<span id="L8">  values: SetupState[&#x27;runtime&#x27;];</span>
+<span id="L9">  disabled: boolean;</span>
+<span id="L10">  onChange: (values: SetupState[&#x27;runtime&#x27;]) =&gt; void;</span>
+<span id="L11">}</span>
+<span id="L12"></span>
+<span id="L13">export default function NetworkSettingsFields({ initial, values, disabled, onChange }: NetworkSettingsFieldsProps) {</span>
+<span id="L14">  const broadProxies = String(values.FORWARDED_ALLOW_IPS ?? &#x27;&#x27;).split(&#x27;,&#x27;).some(value =&gt;</span>
+<span id="L15">    [&#x27;*&#x27;, &#x27;0.0.0.0/0&#x27;, &#x27;::/0&#x27;, &#x27;10.0.0.0/8&#x27;, &#x27;172.16.0.0/12&#x27;, &#x27;192.168.0.0/16&#x27;, &#x27;fc00::/7&#x27;].includes(value.trim()));</span>
+<span id="L16">  return &lt;&gt;</span>
+<span id="L17">    &lt;Alert severity={initial.api_protected ? &#x27;success&#x27; : &#x27;info&#x27;}&gt;{initial.api_protected ? &#x27;API token protection is enabled.&#x27; : &#x27;No API token is configured.&#x27;} Manage user accounts in &lt;Link component={RouterLink} to=&quot;/settings?tab=access&quot;&gt;Settings → Access&lt;/Link&gt;.&lt;/Alert&gt;</span>
+<span id="L18">    {initial.saved_overrides?.PUBLIC_BASE_URL ? &lt;Alert severity=&quot;info&quot;&gt;Public address saved in Integrations: {initial.saved_overrides.PUBLIC_BASE_URL}. This takes precedence over the runtime default. &lt;Link component={RouterLink} to=&quot;/integrations/public-address&quot;&gt;Edit public address&lt;/Link&gt;&lt;/Alert&gt; : null}</span>
+<span id="L19">    {broadProxies ? &lt;Alert severity=&quot;warning&quot;&gt;Trusted reverse proxies includes entire private networks or all addresses. This can block local HTTP sign-in and TV discovery by treating your browser as a proxy. Replace those entries with your actual proxy addresses; adding a narrower range does not remove the old ones.&lt;/Alert&gt; : null}</span>
+<span id="L20">    {initial.options.filter(option =&gt; option.group === &#x27;network&#x27;).map(option =&gt; {</span>
+<span id="L21">      const value = values[option.name] ?? option.default;</span>
+<span id="L22">      if (option.kind === &#x27;boolean&#x27;) return &lt;Box key={option.name}&gt;</span>
+<span id="L23">        &lt;FormControlLabel label={option.label} control={&lt;Checkbox checked={value === true} disabled={disabled} onChange={(_, checked) =&gt; onChange({ [option.name]: checked })} /&gt;} /&gt;</span>
+<span id="L24">        &lt;Typography variant=&quot;body2&quot; color=&quot;text.secondary&quot;&gt;{option.help}&lt;/Typography&gt;</span>
+<span id="L25">      &lt;/Box&gt;;</span>
+<span id="L26">      return &lt;TextField key={option.name} label={option.label} value={value} disabled={disabled} fullWidth</span>
+<span id="L27">        helperText={option.help} inputProps={{ maxLength: 4096 }} onChange={event =&gt; onChange({ [option.name]: event.target.value })} /&gt;;</span>
+<span id="L28">    })}</span>
+<span id="L29">  &lt;/&gt;;</span>
+<span id="L30">}</span></code></pre>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

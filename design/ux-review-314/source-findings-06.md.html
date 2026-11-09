@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Source evidence and unresolved application findings · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="source-evidence-and-unresolved-application-findings">Source evidence and unresolved application findings</h1>
+<p>Review 06, 7 November 2026. Application source: <code>cf952afc6b4489c02b7a675ff3d634cc13d98e0b</code>. Local application base remains <code>7ccf16d383758aeeb78845e20e3716ddf97df10d</code>. Remote tips were rechecked without merging implementation into the design branch.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>ID / classification</th>
+<th>Evidence and consequence</th>
+<th>Disposition / owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Observed recording opener defect</td>
+<td>Prior read-only live audit captured private-HTTP <code>crypto.randomUUID</code> failure</td>
+<td>Remains open #315. No application fix or fresh live reproduction in this session</td>
+</tr>
+<tr>
+<td>Observed contrast / phone / slider defects</td>
+<td>Prior light-success contrast, Network/pagination clipping and unnamed export sliders</td>
+<td>Remain open #315/#317. New prototype passes do not fix the old application</td>
+</tr>
+<tr>
+<td>SRC-F15 (source-only; historical document calls it F15)</td>
+<td><code>BulkOperations.tsx</code> per-row callback plus <code>AcestreamChannels.tsx</code> full-selection bulk call; category/country/language absent from <code>AcestreamChannelUpdate</code></td>
+<td>Isolated reproduction and actual request/payload regression required #315/#320. Do not confuse with historical prototype limitation F15 in fresh-audit.md</td>
+</tr>
+<tr>
+<td>SRC-06-01 now/next artwork</td>
+<td><code>backend/app/schemas/channel.py</code> GuideSlot contains title/start/end; <code>frontend/src/hooks/useNowNext.ts</code> batches/refetches now-next. <code>EPGProgram.image_url</code>, channel logo and event image contracts already exist</td>
+<td>Review existing guide response use or additive batch schema in future #319/#320. No invented image API or per-card unbounded fetch</td>
+</tr>
+<tr>
+<td>SRC-06-02 OpenAPI auth description</td>
+<td><code>backend/openapi.json</code> 3.1 snapshot lacks security schemes/global security despite real access enforcement</td>
+<td>Describe and test actual existing policies in future #318/#324. No anonymous-access inference</td>
+</tr>
+<tr>
+<td>SRC-06-03 OpenAPI conflict description</td>
+<td>Reorder snapshot describes 200/422; source includes stale/incomplete inventory conflict behavior</td>
+<td>Add accurate declared errors and provider tests in future #320/#324; preserve atomic complete-catalogue transaction</td>
+</tr>
+<tr>
+<td>Preserved new behavior</td>
+<td>Online-only/Show all/refresh continuity; opt-in similar-name review; atomic manual/Search Add and Link; opt-in cleanup with separate schedule; tuner hiding</td>
+<td>Source constraints retained in composed workflows and location map. No obsolete behavior restored</td>
+</tr>
+<tr>
+<td>Corrected earlier design hypothesis</td>
+<td><code>GuideMatchingFields.tsx</code> and stream-check scope save immediately</td>
+<td>Review 06 retains immediate save; older staged Save proposal withdrawn</td>
+</tr>
+<tr>
+<td>Unproven performance hypothesis</td>
+<td>No repeatable current application performance baseline collected</td>
+<td>Remains unproven #323; static render speed and source loop inspection are not proof</td>
+</tr>
+</tbody>
+</table></div>
+<p>Backend support must be investigated through source review and isolated tests in a later authorized application session. The current design check validates operation references against a pinned schema but cannot demonstrate endpoints, queues, devices or media behavior. See <a href="openapi-contracts-06.md.html">contract strategy</a>.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

@@ -1,0 +1,89 @@
+/* Authoritative SPORTZZ tokens for the static design study. See brand-system.html.
+   Source: supplied identity v1 + Signal Pitch v2 proposal. Light ramps are refinements. */
+:root {
+  --signal: #2ee6d6;
+  --heritage-lime: #b6ff00;
+  --ember: #ff4d6a;
+  --ink-950: #0a0f0d;
+  --ink-900: #121916;
+  --ink-800: #1a2320;
+  --paper: #f2f5f3;
+  --success: #3ddb8a;
+  --warning: #f5c542;
+  --info: #4da3ff;
+  --font-ui: Inter, system-ui, -apple-system, sans-serif;
+  --font-display: Barlow, 'Arial Narrow', sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --content-width: 1440px;
+  --reading-width: 68ch;
+  --motion-fast: 120ms;
+  --motion-normal: 200ms;
+  --motion-slow: 320ms;
+  --ease: cubic-bezier(.2, 0, 0, 1);
+  --layer-nav: 4;
+  --layer-feedback: 6;
+}
+body, body.cyan, body.lime, body.dark, body.cyan.dark, body.lime.dark {
+  --space: var(--space-6);
+  --radius: var(--radius-card);
+  --display: var(--font-display);
+  --hero-height: 400px;
+  --accent: var(--signal);
+  --ink: var(--ink-950);
+  --bg: var(--paper);
+  --surface: #ffffff;
+  --subtle: #e5ece8;
+  --text: var(--ink-900);
+  --muted: #52625a;
+  --line: #c5d1ca;
+  --control: #708078;
+  --selected: #d1f5ee;
+  --selected-text: #006b61;
+  --link: #006b61;
+  --focus: #006b61;
+  --good: #17643d;
+  --good-bg: #dff5e8;
+  --warn: #705000;
+  --warn-bg: #fff0be;
+  --bad: #a21e39;
+  --bad-bg: #ffe5eb;
+  --info-text: #195b94;
+  --info-bg: #e1efff;
+  --shadow: 0 8px 28px #0a0f0d14;
+  --shadow-dialog: 0 24px 80px #0005;
+}
+body.dark, body.cyan.dark, body.lime.dark {
+  color-scheme: dark;
+  --bg: var(--ink-950);
+  --surface: var(--ink-900);
+  --subtle: var(--ink-800);
+  --text: var(--paper);
+  --muted: #a9bbb1;
+  --line: #36473e;
+  --control: #778e81;
+  --selected: #193e36;
+  --selected-text: var(--signal);
+  --link: var(--signal);
+  --focus: var(--signal);
+  --good: #8ee7b5;
+  --good-bg: #173526;
+  --warn: #f5d779;
+  --warn-bg: #382f16;
+  --bad: #ffafbd;
+  --bad-bg: #421f29;
+  --info-text: #99ccff;
+  --info-bg: #172e45;
+  --shadow: 0 8px 28px #0003;
+}
+/* Existing presentation choices keep their accent and layout, sharing foundations. */
+body.lime, body.lime.dark { --accent: var(--heritage-lime); --hero-height: 270px; }
+body.preset-coral { --accent: #ffad87; }

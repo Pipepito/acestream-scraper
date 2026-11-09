@@ -1,0 +1,53 @@
+{
+  "provider": "unsplash",
+  "license": "Unsplash License (free)",
+  "license_url": "https://unsplash.com/license",
+  "category": "baloncesto",
+  "photo_title": "Basketball game in a crowded arena at night stadium",
+  "photo_id": "9o4n4pI8kR8",
+  "photo_url": "https://unsplash.com/photos/basketball-game-in-a-crowded-arena-at-night-stadium-9o4n4pI8kR8?utm_source=sportzz&utm_medium=referral",
+  "photo_author": "Tom Macret",
+  "photo_author_url": "https://unsplash.com/@tom_macret?utm_source=sportzz&utm_medium=referral",
+  "local_cover": "cover.webp",
+  "local_poster": "poster.webp",
+  "local_video": "background.mp4",
+  "image_id": "photo-1765924705648-9a0731ac5202",
+  "note": "Manually selected on unsplash.com and downloaded for local hosting. Not Unsplash+.",
+  "variants": {
+    "cover": "cover.webp",
+    "cover_480": "cover-480.webp",
+    "cover_960": "cover-960.webp",
+    "cover_1600": "cover-1600.webp",
+    "poster": "poster.webp",
+    "background_mp4": "background.mp4",
+    "background_webm": "background.webm"
+  },
+  "video": {
+    "provider": "mixkit",
+    "license": "Mixkit Stock Video Free License",
+    "license_url": "https://mixkit.co/license/#videoFree",
+    "title": "Skilled basketball player shooting baskets, training alone",
+    "page_url": "https://mixkit.co/free-stock-video/skilled-basketball-player-shooting-baskets-training-alone-44448/",
+    "author": "Mixkit",
+    "mixkit_id": 44448,
+    "local_mp4": "background.mp4",
+    "local_webm": "background.webm",
+    "local_poster": "poster.webp",
+    "note": "Manually selected Mixkit free stock clip; converted locally with ffmpeg.",
+    "stats": {
+      "mp4_bytes": 1316398,
+      "webm_bytes": 1075605,
+      "poster_bytes": 49060,
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 1280,
+            "height": 720
+          }
+        ]
+      }
+    }
+  }
+}

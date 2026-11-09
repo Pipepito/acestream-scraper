@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Static preview publication — review 06 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="static-preview-publication--review-06">Static preview publication — review 06</h1>
+<p>The current verified repository setting serves <strong><code>gh-pages</code> at <code>/</code></strong>, using GitHub-managed legacy Pages builds with HTTPS. The earlier repository narrative saying <code>main</code> at <code>/docs</code> is stale for this preview setup; recheck before publication. Pages is not the application validation/deployment pipeline.</p>
+<p>Public preview: <a href="https://pipepito.github.io/acestream-scraper/design/ux-review-314/">AceStream design review</a>. Only static design content is authorized. Do not merge application branches, replace installation tools with the design branch's older docs snapshot, trigger Jenkins or publish images/releases.</p>
+<h2 id="safe-preparation-and-publication">Safe preparation and publication</h2>
+<ol>
+<li>Inspect clean/dirty worktrees and recheck <code>develop</code>, <code>main</code>, design and <code>gh-pages</code> tips. Re-fetch current issue bodies before updating them.</li>
+<li>Read the current Pages configuration with <code>gh api repos/Pipepito/acestream-scraper/pages</code>. The GitHub connector has no Pages-administration read capability; the read-only CLI fallback is appropriate.</li>
+<li>Commit the completed design package on its isolated task branch (currently <code>pepe/sportzz-brand-system</code>). Build from this immutable local SHA. A local design commit does not authorize or require pushing the application/source branch.</li>
+<li>Stage the <strong>current <code>gh-pages</code> snapshot</strong> in an empty temporary output. Replace only its <code>design/ux-review-314/</code> subtree. Preserve every other site file byte for byte. <code>prepare_pages_preview.py</code> checks this invariant and pins both SHAs. The main/docs option is only for a separately reconciled baseline; do not overwrite independent current site changes.</li>
+</ol>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh">workspace-test python docs/design/ux-review-314/prepare_pages_preview.py \
+  --site-ref CURRENT_GH_PAGES_SHA --site-prefix . \
+  --design-ref DESIGN_COMMIT_SHA --local-docs \
+  --output /tmp/opencode/acestream-pages-brand-stage
+</code></pre>
+<ol start="5">
+<li>Verify the candidate's links, images, selector, canonical workflows and local no-network constraints. Inspect landing/gallery phone and desktop compositions. The public prototype may store only its namespaced design preset.</li>
+<li>Read <code>/opt/opencode-workspace-hooks/static-pages-route.md</code>. In an isolated worktree at the freshly checked remote <code>gh-pages</code> tip, copy only the prepared preview subtree and make one commit. Confirm the diff contains no other site paths and the publishing worktree is clean. Within the owner's publication authorization, push only <code>HEAD:refs/heads/gh-pages</code> to origin. The installed guard validates this narrow static route. If the remote advanced, regenerate over its new tip instead of force-pushing. Keep hooks intact; this route does not waive application validation.</li>
+<li>Wait for the GitHub Pages build, then verify hosted index, all three launch presets, gallery, new CSS/JS/assets and manifest. Preserve existing installation tools and release-site content; hash comparisons and hosted probes belong in the current verification report.</li>
+</ol>
+<p>Use <code>--local-docs</code> when the design source SHA is not publicly available. This option requires the checkout-local <code>Markdown==3.11.3</code> package (<code>workspace-test python -m pip install Markdown==3.11.3</code>); it is not an application dependency. It renders top-level Markdown as <code>*.md.html</code>, preserving heading fragments and relative navigation. Linked code becomes escaped, inert HTML snapshots with line anchors; no Python/TypeScript server scripts are deployed. Referenced JSON and historical screenshots are included from the same immutable source. The export fails on missing local assets or fragments and records document/link counts in its manifest. Without this option, the historical exporter mode points Markdown at the source SHA on GitHub and is suitable only when that SHA is already published.</p>
+<p>Fonts retain their notices. The ZIP, supplier application, original media masters, live data, private screenshots, logs and caches are excluded. Deliberately synthetic design exports and explicitly linked historical design screenshots are public artifacts.</p>
+<p>This procedure publishes design previews only. A page being built does not prove backend functionality, application CI, accessibility conformance, device behavior or owner approval of every visual decision. The current result and SHAs are recorded in <a href="verification-review-06.md.html">verification</a>.</p>
+<h2 id="published-snapshot--7-november-2026">Published snapshot — 7 November 2026</h2>
+<p>Design source <code>530b366996265d351fe2ede9b29f462b1d3d6178</code>; Pages commit <code>c20548ab0dedaecdfec5a322595183c498091eaa</code>; previous site <code>ebea374d0e62da1ac7bf52c322ccad8daf1990fd</code>. GitHub Pages reported built at 21:19:33 UTC. All 102 non-preview files were preserved and all 1,290 hosted files matched the staged hashes. See the <a href="https://pipepito.github.io/acestream-scraper/design/ux-review-314/publication-manifest.json">public manifest</a> and the verification report for hosted browser evidence and remaining manual acceptance. A later documentation-only commit records publication; rendered assets remain pinned to the design source above.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

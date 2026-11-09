@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Whole-app coverage delta — review 03 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="whole-app-coverage-delta--review-03">Whole-app coverage delta — review 03</h1>
+<blockquote>
+<p>Review 06 is the current design-only continuation: <a href="README.md.html">package</a>, <a href="before-after-map.md.html">simplified ownership</a>, <a href="shared-foundations-06.md.html">shared presets</a>, <a href="asset-selection-06.md.html">graphics</a> and <a href="verification-review-06.md.html">new evidence</a>. Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+Review 04 update (7 November 2026): <a href="coverage-review-04.md.html">expanded composed coverage</a>, <a href="workflow-specification.md.html">workflow fields/interactions</a>, <a href="verification-review-04.md.html">current verification</a> and <a href="task-refinements-04.md.html">task refinements</a> supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.</p>
+</blockquote>
+<p>Starting baseline: application 7ccf16d; design originally ebadaaf. Final develop cf952af was fetched and source-inspected. <strong>24 explicit app routes + catch-all; nine redirects; 20 navigation destinations</strong> remain unchanged. Startup is an outer gate, not an App.tsx route. Detail routes and embedded entries remain separate. The mandatory <a href="current-source-delta.md.html">current-source delta</a> adds online-only/refresh states, similar-name matching, Add and Link, offline cleanup and tuner hiding to the rows below; their live post-merge validation remains pending.</p>
+<p>All rows are <strong>design pending</strong> or <strong>in review</strong>. None is accepted; no implementation PR is attached. “Live” means read-only normal-state inspection, not an exercised mutation or every permission/error state. S = source inspected; L = live inspected; M = new composed family. Each row inherits the full handoff/state/field contract in <a href="whole-app-coverage.md.html">whole-app-coverage.md</a>.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Existing ID / surface</th>
+<th>Evidence</th>
+<th>Design artifact / remaining unique compositions</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R01 dashboard</td>
+<td>S/L</td>
+<td>Existing supplier reference only; still needs complete first-use/partial data layout.</td>
+<td>#319</td>
+</tr>
+<tr>
+<td>R02 Live TV</td>
+<td>S/L</td>
+<td>Old boards 02/05/12; current/next, failed/stalled player, audio/cast/record variants pending.</td>
+<td>#319</td>
+</tr>
+<tr>
+<td>R03 recordings</td>
+<td>S/L/M</td>
+<td><a href="admin-prototype.html?view=recordings">Library</a>, Upcoming/History + delete. Schedule/DST, active/recovering, multipart playback and full settings composition pending.</td>
+<td>#319</td>
+</tr>
+<tr>
+<td>R04 events</td>
+<td>S/L</td>
+<td>Agenda/provider/source/detail/overlay/mapping inspected in source; distinct compositions pending. Current nav=Manage; proposed=Watch.</td>
+<td>#319</td>
+</tr>
+<tr>
+<td>R05 streams</td>
+<td>S/L</td>
+<td>Inventory baseline; detailed stats, bulk, assignments, unknown/error samples pending.</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R06 TV channels</td>
+<td>S/L</td>
+<td>Old board 04; phone filters discrepancy noted. Full reorder/stale/conflict/bulk design pending.</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R07 TV detail</td>
+<td>S/L</td>
+<td>Read-only detail inspected; stream preferences/guide/activity composition pending.</td>
+<td>#320/#319</td>
+</tr>
+<tr>
+<td>R08 sources; S09–S11</td>
+<td>S/L/M</td>
+<td><a href="admin-prototype.html?view=sources">Add source</a>, save/import/failure/delete. W3U, searches/exclusions, orphan cleanup, provider-specific forms pending.</td>
+<td>#321</td>
+</tr>
+<tr>
+<td>R09 builder</td>
+<td>S/L/M</td>
+<td><a href="admin-prototype.html?view=helper">Shared helper anatomy</a>; installed fetch/source-save variants and selector/JSON/regex editors pending.</td>
+<td>#321</td>
+</tr>
+<tr>
+<td>R10 search</td>
+<td>S/L</td>
+<td>Distinct from loaded-catalogue filter; provider/search-result/resolve/add variants pending.</td>
+<td>#321</td>
+</tr>
+<tr>
+<td>R11 guide; S12–S13</td>
+<td>S/L/M</td>
+<td><a href="admin-prototype.html?view=guide">Review/apply</a>, explicit selection/stale. Sources/rules/export/coverage and ambiguous-choice details pending.</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R12 guide detail</td>
+<td>S/L</td>
+<td>Source-qualified schedule inspected; unique composition pending.</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R13 playlist; S03</td>
+<td>S/L</td>
+<td>Format/filter/address/token behavior source-inspected; complete editor/export composition pending.</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R14 address</td>
+<td>S/L/M context</td>
+<td><a href="admin-prototype.html?view=connections">Connections context</a> does not complete effective/saved/runtime editor.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R15 browser player</td>
+<td>S/L/M entry</td>
+<td>Outcome entry only; capability/session editor variants pending.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R16 casting</td>
+<td>S/L/M</td>
+<td>Device example, empty/permission. Discovery/manual/trust/owned media/compatible copy variants pending.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R17 remote players</td>
+<td>S/L/M entry</td>
+<td>Entry only; app handoff, explicit remote opt-in and failed connection pending.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R18 media servers</td>
+<td>S/L/M entry</td>
+<td>Entry only; tuner budgets, compatible audio, hides/filter behavior and per-server editor pending.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R19 Telegram; S08</td>
+<td>S/L/M entry</td>
+<td>Bot vs ingestion distinction only; authorization/source editor/notification test states pending.</td>
+<td>#322/#321</td>
+</tr>
+<tr>
+<td>R20 system</td>
+<td>S/L/M</td>
+<td><a href="admin-prototype.html?view=system">System</a>: checker failure, queue, partial storage, diagnostics. Full history/service-control/storage detail variants pending.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R21 WARP</td>
+<td>S/L/M context</td>
+<td>Off-by-choice example only; exclusions/conflicts/startup applied vs saved pending.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R22 settings; S01–S08</td>
+<td>S/L/M</td>
+<td>Old Automation concept plus <a href="admin-prototype.html?view=access">Access</a>. Every runtime/generated field inventoried; full section compositions pending.</td>
+<td>#318 with feature owners</td>
+</tr>
+<tr>
+<td>R23 setup; S14</td>
+<td>S/L/M</td>
+<td><a href="admin-prototype.html?view=setup">Setup</a> illustrates shared source/optional guide/Finish semantics. Advanced runtime steps and all failure paths pending.</td>
+<td>#318</td>
+</tr>
+<tr>
+<td>R24 changelog</td>
+<td>S/L</td>
+<td>Historical body language cue and release chrome specification; composition pending.</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R25 catch-all</td>
+<td>S/L</td>
+<td>Return/context preservation specification; composed 404 pending.</td>
+<td>#318</td>
+</tr>
+<tr>
+<td>S15 access gate</td>
+<td>S; normal access setup L</td>
+<td><a href="admin-prototype.html?view=access">Access</a> + permission/activation empty example. Live enabled-role, session expiry, password, one-time secret and blocked-transport variants not exercised.</td>
+<td>#318</td>
+</tr>
+<tr>
+<td>S16 startup gate</td>
+<td>S/L ready; M failure</td>
+<td><a href="admin-prototype.html?view=recovery">Recovery</a>, backup/fresh/readable confirmations. No live fault injection/recovery. API-token/loading/deferred-progress variants still pending.</td>
+<td>#318/#322</td>
+</tr>
+<tr>
+<td>S17 standalone helper</td>
+<td>S; isolated new M</td>
+<td><a href="admin-prototype.html?view=helper">Helper</a>, bounded-input explanation. Current standalone entry also inspected in isolation; full field/preview state coverage pending.</td>
+<td>#321</td>
+</tr>
+<tr>
+<td>S18 shell</td>
+<td>S/L/M</td>
+<td>Shared prototype shell and two directions. Real drawer/focus traps, every route, preference storage failure, notices and unsaved navigation acceptance pending.</td>
+<td>#318/#317</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="dialog-audit-and-handoff">Dialog audit and handoff</h2>
+<p>The original dialog-family inventory is retained. Source inspection covered player/recording/guide/source/channel/integration/access/confirmation families and entry conditions. <strong>Live interaction did not exercise every dialog</strong>. Record opener, guide sliders, detail links, navigation and read-only tabs were verified. Do not carry forward the earlier audit's broad form coverage as fresh end-to-end evidence.</p>
+<p>New modal examples: recording deletion/cancellation, source removal, permission change, readable/fresh recovery, dirty navigation. Named unique variants still needed: track/source picker, cast controls, recording schedule/DST, channel add/edit/reorder/bulk assignment, guide-source/rule editor, source types/orphan cleanup/exclusions/catalogue imports, event/provider/overlay mapping, media-server/remote-player/Telegram authorization, playlist-format editor and credential/session revocation. Owner assignments remain those in the original matrix.</p>
+<h2 id="field-and-state-coverage">Field and state coverage</h2>
+<p><a href="field-ledger.md.html">Field ledger</a> supplies the canonical map and concrete bilingual critical-field decisions. <a href="runtime-field-inventory.md.html">Runtime field inventory</a> lists every schema-generated option with current default/range and proposed owner; no runtime option is excluded as “advanced”.</p>
+<p>All ordinary routes have a source/live inventory row. Nine families have new composed examples. No route has complete accepted EN/ES/light/dark/all-state handoff. Missing field-level copy, context-specific empty/error/permission states and unique compositions remain visible obligations, not a completion percentage.</p>
+<p>Scope corrections: Events is currently Manage. Catalogues is a compatibility redirect into Sources/W3U, not a separate current sidebar destination. Accounts can change visible capabilities; do not derive account-enabled coverage from the owner's current access mode.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

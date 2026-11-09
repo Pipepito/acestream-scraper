@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Whole-app coverage and state catalogue — review 06 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="whole-app-coverage-and-state-catalogue--review-06">Whole-app coverage and state catalogue — review 06</h1>
+<p>146 composed contexts, 473 field occurrences, 47 runtime options, 141 named workflow-specific state entries. Existing 144 contexts were recomposed and retained as stable review links; two small source entry/index contexts connect the simplified setup path. This count is not a navigation or page-count target.</p>
+<p>Each context uses the same fields and interaction engine in lime, coral/navy and immersive. EN/ES, light/dark, phone/tablet/desktop and consequential states are rendered by current checks. Exact outcomes and limits are recorded in <a href="verification-review-06.md.html">verification</a>, not inferred from historical passes.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Destination</th>
+<th>Contexts</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>recordings</td>
+<td>12</td>
+<td>Programme times, DST, active/recovering/finalizing/failed, parts/gaps/copies, storage/protection/retention, stop/cancel/delete/disable</td>
+</tr>
+<tr>
+<td>settings</td>
+<td>17</td>
+<td>Accounts/activation/all permissions/policy/transport/password/sessions/credentials, background schedules/cleanup, appearance and unsaved navigation</td>
+</tr>
+<tr>
+<td>channels</td>
+<td>58</td>
+<td>Channel catalogue/detail/stats/bulk/reorder, guide sources/qualification/rules/coverage/export, sources/W3U/search/exclusions/orphans and extraction modes</td>
+</tr>
+<tr>
+<td>connections</td>
+<td>18</td>
+<td>Browser playback, Cast/remote players, media servers/tuner, playlists/shared formats/address and notifications</td>
+</tr>
+<tr>
+<td>dashboard</td>
+<td>8</td>
+<td>First use, partial availability, online/Show all, player states/tracks/selection, refresh continuity and not-found</td>
+</tr>
+<tr>
+<td>events</td>
+<td>10</td>
+<td>Agenda/providers/source review/detail/correction/mapping, broadcast links, guide overlays and explicit artwork</td>
+</tr>
+<tr>
+<td>system</td>
+<td>23</td>
+<td>Services/jobs/history/storage/diagnostics/WARP, runtime controls, startup/migration/connection/recovery and notices/changelog</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="state-composition-contract">State composition contract</h2>
+<p>Shared loading/error/permission/dirty/pending/success/conflict/empty/filtered/partial policies are applied to the actual workflow controls, fields and transaction boundaries. A generic banner is not evidence of backend behavior. Workflow-specific states preserve or replace content as specified: first-use has no populated feature, public HTTP activation has no password entry, unknown statistics do not become zero, date-only events do not invent midnight, finalization/recovery locks capture edits, and oversized extraction skips parsing. Artwork failures reserve space and keep names/actions available.</p>
+<p>Review links below open the actual contextual composition. Use the state selector for every listed variant. The full field ledger and source traces remain linked rather than copied into another editor.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Simplified section</th>
+<th>Named consequential states</th>
+<th>Specification / owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-schedule&amp;review=1">Schedule a programme</a></td>
+<td>recordings → recordings</td>
+<td>capacity, stale</td>
+<td><a href="workflow-specification.md.html#recording-schedule">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-dst&amp;review=1">Choose the exact time</a></td>
+<td>recordings → recordings</td>
+<td>gap</td>
+<td><a href="workflow-specification.md.html#recording-dst">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-now&amp;review=1">Record now</a></td>
+<td>recordings → recordings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#recording-now">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-active&amp;review=1">Recording in progress</a></td>
+<td>recordings → recordings</td>
+<td>starting, finalizing, interrupted</td>
+<td><a href="workflow-specification.md.html#recording-active">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-parts&amp;review=1">Parts and playback</a></td>
+<td>recordings → recordings</td>
+<td>unsupported, preparing, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed</td>
+<td><a href="workflow-specification.md.html#recording-parts">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-copy&amp;review=1">Prepare a compatible copy</a></td>
+<td>recordings → recordings</td>
+<td>failed, ready-copy</td>
+<td><a href="workflow-specification.md.html#recording-copy">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-settings&amp;review=1">Recording settings</a></td>
+<td>recordings → recordings</td>
+<td>unavailable</td>
+<td><a href="workflow-specification.md.html#recording-settings">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-storage&amp;review=1">Storage for recordings</a></td>
+<td>recordings → recordings</td>
+<td>low</td>
+<td><a href="workflow-specification.md.html#recording-storage">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-cancel&amp;review=1">Cancel this schedule</a></td>
+<td>recordings → recordings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#recording-cancel">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-delete&amp;review=1">Delete saved files</a></td>
+<td>recordings → recordings</td>
+<td>held</td>
+<td><a href="workflow-specification.md.html#recording-delete">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recording-disable&amp;review=1">Disable all recording</a></td>
+<td>recordings → recordings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#recording-disable">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-activate&amp;review=1">Choose who can use this installation</a></td>
+<td>settings → access-account</td>
+<td>blocked</td>
+<td><a href="workflow-specification.md.html#access-activate">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-login&amp;review=1">Sign in</a></td>
+<td>settings → access-account</td>
+<td>expired, denied</td>
+<td><a href="workflow-specification.md.html#access-login">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-account&amp;review=1">Account permissions</a></td>
+<td>settings → access-account</td>
+<td>last-admin</td>
+<td><a href="workflow-specification.md.html#access-account">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-create&amp;review=1">Create an account</a></td>
+<td>settings → access-account</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#access-create">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-policy&amp;review=1">Viewing without signing in</a></td>
+<td>settings → access-account</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#access-policy">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-password&amp;review=1">Change your password</a></td>
+<td>settings → access-account</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#access-password">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-sessions&amp;review=1">Login sessions</a></td>
+<td>settings → access-account</td>
+<td>empty</td>
+<td><a href="workflow-specification.md.html#access-sessions">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-credentials&amp;review=1">Playback and API credentials</a></td>
+<td>settings → access-account</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#access-credentials">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-secret&amp;review=1">Save your new credential</a></td>
+<td>settings → access-account</td>
+<td>copy-failed</td>
+<td><a href="workflow-specification.md.html#access-secret">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-disable&amp;review=1">Remove account protection</a></td>
+<td>settings → access-account</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#access-disable">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=access-transport&amp;review=1">Use a supported connection</a></td>
+<td>settings → access-account</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#access-transport">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channels&amp;review=1">TV channels</a></td>
+<td>channels → channels</td>
+<td>filtered</td>
+<td><a href="workflow-specification.md.html#channels">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-edit&amp;review=1">Edit TV channel</a></td>
+<td>channels → channels</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#channel-edit">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-detail&amp;review=1">Northlight</a></td>
+<td>channels → channels</td>
+<td>art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed</td>
+<td><a href="workflow-specification.md.html#channel-detail">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-reorder&amp;review=1">Reorder all TV channels</a></td>
+<td>channels → channels</td>
+<td>conflict</td>
+<td><a href="workflow-specification.md.html#channel-reorder">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-preferences&amp;review=1">Preferred streams for Northlight</a></td>
+<td>channels → channels</td>
+<td>conflict</td>
+<td><a href="workflow-specification.md.html#channel-preferences">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=streams&amp;review=1">Streams</a></td>
+<td>channels → streams</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#streams">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=stream-stats&amp;review=1">Northlight HD · observations</a></td>
+<td>channels → streams</td>
+<td>unknown, not-found</td>
+<td><a href="workflow-specification.md.html#stream-stats">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=stream-edit&amp;review=1">Add and link a stream</a></td>
+<td>channels → streams</td>
+<td>conflict, excluded</td>
+<td><a href="workflow-specification.md.html#stream-edit">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=stream-bulk&amp;review=1">Bulk stream actions</a></td>
+<td>channels → streams</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#stream-bulk">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-assign&amp;review=1">Assign existing streams</a></td>
+<td>channels → channels</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#channel-assign">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=stream-match&amp;review=1">Match streams to TV channels</a></td>
+<td>channels → streams</td>
+<td>ambiguous</td>
+<td><a href="workflow-specification.md.html#stream-match">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-delete&amp;review=1">Delete Northlight?</a></td>
+<td>channels → channels</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#channel-delete">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-sources&amp;review=1">Programme guides</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-sources">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-source&amp;review=1">Edit guide source</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-source">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-detail&amp;review=1">Northlight · Sample guide</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-detail">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-choice&amp;review=1">Choose the correct guide source</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-choice">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-match&amp;review=1">Review guide matches</a></td>
+<td>channels → guide-sources</td>
+<td>conflict</td>
+<td><a href="workflow-specification.md.html#guide-match">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-rule&amp;review=1">Guide matching rule</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-rule">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-auto&amp;review=1">Automatic exact matching</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-auto">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-export&amp;review=1">Export programme guide</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-export">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-coverage&amp;review=1">Guide coverage</a></td>
+<td>channels → guide-sources</td>
+<td>partial</td>
+<td><a href="workflow-specification.md.html#guide-coverage">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=playlist&amp;review=1">Your playlist</a></td>
+<td>connections → playlist</td>
+<td>credential, managed, filtered</td>
+<td><a href="workflow-specification.md.html#playlist">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=formats&amp;review=1">Stream link formats</a></td>
+<td>connections → playlist</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#formats">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=format-edit&amp;review=1">Edit Demo relay</a></td>
+<td>connections → playlist</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#format-edit">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=source-web&amp;review=1">Web or playlist source</a></td>
+<td>channels → sources</td>
+<td>import-failed</td>
+<td><a href="workflow-specification.md.html#source-web">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=source-auto&amp;review=1">Automatic source detection</a></td>
+<td>channels → sources</td>
+<td>import-failed</td>
+<td><a href="workflow-specification.md.html#source-auto">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=source-zeronet&amp;review=1">ZeroNet source</a></td>
+<td>channels → sources</td>
+<td>import-failed</td>
+<td><a href="workflow-specification.md.html#source-zeronet">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=source-ipfs&amp;review=1">IPFS source</a></td>
+<td>channels → sources</td>
+<td>import-failed</td>
+<td><a href="workflow-specification.md.html#source-ipfs">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=source-provider&amp;review=1">Built-in broadcaster</a></td>
+<td>channels → sources</td>
+<td>import-failed</td>
+<td><a href="workflow-specification.md.html#source-provider">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=source-results&amp;review=1">Import result</a></td>
+<td>channels → sources</td>
+<td>waiting, partial</td>
+<td><a href="workflow-specification.md.html#source-results">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=source-remove&amp;review=1">Remove Family channels?</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#source-remove">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=sources-orphans&amp;review=1">Streams without a saved source</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#sources-orphans">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=w3u&amp;review=1">Review W3U catalogue</a></td>
+<td>channels → sources</td>
+<td>expired</td>
+<td><a href="workflow-specification.md.html#w3u">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=w3u-save&amp;review=1">Save reviewed catalogue</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#w3u-save">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=w3u-detail&amp;review=1">Catalogue entry details</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#w3u-detail">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=w3u-folder&amp;review=1">Assign a catalogue folder</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#w3u-folder">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=saved-search&amp;review=1">Saved search</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#saved-search">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=saved-search-preview&amp;review=1">Preview a saved search</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#saved-search-preview">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=exclusion&amp;review=1">Import exclusion rule</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#exclusion">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=search&amp;review=1">Find new streams</a></td>
+<td>channels → sources</td>
+<td>engine</td>
+<td><a href="workflow-specification.md.html#search">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=search-add-link&amp;review=1">Add and link Northlight HD</a></td>
+<td>channels → sources</td>
+<td>unresolved, excluded, catalogue-unavailable, conflict</td>
+<td><a href="workflow-specification.md.html#search-add-link">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-installed&amp;review=1">Test a source recipe</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#helper-installed">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-standalone&amp;review=1">Build a recipe offline</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#helper-standalone">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-html&amp;review=1">Pick fields in HTML</a></td>
+<td>channels → sources</td>
+<td>timeout, invalid</td>
+<td><a href="workflow-specification.md.html#helper-html">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-json&amp;review=1">Read fields from JSON</a></td>
+<td>channels → sources</td>
+<td>timeout, invalid</td>
+<td><a href="workflow-specification.md.html#helper-json">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-regex&amp;review=1">Read paired text records</a></td>
+<td>channels → sources</td>
+<td>timeout, invalid</td>
+<td><a href="workflow-specification.md.html#helper-regex">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-manual&amp;review=1">Select fields manually</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#helper-manual">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-large&amp;review=1">This sample is too large to draw safely</a></td>
+<td>channels → sources</td>
+<td>too-large</td>
+<td><a href="workflow-specification.md.html#helper-large">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=helper-results&amp;review=1">Review extraction results</a></td>
+<td>channels → sources</td>
+<td>stale</td>
+<td><a href="workflow-specification.md.html#helper-results">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=dashboard&amp;review=1">Watch</a></td>
+<td>dashboard → dashboard</td>
+<td>first-use, partial, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed</td>
+<td><a href="workflow-specification.md.html#dashboard">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=live&amp;review=1">Watch</a></td>
+<td>dashboard → dashboard</td>
+<td>filtered, refreshing, failed, stalled, empty, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed</td>
+<td><a href="workflow-specification.md.html#live">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=player-tracks&amp;review=1">Playback options</a></td>
+<td>dashboard → dashboard</td>
+<td>capacity</td>
+<td><a href="workflow-specification.md.html#player-tracks">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=viewer&amp;review=1">Your viewing access</a></td>
+<td>dashboard → dashboard</td>
+<td>denied</td>
+<td><a href="workflow-specification.md.html#viewer">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=events&amp;review=1">Event agenda</a></td>
+<td>events → events</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#events">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-detail&amp;review=1">Northlight Cup</a></td>
+<td>events → events</td>
+<td>unknown, art-absent, art-slow, art-blocked, art-rejected, art-oversized, art-decode-failed, art-changed</td>
+<td><a href="workflow-specification.md.html#event-detail">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-provider&amp;review=1">Add provider events</a></td>
+<td>events → events</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#event-provider">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-import&amp;review=1">Add events</a></td>
+<td>events → events</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#event-import">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-review&amp;review=1">Review new events</a></td>
+<td>events → events</td>
+<td>conflict</td>
+<td><a href="workflow-specification.md.html#event-review">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-correct&amp;review=1">Correct Northlight Cup</a></td>
+<td>events → events</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#event-correct">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-mapping&amp;review=1">Link the broadcaster Atelier</a></td>
+<td>events → events</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#event-mapping">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-overlay&amp;review=1">Review XMLTV overlay</a></td>
+<td>events → events</td>
+<td>conflict</td>
+<td><a href="workflow-specification.md.html#event-overlay">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-sources&amp;review=1">Event sources and retention</a></td>
+<td>events → events</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#event-sources">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=connections&amp;review=1">Where would you like to watch?</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#connections">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=browser-player&amp;review=1">Browser player</a></td>
+<td>connections → connections</td>
+<td>unavailable, partial</td>
+<td><a href="workflow-specification.md.html#browser-player">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=public-address&amp;review=1">Address for players</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#public-address">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=casting&amp;review=1">TV casting</a></td>
+<td>connections → connections</td>
+<td>empty, denied</td>
+<td><a href="workflow-specification.md.html#casting">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=casting-settings&amp;review=1">Casting settings</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#casting-settings">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=casting-trust&amp;review=1">Public HTTPS at home</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#casting-trust">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=casting-control&amp;review=1">Living room DEMO</a></td>
+<td>connections → connections</td>
+<td>ownership-lost, recording-priority</td>
+<td><a href="workflow-specification.md.html#casting-control">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=remote-player&amp;review=1">Set up VLC or Kodi</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#remote-player">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=remote-android&amp;review=1">Pair VLC Android</a></td>
+<td>connections → connections</td>
+<td>expired, changed-host</td>
+<td><a href="workflow-specification.md.html#remote-android">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=remote-discovery&amp;review=1">Find remote players</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#remote-discovery">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=remote-control&amp;review=1">Send to a player</a></td>
+<td>connections → connections</td>
+<td>denied, handoff</td>
+<td><a href="workflow-specification.md.html#remote-control">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=media-server&amp;review=1">Connect a media server</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#media-server">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=tuner&amp;review=1">Tuner settings</a></td>
+<td>connections → connections</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#tuner">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=telegram-auth&amp;review=1">Authorize Telegram sources</a></td>
+<td>channels → sources</td>
+<td>unavailable, flood</td>
+<td><a href="workflow-specification.md.html#telegram-auth">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=telegram-code&amp;review=1">Complete Telegram sign-in</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#telegram-code">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=telegram-source&amp;review=1">Telegram source</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#telegram-source">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=notifications&amp;review=1">Notifications</a></td>
+<td>connections → connections</td>
+<td>masked-invalid</td>
+<td><a href="workflow-specification.md.html#notifications">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=warp&amp;review=1">WARP</a></td>
+<td>system → warp</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#warp">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=warp-exclusions&amp;review=1">WARP excluded hosts</a></td>
+<td>system → warp</td>
+<td>partial, conflict</td>
+<td><a href="workflow-specification.md.html#warp-exclusions">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=warp-startup&amp;review=1">WARP at startup</a></td>
+<td>system → warp</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#warp-startup">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=settings&amp;review=1">Settings</a></td>
+<td>settings → settings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#settings">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=playback-settings&amp;review=1">Playback settings</a></td>
+<td>connections → browser-player</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#playback-settings">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=automation&amp;review=1">Background updates</a></td>
+<td>settings → automation</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#automation">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=schedule-anchors&amp;review=1">Schedule start times</a></td>
+<td>settings → automation</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#schedule-anchors">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=offline-cleanup&amp;review=1">Offline stream cleanup</a></td>
+<td>settings → automation</td>
+<td>deferred, refresh-failed</td>
+<td><a href="workflow-specification.md.html#offline-cleanup">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=network&amp;review=1">Network settings</a></td>
+<td>system → runtime-playback</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#network">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=system&amp;review=1">System status</a></td>
+<td>system → system</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#system">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=services&amp;review=1">Service controls</a></td>
+<td>system → system</td>
+<td>external</td>
+<td><a href="workflow-specification.md.html#services">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=jobs&amp;review=1">Scheduled job history</a></td>
+<td>system → system</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#jobs">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=job-detail&amp;review=1">Job run details</a></td>
+<td>system → system</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#job-detail">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=storage&amp;review=1">Storage details</a></td>
+<td>system → system</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#storage">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=diagnostics&amp;review=1">Logs and diagnostics</a></td>
+<td>system → system</td>
+<td>denied, partial</td>
+<td><a href="workflow-specification.md.html#diagnostics">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=setup&amp;review=1">Start with channels</a></td>
+<td>channels → sources</td>
+<td>partial</td>
+<td><a href="workflow-specification.md.html#setup">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=startup&amp;review=1">Starting AceStream Scraper</a></td>
+<td>system → system</td>
+<td>deferred, connection, token</td>
+<td><a href="workflow-specification.md.html#startup">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recovery&amp;review=1">Startup needs attention</a></td>
+<td>system → system</td>
+<td>busy, interrupted</td>
+<td><a href="workflow-specification.md.html#recovery">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recovery-readable&amp;review=1">Recover readable catalogue</a></td>
+<td>system → system</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#recovery-readable">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recovery-fresh&amp;review=1">Start a fresh catalogue</a></td>
+<td>system → system</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#recovery-fresh">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recovery-result&amp;review=1">Recovery result</a></td>
+<td>system → system</td>
+<td>failed</td>
+<td><a href="workflow-specification.md.html#recovery-result">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=preferences&amp;review=1">Language and appearance</a></td>
+<td>settings → preferences</td>
+<td>storage-failed</td>
+<td><a href="workflow-specification.md.html#preferences">Fields / actions</a>; #317</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=notices&amp;review=1">Notices and session feedback</a></td>
+<td>system → settings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#notices">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=not-found&amp;review=1">This page is not available</a></td>
+<td>dashboard → settings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#not-found">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=changelog&amp;review=1">What changed</a></td>
+<td>system → settings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#changelog">Fields / actions</a>; #322</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=unsaved&amp;review=1">Leave with unsaved changes?</a></td>
+<td>settings → settings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#unsaved">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=runtime-playback&amp;review=1">Playback runtime</a></td>
+<td>system → runtime-playback</td>
+<td>conflict, managed</td>
+<td><a href="workflow-specification.md.html#runtime-playback">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=runtime-network&amp;review=1">Network runtime</a></td>
+<td>system → runtime-playback</td>
+<td>conflict, managed</td>
+<td><a href="workflow-specification.md.html#runtime-network">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=runtime-services&amp;review=1">Installed services</a></td>
+<td>system → runtime-playback</td>
+<td>conflict, managed</td>
+<td><a href="workflow-specification.md.html#runtime-services">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=runtime-advanced&amp;review=1">Advanced source runtime</a></td>
+<td>system → runtime-playback</td>
+<td>conflict, managed</td>
+<td><a href="workflow-specification.md.html#runtime-advanced">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=runtime-engine-ports&amp;review=1">Engine and Acexy connections</a></td>
+<td>system → runtime-playback</td>
+<td>conflict, managed</td>
+<td><a href="workflow-specification.md.html#runtime-engine-ports">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=runtime-gateway-ports&amp;review=1">ZeroNet and IPFS connections</a></td>
+<td>system → runtime-playback</td>
+<td>conflict, managed</td>
+<td><a href="workflow-specification.md.html#runtime-gateway-ports">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=recordings&amp;review=1">Your recordings</a></td>
+<td>recordings → recordings</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#recordings">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-activity&amp;review=1">Stream activity</a></td>
+<td>channels → streams</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#channel-activity">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=stream-bulk-fields&amp;review=1">Bulk metadata changes</a></td>
+<td>channels → streams</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#stream-bulk-fields">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=guide-inventory&amp;review=1">Browse guide channels</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#guide-inventory">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=player-picker&amp;review=1">Choose what to play</a></td>
+<td>dashboard → dashboard</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#player-picker">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=player-sessions&amp;review=1">Playback sessions</a></td>
+<td>dashboard → dashboard</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#player-sessions">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=dashboard-events&amp;review=1">Events on your home page</a></td>
+<td>dashboard → dashboard</td>
+<td>storage-failed</td>
+<td><a href="workflow-specification.md.html#dashboard-events">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=event-broadcasters&amp;review=1">Broadcaster links</a></td>
+<td>events → events</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#event-broadcasters">Fields / actions</a>; #319</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=setup-source&amp;review=1">Add your first channel source</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#setup-source">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=setup-guide&amp;review=1">Optional programme guide</a></td>
+<td>channels → guide-sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#setup-guide">Fields / actions</a>; #318</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=channel-inline&amp;review=1">Number and favorite</a></td>
+<td>channels → channels</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#channel-inline">Fields / actions</a>; #320</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=sources&amp;review=1">Channel sources</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#sources">Fields / actions</a>; #321</td>
+</tr>
+<tr>
+<td><a href="workflow-prototype.html?screen=add-channels&amp;review=1">Add channels</a></td>
+<td>channels → sources</td>
+<td>Shared state policy for this workflow</td>
+<td><a href="workflow-specification.md.html#add-channels">Fields / actions</a>; #321</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="remaining-acceptance-not-hidden-missing-pages">Remaining acceptance, not hidden missing pages</h2>
+<p>All listed capability families have a composed context. Detailed visual approval, nontechnical task observation, fluent Spanish/native screen-reader listening, actual browser zoom at 200/400%, physical phones and real application/media/transport behavior remain separate acceptance evidence under #316/#317/#319–#324. No participants or real receivers are simulated as a pass. The mock helper does not prove extraction success; local preference timers do not prove API success. See <a href="acceptance-protocols.md.html">protocols</a> and <a href="source-findings-06.md.html">source findings</a>.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

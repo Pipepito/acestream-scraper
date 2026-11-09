@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>frontend/src/components/GuideMatchingFields.tsx · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1>Source snapshot</h1><p><code>frontend/src/components/GuideMatchingFields.tsx</code></p><p>Read-only design-source reference. This file is displayed as text and is never executed.</p><pre tabindex="0" aria-label="Source code"><code><span id="L1">import { useState } from &#x27;react&#x27;;</span>
+<span id="L2">import { Alert, Button, FormControlLabel, LinearProgress, Stack, Switch, Typography } from &#x27;@mui/material&#x27;;</span>
+<span id="L3">import { Link as RouterLink } from &#x27;react-router-dom&#x27;;</span>
+<span id="L4">import { useMutation, useQuery, useQueryClient } from &#x27;@tanstack/react-query&#x27;;</span>
+<span id="L5">import { guideSetupService } from &#x27;../services/guideSetupService&#x27;;</span>
+<span id="L6"></span>
+<span id="L7">export default function GuideMatchingFields() {</span>
+<span id="L8">  const client = useQueryClient();</span>
+<span id="L9">  const config = useQuery({ queryKey: [&#x27;guide-matching-config&#x27;], queryFn: guideSetupService.config });</span>
+<span id="L10">  const lastRun = useQuery({ queryKey: [&#x27;guide-matching-last-run&#x27;], queryFn: guideSetupService.lastRun, refetchInterval: 30_000 });</span>
+<span id="L11">  const [saved, setSaved] = useState(false);</span>
+<span id="L12">  const save = useMutation({ mutationFn: guideSetupService.saveConfig, onSuccess: (value) =&gt; {</span>
+<span id="L13">    client.setQueryData([&#x27;guide-matching-config&#x27;], value); setSaved(true);</span>
+<span id="L14">  } });</span>
+<span id="L15">  if (config.isLoading) return &lt;LinearProgress aria-label=&quot;Loading automatic guide matching&quot; /&gt;;</span>
+<span id="L16">  if (config.isError || !config.data) return &lt;Alert severity=&quot;error&quot; action={&lt;Button onClick={() =&gt; void config.refetch()}&gt;Retry&lt;/Button&gt;}&gt;Could not load automatic guide matching.&lt;/Alert&gt;;</span>
+<span id="L17">  return &lt;Stack spacing={1.5}&gt;</span>
+<span id="L18">    &lt;FormControlLabel label=&quot;Automatically match guide channels&quot; control={&lt;Switch checked={config.data.enabled ?? false} disabled={save.isPending} onChange={(_, enabled) =&gt; { setSaved(false); save.mutate({ enabled }); }} /&gt;} /&gt;</span>
+<span id="L19">    &lt;Typography variant=&quot;body2&quot; color=&quot;text.secondary&quot;&gt;Off by default. When enabled, successful source scrapes and EPG refreshes create TV channels or add unassigned streams using unambiguous exact matches. Existing assignments and channel settings are preserved. Similar names, conflicting editions and competing guide sources need review.&lt;/Typography&gt;</span>
+<span id="L20">    {save.isError ? &lt;Alert severity=&quot;error&quot;&gt;Could not save automatic guide matching. Your previous setting is still shown.&lt;/Alert&gt; : saved ? &lt;Alert severity=&quot;success&quot;&gt;Automatic guide matching {config.data.enabled ? &#x27;enabled for future scrapes and refreshes&#x27; : &#x27;disabled&#x27;}.&lt;/Alert&gt; : null}</span>
+<span id="L21">    {lastRun.isError ? &lt;Alert severity=&quot;warning&quot;&gt;The last matching result is unavailable.&lt;/Alert&gt; : lastRun.data?.status === &#x27;never&#x27; ?</span>
+<span id="L22">      &lt;Typography variant=&quot;body2&quot;&gt;Automatic matching has not run yet.&lt;/Typography&gt; : lastRun.data ?</span>
+<span id="L23">        &lt;Alert severity={lastRun.data.status === &#x27;success&#x27; ? &#x27;info&#x27; : &#x27;warning&#x27;}&gt;</span>
+<span id="L24">          Last run: {lastRun.data.finished_at ? new Date(lastRun.data.finished_at).toLocaleString() : &#x27;Unknown time&#x27;}. {lastRun.data.created} channels created, {lastRun.data.assigned} streams assigned.</span>
+<span id="L25">          {lastRun.data.status === &#x27;error&#x27; ? &#x27; Matching failed; try reviewing matches.&#x27; : lastRun.data.status === &#x27;partial&#x27; ? &#x27; Some matches could not be applied.&#x27; : null}</span>
+<span id="L26">          {(lastRun.data.review_needed ?? 0) &gt; 0 ? &#x27; Some matches need review.&#x27; : null}</span>
+<span id="L27">        &lt;/Alert&gt; : null}</span>
+<span id="L28">    &lt;Button component={RouterLink} to=&quot;/epg?tab=matching&quot; sx={{ alignSelf: &#x27;flex-start&#x27; }}&gt;Review guide matches&lt;/Button&gt;</span>
+<span id="L29">  &lt;/Stack&gt;;</span>
+<span id="L30">}</span></code></pre>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

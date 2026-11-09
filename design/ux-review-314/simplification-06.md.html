@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Simplification decisions and connected journeys · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="simplification-decisions-and-connected-journeys">Simplification decisions and connected journeys</h1>
+<p>Review 06 · approved execution scope, composed for review; no application implementation. Most users want to watch, record and fix a problem without understanding sources, engines or transport internals.</p>
+<h2 id="one-navigation-structure">One navigation structure</h2>
+<p><strong>Watch · Recordings · Events · Channels · Connections · Settings · System</strong></p>
+<p>Watch combines the home overview and Live TV. Both <code>/</code> and <code>/live-tv</code> remain entry aliases; channel/filter queries keep their meaning. The phone keeps Watch, Recordings and Events visible and puts all seven destinations in a labelled Menu. The same locations apply to lime, coral/navy and immersive. WARP remains an explicitly named System link and a discoverable sidebar/footer entry.</p>
+<p>The inspected application has 20 destination links across its navigation groups; the earlier workflow prototype had 19. The proposal has seven primary destinations, plus a WARP utility link. These are structural counts, not a measured usability improvement. The 146 review contexts include editors and consequential states; they are not 146 app pages.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Current presentation</th>
+<th>Proposed ownership</th>
+<th>Why it is easier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Home and Live TV</td>
+<td>Watch, with browsing and player context</td>
+<td>One place to begin watching; browsing does not stop playback</td>
+</tr>
+<tr>
+<td>Sources, search, raw streams, channels, guide pages</td>
+<td>Channels → TV channels / Sources / Programme guide / Advanced streams</td>
+<td>Users first choose their goal; implementation entities remain available when relevant</td>
+</tr>
+<tr>
+<td>Several ways to add sources and guides</td>
+<td>Channels → Add channels → canonical provider editor → import result → optional guide → match review</td>
+<td>One connected setup path; each save/import remains an independent action</td>
+</tr>
+<tr>
+<td>Recording settings among global settings</td>
+<td>Recordings → Recording settings, also linked from Settings</td>
+<td>Capacity, storage and retention are found beside recordings</td>
+</tr>
+<tr>
+<td>Cast, remote players, browser, media servers, playlists and address</td>
+<td>Connections grouped by where/how the user watches</td>
+<td>Shared address and format editors replace duplicated controls; Cast and remote control keep distinct permissions</td>
+</tr>
+<tr>
+<td>Telegram ingestion and notification controls together conceptually</td>
+<td>Telegram sources under Channels; notifications under Connections</td>
+<td>Receiving channels and sending alerts are different tasks</td>
+</tr>
+<tr>
+<td>Many global settings and advanced controls</td>
+<td>Concise Settings index; advanced runtime/network under System</td>
+<td>Common choices first; no giant accordion page or global Save</td>
+</tr>
+<tr>
+<td>Separate setup copies of source/guide forms</td>
+<td>Alias to source/guide canonical editor</td>
+<td>Same validation, defaults and transaction from every entry point</td>
+</tr>
+<tr>
+<td>Palette × layout laboratory controls</td>
+<td>One Interface selector with three described presets</td>
+<td>Users choose a complete presentation rather than combining independent design experiments</td>
+</tr>
+</tbody>
+</table></div>
+<p><a href="before-after-map.md.html">Every current context, source path, proposed location and save boundary</a> is enumerated. Historical application aliases are retained in that map. Future routing accepts the existing <code>/settings?tab=playback|automation|links|access|network</code>, source/guide tabs and direct dialogs; it resolves to the canonical context without silently dropping query values. Use replace-navigation for obsolete presentation aliases, preserve back navigation and the caller's return context. A changed location is not a new resource or permission.</p>
+<h2 id="six-task-paths">Six task paths</h2>
+<p>Counts below are authored walkthrough steps from a known starting screen, not participant timing. A step means opening a destination/context or committing a user decision; text entry is not counted per keystroke. Compare the same task, not total page count.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Earlier prototype route</th>
+<th>Composed route</th>
+<th>Decision / confirmation impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Find and watch Northlight</td>
+<td>Home → Live TV → choose channel (3)</td>
+<td>Watch → Watch Northlight (2 including destination)</td>
+<td>Home/Live decision removed; online-only remains default, Show all available</td>
+</tr>
+<tr>
+<td>Schedule and find a recording</td>
+<td>Live TV → programme → recording editor → Schedule → Recordings (5)</td>
+<td>Watch → programme Schedule → Schedule → Recordings (4)</td>
+<td>Exact programme instants prefilled; editing times optional; no redundant success confirmation</td>
+</tr>
+<tr>
+<td>Add source and useful guide</td>
+<td>Sources → editor → save → import → find Guides → add → matching (7 contexts/actions)</td>
+<td>Channels → Add channels → source save → import/result → optional guide save → review matching (6)</td>
+<td>Guidance links connect existing transactions; no default guide/source imported silently</td>
+</tr>
+<tr>
+<td>Watch on another device</td>
+<td>Choose between Cast / Remote players / Media servers before context</td>
+<td>Connections → TVs and players → choose supported device/action</td>
+<td>One purpose-first entry; Cast versus remote control distinction retained. Setup may need the same number of actions</td>
+</tr>
+<tr>
+<td>Give someone access</td>
+<td>Settings → Access → user editor → save</td>
+<td>Settings → Accounts and access → user editor → save</td>
+<td>Same steps; clearer permission labels and consequential review, not an artificial step reduction</td>
+</tr>
+<tr>
+<td>Understand and resolve a problem</td>
+<td>System status → identify service/log/storage → action</td>
+<td>System → affected service/job/storage → safe next action</td>
+<td>Same depth; current state and consequence are adjacent. Recovery stays separate and reviewed</td>
+</tr>
+</tbody>
+</table></div>
+<p>These paths are clickable in <a href="workflow-prototype.html?screen=dashboard">the prototype</a>. “Add channels” is a source chooser; it does not create a new ingestion API. The next-step links after imports/guides use the same editors. No “Finish” button claims a multi-resource transaction: setup completion records only setup completion.</p>
+<h2 id="settings-and-review-rules">Settings and review rules</h2>
+<p>Recording settings, guide matching, stream formats, player address and notification settings each have one canonical owner and contextual links. Settings is an index to them. Existing saved values and safe defaults load unchanged. Runtime controls show saved versus active values and restart implications; supervisor-owned/unavailable controls remain readable.</p>
+<p>Advanced options are shown within the relevant editor, with their current values and dependencies. Future implementation must compute an “advanced options active” indicator against authoritative resolved defaults, not guessed empty/zero values. The prototype preserves open disclosures and changed advanced values; runtime/default inference is specified in the field ledger, not simulated as proof of backend logic.</p>
+<p>Intervals, checker selection, schedule anchors and cleanup policy retain separate saves. Guide exact-match automation and stream-check scope preserve their immediate-save contracts. Favorites save immediately; channel number saves on Enter/blur, Escape restores and blank clears. Reorder commits the complete inventory atomically and rejects stale/incomplete reviews. The shared format editor is reused by playlists and stream-link entry points.</p>
+<p>Remove repetitive confirmation for read/preview, safe navigation, ordinary save, copy and Stop watching. Keep review for deletes, cancelling scheduled recordings, stopping active captures, disabling a capability when consequential, account/security changes, destructive recovery, stale/conflicting state and reviewed match application. “Stop” finalizes captured material; “cancel” prevents a future run; “delete” removes specified files/records subject to protection and leases; “disable” retains data and prevents future work. Never substitute one word for another.</p>
+<h2 id="review-status">Review status</h2>
+<p>Owner preferences: three presets; immersive third direction; shared maintenance; design-only work; supplier reuse first; OpenAPI contract testing. Approved execution plan: seven destinations, Watch consolidation, immersive default and design-only publication. Design hypotheses: detailed task ordering, final labels, card density, typography and individual imagery. Composed and author-checked does not mean participant-tested, owner-approved in detail or implemented.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

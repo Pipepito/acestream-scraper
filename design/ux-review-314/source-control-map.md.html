@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Current source control map · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="current-source-control-map">Current source control map</h1>
+<p>Source <code>cf952afc6b4489c02b7a675ff3d634cc13d98e0b</code>. Module-level census of input/dialog/route surfaces. Static label examples are an audit aid, not a claim that regex discovers all dynamic fields. Each module is paired with authored compositions and the detailed field/spec ledger. Headless hooks and API response properties are evidence rather than extra visual screens.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Source module</th>
+<th>Literal control labels (sample)</th>
+<th>Composed use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/App.tsx">App</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#not-found">not-found</a>, <a href="workflow-specification.md.html#settings">settings</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/AdvancedSearch.tsx">AdvancedSearch</a></td>
+<td>Channel filters; Search; Country; Language</td>
+<td><a href="workflow-specification.md.html#channels">channels</a>, <a href="workflow-specification.md.html#streams">streams</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/AssignTVChannelDialog.tsx">AssignTVChannelDialog</a></td>
+<td>TV Channel</td>
+<td><a href="workflow-specification.md.html#channel-assign">channel-assign</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/BatchAcestreamAssignment.tsx">BatchAcestreamAssignment</a></td>
+<td>Acestream IDs; Enter acestream IDs here, e.g.:\nabc123def456\nxyz789\n...</td>
+<td><a href="workflow-specification.md.html#channel-assign">channel-assign</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/BatchAssignDialog.tsx">BatchAssignDialog</a></td>
+<td>Group</td>
+<td><a href="workflow-specification.md.html#stream-bulk">stream-bulk</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/BulkOperations.tsx">BulkOperations</a></td>
+<td>Category; Country; Language; Active Status; Active</td>
+<td><a href="workflow-specification.md.html#stream-bulk">stream-bulk</a>, <a href="workflow-specification.md.html#stream-bulk-fields">stream-bulk-fields</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ChannelActivityLogDialog.tsx">ChannelActivityLogDialog</a></td>
+<td>close</td>
+<td><a href="workflow-specification.md.html#stream-stats">stream-stats</a>, <a href="workflow-specification.md.html#channel-activity">channel-activity</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ChannelNumberField.tsx">ChannelNumberField</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#channel-inline">channel-inline</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/CheckEngineFields.tsx">CheckEngineFields</a></td>
+<td>Loading checking engine; Checking engine; Use a dedicated checking engine; Checking engine URL</td>
+<td><a href="workflow-specification.md.html#automation">automation</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ConfirmDialog.tsx">ConfirmDialog</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#unsaved">unsaved</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGChannelInventoryTable.tsx">EPGChannelInventoryTable</a></td>
+<td>Guide channels; Linked; Not linked</td>
+<td><a href="workflow-specification.md.html#guide-inventory">guide-inventory</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGMatchAnalysisPanel.tsx">EPGMatchAnalysisPanel</a></td>
+<td>Guide channel; Proposed streams; Match type; Confidence; Status</td>
+<td><a href="workflow-specification.md.html#guide-choice">guide-choice</a>, <a href="workflow-specification.md.html#guide-match">guide-match</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGSourceDialog.tsx">EPGSourceDialog</a></td>
+<td>Name; URL; https://example.com/epg.xml; Enabled</td>
+<td><a href="workflow-specification.md.html#guide-source">guide-source</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/EPGXmlOutputPanel.tsx">EPGXmlOutputPanel</a></td>
+<td>Search Term (Optional); Filter channels by name; Include Favorite Channels Only</td>
+<td><a href="workflow-specification.md.html#guide-export">guide-export</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/GuideMatchingFields.tsx">GuideMatchingFields</a></td>
+<td>Loading automatic guide matching; Automatically match guide channels</td>
+<td><a href="workflow-specification.md.html#guide-auto">guide-auto</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/NavBar.tsx">NavBar</a></td>
+<td>Support on Ko-fi (opens in a new tab); open drawer; Wiki (opens in a new tab); navigation menu</td>
+<td><a href="workflow-specification.md.html#settings">settings</a>, <a href="workflow-specification.md.html#preferences">preferences</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/NotificationsSection.tsx">NotificationsSection</a></td>
+<td>Notification webhook form; Webhook URL; https://gotify.example/message?token=…</td>
+<td><a href="workflow-specification.md.html#notifications">notifications</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/QuickEditDialog.tsx">QuickEditDialog</a></td>
+<td>Name; Acestream ID; Group; Logo URL; TVG ID; TVG Name; Show in playlist; Keep my EPG fields (protect from EPG updates)</td>
+<td><a href="workflow-specification.md.html#stream-edit">stream-edit</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ScheduleAnchorFields.tsx">ScheduleAnchorFields</a></td>
+<td>Loading schedule start times; Schedule start times; Schedule timezone</td>
+<td><a href="workflow-specification.md.html#schedule-anchors">schedule-anchors</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/ServicesPanel.tsx">ServicesPanel</a></td>
+<td>Loading services</td>
+<td><a href="workflow-specification.md.html#services">services</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StartupGate.tsx">StartupGate</a></td>
+<td>API token; Startup in progress; Programme import progress; Startup activity</td>
+<td><a href="workflow-specification.md.html#startup">startup</a>, <a href="workflow-specification.md.html#recovery">recovery</a>, <a href="workflow-specification.md.html#recovery-readable">recovery-readable</a>, <a href="workflow-specification.md.html#recovery-fresh">recovery-fresh</a>, <a href="workflow-specification.md.html#recovery-result">recovery-result</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StreamCheckScopeField.tsx">StreamCheckScopeField</a></td>
+<td>Loading stream check scope; Streams to check</td>
+<td><a href="workflow-specification.md.html#automation">automation</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/StreamLinkFormatsSection.tsx">StreamLinkFormatsSection</a></td>
+<td>Default; Edit default link format; Name; Pattern; Set as default</td>
+<td><a href="workflow-specification.md.html#formats">formats</a>, <a href="workflow-specification.md.html#format-edit">format-edit</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVAutoMatchDialog.tsx">TVAutoMatchDialog</a></td>
+<td>Assume country for unlabelled channels; Include similar names for review; Filter matches</td>
+<td><a href="workflow-specification.md.html#stream-match">stream-match</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelDeleteDialog.tsx">TVChannelDeleteDialog</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#channel-delete">channel-delete</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelFilters.tsx">TVChannelFilters</a></td>
+<td>Channel filters; Search; Name, number, description, EPG ID or stream</td>
+<td><a href="workflow-specification.md.html#channels">channels</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelFormDialog.tsx">TVChannelFormDialog</a></td>
+<td>Channel Name; Description; Logo URL; Category; Country; Language; EPG ID; Channel Number; Active; Favorite</td>
+<td><a href="workflow-specification.md.html#channel-edit">channel-edit</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelLinkField.tsx">TVChannelLinkField</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#stream-edit">stream-edit</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelsTable.tsx">TVChannelsTable</a></td>
+<td>Loading TV channels; Rows per page; Go to previous page; Go to next page; TV channel inventory</td>
+<td><a href="workflow-specification.md.html#channels">channels</a>, <a href="workflow-specification.md.html#channel-inline">channel-inline</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/WarpExclusionsSection.tsx">WarpExclusionsSection</a></td>
+<td>Hosts to exclude</td>
+<td><a href="workflow-specification.md.html#warp-exclusions">warp-exclusions</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/WarpStartupSection.tsx">WarpStartupSection</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#warp-startup">warp-startup</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccessSettings.tsx">AccessSettings</a></td>
+<td>New account username; Initial password; Administrator; Account enabled; Public viewing and network access; Local IPTV networks; Credential label; Credential access; New credential; I understand that account protection will be removed; Administrator password</td>
+<td><a href="workflow-specification.md.html#access-account">access-account</a>, <a href="workflow-specification.md.html#access-create">access-create</a>, <a href="workflow-specification.md.html#access-policy">access-policy</a>, <a href="workflow-specification.md.html#access-sessions">access-sessions</a>, <a href="workflow-specification.md.html#access-credentials">access-credentials</a>, <a href="workflow-specification.md.html#access-secret">access-secret</a>, <a href="workflow-specification.md.html#access-disable">access-disable</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/AccountSetup.tsx">AccountSetup</a></td>
+<td>Account setup; Enable user management; Existing API token; Administrator username; Password; Confirm password; Keep the existing API token for playback only</td>
+<td><a href="workflow-specification.md.html#access-activate">access-activate</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/LoginForm.tsx">LoginForm</a></td>
+<td>Username; Password</td>
+<td><a href="workflow-specification.md.html#access-login">access-login</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/NewPasswordField.tsx">NewPasswordField</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#access-create">access-create</a>, <a href="workflow-specification.md.html#access-password">access-password</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/access/PasswordForm.tsx">PasswordForm</a></td>
+<td>Change password; Current password; New password; Confirm new password</td>
+<td><a href="workflow-specification.md.html#access-password">access-password</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/catalogues/FolderMatchDialog.tsx">FolderMatchDialog</a></td>
+<td>Loading folder matches</td>
+<td><a href="workflow-specification.md.html#w3u-folder">w3u-folder</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/channels/ChannelCardList.tsx">ChannelCardList</a></td>
+<td>Hidden; Go to previous page; Go to next page</td>
+<td><a href="workflow-specification.md.html#streams">streams</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/channels/ChannelFilterBar.tsx">ChannelFilterBar</a></td>
+<td>Channel filters; Search; Name or ID; Source; Name or source URL; Group; Online; Playlist; Linked</td>
+<td><a href="workflow-specification.md.html#streams">streams</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventBroadcastMapper.tsx">EventBroadcastMapper</a></td>
+<td>Apply to all events from this source with this broadcaster; Link to</td>
+<td><a href="workflow-specification.md.html#event-mapping">event-mapping</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventDetails.tsx">EventDetails</a></td>
+<td>Title; Event state; Start (ISO date and time); End (only if known); Time notes</td>
+<td><a href="workflow-specification.md.html#event-detail">event-detail</a>, <a href="workflow-specification.md.html#event-correct">event-correct</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventGuideOverlay.tsx">EventGuideOverlay</a></td>
+<td>Overlay broadcast; Overlay end (ISO date and time)</td>
+<td><a href="workflow-specification.md.html#event-overlay">event-overlay</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventImportPanel.tsx">EventImportPanel</a></td>
+<td>Select all shown events; Refresh selected events automatically with scheduled scraping; Add from; Event title; Sport; Competition; Scheduled start; Source timezone; Broadcaster; Stream URL; Schedule URL; Guide format; Event schedule JSON; Request timeout (seconds)</td>
+<td><a href="workflow-specification.md.html#event-import">event-import</a>, <a href="workflow-specification.md.html#event-review">event-review</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventInterestFields.tsx">EventInterestFields</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#events">events</a>, <a href="workflow-specification.md.html#dashboard-events">dashboard-events</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventProviderFields.tsx">EventProviderFields</a></td>
+<td>Provider; Sports feeds; Football competitions; League; Season; Source timezone; Import window</td>
+<td><a href="workflow-specification.md.html#event-provider">event-provider</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/events/EventSourcesPanel.tsx">EventSourcesPanel</a></td>
+<td>Keep ended events (days); Keep archived events (days); Loading schedule sources; Loading event retention</td>
+<td><a href="workflow-specification.md.html#event-sources">event-sources</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/imports/ImportExclusions.tsx">ImportExclusions</a></td>
+<td>Loading exclusions; Rule type; Value; Note (optional); Enabled</td>
+<td><a href="workflow-specification.md.html#exclusion">exclusion</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/imports/SavedSearchDialog.tsx">SavedSearchDialog</a></td>
+<td>Name; Query; Category; Import matching results on the source refresh schedule.</td>
+<td><a href="workflow-specification.md.html#saved-search">saved-search</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/imports/SavedSearches.tsx">SavedSearches</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#saved-search-preview">saved-search-preview</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/FindPlayersDialog.tsx">FindPlayersDialog</a></td>
+<td>Network; 192.168.1.0/24</td>
+<td><a href="workflow-specification.md.html#remote-discovery">remote-discovery</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/MediaServerDialog.tsx">MediaServerDialog</a></td>
+<td>Media server; Name; Address; HDHomeRun tuner (recommended) — stable channel identity, favorites survive changes; M3U playlist + XMLTV — uses tvg-id matching; any change to the address or link format recreates every channel in Jellyfin and drops favorites; Refresh the guide automatically when channels change</td>
+<td><a href="workflow-specification.md.html#media-server">media-server</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/MediaServersSection.tsx">MediaServersSection</a></td>
+<td>Tuner address; Guide URL; Tuner settings form; Tuner name; Streams at once; Most channels to publish; Seconds per source; Seconds to start a channel; Publish only channels that are online; Hide stale or repeatedly failing sources; Plex Desktop compatible audio; Experimental transcoding recovery; Save tuner settings</td>
+<td><a href="workflow-specification.md.html#tuner">tuner</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/PublicAddressSection.tsx">PublicAddressSection</a></td>
+<td>Public address form; Public address; http://192.168.1.10:8000</td>
+<td><a href="workflow-specification.md.html#public-address">public-address</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/RemotePlayerDialog.tsx">RemotePlayerDialog</a></td>
+<td>Name; Player; Host; Port; Username; Pairing code; Password; Stream link format</td>
+<td><a href="workflow-specification.md.html#remote-player">remote-player</a>, <a href="workflow-specification.md.html#remote-android">remote-android</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/RemotePlayersSection.tsx">RemotePlayersSection</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#remote-player">remote-player</a>, <a href="workflow-specification.md.html#remote-control">remote-control</a>, <a href="workflow-specification.md.html#remote-discovery">remote-discovery</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/TelegramSection.tsx">TelegramSection</a></td>
+<td>Telegram admin token; Telegram API ID; Telegram API hash; Phone number with country code; Telegram login code; Telegram two-step verification password</td>
+<td><a href="workflow-specification.md.html#telegram-auth">telegram-auth</a>, <a href="workflow-specification.md.html#telegram-code">telegram-code</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/TelegramSourceEditor.tsx">TelegramSourceEditor</a></td>
+<td>Source name; Joined chat; Topic; Telegram username; Allowed sender IDs; Include forwarded messages; Sender identity for forwards; Message filter mode; Must include; Must exclude; Recognize bare 40-character IDs in name/ID pairs; Initial history count; Ignore history before (local time); Telegram preview results</td>
+<td><a href="workflow-specification.md.html#telegram-source">telegram-source</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/overview/UpcomingEvents.tsx">UpcomingEvents</a></td>
+<td>Events to show; Display timezone</td>
+<td><a href="workflow-specification.md.html#dashboard-events">dashboard-events</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/CastControls.tsx">CastControls</a></td>
+<td>TV; Replace playback already on this TV; Convert to H.264 for compatibility (720p maximum)</td>
+<td><a href="workflow-specification.md.html#casting-control">casting-control</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/ChannelPickerDialog.tsx">ChannelPickerDialog</a></td>
+<td>What to pick; Channel; Type to search</td>
+<td><a href="workflow-specification.md.html#player-picker">player-picker</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/PlaybackRoutingFields.tsx">PlaybackRoutingFields</a></td>
+<td>Loading playback routing; Playback routing; Route playback through Acexy; Acexy URL</td>
+<td><a href="workflow-specification.md.html#playback-settings">playback-settings</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/player/StreamPlayerDialog.tsx">StreamPlayerDialog</a></td>
+<td>Audio track; Subtitles; Channel schedule; Live TV player</td>
+<td><a href="workflow-specification.md.html#player-tracks">player-tracks</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/playlist/PlaylistDialog.tsx">PlaylistDialog</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#playlist">playlist</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/playlist/PlaylistLinkPanel.tsx">PlaylistLinkPanel</a></td>
+<td>Copy playlist URL; QR code for the playlist URL</td>
+<td><a href="workflow-specification.md.html#playlist">playlist</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/playlist/PlaylistOptionsForm.tsx">PlaylistOptionsForm</a></td>
+<td>Search channels; Only include channels whose name contains…; Only online channels; Favorite TV channels only; Include unassigned streams at the end; List each source under its channel; Stream link format</td>
+<td><a href="workflow-specification.md.html#playlist">playlist</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/GuideRecordingSelector.tsx">GuideRecordingSelector</a></td>
+<td>TV Channel to record</td>
+<td><a href="workflow-specification.md.html#recording-schedule">recording-schedule</a>, <a href="workflow-specification.md.html#player-picker">player-picker</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/RecordingDialog.tsx">RecordingDialog</a></td>
+<td>Timezone; Start; Start occurs twice — choose an instant; End; End occurs twice — choose an instant</td>
+<td><a href="workflow-specification.md.html#recording-schedule">recording-schedule</a>, <a href="workflow-specification.md.html#recording-now">recording-now</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/recordings/RecordingSettingsFields.tsx">RecordingSettingsFields</a></td>
+<td>Enable recordings; Simultaneous recordings; Keep free (GiB); Maximum size per recording (GiB); Automatically delete old, unprotected recordings; Delete after (days); Loading recording settings</td>
+<td><a href="workflow-specification.md.html#recording-settings">recording-settings</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/scraper/DeleteSourceDialog.tsx">DeleteSourceDialog</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#source-remove">source-remove</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/scraper/OrphanedSourcesDialog.tsx">OrphanedSourcesDialog</a></td>
+<td>Loading removed sources</td>
+<td><a href="workflow-specification.md.html#sources-orphans">sources-orphans</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/search/AddAndLinkDialog.tsx">AddAndLinkDialog</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#search-add-link">search-add-link</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/settings/NetworkSettingsFields.tsx">NetworkSettingsFields</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#network">network</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/settings/OfflineCleanupFields.tsx">OfflineCleanupFields</a></td>
+<td>Loading offline cleanup settings; Offline stream cleanup; Automatically remove long-offline AceStreams; Offline for at least (days); Run every (days); Also remove streams linked to TV channels; Re-scrape affected sources after cleanup</td>
+<td><a href="workflow-specification.md.html#offline-cleanup">offline-cleanup</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/setup/SetupGuide.tsx">SetupGuide</a></td>
+<td>Guide name; Programme guide link; Saved programme guide</td>
+<td><a href="workflow-specification.md.html#setup-guide">setup-guide</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/setup/SetupSources.tsx">SetupSources</a></td>
+<td>Channel source link; https://…; Broadcaster</td>
+<td><a href="workflow-specification.md.html#setup-source">setup-source</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/AcestreamChannels.tsx">AcestreamChannels</a></td>
+<td>Channel summary</td>
+<td><a href="workflow-specification.md.html#streams">streams</a>, <a href="workflow-specification.md.html#stream-bulk-fields">stream-bulk-fields</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Catalogues.tsx">Catalogues</a></td>
+<td>Catalogue URL; Catalogue name; Import streams; All folders; Import selected compatible entries as permanent live channels; Refresh with scheduled scraping; Search catalogue; Content type; Show; Load publisher artwork; Catalogue folders; Catalogue entries; Duplicate source; Retained</td>
+<td><a href="workflow-specification.md.html#w3u">w3u</a>, <a href="workflow-specification.md.html#w3u-save">w3u-save</a>, <a href="workflow-specification.md.html#w3u-detail">w3u-detail</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/EPG.tsx">EPG</a></td>
+<td>EPG Source; EPG summary; EPG sections; Match Strictness</td>
+<td><a href="workflow-specification.md.html#guide-inventory">guide-inventory</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/EPGChannelDetail.tsx">EPGChannelDetail</a></td>
+<td>Guide channel summary; Checking TV channels…; TV channels unavailable; Not linked to a TV channel; String mapping rules table; Available TV channels; Search Pattern; e.g., ESPN, CNN, etc.; Is Exclusion Pattern; Channel Name; Logo URL; Description; Category; Country; Language; EPG ID</td>
+<td><a href="workflow-specification.md.html#guide-detail">guide-detail</a>, <a href="workflow-specification.md.html#guide-rule">guide-rule</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Events.tsx">Events</a></td>
+<td>When; Event date; Search events; Following; Display timezone; Upcoming window; Sport contains; Competition contains; Source; Loading events; Loading event details</td>
+<td><a href="workflow-specification.md.html#events">events</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/ExtractionBuilder.tsx">ExtractionBuilder</a></td>
+<td>Source URL; Source type</td>
+<td><a href="workflow-specification.md.html#helper-installed">helper-installed</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/LiveTV.tsx">LiveTV</a></td>
+<td>Loading selected channel; Browse channels; Favorites only; Online only; Loading channels</td>
+<td><a href="workflow-specification.md.html#live">live</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Recordings.tsx">Recordings</a></td>
+<td>Search recordings; Status; Loading recordings; Protected</td>
+<td><a href="workflow-specification.md.html#recording-active">recording-active</a>, <a href="workflow-specification.md.html#recording-copy">recording-copy</a>, <a href="workflow-specification.md.html#recording-cancel">recording-cancel</a>, <a href="workflow-specification.md.html#recording-delete">recording-delete</a>, <a href="workflow-specification.md.html#recording-disable">recording-disable</a>, <a href="workflow-specification.md.html#recordings">recordings</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/RuntimeSetup.tsx">RuntimeSetup</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#runtime-playback">runtime-playback</a>, <a href="workflow-specification.md.html#runtime-network">runtime-network</a>, <a href="workflow-specification.md.html#runtime-services">runtime-services</a>, <a href="workflow-specification.md.html#runtime-advanced">runtime-advanced</a>, <a href="workflow-specification.md.html#runtime-engine-ports">runtime-engine-ports</a>, <a href="workflow-specification.md.html#runtime-gateway-ports">runtime-gateway-ports</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Scraper.tsx">Scraper</a></td>
+<td>Source status; URL; Type; Custom recipe; Enabled; Last result; Last scraped; Channels; Actions; Built-in provider; Friendly name (optional); URL Type; Status; Harvest bare content IDs; Scraper sections; Sources; W3U catalogues; Saved searches; Import exclusions</td>
+<td><a href="workflow-specification.md.html#source-web">source-web</a>, <a href="workflow-specification.md.html#source-auto">source-auto</a>, <a href="workflow-specification.md.html#source-zeronet">source-zeronet</a>, <a href="workflow-specification.md.html#source-ipfs">source-ipfs</a>, <a href="workflow-specification.md.html#source-provider">source-provider</a>, <a href="workflow-specification.md.html#source-results">source-results</a>, <a href="workflow-specification.md.html#sources">sources</a>, <a href="workflow-specification.md.html#add-channels">add-channels</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Search.tsx">Search</a></td>
+<td>Search Query; Enter search terms...; Category; Search summary; Added</td>
+<td><a href="workflow-specification.md.html#search">search</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Settings.tsx">Settings</a></td>
+<td>Loading settings; Settings sections; Engine status; Acestream Engine URL; Scrape sources every (hours); Refresh EPG every (hours); Stream check interval (minutes); Append PID to stream links; Use AppID in stream links; API token</td>
+<td><a href="workflow-specification.md.html#settings">settings</a>, <a href="workflow-specification.md.html#automation">automation</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Setup.tsx">Setup</a></td>
+<td></td>
+<td><a href="workflow-specification.md.html#setup">setup</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/TVChannelDetail.tsx">TVChannelDetail</a></td>
+<td>Back to TV channels; Channel summary; Favorite; Name; Category; Channel number; EPG ID; Active; Description; Logo URL; Website; Language; Country; Search by name, group, or ID; Type to search...</td>
+<td><a href="workflow-specification.md.html#channel-detail">channel-detail</a>, <a href="workflow-specification.md.html#channel-preferences">channel-preferences</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/TVChannels.tsx">TVChannels</a></td>
+<td>Loading TV channels; TV channel summary; Favorites only; Loading auto-match</td>
+<td><a href="workflow-specification.md.html#channels">channels</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/WARP.tsx">WARP</a></td>
+<td>Loading WARP status; WARP status; Current path; Tunnel details; Registration; Mode; License Key; Enter your WARP+ or WARP Teams license key</td>
+<td><a href="workflow-specification.md.html#warp">warp</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/Watch.tsx">Watch</a></td>
+<td>View; Search channels; Playlist URL; Programme guide URL</td>
+<td><a href="workflow-specification.md.html#viewer">viewer</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/integrations/TvCasting.tsx">TvCasting</a></td>
+<td>Offer H.264 compatibility conversion; Application address for TVs; Allowed home networks; Allow accounts with casting permission to control TVs away from home; I am connected to my home network now</td>
+<td><a href="workflow-specification.md.html#casting">casting</a>, <a href="workflow-specification.md.html#casting-settings">casting-settings</a>, <a href="workflow-specification.md.html#casting-trust">casting-trust</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/RecipeBuilder.tsx">RecipeBuilder</a></td>
+<td>1 · Sample; 2 · Fields; 3 · Test and save; Working on recipe; Recipe catalogue; Recipe JSON; Sample view; Raw source; Assign selection to; HTML, text or JSON sample</td>
+<td><a href="workflow-specification.md.html#helper-manual">helper-manual</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/recipes/RecipeFields.tsx">RecipeFields</a></td>
+<td>Recipe name; Recipe version; Source format; Regex flags</td>
+<td><a href="workflow-specification.md.html#helper-html">helper-html</a>, <a href="workflow-specification.md.html#helper-json">helper-json</a>, <a href="workflow-specification.md.html#helper-regex">helper-regex</a></td>
+</tr>
+</tbody>
+</table></div>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

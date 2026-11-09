@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Fresh UX/UI audit — review 03 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="fresh-uxui-audit--review-03">Fresh UX/UI audit — review 03</h1>
+<blockquote>
+<p>Review 06 is the current design-only continuation: <a href="README.md.html">package</a>, <a href="before-after-map.md.html">simplified ownership</a>, <a href="shared-foundations-06.md.html">shared presets</a>, <a href="asset-selection-06.md.html">graphics</a> and <a href="verification-review-06.md.html">new evidence</a>. Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+Review 04 update (7 November 2026): <a href="coverage-review-04.md.html">expanded composed coverage</a>, <a href="workflow-specification.md.html">workflow fields/interactions</a>, <a href="verification-review-04.md.html">current verification</a> and <a href="task-refinements-04.md.html">task refinements</a> supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.</p>
+</blockquote>
+<p>Reviewed 7 November 2026. <strong>Design review only; no redesign implementation or approval.</strong></p>
+<p>The largest problems are reliability, unclear consequences and task organization. A new palette will not fix them. The earlier assessment was useful but overvalued the supplier's visual system, treated several preferences as usability findings, and left most administration without composed examples.</p>
+<p>Recommended direction: <strong>calm, readable administration with restrained TV expression on viewing surfaces</strong>. Compare both treatments with identical content in the <a href="admin-prototype.html">new prototype</a>. Neither lime/coral nor Inter/Barlow is approved. Existing IBM Plex/teal application standards remain in force until an explicit decision replaces them.</p>
+<h2 id="evidence-and-confidence">Evidence and confidence</h2>
+<ul>
+<li>Starting application baseline: 7ccf16d383758aeeb78845e20e3716ddf97df10d; original design head: ebadaaf17be1e4ba156db09ebf2a8c76d4ead7d8. Develop advanced to cf952afc6b4489c02b7a675ff3d634cc13d98e0b during the audit. Its new viewing, matching, linking and retention flows were source-inspected and reconciled in the <a href="current-source-delta.md.html">current-source delta</a>. The design worktree retains the original application base; no implementation merge was performed.</li>
+<li>All eleven GitHub issue bodies (#314–#324) were fetched again. They were open and proposed for refinement. This review adds dated corrections rather than presenting old evidence as new.</li>
+<li>The live installation's exact commit <strong>remains unverified</strong>. A displayed version is not a commit identity.</li>
+<li>Fresh read-only Chromium sweep: <strong>49 route/theme/viewport cases</strong>, covering ordinary routes, all settings/source/guide tabs, setup and 404. Additional detail/startup and targeted checks followed. 33 scans had no axe violations; 16 returned candidates. This is not a conformance rate.</li>
+<li>Contexts: English UI; 1440×1000 light, five desktop dark states, seven 390×844 light states, three 320×740 light states. No working Spanish application mode was found.</li>
+<li>Writes, media/discovery URLs and off-installation requests were blocked. No recording, import, setting save, credential operation, cast, service action or notification send occurred. External logos could be blocked, so missing images are not defects.</li>
+<li>Raw installation captures remain local. <a href="evidence.md.html">Sanitized evidence</a> contains measurements, app-owned labels, code references and reproduction steps. New mockups use entirely synthetic data.</li>
+</ul>
+<h2 id="verification-of-the-original-thirteen-findings">Verification of the original thirteen findings</h2>
+<p>“Confirmed” describes the observation, not proof that the proposed fix improves task success. <strong>None is classified resolved</strong>: the new merge leaves the confirmed defect sites unchanged. Its separate usability improvements are recorded in the current-source delta.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Disposition / type</th>
+<th>Reproduction and context</th>
+<th>Impact / severity</th>
+<th>Decision and evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F01</td>
+<td><strong>Confirmed — defect</strong></td>
+<td>Live TV → open a Record action without submitting. Private-IP HTTP; 1440×1000 light EN.</td>
+<td>P0 for this workflow: entire app becomes blank.</td>
+<td>Missing crypto.randomUUID, available getRandomValues, thrown initializer and empty body reproduced. Contain failure; one secure idempotency key per intent. <a href="evidence.md.html#e01-recording-opener">E01</a>. #315.</td>
+</tr>
+<tr>
+<td>F02</td>
+<td><strong>Confirmed observation; usability hypothesis</strong></td>
+<td>Sidebar: compare Scraper / Search / Acestream Channels / TV Channels / EPG. Desktop and phone EN.</td>
+<td>P1 hypothesis: novices must distinguish unfamiliar concepts before acting. No participant result measured.</td>
+<td>Rename labels without route changes; explain source → stream → TV channel. Twenty destinations alone is not a defect. <a href="coverage-review-03.md.html">Coverage</a>. #316/#318.</td>
+</tr>
+<tr>
+<td>F03</td>
+<td><strong>Confirmed — IA problem</strong></td>
+<td>Settings → Automation, then Network and Public address. 1440/390 light EN.</td>
+<td>P1: recording, guide assignment, schedules and notifications lack clear ownership; address fallback competes with saved override.</td>
+<td>One editor per capability; retain advanced fallback configuration with effective-source explanation. <a href="field-ledger.md.html">Field ledger</a>. #318–#322.</td>
+</tr>
+<tr>
+<td>F04</td>
+<td><strong>Confirmed — interaction inconsistency</strong></td>
+<td>Inspect Automation: guide switch saves immediately; recording and interval forms have separate saves; Network needs restart. No live edits.</td>
+<td>P1: immediate, staged and restart-bound effects share a visual area. Recording disablement is consequential.</td>
+<td>Save per real transaction boundary, not one fictional global atomic Save. Confirm actual stop/cancel impact. <a href="design-specification.md.html#editing-and-consequences">Specification</a>. #318/#319/#320.</td>
+</tr>
+<tr>
+<td>F05</td>
+<td><strong>Confirmed — measured defect</strong></td>
+<td>Light success text on Sources, Guide, Playback, Media servers, WARP and System. 1440 light EN.</td>
+<td>P1: ordinary text below 4.5:1.</td>
+<td>White/#1f8f59 ≈4.09:1; #1f8f59/#fbfdff ≈4.01:1. Use semantic text pairs, not icon tokens. <a href="evidence.md.html#e02-contrast-and-labels">E02</a>. #315.</td>
+</tr>
+<tr>
+<td>F06a</td>
+<td><strong>Confirmed — reflow defect</strong></td>
+<td>Direct-load Settings ?tab=network, 390×844 light EN.</td>
+<td>P2: active label mostly clipped; scrolling remains available.</td>
+<td>Tab starts x316.28, width 101.95; scroll viewport ends 338. Use phone section selector; preserve deep links. <a href="evidence.md.html#e03-reflow">E03</a>. #315/#318.</td>
+</tr>
+<tr>
+<td>F06b</td>
+<td><strong>Confirmed with corrected selector — reflow defect</strong></td>
+<td>TV Channels at 320, scroll to pagination. “Next” is visible text; accessible name is “Go to next page”.</td>
+<td>P2: compare control with panel, not just document overflow.</td>
+<td>Current bounds in E03. Initial fresh harness missed the accessible-name assumption; failed check rerun. #315/#320.</td>
+</tr>
+<tr>
+<td>F07</td>
+<td><strong>Confirmed composition observation; hypothesis</strong></td>
+<td>Home/Live TV first viewport, 390 light and 1440 dark EN.</td>
+<td>P2: introductory/management content competes with browsing. No abandonment measured.</td>
+<td>Clear viewing action and catalogue first. Do not prescribe recommendations/artwork without data. Keep home dashboard and independent failures. #319.</td>
+</tr>
+<tr>
+<td>F08</td>
+<td><strong>Confirmed — hierarchy problem</strong></td>
+<td>Recordings default view, 1440 light/dark and 390 light EN.</td>
+<td>P2: “Recording history” mixes deleted entries, raw states and file operations with watching.</td>
+<td>Saved / Upcoming / History. Partial recordings remain playable where files are ready; expose gaps. Completed is not automatically playable. <a href="admin-prototype.html?view=recordings">Mockup</a>. #319.</td>
+</tr>
+<tr>
+<td>F09</td>
+<td><strong>Confirmed — task consistency problem</strong></td>
+<td>Compare Setup source action and Sources editor, light EN.</td>
+<td>P2: saving can be mistaken for importing; bare-ID options arrive too early.</td>
+<td>Shared form; distinct “Add and find channels” and “Save source only”. Save→queue→result is not atomic. <a href="admin-prototype.html?view=sources">Mockup</a>. #321.</td>
+</tr>
+<tr>
+<td>F10</td>
+<td><strong>Confirmed terminology observation; hypothesis</strong></td>
+<td>Guide Sources/Channels/Matching/Rules/Export, 1440/390 light EN.</td>
+<td>P2: technical tabs obscure add→review→apply.</td>
+<td>Preserve explicit selection, source identity and stale-preview rejection. No preselection. “Exact” is a match type, not approval. <a href="admin-prototype.html?view=guide">Mockup</a>. #320.</td>
+</tr>
+<tr>
+<td>F11</td>
+<td><strong>Confirmed — discoverability hypothesis</strong></td>
+<td>Six integration pages, 1440 light EN.</td>
+<td>P2: user outcomes distributed across mechanism names; separate security scopes are real.</td>
+<td>Outcome links above existing independent pages. Never merge forms, queries or permissions. <a href="admin-prototype.html?view=connections">Mockup</a>. #322.</td>
+</tr>
+<tr>
+<td>F12</td>
+<td><strong>Needs evidence — performance claim</strong></td>
+<td>Eager imports remain in App.tsx; old transfer figure not reproduced under a controlled profile.</td>
+<td>P2 investigation, not measured slowdown.</td>
+<td>Withdraw any implication that 2.03 MB predicts poor performance. Five-run controlled production baseline before budgets. #323.</td>
+</tr>
+<tr>
+<td>F13</td>
+<td><strong>Confirmed — preference, not defect</strong></td>
+<td>Shell/panels and long phone pages, light/dark.</td>
+<td>P3: nested surfaces/glow weaken the reviewer's preferred hierarchy.</td>
+<td>Flatten one level; retain semantic theme system. User testing decides whether calmer is easier. #316.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="new-findings-and-corrections">New findings and corrections</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Finding / evidence</th>
+<th>Severity / action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F14</td>
+<td><strong>Confirmed defect:</strong> both Guide Export date-range inputs lack label, aria-label and aria-labelledby. EPGXmlOutputPanel.tsx:99; fresh DOM/axe check.</td>
+<td>P1 #315/#320. Name start/end independently, localize value text and verify keyboard operation. Do not infer a keyboard defect from one inconclusive ArrowRight trial.</td>
+</tr>
+<tr>
+<td>F15</td>
+<td><strong>Confirmed design-reference gap:</strong> old prototype recreates fields on locale/theme changes without storing entered values; “2 unsaved changes” is hard-coded. Product text often 10–12 px; many apparent controls are placeholders.</td>
+<td>P2 artifacts #316. Old boards are historical. New prototype retains demonstrated drafts/selection and labels simulations. It still does not implement the app state machine.</td>
+</tr>
+<tr>
+<td>F16</td>
+<td><strong>Confirmed inventory discrepancy:</strong> navItems.tsx places Events under Manage; narrative/coverage described Watch. Phone TV-channel core filters sit behind Show filters despite repository guidance.</td>
+<td>P2 #318/#320. Distinguish observed from proposed navigation. Keep the four intended core filters visible in implementation.</td>
+</tr>
+<tr>
+<td>F17</td>
+<td><strong>Confirmed localization gap:</strong> labels, help, recording states, access/startup content, runtime metadata and standalone helper use English literals.</td>
+<td>P1 product requirement gap #317 plus feature owners. Translate owned UI; preserve names, URLs and raw logs. A prototype language selector is not app localization.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Desktop grid required-child candidates, duplicate unnamed main landmarks in the installed extraction builder, heading-order candidates and disabled-helper contrast still <strong>need evidence</strong> for assistive-technology impact and applicable exceptions. Prioritize confirmed range labels independently. Offscreen Live TV target-size failure was <strong>not reproduced on the usable control</strong>: a scrolled guide button measured about 166×44 px. Do not call 66 offscreen scanner nodes 66 user-visible failures.</p>
+<p>Normal text needs at least 4.5:1 contrast; inactive controls have specific exceptions. <a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html">W3C contrast guidance</a>. Controls need programmatically available names. <a href="https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html">W3C name/role/value guidance</a>. Our 44 px target is a design goal; WCAG 2.2 AA minimum is 24 px with exceptions, not universally 44 px. <a href="https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html">W3C target guidance</a>.</p>
+<h2 id="complete-journey-critique">Complete journey critique</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Journey</th>
+<th>Strength to preserve</th>
+<th>Friction / design response</th>
+<th>Not exercised live</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First use → source → optional guide → watch/export</td>
+<td>Skippable setup; engine-free catalogue use.</td>
+<td>Save-as-added versus Finish: repeat persisted-source summary and actual effect.</td>
+<td>Fresh-install mutation/resumption and novice sessions.</td>
+</tr>
+<tr>
+<td>Find → watch → record → stop</td>
+<td>Embedded catalogue, shared lifecycle, explicit Stop.</td>
+<td>HTTP recording crash; overloaded first phone viewport.</td>
+<td>Playback, tracks, casting, retained sessions.</td>
+</tr>
+<tr>
+<td>Streams → TV channel → guide → playlist</td>
+<td>Separate identities, number/favourite controls, reviewed matching, atomic reorder.</td>
+<td>Staged terminology/IDs; show source-qualified identities in ambiguity review.</td>
+<td>Reorder conflicts, credentials and saves.</td>
+</tr>
+<tr>
+<td>Source → queue → results → delete/repair</td>
+<td>Queue and preservation rules.</td>
+<td>Saved/queued/imported/verified need distinct statuses. Delete impact includes assigned streams.</td>
+<td>Fetch/import/write and Telegram authorization.</td>
+</tr>
+<tr>
+<td>Record → find → protect/convert/delete</td>
+<td>Original-file and protection contracts.</td>
+<td>Saved/Upcoming/History; exact stop/cancel/delete consequences.</td>
+<td>Lifecycle, storage limits and DST scheduling.</td>
+</tr>
+<tr>
+<td>Accounts → viewing policy → credentials → TV</td>
+<td>Separate scopes and private HTTP support.</td>
+<td>Accounts are not a universal login switch. Permission changes sign out/revoke credentials.</td>
+<td>Enabled roles, expiry, last admin and one-time secrets.</td>
+</tr>
+<tr>
+<td>Connect player → address → troubleshoot</td>
+<td>Independent routes and override explanation.</td>
+<td>Route by outcome; preserve casting/remote/IPTV/admin distinctions.</td>
+<td>Discovery/control and external-app handoff.</td>
+</tr>
+<tr>
+<td>Fault → diagnose → retry/recover</td>
+<td>DB-independent diagnostics and separate recovery paths.</td>
+<td>Safe retry before replacement; partial storage stays partial.</td>
+<td>Fault injection, backup/rebuild/fresh, fail-closed gates.</td>
+</tr>
+<tr>
+<td>Extract → pair records → test/copy</td>
+<td>Shared implementation and bounded preview.</td>
+<td>Public helper cannot contact installation; retain raw/manual large-sample path.</td>
+<td>Hostile/large input and worker timeouts.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="heuristic-critique-not-participant-research">Heuristic critique, not participant research</h2>
+<p>Anti-pattern verdict: <strong>partial fail</strong> for repeated panels, duplicate hierarchy and decorative glow. This does not establish AI authorship. The supplier's photographic hero/category system belongs only where imagery and discovery justify it; importing it into access/recovery would distract.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Heuristic</th>
+<th class="document-align-right">/4</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System status</td>
+<td class="document-align-right">3</td>
+<td>Rich queue/storage/service detail; raw outcomes need interpretation.</td>
+</tr>
+<tr>
+<td>User language</td>
+<td class="document-align-right">1</td>
+<td>Source/stream/channel and EPG jargon arrive early.</td>
+</tr>
+<tr>
+<td>Control/freedom</td>
+<td class="document-align-right">2</td>
+<td>Explicit stop/cancel; uneven draft handling.</td>
+</tr>
+<tr>
+<td>Consistency</td>
+<td class="document-align-right">2</td>
+<td>Save semantics and ownership vary.</td>
+</tr>
+<tr>
+<td>Error prevention</td>
+<td class="document-align-right">2</td>
+<td>Strong reviewed matching; consequential configuration needs review.</td>
+</tr>
+<tr>
+<td>Recognition</td>
+<td class="document-align-right">2</td>
+<td>Routes lack task orientation.</td>
+</tr>
+<tr>
+<td>Efficiency</td>
+<td class="document-align-right">3</td>
+<td>Bulk controls, filters, shared editors and expert paths.</td>
+</tr>
+<tr>
+<td>Minimal presentation</td>
+<td class="document-align-right">2</td>
+<td>Panels/metadata compete with the task.</td>
+</tr>
+<tr>
+<td>Error recovery</td>
+<td class="document-align-right">1</td>
+<td>Recording opener blanks app.</td>
+</tr>
+<tr>
+<td>Help</td>
+<td class="document-align-right">3</td>
+<td>Extensive but technical/distributed guidance.</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td class="document-align-right"><strong>21/40</strong></td>
+<td>Significant improvement needed; no before/after user score claimed.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Technical scores: accessibility 2/4; performance <strong>unscored</strong> without baseline; responsive 2/4; theming 3/4; visual restraint 2/4. <strong>9/16 assessed</strong>, no invented /20 total. Prior performance 2/4 was too confident.</p>
+<p>Automation cognitive-load checklist: focus fail, chunking fail, grouping pass, hierarchy fail, one decision at a time fail, minimal choices fail, memory burden fail, progressive disclosure partial. Six failures suggest high load; this does not make every five-item menu defective.</p>
+<p>First-timer: cannot predict whether Add saves or imports. Phone user: clipped current section and hidden core filters. Keyboard/low-vision user: working skip link, but unnamed sliders and low-contrast status text. These are expert walkthroughs, not participant observations.</p>
+<h2 id="reuse-design-decisions-and-remaining-scope">Reuse, design decisions and remaining scope</h2>
+<p><a href="designer-frontend-assessment.md.html#review-03-critical-reassessment">Revised supplier assessment</a>: <strong>selective pattern reuse</strong>, not wholesale visual-system adoption. URL entry and progressive channel details help. Sports taxonomy, image-heavy hero, forced-dark overlay and DOM phrase replacement do not provide whole-app foundations.</p>
+<p>The <a href="admin-prototype.html">new prototype</a> composes nine families in EN/ES, light/dark, calm/expressive and coral/lime. Read the <a href="design-specification.md.html">specification</a>, <a href="field-ledger.md.html">field ledger</a> and <a href="coverage-review-03.md.html">coverage delta</a>. New mockups are <strong>in review</strong>, never accepted by existence.</p>
+<p>Open decisions: approve calm administration/expressive viewing or another consistent treatment; choose palette and font roles; validate terminology, Events placement and Connections overview. Existing application standards and URLs remain unchanged.</p>
+<p>Pending: fluent Spanish review, VoiceOver/NVDA, representative novice sessions; unique compositions for events/overlays, W3U, searches/exclusions, stream/channel detail/reorder, guide rules/export/detail, playlist formats, individual integration editors, recording schedule/settings/parts, complete access activation/credentials/sessions, runtime setup and failure variants. Every item stays owned in the existing ten tasks.</p>
+<p><strong>No complete whole-app design handoff or implementation is claimed.</strong> The expanded matrix distinguishes source/live inspection from mockup and acceptance. Priorities remain #315 reliability/accessibility; #316/#318 ownership/state contracts; #317 localization; #319–#322 feature composition; #323 measured delivery; #324 integrated acceptance. No new issues or runtime/dependency changes are needed.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

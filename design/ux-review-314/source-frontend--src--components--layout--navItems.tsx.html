@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>frontend/src/components/layout/navItems.tsx · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1>Source snapshot</h1><p><code>frontend/src/components/layout/navItems.tsx</code></p><p>Read-only design-source reference. This file is displayed as text and is never executed.</p><pre tabindex="0" aria-label="Source code"><code><span id="L1">import React from &#x27;react&#x27;;</span>
+<span id="L2">import { matchPath } from &#x27;react-router-dom&#x27;;</span>
+<span id="L3">import DashboardRoundedIcon from &#x27;@mui/icons-material/DashboardRounded&#x27;;</span>
+<span id="L4">import TravelExploreRoundedIcon from &#x27;@mui/icons-material/TravelExploreRounded&#x27;;</span>
+<span id="L5">import SearchRoundedIcon from &#x27;@mui/icons-material/SearchRounded&#x27;;</span>
+<span id="L6">import LiveTvRoundedIcon from &#x27;@mui/icons-material/LiveTvRounded&#x27;;</span>
+<span id="L7">import EventNoteRoundedIcon from &#x27;@mui/icons-material/EventNoteRounded&#x27;;</span>
+<span id="L8">import PlaylistPlayRoundedIcon from &#x27;@mui/icons-material/PlaylistPlayRounded&#x27;;</span>
+<span id="L9">import HubRoundedIcon from &#x27;@mui/icons-material/HubRounded&#x27;;</span>
+<span id="L10">import SettingsRoundedIcon from &#x27;@mui/icons-material/SettingsRounded&#x27;;</span>
+<span id="L11">import HistoryRoundedIcon from &#x27;@mui/icons-material/HistoryRounded&#x27;;</span>
+<span id="L12"></span>
+<span id="L13">export interface NavItem {</span>
+<span id="L14">  text: string;</span>
+<span id="L15">  path: string;</span>
+<span id="L16">  icon: React.ReactElement;</span>
+<span id="L17">  section: &#x27;Watch&#x27; | &#x27;Manage&#x27; | &#x27;Integrations&#x27; | &#x27;System&#x27;;</span>
+<span id="L18">  matchPrefixes?: string[];</span>
+<span id="L19">}</span>
+<span id="L20"></span>
+<span id="L21">export const navItems: NavItem[] = [</span>
+<span id="L22">  { text: &#x27;TV dashboard&#x27;, path: &#x27;/&#x27;, icon: &lt;DashboardRoundedIcon /&gt;, section: &#x27;Watch&#x27; },</span>
+<span id="L23">  { text: &#x27;Live TV&#x27;, path: &#x27;/live-tv&#x27;, icon: &lt;LiveTvRoundedIcon /&gt;, section: &#x27;Watch&#x27; },</span>
+<span id="L24">  { text: &#x27;Recordings&#x27;, path: &#x27;/recordings&#x27;, icon: &lt;HistoryRoundedIcon /&gt;, section: &#x27;Watch&#x27; },</span>
+<span id="L25">  { text: &#x27;System status&#x27;, path: &#x27;/system&#x27;, icon: &lt;DashboardRoundedIcon /&gt;, section: &#x27;System&#x27; },</span>
+<span id="L26">  { text: &#x27;Scraper&#x27;, path: &#x27;/scraper&#x27;, icon: &lt;TravelExploreRoundedIcon /&gt;, section: &#x27;Manage&#x27; },</span>
+<span id="L27">  { text: &#x27;Search&#x27;, path: &#x27;/search&#x27;, icon: &lt;SearchRoundedIcon /&gt;, section: &#x27;Manage&#x27; },</span>
+<span id="L28">  { text: &#x27;Acestream Channels&#x27;, path: &#x27;/acestream-channels&#x27;, icon: &lt;LiveTvRoundedIcon /&gt;, section: &#x27;Manage&#x27; },</span>
+<span id="L29">  { text: &#x27;TV Channels&#x27;, path: &#x27;/tv-channels&#x27;, icon: &lt;LiveTvRoundedIcon /&gt;, section: &#x27;Manage&#x27;, matchPrefixes: [&#x27;/tv-channels&#x27;] },</span>
+<span id="L30">  { text: &#x27;EPG&#x27;, path: &#x27;/epg&#x27;, icon: &lt;EventNoteRoundedIcon /&gt;, section: &#x27;Manage&#x27;, matchPrefixes: [&#x27;/epg/channels&#x27;] },</span>
+<span id="L31">  { text: &#x27;Events&#x27;, path: &#x27;/events&#x27;, icon: &lt;EventNoteRoundedIcon /&gt;, section: &#x27;Manage&#x27; },</span>
+<span id="L32">  { text: &#x27;Playlist&#x27;, path: &#x27;/playlist&#x27;, icon: &lt;PlaylistPlayRoundedIcon /&gt;, section: &#x27;Manage&#x27; },</span>
+<span id="L33">  { text: &#x27;Public address&#x27;, path: &#x27;/integrations/public-address&#x27;, icon: &lt;HubRoundedIcon /&gt;, section: &#x27;Integrations&#x27; },</span>
+<span id="L34">  { text: &#x27;Web player&#x27;, path: &#x27;/integrations/web-player&#x27;, icon: &lt;HubRoundedIcon /&gt;, section: &#x27;Integrations&#x27; },</span>
+<span id="L35">  { text: &#x27;TV casting&#x27;, path: &#x27;/integrations/tv-casting&#x27;, icon: &lt;LiveTvRoundedIcon /&gt;, section: &#x27;Integrations&#x27; },</span>
+<span id="L36">  { text: &#x27;Remote players&#x27;, path: &#x27;/integrations/remote-players&#x27;, icon: &lt;HubRoundedIcon /&gt;, section: &#x27;Integrations&#x27; },</span>
+<span id="L37">  { text: &#x27;Media servers&#x27;, path: &#x27;/integrations/media-servers&#x27;, icon: &lt;HubRoundedIcon /&gt;, section: &#x27;Integrations&#x27; },</span>
+<span id="L38">  { text: &#x27;Telegram&#x27;, path: &#x27;/integrations/telegram&#x27;, icon: &lt;HubRoundedIcon /&gt;, section: &#x27;Integrations&#x27; },</span>
+<span id="L39">  { text: &#x27;WARP&#x27;, path: &#x27;/warp&#x27;, icon: &lt;HubRoundedIcon /&gt;, section: &#x27;System&#x27; },</span>
+<span id="L40">  { text: &#x27;Settings&#x27;, path: &#x27;/settings&#x27;, icon: &lt;SettingsRoundedIcon /&gt;, section: &#x27;System&#x27; },</span>
+<span id="L41">  { text: &#x27;Changelog&#x27;, path: &#x27;/changelog&#x27;, icon: &lt;HistoryRoundedIcon /&gt;, section: &#x27;System&#x27; },</span>
+<span id="L42">];</span>
+<span id="L43"></span>
+<span id="L44">/** Routable pages that are reached from within another page rather than the nav. */</span>
+<span id="L45">export const hiddenRouteTitles: Array&lt;{ path: string; title: string }&gt; = [</span>
+<span id="L46">  { path: &#x27;/setup&#x27;, title: &#x27;Set up scraper&#x27; },</span>
+<span id="L47">  { path: &#x27;/scraper/builder&#x27;, title: &#x27;Extraction builder&#x27; },</span>
+<span id="L48">];</span>
+<span id="L49"></span>
+<span id="L50">const matchesSegmentPath = (pathname: string, candidatePath: string, allowDescendants = false) =&gt; {</span>
+<span id="L51">  if (candidatePath === &#x27;/&#x27;) {</span>
+<span id="L52">    return pathname === &#x27;/&#x27;;</span>
+<span id="L53">  }</span>
+<span id="L54"></span>
+<span id="L55">  if (matchPath({ path: candidatePath, end: true }, pathname)) {</span>
+<span id="L56">    return true;</span>
+<span id="L57">  }</span>
+<span id="L58"></span>
+<span id="L59">  if (!allowDescendants) {</span>
+<span id="L60">    return false;</span>
+<span id="L61">  }</span>
+<span id="L62"></span>
+<span id="L63">  return Boolean(matchPath({ path: `${candidatePath}/*`, end: false }, pathname));</span>
+<span id="L64">};</span>
+<span id="L65"></span>
+<span id="L66">export function isNavItemSelected(item: NavItem, pathname: string): boolean {</span>
+<span id="L67">  if (matchesSegmentPath(pathname, item.path)) {</span>
+<span id="L68">    return true;</span>
+<span id="L69">  }</span>
+<span id="L70"></span>
+<span id="L71">  return (item.matchPrefixes ?? []).some((candidatePath) =&gt;</span>
+<span id="L72">    matchesSegmentPath(pathname, candidatePath, true)</span>
+<span id="L73">  );</span>
+<span id="L74">}</span>
+<span id="L75"></span>
+<span id="L76">export function getNavTitle(pathname: string): string {</span>
+<span id="L77">  const matched = navItems.find((item) =&gt; isNavItemSelected(item, pathname));</span>
+<span id="L78">  if (matched) return matched.text;</span>
+<span id="L79">  const hidden = hiddenRouteTitles.find((item) =&gt; matchesSegmentPath(pathname, item.path, true));</span>
+<span id="L80">  return hidden?.title ?? &#x27;Not Found&#x27;;</span>
+<span id="L81">}</span></code></pre>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

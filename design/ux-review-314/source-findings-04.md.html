@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Source findings · review 04 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="source-findings--review-04">Source findings · review 04</h1>
+<blockquote>
+<p>Review 06 is the current design-only continuation: <a href="README.md.html">package</a>, <a href="before-after-map.md.html">simplified ownership</a>, <a href="shared-foundations-06.md.html">shared presets</a>, <a href="asset-selection-06.md.html">graphics</a> and <a href="verification-review-06.md.html">new evidence</a>. Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+Evidence type: source inspection at <code>cf952afc6b4489c02b7a675ff3d634cc13d98e0b</code>, 7 November 2026. This is separate from the earlier live <a href="evidence.md.html">observed defects</a>. No mutation was attempted on the live installation; its revision remains unknown.</p>
+</blockquote>
+<h2 id="f15--bulk-stream-edits-can-misrepresent-success-and-repeat-batch-work">F15 — Bulk stream edits can misrepresent success and repeat batch work</h2>
+<p><strong>Provisional severity: P1 for result reliability; exact user impact requires isolated integration reproduction.</strong> Owners: #315 and #320. This is not evidence of a general performance slowdown or corruption.</p>
+<ul>
+<li><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/BulkOperations.tsx#L39">BulkOperations.tsx, fields and per-row loop</a> offers category, country, language and active. Its edit callback is invoked once per selected row, adding an <code>id</code> to each update object.</li>
+<li><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/AcestreamChannels.tsx#L270">AcestreamChannels.tsx, bulk handler</a> passes the entire <code>selectedIds</code> array on every callback.</li>
+<li><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/services/channelService.ts#L248">channelService.ts, batch request</a> sends that full array to <code>bulk_edit</code>.</li>
+<li><a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/backend/app/schemas/channel.py#L39">AcestreamChannelUpdate</a> declares name/group/logo/TVG/source/active/online/TV-association/protection fields, not category/country/language or the per-row <code>id</code>. <a href="https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/backend/app/api/endpoints/channels.py#L120">The endpoint</a> forwards the validated fields via <code>model_dump(exclude_unset=True)</code>.</li>
+</ul>
+<p>Inference from this chain: selecting N rows invokes N requests for the whole N-row batch, while category/country/language do not survive as declared stream-update fields. A successful response can therefore be presented as a successful user edit even though the selected property has no corresponding stream update. Do not infer the exact database effects or timing without reproduction.</p>
+<p>Concrete acceptance in an isolated synthetic fixture: select two raw streams attached to known TV channels; change category, then active status; capture request count and bodies; inspect stored raw-stream and TV-channel values after each operation. Expect a single deliberately scoped operation, valid canonical property ownership, and a truthful result. Test partial failure once; do not retry a whole successful batch per row. The design <a href="workflow-prototype.html?screen=stream-bulk-fields">bulk composition</a> preserves fields and explicitly sends TV properties through their owning editor instead of pretending unsupported writes succeeded. This proposal itself needs #320 review.</p>
+<h2 id="corrections-to-earlier-proposals-not-application-defects">Corrections to earlier proposals, not application defects</h2>
+<p>The manual Cast entry in the older administration example was unsupported by current source. Manual host/port configuration belongs to remote VLC/Kodi, while Google Cast uses bounded discovery and trust. Telegram's authorization transport differs from normal account transport. W3U Save-only is a valid path. WARP mode and licence are separate commands. These corrections are incorporated in <a href="coverage-review-04.md.html">review 04 coverage</a> and the detailed fields.</p>
+<h2 id="prior-findings-retained">Prior findings retained</h2>
+<p>The recording-opener crash on supported private HTTP, success-text contrast, phone control clipping and unnamed export sliders remain in #315. They were not retested merely because replacement mockups exist. Performance remains a hypothesis requiring #323 measurement. User preferences and unapproved direction choices remain in #316; they are not defects.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

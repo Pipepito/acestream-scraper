@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Design specification — review 03 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="design-specification--review-03">Design specification — review 03</h1>
+<blockquote>
+<p>Historical visual specification. The <a href="brand-system.html">SPORTZZ brand reference</a>
+now defines the static mockup identity, tokens and component treatments. Production
+migration still requires its own scope; review-03 palette/mark decisions below
+do not override the current reference.</p>
+<p>Review 06 is the current design-only continuation: <a href="README.md.html">package</a>, <a href="before-after-map.md.html">simplified ownership</a>, <a href="shared-foundations-06.md.html">shared presets</a>, <a href="asset-selection-06.md.html">graphics</a> and <a href="verification-review-06.md.html">new evidence</a>. Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+Review 04 update (7 November 2026): <a href="coverage-review-04.md.html">expanded composed coverage</a>, <a href="workflow-specification.md.html">workflow fields/interactions</a>, <a href="verification-review-04.md.html">current verification</a> and <a href="task-refinements-04.md.html">task refinements</a> supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.</p>
+</blockquote>
+<p>Status: <strong>proposed / in review</strong>. This supplements the complete <a href="whole-app-coverage.md.html">coverage contract</a>; it does not approve a rebrand or application changes.</p>
+<h2 id="comparable-directions">Comparable directions</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Proposal</th>
+<th>Composition</th>
+<th>Suitable use</th>
+<th>Tradeoff</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A · Calm/practical</td>
+<td>Inter hierarchy, quiet warm surfaces, strong dividers, one accent action, restrained imagery.</td>
+<td>Default administration: sources, access, guides, recovery.</td>
+<td>Less television personality; can look generic if content hierarchy is weak.</td>
+</tr>
+<tr>
+<td>B · Expressive/TV</td>
+<td>Same fields, controls and flows; limited Barlow display title, stronger section rule and accent marker, larger viewing artwork.</td>
+<td>Viewing, recordings, possibly setup.</td>
+<td>Longer Spanish titles occupy more height; avoid condensed type in fields and error text.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Both support coral/navy and lime-neutral accents. Compare <a href="admin-prototype.html?view=recordings&amp;direction=calm&amp;palette=coral&amp;theme=light">A</a> and <a href="admin-prototype.html?view=recordings&amp;direction=broadcast&amp;palette=lime&amp;theme=dark">B</a>. Change just Direction for a controlled typography comparison; change just Accent for a palette comparison. Recommended blend: A for task work, B only for viewing headings/art. This is a recommendation, not approval. No new product name or production logo.</p>
+<h2 id="foundations-and-component-contract">Foundations and component contract</h2>
+<ul>
+<li>Primitive → semantic → component tokens remain the implementation architecture. Use existing MUI theme/layout, PageHeader, StatusLine, ContentSection, ConfirmDialog and RowActionsMenu. Prototype CSS is disposable; no parallel frontend.</li>
+<li>Body 16/24–25; controls/data 14/20–22; secondary 12/18. Metadata 11 px is limited to review chrome, provenance and nonessential overlines. Essential help should be 14 px in final product. Titles 28–36 (A), limited 38–54 display (B); sentence case, no uppercase instructions.</li>
+<li>4 px spacing unit; field gaps 20–24; sections 24–32; desktop page gutters 32–48; phone 16. Controls 44 px minimum design target; 6–8 px corners. No decorative glow, nested cards, animated background video or chart ornament.</li>
+<li>Semantic roles: canvas, surface, subtle, primary/secondary text, divider/control boundary, accent/action text, selected, success/warning/error, focus. Accent never means online or safe. Status always carries text and, where helpful, an icon. Selected controls need programmatic state.</li>
+<li>Use 3 px visible focus with offset; check actual adjacent colors. Button/field boundary is separate from the decorative divider. Disabled state requires a reason where absence of permission/capability is relevant.</li>
+<li>Existing font assets retain OFL notices. A font migration awaits the decision log; application IBM Plex remains current until then.</li>
+</ul>
+<h2 id="layout-and-navigation">Layout and navigation</h2>
+<p>1440: 224 px navigation; flexible main with optional 280 px context rail. At 1150 the context rail moves below primary content; at 800 navigation becomes an inline demonstration menu (production drawer must trap/restore focus correctly). At 500 forms/actions stack; records become cards; no core action disappears. Verify 320/390/768/1440 plus zoom, long strings and on-screen keyboard. Review toolbar is not product UI; presentation captures hide it.</p>
+<p>Keep current URLs and query context. Preserve all nine compatibility redirects. Proposed labels: Channel sources / Fuentes de canales; Streams / Emisiones; TV channels / Canales de TV; Programme guide / Guía de programación; Connections / Conexiones. Explain a stream as a playable source, not a TV-channel synonym.</p>
+<p>Events moves from observed Manage to proposed Watch because its agenda is viewing content; source/provider tools remain contextual. Connections overview is an orientation layer; every current integration URL remains directly reachable. Do not mount all integration queries there. Navigation examples are not a proposal to remove routes missing a mockup.</p>
+<h2 id="editing-and-consequences">Editing and consequences</h2>
+<p>Preserve the newly merged availability, similar-name review, atomic Add and Link and offline-cleanup contracts in the <a href="current-source-delta.md.html">current-source delta</a>. Similar stream-to-TV hints are separate from guide matching; offline hiding is separate from deletion. The new shared TVChannelLinkField should be reused in manual/search flows.</p>
+<p>Save per coherent server transaction. No global Save across recording, scheduling, guide configuration and notifications unless an explicit API contract supports it. This avoids false atomicity and ambiguous partial success.</p>
+<p>Every section displays pristine, dirty, pending, saved, failed and stale states. Pristine/invalid/pending Save is disabled. Cancel restores that section's saved baseline. A failed save retains values. Internal dirty navigation offers Stay or Discard; language/theme changes retain draft values, selection, scroll/focus and media. Page unload uses supported native protection; no promise of draft recovery after a crash.</p>
+<p>Immediate exceptions remain explicit: favourite/number edits, service commands, discovery, copy, refresh, Stop watching. Number commits on Enter/blur and blank clears. Commands do not join a settings draft.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Required review / success wording</th>
+<th>Invariant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disable recordings</td>
+<td>“Stop N active recordings and cancel M schedules? Saved files remain.” / “¿Detener N grabaciones y cancelar M programaciones? Se conservan los archivos.” Show unknown counts honestly and recheck.</td>
+<td>Existing disable behavior preserved; persistence required for recording.</td>
+</tr>
+<tr>
+<td>Stop recording</td>
+<td>“Stop recording now? The captured part remains available if finalized successfully.” / “¿Detener ahora? La parte capturada estará disponible si finaliza correctamente.”</td>
+<td>Do not promise complete file or use Delete wording.</td>
+</tr>
+<tr>
+<td>Cancel schedule</td>
+<td>“This programme will not be recorded.” / “Este programa no se grabará.”</td>
+<td>Other schedules and saved files unchanged.</td>
+</tr>
+<tr>
+<td>Delete files</td>
+<td>Named programme, all saved parts, irreversible. Protected/active/held media rejected.</td>
+<td>Original and compatible files follow current deletion contract. No fake undo.</td>
+</tr>
+<tr>
+<td>Change permissions</td>
+<td>Warn that this account is signed out and its API credentials revoked.</td>
+<td>No broadening of access; remote control separate from casting.</td>
+</tr>
+<tr>
+<td>Remove source</td>
+<td>Count source-owned streams and assigned subset; retain TV channels; checkbox default remains current on. Explain unchecking retains streams.</td>
+<td>No silent destructive-default change. Orphan cleanup separately reviewed.</td>
+</tr>
+<tr>
+<td>Recovery fresh</td>
+<td>Back up DB/migration files, then replace catalogue and reconfigure catalogue settings. Accounts remain separate.</td>
+<td>No account reset or fail-open.</td>
+</tr>
+<tr>
+<td>Recovery readable</td>
+<td>Back up first; sources first; damaged rows can be skipped; listings/activity not copied.</td>
+<td>Do not imply all data can be recovered.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Prototype confirmation buttons only demonstrate copy/focus. Product must obtain current impact/capabilities before submission and handle races.</p>
+<h2 id="nine-composed-families-and-state-behavior">Nine composed families and state behavior</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Core decision / EN–ES copy</th>
+<th>State differences and implementation mapping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Recordings</td>
+<td>“Saved / Upcoming / History” · “Guardadas / Próximas / Historial”</td>
+<td>Saved requires ready playable files; partial shows missing intervals. Upcoming includes scheduled/active; History includes deleted/missed/cancelled. Settings shared, compatible copy preserves originals. Recordings/RecordingDialog/RecordingPlayback.</td>
+</tr>
+<tr>
+<td>Guide matching</td>
+<td>“Review matches” · “Revisar coincidencias”</td>
+<td>None selected initially. Source-qualified identity visible. Ambiguous row goes to review; unknown does not block watching. Changed preview clears authorization and needs re-review. EPG/useEPGMatching/guideSetupService.</td>
+</tr>
+<tr>
+<td>Accounts/access</td>
+<td>“Accounts and access” · “Cuentas y acceso”</td>
+<td>Not-enabled activation, admin/nonadmin, public viewing and IPTV separate. Permission change consequences precede Save. One-time secrets never in screenshots. AccessSettings/AccountSetup/accessService.</td>
+</tr>
+<tr>
+<td>Source setup</td>
+<td>“Add and find channels” / “Save source only” · “Añadir y buscar canales” / “Solo guardar fuente”</td>
+<td>Saving succeeds before queue/import. Failed import retains source and channels. Distinct queue/result/verified state. Shared SetupSources/Scraper service flow; type-specific fields need composed variants.</td>
+</tr>
+<tr>
+<td>Connections</td>
+<td>“Where would you like to watch?” · “¿Dónde quieres ver la TV?”</td>
+<td>Browser/TV/external player/media server remain different. Missing receiver: same-network help/manual entry; no fabricated browser pairing. Effective address single owner. Existing integration sections/services.</td>
+</tr>
+<tr>
+<td>System</td>
+<td>“What needs attention” · “Qué necesita atención”</td>
+<td>Checking outage independent of playback; never checker fallback. Waiting≠Running; exception count≠offline. Partial scan≠zero; free space per filesystem. SystemDashboard/storage/job services.</td>
+</tr>
+<tr>
+<td>Setup</td>
+<td>“Start with channels” · “Empieza por los canales”</td>
+<td>Guide optional, engine-free valid. Sources save as added; Finish only onboarding completion. Advanced runtime settings preserve deployment values/precedence. Setup/RuntimeSetup.</td>
+</tr>
+<tr>
+<td>Recovery</td>
+<td>“Retry startup” · “Reintentar inicio”</td>
+<td>Network/auth failure not database-empty. Safe retry before salvage/fresh. Masked diagnostics remain available under normal auth even without DB. StartupGate/startupService.</td>
+</tr>
+<tr>
+<td>Helper</td>
+<td>“Sample → Choose fields → Test and copy” · “Muestra → Elegir campos → Probar y copiar”</td>
+<td>No installation connection in standalone. Paired records, manual/JSON/regex and heavy-input paths preserved. Shared recipes entrypoints; never fetch active user URLs from mockup.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The prototype state menu shows only meaningful demonstration states. Loading has no fabricated percentage; empty differs from filtered-empty in implementation; permission errors cannot be solved by Retry. Unsaved and destructive variants are not attached to read-only system views. Each feature still needs unique pending/success/validation/failure details; generic state examples are not complete coverage.</p>
+<h2 id="localization-and-accessibility">Localization and accessibility</h2>
+<p>All app-owned text includes visible/accessible labels, controls, tooltips, errors, confirmations, dates, counts and library UI. Keep channel/programme/source names, user text, URLs, IDs, schema fields and raw logs original. Synthetic Northlight/Coastlines names intentionally remain unchanged in Spanish. Locale and IANA timezone are independent. Never reschedule a job/recording on language change.</p>
+<p>Use semantic resource keys and full messages in production, typed through the planned i18n foundation; the prototype's two-string helper is not that architecture. Avoid DOM translation or string matching of English errors. Spanish requires fluent contextual review, plural/zero/unknown tests and ~40% pseudo-localization expansion.</p>
+<p>Keep one main landmark, page h1, meaningful h2/h3 hierarchy, labelled fields with help/error association, polite status feedback and assertive error only where needed. Modal initial focus goes to safe action, Escape closes when permitted, focus returns to opener; no auto-submit or automatic destructive retry. Guide row labels include both identities. Desktop table relationships become named phone groups, not missing headers.</p>
+<p>Reduced motion removes animation; no auto-playing artwork. Real 200% text scaling and 400% reflow, VoiceOver/NVDA, virtualized-list navigation and real phone testing remain #324 obligations, not satisfied by viewport screenshots.</p>
+<h2 id="decision-log">Decision log</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Proposed choice</th>
+<th>Approval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product identity</td>
+<td>Keep AceStream Scraper.</td>
+<td>Existing requirement; no rebrand.</td>
+</tr>
+<tr>
+<td>Administration tone</td>
+<td>Calm A; optional expressive B on viewing pages.</td>
+<td>Review pending; user requested alternatives.</td>
+</tr>
+<tr>
+<td>Palette/fonts</td>
+<td>Compare coral/lime and Inter/limited Barlow against existing IBM Plex.</td>
+<td>Open.</td>
+</tr>
+<tr>
+<td>Source import intent</td>
+<td>Explicit Add and find vs Save only; same shared flow.</td>
+<td>Design recommendation; behavior review pending.</td>
+</tr>
+<tr>
+<td>Canonical editors</td>
+<td>Field ledger below; links preserve return context.</td>
+<td>Design review pending.</td>
+</tr>
+<tr>
+<td>Task scope</td>
+<td>Existing ten issues; no completion based on mockups.</td>
+<td>User requirement.</td>
+</tr>
+</tbody>
+</table></div>
+<p><a href="field-ledger.md.html">Field ledger</a> · <a href="coverage-review-03.md.html">Coverage</a> · <a href="task-refinements.md.html">Task refinements</a>.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

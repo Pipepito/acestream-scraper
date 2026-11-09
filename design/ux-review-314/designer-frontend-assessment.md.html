@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Designer frontend: coverage and reuse assessment · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="designer-frontend-coverage-and-reuse-assessment">Designer frontend: coverage and reuse assessment</h1>
+<blockquote>
+<p>Review 06 is the current design-only continuation: <a href="README.md.html">package</a>, <a href="before-after-map.md.html">simplified ownership</a>, <a href="shared-foundations-06.md.html">shared presets</a>, <a href="asset-selection-06.md.html">graphics</a> and <a href="verification-review-06.md.html">new evidence</a>. Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+Review 04 update (7 November 2026): <a href="coverage-review-04.md.html">expanded composed coverage</a>, <a href="workflow-specification.md.html">workflow fields/interactions</a>, <a href="verification-review-04.md.html">current verification</a> and <a href="task-refinements-04.md.html">task refinements</a> supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.</p>
+<p>Later visual follow-up: the owner requested richer visual resources after a read-only visit to the authenticated supplier reference and confirmed keeping three interfaces with a more immersive third. See the <a href="visual-resources-05.md.html">asset and composition brief</a>. This confirms a direction; final assets, implementation and acceptance remain outstanding.</p>
+</blockquote>
+<p>Reviewed 7 November 2026 for <a href="https://github.com/Pipepito/acestream-scraper/issues/314">epic #314</a>. This assessment adds evidence to the existing ten tasks; it does not add another implementation backlog or approve a rebrand.</p>
+<p>The owner explicitly requires the design to cover <strong>the entire app, including all administration</strong>. The <a href="whole-app-coverage.md.html">whole-app coverage and handoff contract</a> is the scope authority; missing supplier screens remain required design work.</p>
+<h2 id="recommendation">Recommendation</h2>
+<p>Review 03 narrows this recommendation: selectively adapt viewing/discovery patterns and source entry, rather than adopt the whole visual system. Implement them as components in the existing React/TypeScript/MUI application, using its current services, permissions and media lifecycle. The bundle is a useful working design reference, but it is not a complete replacement for this application's frontend.</p>
+<p>The visual language could be extended across the app. Replacing the application with the supplied code would leave recordings, guide management, playlists, accounts, most settings and integrations unimplemented, and would introduce a second backend contract.</p>
+<p>A <a href="images/12-coral-general-tv-study.png">coral/navy general-TV study</a> demonstrates one modest adaptation: the palette implemented by the designer, applied to our proposed viewing-first layout with general TV content and the application's existing name. It is a review option, not an accepted direction. The original lime proposal remains available for comparison.</p>
+<p><img alt="Coral/navy adapted to the general-TV concept" src="images/12-coral-general-tv-study.png" /></p>
+<h2 id="what-was-received-and-verified">What was received and verified</h2>
+<ul>
+<li>Archive: <code>sportzz-frontend.zip</code>, 193,765,939 bytes; 590 ZIP entries; 198,673,664 uncompressed bytes.</li>
+<li>SHA-256: <code>71347425454f9635c113f86618751fabe40e11ce26b2b54deb3dbecbe5dfaeb9</code>.</li>
+<li>Checked archive paths and entry types before extraction: no absolute/traversal paths or symlinks found. Extraction used bounded file and total sizes.</li>
+<li>Declared package version: <code>1.0.0</code>, private package. HTML, CSS, vanilla JavaScript, jQuery/legacy template plugins, bundled HLS library and media assets. No React source or mandatory bundler dependency tree is supplied.</li>
+<li>The original ZIP and extracted tree are preserved locally in the main checkout's already-ignored <code>downloads/design/</code> directory. The archive, original media masters and source tree were not bulk-imported into Git. The branch contains this assessment, reviewed screenshots and the separate general-TV prototype.</li>
+<li>No installation credentials were supplied to the package. Preview requests were intercepted and fulfilled with local assets or synthetic data; real network access and mutations were blocked. No stream or recording was started.</li>
+</ul>
+<p>The supplier's README and audit document are useful context, but their claims are not substitutes for the independent checks described here.</p>
+<h2 id="actual-coverage">Actual coverage</h2>
+<p><code>public/js/app-shell.js</code> defines five native view states: catalogue, categories, category detail, sources and dashboard. The channel/player dialog belongs to the catalogue. This is much narrower than the current application's route inventory.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>App capability</th>
+<th>What the bundle supplies</th>
+<th>Reuse / remaining work</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Viewer homepage</td>
+<td>Featured carousel, favourites, discovery rows and catalogue cards</td>
+<td>Strong visual reference. Adapt the emphasis and imagery to general TV and avoid promoting unknown availability as verified.</td>
+</tr>
+<tr>
+<td>Live TV</td>
+<td>Channel detail/player dialog and browser HLS client</td>
+<td>Reuse visual controls selectively. The existing app's embedded player/catalogue and session ownership must remain authoritative.</td>
+</tr>
+<tr>
+<td>Category browsing</td>
+<td>Category grid and category detail views with responsive images/video</td>
+<td>Useful discovery pattern; replace the sports-only taxonomy and generic sports fallbacks.</td>
+</tr>
+<tr>
+<td>Recordings</td>
+<td>No native recording library, scheduling or storage/retention editor</td>
+<td>Existing task #319 still owns the full recording UX and safety consequences.</td>
+</tr>
+<tr>
+<td>Channel sources</td>
+<td>URL + Add and extract; source list; individual/bulk extraction</td>
+<td>Reuse the one-primary-action flow. Current source types, recipes, queue handling and retention/delete semantics need the existing services.</td>
+</tr>
+<tr>
+<td>AceStream discovery search</td>
+<td>No equivalent; catalogue search filters already-loaded items</td>
+<td>Keep the application's separate discovery/search capability.</td>
+</tr>
+<tr>
+<td>Streams / TV channel management</td>
+<td>Viewer cards, stream selection/failover helpers and local favourites</td>
+<td>Not an editable inventory with numbering, server-owned favourites, atomic reorder, bulk management and guide assignments.</td>
+</tr>
+<tr>
+<td>Programme-guide setup</td>
+<td>No guide-source editor, reviewed matching/rules or XMLTV export UI</td>
+<td>Task #320 remains necessary. A programme guide is not the sports-category view.</td>
+</tr>
+<tr>
+<td>Events</td>
+<td>No equivalent event-source/mapping/agenda administration</td>
+<td>Do not mistake a featured sports channel for an imported event or schedule.</td>
+</tr>
+<tr>
+<td>Playlist / stream-link settings</td>
+<td>No equivalent complete editor/export flow</td>
+<td>Keep the shared format editor, query options, guide identities and tokens.</td>
+</tr>
+<tr>
+<td>Accounts, permissions and setup/recovery</td>
+<td>No included equivalent</td>
+<td>Preserve Settings → Access, startup gates and private-network HTTP support.</td>
+</tr>
+<tr>
+<td>Casting, remote players, media servers</td>
+<td>No native setup/control pages</td>
+<td>Existing integration tasks remain necessary; a browser player is not a casting/remote-control implementation.</td>
+</tr>
+<tr>
+<td>Public address / notifications / Telegram</td>
+<td>No equivalent complete settings</td>
+<td>Preserve canonical editors and their separate credentials/permissions.</td>
+</tr>
+<tr>
+<td>System status</td>
+<td>Read-only summary dashboard with backend-dependent service/stat data</td>
+<td>Reuse presentation ideas; no complete service controls, storage report, bounded diagnostics or job-history replacement.</td>
+</tr>
+<tr>
+<td>WARP, Settings and Changelog</td>
+<td>No native replacements</td>
+<td>The admin style overlay does not supply these views or their business logic.</td>
+</tr>
+<tr>
+<td>Extraction builder / standalone helper</td>
+<td>No equivalent</td>
+<td>Existing installed and standalone recipe flows still need their full UI/i18n migration.</td>
+</tr>
+<tr>
+<td>English and Spanish</td>
+<td>Spanish public UI; a separate admin phrase-replacement helper</td>
+<td>Copy/glossary input only. Not the typed, application-wide resource system specified in #317.</td>
+</tr>
+<tr>
+<td>Light and dark themes</td>
+<td>Implemented dark direction; admin overlay explicitly forces dark</td>
+<td>Build and verify a corresponding light theme through the application's semantic tokens.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="the-admin-files-are-not-the-full-application">The admin files are not the full application</h3>
+<p><code>admin.html</code> redirects back to the catalogue. The shell maps the old admin view to the dashboard, hides the admin iframe and relies on a separate scraper application/BFF for any embedded administration. <code>admin-theme.css</code> provides an overlay for another MUI app; it contains 215 <code>!important</code> overrides and forces a dark theme. That is styling glue, not the missing pages' implementation.</p>
+<h2 id="three-different-visual-directions-are-present">Three different visual directions are present</h2>
+<p><strong>Owner follow-up, 7 November 2026:</strong> implement all three as user-selectable interface designs, with full application coverage. This supersedes the earlier recommendation to choose one winner. See the <a href="task-refinements-04.md.html#implementation-scope-confirmed-by-the-owner">implementation scope</a>. The source/status inventory below remains historical evidence; cyan still requires production composition and validation during implementation.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Direction</th>
+<th>Status observed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Original supplied PDF</td>
+<td>Lime <code>#B6FF00</code>, near-black <code>#080B09</code>, charcoal <code>#171D19</code>, mist <code>#F5F7F3</code></td>
+<td>Base for our initial boards 02–06.</td>
+</tr>
+<tr>
+<td>Bundle's <code>docs/brand/SPORTZZ_BRAND_SYSTEM_v2.md</code></td>
+<td>“Signal Pitch”: cyan <code>#2EE6D6</code> with dark green-neutral surfaces</td>
+<td>Explicitly labelled a proposal; document says it is not applied to production CSS.</td>
+</tr>
+<tr>
+<td>Bundle's actual <code>public/css/sportzz-tokens.css</code> and rendered UI</td>
+<td>“Open Interval”: coral <code>#FF885C</code>, navy/ink <code>#151626</code>, paper <code>#FFF9F2</code>, lilac <code>#C7BBFF</code></td>
+<td>This is the implemented frontend appearance. Legacy variables named green point to coral.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Choose a final direction before freezing task #316's tokens and font matrix. The package is not evidence that the PDF's lime direction has already been accepted or rejected. The general-TV coral study is intended to make that choice easier.</p>
+<p>The bundle loads Inter and Barlow fonts, but its active display/body tokens both select Inter. The separate brand proposal still specifies a Barlow/Inter pairing. This discrepancy also belongs in the decision log.</p>
+<h2 id="reuse-map">Reuse map</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Material / pattern</th>
+<th>Recommendation</th>
+<th>Implementation owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Token roles, local fonts and spacing/focus conventions</td>
+<td>Use as input for typed MUI semantic tokens; resolve palette conflicts and preserve both themes. Do not carry legacy green-to-coral aliases into the new API.</td>
+<td>#316</td>
+</tr>
+<tr>
+<td>Catalogue cards, favourite affordance, responsive category artwork and drawer/search patterns</td>
+<td>Port selected structures into reusable React components; use channel logos/real programme data or clearly labelled generic artwork.</td>
+<td>#316, #319, #320</td>
+</tr>
+<tr>
+<td>Add URL and extract flow</td>
+<td>Reuse the clear primary action, while preserving optional save-only behavior and existing source/recipe semantics.</td>
+<td>#318, #321</td>
+</tr>
+<tr>
+<td>Progressive disclosure in channel details</td>
+<td>Reuse the separation between watching and technical identifiers; keep the existing recording/casting/remote-player actions available.</td>
+<td>#319</td>
+</tr>
+<tr>
+<td>Related-channel test intent</td>
+<td>Preserve the distinction between another channel and a mirror of the same channel. Adapt tests to the current TV-channel identity model.</td>
+<td>#319, #320</td>
+</tr>
+<tr>
+<td>Spanish phrase library</td>
+<td>Use reviewed wording as translation source material, converted into semantic resource keys with context.</td>
+<td>#317</td>
+</tr>
+<tr>
+<td>Raw DOM translation / MutationObserver</td>
+<td>Do not adopt as the i18n architecture. It rewrites rendered text, patches history and repeatedly walks DOM nodes, which is fragile around React and dynamic data.</td>
+<td>#317</td>
+</tr>
+<tr>
+<td>Admin CSS overlay</td>
+<td>Use selected visual examples only. Implement through supported MUI theme/component APIs instead of forced-dark global overrides.</td>
+<td>#316, #318</td>
+</tr>
+<tr>
+<td>BFF client, HLS session and frontend failover code</td>
+<td>Use as a reference for user-visible states, not as an alternate lifecycle in the app. Keep existing hooks/services, leases, heartbeats, source ownership and permissions.</td>
+<td>#319, #322</td>
+</tr>
+<tr>
+<td>Large image/video library</td>
+<td>Select a small, attributable subset if useful. Prefer responsive WebP, lazy loading and static fallbacks; background videos are optional and respect reduced motion.</td>
+<td>#316, #319, #323</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="why-the-backend-client-is-not-drop-in">Why the backend client is not drop-in</h3>
+<p>The package expects <code>/catalog-api/channels</code>, <code>/catalog-api/play</code>, <code>/catalog-api/player/:id</code>, <code>/catalog-api/admin/sources</code> and <code>/__sportzz-admin/*</code>. Its README explicitly says the required BFF/server is not included. The current app uses its established <code>/api/v1/*</code> contracts through typed services such as <code>playerService.ts</code> and <code>tvChannelService.ts</code>, plus current account/API-token and viewer-control behavior.</p>
+<p>A visual migration should continue through those existing services rather than adding a second BFF merely to preserve the exported UI code. In particular, do not weaken private/public address restrictions, move administrative tokens into new places, or replace the shared player lifecycle with the bundle's start/status/delete loop.</p>
+<p>Its favourites are stored locally by source identity. The current channel-management contract includes persisted TV-channel favourites. Reusing a star icon does not authorize changing the state scope or identity model.</p>
+<h3 id="general-tv-adaptation-is-required">General-TV adaptation is required</h3>
+<p>In the isolated preview, four explicit non-sports fixtures—news, culture, documentaries and entertainment—were grouped into “Otros” and presented with football imagery. The category resolver and asset fallback are sports-specific. Preserve the actual catalogue taxonomy and provide neutral or genre-appropriate fallbacks before using this across general TV.</p>
+<p>Sports artwork should not stand in for a current programme, recording thumbnail or verified live frame. The supplied desktop hero itself states that its illustration is not the broadcast; retain equally clear distinctions when applicable.</p>
+<h2 id="asset-footprint-and-provenance">Asset footprint and provenance</h2>
+<p>Measured uncompressed contents under <code>public/</code>; these are library sizes, <strong>not initial page-transfer measurements</strong>:</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Group</th>
+<th class="document-align-right">Files</th>
+<th class="document-align-right">Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sports PNG masters</td>
+<td class="document-align-right">48</td>
+<td class="document-align-right">127.89 MiB</td>
+</tr>
+<tr>
+<td>Optimized sports web assets</td>
+<td class="document-align-right">101</td>
+<td class="document-align-right">17.96 MiB</td>
+</tr>
+<tr>
+<td>Category image/video packs</td>
+<td class="document-align-right">123</td>
+<td class="document-align-right">37.30 MiB</td>
+</tr>
+<tr>
+<td>Legacy template images</td>
+<td class="document-align-right">236</td>
+<td class="document-align-right">1.20 MiB</td>
+</tr>
+<tr>
+<td>Fonts</td>
+<td class="document-align-right">18</td>
+<td class="document-align-right">2.20 MiB</td>
+</tr>
+<tr>
+<td>Brand assets</td>
+<td class="document-align-right">11</td>
+<td class="document-align-right">0.14 MiB</td>
+</tr>
+<tr>
+<td>Public code / other files</td>
+<td class="document-align-right">25</td>
+<td class="document-align-right">2.60 MiB</td>
+</tr>
+</tbody>
+</table></div>
+<p>Do not import all masters and template media into the application bundle. Identify the exact runtime assets selected by components and measure their delivery separately.</p>
+<p>Font OFL notices and category attribution JSON files are supplied. The README also identifies legacy BlockBuster template material and generated sports imagery. Confirm the applicable provenance/redistribution terms for any selected template or media assets before shipping them; the package's private flag is not a blanket license. The original brand SVG geometry is available, but a Sportzz rename/brand-mark adoption remains a separate product decision.</p>
+<h2 id="preview-evidence">Preview evidence</h2>
+<p>These screenshots are the supplied frontend with intercepted synthetic API responses. They are not screenshots of a connected installation. No real backend integration or playback was verified.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Screenshot</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="images/07-designer-home-desktop.png">Desktop catalogue</a></td>
+<td>Actual coral/navy styling, featured content and favourites.</td>
+</tr>
+<tr>
+<td><a href="images/08-designer-categories-desktop.png">Category discovery</a></td>
+<td>Sports categories and the “Otros” fallback for four non-sports fixtures.</td>
+</tr>
+<tr>
+<td><a href="images/09-designer-sources-desktop.png">Source management</a></td>
+<td>Simple add-and-extract flow and source table.</td>
+</tr>
+<tr>
+<td><a href="images/10-designer-dashboard-desktop.png">Dashboard without its BFF</a></td>
+<td>Honest backend-missing states and fixture-derived catalogue statistics.</td>
+</tr>
+<tr>
+<td><a href="images/11-designer-home-phone.png">Phone catalogue</a></td>
+<td>Actual responsive viewing/discovery layout at 390 px.</td>
+</tr>
+<tr>
+<td><a href="images/13-designer-player-dialog.png">Channel/player dialog</a></td>
+<td>Detail and playback-control presentation; no media session created.</td>
+</tr>
+</tbody>
+</table></div>
+<p><img alt="Supplied designer frontend, desktop catalogue" src="images/07-designer-home-desktop.png" /></p>
+<p><img alt="Supplied designer frontend, category discovery" src="images/08-designer-categories-desktop.png" /></p>
+<p><img alt="Supplied designer frontend, phone catalogue" src="images/11-designer-home-phone.png" /></p>
+<h2 id="verification-and-limits">Verification and limits</h2>
+<ul>
+<li><code>npm test --ignore-scripts</code> in the extracted package: all six supplied Node logic-test scripts passed (catalogue, categories, sources, shell views, TV failover and related channels); no dependency installation was needed. These are not six end-to-end integration journeys.</li>
+<li>Isolated browser captures inspected the catalogue, categories, sources, dashboard, channel/player dialog and phone catalogue, including 390/320 px. No uncaught script exceptions or horizontal document overflow were observed in the captured states. Fixtures deliberately omitted the BFF and blocked mutations/real network access.</li>
+<li>The local general-TV prototype was checked in 96 layout cases: three screens × two languages × two palettes × two themes × four widths (320/390/768/1440). No horizontal overflow or script exceptions were observed.</li>
+<li>No claims are made about real HLS playback, backend mutation correctness, account security, complete localization, accessibility conformance or load-time performance of the supplied package. Those require the actual implementation and application gates.</li>
+<li>The maintainer's explicit design/docs validation waiver applies to this reference-only branch. Future implementation still requires the repository's full validation set.</li>
+</ul>
+<h2 id="how-this-changes-the-ten-task-plan">How this changes the ten-task plan</h2>
+<ol>
+<li><strong>#316:</strong> add a designer-reference inventory and decide between the actual coral/navy direction and the original lime direction before token freeze; reconcile the unused cyan proposal. Build a general-TV component catalog, not a sports-only clone.</li>
+<li><strong>#317:</strong> harvest useful Spanish copy, but retain typed resources, locale-aware formatting, stable error codes and full coverage checks. Do not adopt DOM phrase replacement.</li>
+<li><strong>#318–#322:</strong> use the matching visual/flow references where they exist, and retain the full scopes for missing administrative and recording capabilities. The clear source-add action is particularly reusable in #321.</li>
+<li><strong>#323:</strong> budget only selected runtime assets; exclude the 127.89 MiB masters from shipping and avoid carrying unused jQuery/template/HLS copies into the React bundle.</li>
+<li><strong>#324:</strong> compare implemented screens with the chosen direction and validate existing application behavior, rather than using the supplier's six logic scripts as product-completion evidence.</li>
+</ol>
+<p>No additional issues are required to incorporate this reference. No runtime replacement, deployment, PR or merge has been performed as part of the review.</p>
+<h2 id="review-03-critical-reassessment">Review 03 critical reassessment</h2>
+<p>Fresh source inspection confirms five native views, the admin redirect/hidden iframe, forced-dark overrides and DOM phrase replacement. Six supplied logic scripts and seven fully intercepted synthetic preview states were rerun successfully. This remains no evidence of a complete backend, playback lifecycle, light theme or full administration.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Revised recommendation</th>
+<th>Reason / required adaptation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Featured hero/carousel</td>
+<td>Optional viewing experiment, not default app shell</td>
+<td>Real programme imagery is not reliably available. Avoid synthetic artwork that implies real footage or recommendations. Keep ordinary channel access faster than the hero.</td>
+</tr>
+<tr>
+<td>Sports category grid</td>
+<td>Do not reuse taxonomy as the general-TV model</td>
+<td>The fresh fixture preview still relegates news/culture/nature/family to generic treatment. Use available catalogue categories and honest no-artwork fallbacks.</td>
+</tr>
+<tr>
+<td>Source URL + primary action</td>
+<td>Adapt task hierarchy, not coupled wording</td>
+<td>Current app has save-only, registry providers, recipes, queues and reviewed catalogue imports. Explain save→queue→result and retain controls; one-click extract is not universal.</td>
+</tr>
+<tr>
+<td>Channel detail disclosure</td>
+<td>Reuse anatomy selectively</td>
+<td>Main Watch action, then technical identity/source detail. Existing player, recording and Cast ownership remains authoritative.</td>
+</tr>
+<tr>
+<td>Coral/navy, lime reference and unused cyan</td>
+<td>Compare, do not inherit approval</td>
+<td>Accent and typography must pass administration states as well as a catalogue hero. Review 03 supplies controlled calm/expressive alternatives.</td>
+</tr>
+<tr>
+<td>Admin theme overlay</td>
+<td>Reject as implementation strategy</td>
+<td>Forced dark and 215 important overrides bypass semantic tokens and provide no missing forms.</td>
+</tr>
+<tr>
+<td>Phrase translation helper</td>
+<td>Copy research only</td>
+<td>Text replacement cannot safely distinguish user/programme data, enum values, accessible names, dynamic errors or React state.</td>
+</tr>
+<tr>
+<td>Media library / legacy plugins</td>
+<td>Select only needed licensed assets</td>
+<td>Preview success does not establish provenance or delivery efficiency. Avoid background video, duplicated HLS/jQuery and original masters.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The previous recommendation to “reuse the visual system” was too broad. Existing MUI/theme/typed-service foundations are better suited to this product; supplier patterns are inputs for those components. See <a href="fresh-audit.md.html">fresh audit</a>, <a href="design-specification.md.html">design specification</a> and <a href="admin-prototype.html">new mockups</a>. The archive and media masters remain outside Git.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

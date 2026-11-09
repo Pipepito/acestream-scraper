@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>frontend/src/components/recordings/RecordingSettingsFields.tsx · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1>Source snapshot</h1><p><code>frontend/src/components/recordings/RecordingSettingsFields.tsx</code></p><p>Read-only design-source reference. This file is displayed as text and is never executed.</p><pre tabindex="0" aria-label="Source code"><code><span id="L1">import React, { useState } from &#x27;react&#x27;;</span>
+<span id="L2">import { Alert, Button, Checkbox, FormControlLabel, LinearProgress, Stack, TextField, Typography } from &#x27;@mui/material&#x27;;</span>
+<span id="L3">import { useMutation, useQuery, useQueryClient } from &#x27;@tanstack/react-query&#x27;;</span>
+<span id="L4">import { recordingService, type RecordingSettings } from &#x27;../../services/recordingService&#x27;;</span>
+<span id="L5">import { getErrorMessage } from &#x27;../../utils/errorUtils&#x27;;</span>
+<span id="L6">const Editor: React.FC&lt;{ initial: RecordingSettings }&gt; = ({ initial }) =&gt; {</span>
+<span id="L7">  const [value, setValue] = useState(initial);</span>
+<span id="L8">  const queries = useQueryClient();</span>
+<span id="L9">  const save = useMutation({ mutationFn: () =&gt; recordingService.configure(value), onSuccess: () =&gt; { void queries.invalidateQueries({ queryKey: [&#x27;recordings&#x27;] }); } });</span>
+<span id="L10">  return &lt;Stack spacing={2}&gt;</span>
+<span id="L11">    &lt;FormControlLabel control={&lt;Checkbox checked={value.enabled} onChange={(_, enabled) =&gt; setValue({ ...value, enabled })} /&gt;} label=&quot;Enable recordings&quot; /&gt;</span>
+<span id="L12">    &lt;Typography variant=&quot;body2&quot;&gt;Configure RECORDINGS_DIR on the server to an existing persistent directory. Disabling stops active recordings and cancels future recordings; saved files remain.&lt;/Typography&gt;</span>
+<span id="L13">    &lt;TextField label=&quot;Simultaneous recordings&quot; type=&quot;number&quot; inputProps={{ min: 1, max: 4 }} value={value.max_concurrent} onChange={(e) =&gt; setValue({ ...value, max_concurrent: Number(e.target.value) })} /&gt;</span>
+<span id="L14">    &lt;TextField label=&quot;Keep free (GiB)&quot; type=&quot;number&quot; value={(value.min_free_bytes ?? 2147483648)/1024**3} onChange={(e) =&gt; setValue({ ...value, min_free_bytes: Math.round(Number(e.target.value)*1024**3) })} /&gt;</span>
+<span id="L15">    &lt;TextField label=&quot;Maximum size per recording (GiB)&quot; type=&quot;number&quot; value={(value.max_recording_bytes ?? 107374182400)/1024**3} onChange={(e) =&gt; setValue({ ...value, max_recording_bytes: Math.round(Number(e.target.value)*1024**3) })} /&gt;</span>
+<span id="L16">    &lt;FormControlLabel control={&lt;Checkbox checked={value.retention_days != null} onChange={(_, enabled) =&gt; setValue({ ...value, retention_days: enabled ? 30 : undefined })} /&gt;} label=&quot;Automatically delete old, unprotected recordings&quot; /&gt;</span>
+<span id="L17">    {value.retention_days != null ? &lt;TextField label=&quot;Delete after (days)&quot; type=&quot;number&quot; inputProps={{ min: 1 }} value={value.retention_days} onChange={(e) =&gt; setValue({ ...value, retention_days: Number(e.target.value) })} /&gt; : &lt;Typography variant=&quot;body2&quot;&gt;Keep all recordings until you delete them. Low storage stops recording.&lt;/Typography&gt;}</span>
+<span id="L18">    {save.isError ? &lt;Alert severity=&quot;error&quot;&gt;{getErrorMessage(save.error)}&lt;/Alert&gt; : null}</span>
+<span id="L19">    {save.isSuccess ? &lt;Alert severity=&quot;success&quot;&gt;Recording settings saved.&lt;/Alert&gt; : null}</span>
+<span id="L20">    &lt;Button variant=&quot;contained&quot; onClick={() =&gt; save.mutate()} disabled={save.isPending}&gt;Save recording settings&lt;/Button&gt;</span>
+<span id="L21">  &lt;/Stack&gt;;</span>
+<span id="L22">};</span>
+<span id="L23">const RecordingSettingsFields: React.FC = () =&gt; {</span>
+<span id="L24">  const query = useQuery({ queryKey: [&#x27;recordings&#x27;, &#x27;settings&#x27;], queryFn: recordingService.settings });</span>
+<span id="L25">  if (query.isLoading) return &lt;LinearProgress aria-label=&quot;Loading recording settings&quot; /&gt;;</span>
+<span id="L26">  if (query.isError || !query.data) return &lt;Alert severity=&quot;error&quot;&gt;Unable to load recording settings.&lt;/Alert&gt;;</span>
+<span id="L27">  return &lt;Editor initial={query.data} /&gt;;</span>
+<span id="L28">};</span>
+<span id="L29">export default RecordingSettingsFields;</span></code></pre>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

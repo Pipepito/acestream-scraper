@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Whole-app composed coverage · review 04 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="whole-app-composed-coverage--review-04">Whole-app composed coverage · review 04</h1>
+<blockquote>
+<p>Review 06 is the current design-only continuation: <a href="README.md.html">package</a>, <a href="before-after-map.md.html">simplified ownership</a>, <a href="shared-foundations-06.md.html">shared presets</a>, <a href="asset-selection-06.md.html">graphics</a> and <a href="verification-review-06.md.html">new evidence</a>. Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+<strong>Owner follow-up:</strong> the composed workflow baseline now feeds implementation of three selectable interfaces and supporting backend fixes. See <a href="task-refinements-04.md.html#implementation-scope-confirmed-by-the-owner">confirmed scope</a>. This matrix describes composed workflow coverage; it does not claim the new selector or a fully rendered cyan variant already exists. Complete those within #316/#318 and the feature implementation tasks, with all-three acceptance in #324.</p>
+</blockquote>
+<p>7 November 2026. The design branch started at <code>c545de3b58ccac03686add849289ccf944a9b6cc</code>. Current remote source was rechecked at develop <code>cf952afc6b4489c02b7a675ff3d634cc13d98e0b</code>, main <code>7fe2a4c54f5fdd96660eb316df17f49f63710617</code>; no newer application delta was found during reconciliation. Source was inspected separately using that git object. No application merge or runtime change was made. The live installation's exact commit remains unknown; it was not queried or mutated in this pass.</p>
+<p>The remaining design compositions are now provided as <strong>144 unique workflow canvases</strong>, <strong>473 field occurrences / 402 distinct field keys</strong>, <strong>288 synthetic desktop/phone exports</strong>, and an interactive state/locale/theme/direction model. A field key can be repeated where a shared editor is composed in a different workflow. These counts describe authored coverage, not 144 new routes or 402 API properties. All 47 runtime metadata options remain represented. The separate 1,352-field generated schema appendix includes responses/transport fields and does not inflate visual coverage.</p>
+<p>Start at the <a href="workflow-gallery.html">expanded gallery</a>, <a href="workflow-prototype.html?screen=dashboard">workflow prototype</a>, <a href="workflow-specification.md.html">field and interaction specification</a>, <a href="interaction-contracts.md.html">interaction contracts</a> and <a href="traceability-matrix.md.html">traceability matrix</a>. The <a href="source-control-map.md.html">current control-module map</a> maps 95 input/dialog/route-bearing TSX modules to composed uses. It is an aid to the authored source review, not a claim that regex proves all UI coverage.</p>
+<p>Status for every row: <strong>composed proposal; author-render verification recorded separately; user approval pending; implementation pending</strong>. Historical review-03 “composition pending” cells are superseded by this table, not erased. No task is complete because of this design work.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Existing surface</th>
+<th>Completed unique compositions</th>
+<th>Remaining acceptance owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R01 dashboard</td>
+<td><a href="workflow-prototype.html?screen=dashboard">Home/first-use/partial data</a>, <a href="workflow-prototype.html?screen=dashboard-events">event preferences</a>, <a href="workflow-prototype.html?screen=viewer">viewer-capability shell</a></td>
+<td>#319; #317/#324</td>
+</tr>
+<tr>
+<td>R02 Live TV</td>
+<td><a href="workflow-prototype.html?screen=live">Online-only catalogue and persistent player</a>, <a href="workflow-prototype.html?screen=player-tracks">tracks/source</a>, <a href="workflow-prototype.html?screen=player-picker">picker</a>, <a href="workflow-prototype.html?screen=player-sessions">session ownership</a>; unavailable/stalled/refresh states</td>
+<td>#319</td>
+</tr>
+<tr>
+<td>R03 recordings</td>
+<td><a href="workflow-prototype.html?screen=recordings">Inventory</a>, <a href="workflow-prototype.html?screen=recording-schedule">schedule</a>, <a href="workflow-prototype.html?screen=recording-dst">DST</a>, now, active/recovery, parts, copy, settings, storage, cancel/delete/disable; all consequences distinct</td>
+<td>#319; crash #315</td>
+</tr>
+<tr>
+<td>R04 events</td>
+<td><a href="workflow-prototype.html?screen=events">Agenda</a>, provider, manual/URL/JSON import, reviewed selection, detail, correction, source administration, <a href="workflow-prototype.html?screen=event-broadcasters">broadcaster links</a>, mapping and guide overlay</td>
+<td>#319</td>
+</tr>
+<tr>
+<td>R05 streams</td>
+<td><a href="workflow-prototype.html?screen=streams">Inventory</a>, edit/manual add, stats and network-vs-signal, <a href="workflow-prototype.html?screen=channel-activity">activity</a>, bulk selection/deletion, <a href="workflow-prototype.html?screen=stream-bulk-fields">metadata/TV-property boundary</a>, assignment</td>
+<td>#320; bulk source risk #315</td>
+</tr>
+<tr>
+<td>R06 TV channels</td>
+<td><a href="workflow-prototype.html?screen=channels">Full filters</a>, <a href="workflow-prototype.html?screen=channel-inline">number/favorite</a>, create/edit, <a href="workflow-prototype.html?screen=channel-reorder">full reorder</a>, stale conflict, delete and optional similar-name review</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R07 TV detail</td>
+<td><a href="workflow-prototype.html?screen=channel-detail">Detail</a>, <a href="workflow-prototype.html?screen=channel-preferences">source preferences</a>, links to guide/activity/player, absent/unknown states</td>
+<td>#320/#319</td>
+</tr>
+<tr>
+<td>R08 sources</td>
+<td><a href="workflow-prototype.html?screen=source-web">Web</a>, auto, ZeroNet, IPFS, provider, saved/result/remove/orphans; W3U preview/save/detail/folder; saved searches/preview and exclusions</td>
+<td>#321</td>
+</tr>
+<tr>
+<td>R09 builder</td>
+<td><a href="workflow-prototype.html?screen=helper-installed">Installed</a>, standalone, HTML, JSON, regex, manual raw selection, large-sample fallback and results/apply</td>
+<td>#321</td>
+</tr>
+<tr>
+<td>R10 search</td>
+<td><a href="workflow-prototype.html?screen=search">Discovery search</a>, source-name/ID resolution, <a href="workflow-prototype.html?screen=search-add-link">atomic Add and Link</a>, duplicate/excluded/unavailable states</td>
+<td>#321/#320</td>
+</tr>
+<tr>
+<td>R11 guide</td>
+<td><a href="workflow-prototype.html?screen=guide-sources">Sources</a>, editor, <a href="workflow-prototype.html?screen=guide-inventory">inventory/day</a>, reviewed matching, ambiguous source-qualified choice, rules, exact automation, export and coverage</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R12 guide detail</td>
+<td><a href="workflow-prototype.html?screen=guide-detail">Source-qualified detail</a>, schedule, rule and TV creation context</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R13 playlist</td>
+<td><a href="workflow-prototype.html?screen=playlist">Filters/export/address/credential context</a>, <a href="workflow-prototype.html?screen=formats">shared formats</a>, format editor/delete, independent PID/AppID</td>
+<td>#320</td>
+</tr>
+<tr>
+<td>R14 public address</td>
+<td><a href="workflow-prototype.html?screen=public-address">Effective/saved/runtime address</a>, clear/validation/proxy-prefix states</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R15 browser player</td>
+<td><a href="workflow-prototype.html?screen=browser-player">Capability/configuration entry</a>, routing links, picker, sessions, audio/subtitles and unavailable cases</td>
+<td>#322/#319</td>
+</tr>
+<tr>
+<td>R16 casting</td>
+<td><a href="workflow-prototype.html?screen=casting">Inventory and bounded discovery</a>, <a href="workflow-prototype.html?screen=casting-settings">settings</a>, explicit trust and owned-media controls; no invented manual Cast editor</td>
+<td>#322/#318</td>
+</tr>
+<tr>
+<td>R17 remote players</td>
+<td><a href="workflow-prototype.html?screen=remote-player">Per-player editor</a>, bounded scan, <a href="workflow-prototype.html?screen=remote-android">Android pairing</a>, control, changed-host/auth/unsupported handoff states</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R18 media servers</td>
+<td><a href="workflow-prototype.html?screen=media-server">Jellyfin/Plex editor and individual actions</a>, <a href="workflow-prototype.html?screen=tuner">full tuner editor</a>, publication/denial/compatibility states</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R19 Telegram</td>
+<td><a href="workflow-prototype.html?screen=telegram-auth">Authorization</a>, code/2FA, <a href="workflow-prototype.html?screen=telegram-source">source filters/history</a>; <a href="workflow-prototype.html?screen=notifications">notifications</a> separate</td>
+<td>#322/#321</td>
+</tr>
+<tr>
+<td>R20 system</td>
+<td><a href="workflow-prototype.html?screen=system">System summary</a>, service control, full job history/detail, <a href="workflow-prototype.html?screen=storage">storage</a>, logs/diagnostic scope/download</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R21 WARP</td>
+<td><a href="workflow-prototype.html?screen=warp">Status/mode/licence</a>, connect/disconnect, exclusions/conflict/partial apply, startup saved/applied distinctions</td>
+<td>#322</td>
+</tr>
+<tr>
+<td>R22 settings</td>
+<td><a href="workflow-prototype.html?screen=settings">Section index/deep links</a>, playback, automation, intervals, checker/scope, anchors, offline cleanup, network, access and shared formats/recordings</td>
+<td>#318 with feature owners</td>
+</tr>
+<tr>
+<td>R23 setup</td>
+<td><a href="workflow-prototype.html?screen=setup">Setup</a>, first source and optional guide handoffs, all six runtime groups containing the 47 actual options, finish/postpone</td>
+<td>#318</td>
+</tr>
+<tr>
+<td>R24 changelog</td>
+<td><a href="workflow-prototype.html?screen=changelog">Bundled original-language history</a>, translated chrome and notices, no release claim</td>
+<td>#322/#317</td>
+</tr>
+<tr>
+<td>R25 catch-all</td>
+<td><a href="workflow-prototype.html?screen=not-found">404 and compatibility route context</a>, useful safe exits</td>
+<td>#318</td>
+</tr>
+<tr>
+<td>S15 access gate</td>
+<td>Activation/open/accounts, login, account create/edit/disable, policy, password, sessions, one-time credentials, expiry/denial, transport and last-admin guards</td>
+<td>#318</td>
+</tr>
+<tr>
+<td>S16 startup gate</td>
+<td><a href="workflow-prototype.html?screen=startup">Loading/migration/failure</a>, recovery entry, readable recovery, fresh catalogue, results/omissions; independent accounts explicitly retained</td>
+<td>#318/#322</td>
+</tr>
+<tr>
+<td>S17 standalone helper</td>
+<td><a href="workflow-prototype.html?screen=helper-standalone">Local sample/upload/catalogue/paste</a>, all field modes, bounded preview/manual fallback, copy/download; no installed Save in standalone context</td>
+<td>#321</td>
+</tr>
+<tr>
+<td>S18 shared shell</td>
+<td><a href="workflow-prototype.html?screen=settings">Phone modal drawer</a>, <a href="workflow-prototype.html?screen=preferences">preferences/storage failure</a>, notices, dirty navigation, labelled confirmation/dialog families and focus return</td>
+<td>#318/#317/#324</td>
+</tr>
+</tbody>
+</table></div>
+<p>S01–S14 setting/editor responsibilities are included in their owning R rows and the per-field specification. Reuse means the same transaction and editor, not a new independent copy of settings logic. All actual current routes remain accessible; composition IDs are review identifiers only.</p>
+<h2 id="corrections-and-newly-discovered-risk">Corrections and newly discovered risk</h2>
+<ol>
+<li><strong>No manual Google Cast editor exists in current source.</strong> The earlier Connections mockup incorrectly offered one. It is corrected to point to actual remote-player setup; historical image 18 still records the old concept and is labelled accordingly. Normal home accounts/Cast never require browser pairing. VLC Android pairing is a real and separate workflow.</li>
+<li><strong>Telegram has its own transport/header constraint.</strong> Do not copy normal private-HTTP account rules into authorization of the Telegram session.</li>
+<li><strong>Bulk stream edit source mismatch — new, not live-reproduced.</strong> <code>BulkOperations.tsx</code> exposes category/country/language and loops per selected row. <code>AcestreamChannels.tsx</code> passes the complete selected ID list to the batch endpoint on each callback. <code>AcestreamChannelUpdate</code> declares none of those three fields; the endpoint uses its validated <code>model_dump</code>. This is strong source evidence for ineffective metadata edits and repeated batch requests, not a claim of observed installation corruption. See <a href="source-findings-04.md.html">source finding F15</a>. Keep TV-channel properties with their canonical owner; verify request count and result truthfulness in #315/#320.</li>
+<li><strong>Machine values corrected during composition:</strong> guide strictness <code>balanced</code>; exclusion <code>name_equals</code>/<code>stream_id_equals</code>; W3U All/Favorites/Recent and save-only; event provider <code>wosti_es</code>, input <code>schema_org</code>, state <code>postponed</code>; full currently offered WARP modes; export offset-to-<code>days_back</code> conversion. These are design corrections, not application fixes.</li>
+<li><strong>Separate save boundaries are visible.</strong> WARP mode/licence, individual scheduler intervals, PID/AppID and cleanup policy/anchors no longer appear as an atomic operation. Proposed staged saves still require review where source currently saves immediately.</li>
+</ol>
+<p>The previous recording crash, contrast failures, phone clipping and unnamed guide sliders remain unresolved application findings. Performance slowdown remains unproven. No synthetic screenshot changes their status.</p>
+<h2 id="what-remains">What remains</h2>
+<p>There is no intentionally uncomposed workflow left in the recorded route/dialog/field scope. “Complete composed package” does not mean accepted product handoff: owner decisions, fluent Spanish review, participant research, real assistive technology/devices, live media/security integration and implementation are still open. Exact verification limits and task-owned protocols are in <a href="verification-review-04.md.html">verification</a> and <a href="acceptance-protocols.md.html">acceptance</a>. If implementation discovers a source control missing from this map, extend the owning existing task and this ledger; do not silently drop it or create a new backlog by default.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

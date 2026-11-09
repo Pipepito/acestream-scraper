@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>frontend/src/components/recordings/RecordingDialog.tsx · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1>Source snapshot</h1><p><code>frontend/src/components/recordings/RecordingDialog.tsx</code></p><p>Read-only design-source reference. This file is displayed as text and is never executed.</p><pre tabindex="0" aria-label="Source code"><code><span id="L1">import React, { useMemo, useState } from &#x27;react&#x27;;</span>
+<span id="L2">import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from &#x27;@mui/material&#x27;;</span>
+<span id="L3">import { useMutation, useQueryClient } from &#x27;@tanstack/react-query&#x27;;</span>
+<span id="L4">import { recordingService, type Recording, type RecordingCreate } from &#x27;../../services/recordingService&#x27;;</span>
+<span id="L5">import type { EPGProgram } from &#x27;../../services/epgService&#x27;;</span>
+<span id="L6">import { localRecordingTime, recordingTimeChoices } from &#x27;../../utils/recordingTimes&#x27;;</span>
+<span id="L7">import { getErrorMessage } from &#x27;../../utils/errorUtils&#x27;;</span>
+<span id="L8"></span>
+<span id="L9">interface Props { channelId: number; channelName: string; programme?: EPGProgram; recording?: Recording; onClose: () =&gt; void; onSaved?: () =&gt; void }</span>
+<span id="L10">const RecordingDialog: React.FC&lt;Props&gt; = ({ channelId, channelName, programme, recording, onClose, onSaved }) =&gt; {</span>
+<span id="L11">  const initialZone = recording?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;</span>
+<span id="L12">  const [adjustTimes, setAdjustTimes] = useState(!programme || Boolean(recording));</span>
+<span id="L13">  const [startEdited, setStartEdited] = useState(false);</span>
+<span id="L14">  const [endEdited, setEndEdited] = useState(false);</span>
+<span id="L15">  const [zone, setZone] = useState(initialZone);</span>
+<span id="L16">  const [start, setStart] = useState(() =&gt; localRecordingTime(new Date(recording?.start_time ?? programme?.start_time ?? Date.now()), initialZone));</span>
+<span id="L17">  const [end, setEnd] = useState(() =&gt; localRecordingTime(new Date(recording?.end_time ?? programme?.end_time ?? Date.now() + 3600_000), initialZone));</span>
+<span id="L18">  const [startChoice, setStartChoice] = useState(&#x27;&#x27;);</span>
+<span id="L19">  const [endChoice, setEndChoice] = useState(&#x27;&#x27;);</span>
+<span id="L20">  const [requestStart] = useState(() =&gt; new Date().toISOString());</span>
+<span id="L21">  const [key] = useState(() =&gt; crypto.randomUUID());</span>
+<span id="L22">  const starts = useMemo(() =&gt; recordingTimeChoices(start, zone), [start, zone]);</span>
+<span id="L23">  const ends = useMemo(() =&gt; recordingTimeChoices(end, zone), [end, zone]);</span>
+<span id="L24">  const originalStart = recording?.start_time ?? programme?.start_time;</span>
+<span id="L25">  const originalEnd = recording?.end_time ?? programme?.end_time;</span>
+<span id="L26">  const startInstant = !startEdited &amp;&amp; originalStart ? new Date(originalStart).toISOString() : starts.length === 1 ? starts[0] : starts.includes(startChoice) ? startChoice : &#x27;&#x27;;</span>
+<span id="L27">  const endInstant = !endEdited &amp;&amp; originalEnd ? new Date(originalEnd).toISOString() : ends.length === 1 ? ends[0] : ends.includes(endChoice) ? endChoice : &#x27;&#x27;;</span>
+<span id="L28">  const active = recording &amp;&amp; recording.state !== &#x27;scheduled&#x27;;</span>
+<span id="L29">  const now = !recording &amp;&amp; (!programme || Date.parse(programme.start_time) &lt;= Date.now());</span>
+<span id="L30">  const queries = useQueryClient();</span>
+<span id="L31">  const save = useMutation({ mutationFn: async () =&gt; {</span>
+<span id="L32">    if (recording) return recordingService.edit(recording.id, { expected_revision: recording.revision, ...(!active ? { start_time: startInstant } : {}), end_time: endInstant });</span>
+<span id="L33">    const selection: RecordingCreate[&#x27;programme&#x27;] = programme ? { id: programme.id, epg_channel_id: programme.epg_channel_id, title: programme.title,</span>
+<span id="L34">      start_time: programme.start_time, end_time: programme.end_time, subtitle: programme.subtitle, description: programme.description, category: programme.category } : undefined;</span>
+<span id="L35">    return recordingService.create({ tv_channel_id: channelId, mode: now ? &#x27;now&#x27; : &#x27;schedule&#x27;, start_time: now ? requestStart : startInstant,</span>
+<span id="L36">      end_time: endInstant, timezone: zone, idempotency_key: key, programme: selection });</span>
+<span id="L37">  }, onSuccess: () =&gt; { void queries.invalidateQueries({ queryKey: [&#x27;recordings&#x27;] }); onSaved?.(); onClose(); } });</span>
+<span id="L38">  const minutes = endInstant &amp;&amp; (startInstant || now) ? Math.round((Date.parse(endInstant) - (now ? Date.now() : Date.parse(startInstant))) / 60000) : 0;</span>
+<span id="L39">  return &lt;Dialog open onClose={save.isPending ? undefined : onClose} fullWidth maxWidth=&quot;sm&quot; aria-labelledby=&quot;recording-title&quot;&gt;</span>
+<span id="L40">    &lt;DialogTitle id=&quot;recording-title&quot;&gt;{recording ? &#x27;Edit recording&#x27; : now ? &#x27;Record now&#x27; : &#x27;Schedule recording&#x27;}&lt;/DialogTitle&gt;</span>
+<span id="L41">    &lt;DialogContent&gt;&lt;Stack spacing={2} sx={{ pt: 1 }}&gt;</span>
+<span id="L42">      &lt;Typography fontWeight={600}&gt;{programme?.title ?? recording?.snapshot.title ?? channelName}&lt;/Typography&gt;</span>
+<span id="L43">      &lt;Typography color=&quot;text.secondary&quot;&gt;{channelName} · Uses the channel’s available streams, which may differ from the stream you’re watching.&lt;/Typography&gt;</span>
+<span id="L44">      {programme ? &lt;&gt;</span>
+<span id="L45">        &lt;Typography&gt;Programme: {new Date(programme.start_time).toLocaleString()} – {new Date(programme.end_time).toLocaleString()} · {initialZone}&lt;/Typography&gt;</span>
+<span id="L46">        {now ? &lt;Typography&gt;Recording starts now and stops at the selected end time.&lt;/Typography&gt; : null}</span>
+<span id="L47">        &lt;Button aria-expanded={adjustTimes} onClick={() =&gt; setAdjustTimes(value =&gt; !value)}&gt;{adjustTimes ? &#x27;Hide time controls&#x27; : &#x27;Adjust recording times&#x27;}&lt;/Button&gt;</span>
+<span id="L48">      &lt;/&gt; : null}</span>
+<span id="L49">      {adjustTimes ? &lt;&gt;</span>
+<span id="L50">      &lt;TextField label=&quot;Timezone&quot; value={zone} onChange={(e) =&gt; { setZone(e.target.value); setStartEdited(true); setEndEdited(true); }} disabled={Boolean(recording)} /&gt;</span>
+<span id="L51">      &lt;TextField label=&quot;Start&quot; type=&quot;datetime-local&quot; value={start} InputLabelProps={{ shrink: true }} disabled={Boolean(active || now)} onChange={(e) =&gt; { setStart(e.target.value); setStartEdited(true); }} /&gt;</span>
+<span id="L52">      {!now &amp;&amp; (startEdited || !originalStart) &amp;&amp; starts.length &gt; 1 ? &lt;TextField select label=&quot;Start occurs twice — choose an instant&quot; value={startChoice} onChange={(e) =&gt; setStartChoice(e.target.value)}&gt;{starts.map((value) =&gt; &lt;MenuItem key={value} value={value}&gt;{value} (UTC)&lt;/MenuItem&gt;)}&lt;/TextField&gt; : null}</span>
+<span id="L53">      &lt;TextField label=&quot;End&quot; type=&quot;datetime-local&quot; value={end} InputLabelProps={{ shrink: true }} onChange={(e) =&gt; { setEnd(e.target.value); setEndEdited(true); }} /&gt;</span>
+<span id="L54">      {(endEdited || !originalEnd) &amp;&amp; ends.length &gt; 1 ? &lt;TextField select label=&quot;End occurs twice — choose an instant&quot; value={endChoice} onChange={(e) =&gt; setEndChoice(e.target.value)}&gt;{ends.map((value) =&gt; &lt;MenuItem key={value} value={value}&gt;{value} (UTC)&lt;/MenuItem&gt;)}&lt;/TextField&gt; : null}</span>
+<span id="L55">      {!ends.length || (!now &amp;&amp; !starts.length) ? &lt;Alert severity=&quot;warning&quot;&gt;This time does not exist in the chosen timezone, or the timezone is invalid.&lt;/Alert&gt; : null}</span>
+<span id="L56">      &lt;/&gt; : null}</span>
+<span id="L57">      {minutes &gt; 0 ? &lt;Typography variant=&quot;body2&quot;&gt;{minutes} minutes · Estimated {((minutes * 60 * 3_000_000) / 1024**3).toFixed(1)} GiB with headroom. Actual size depends on the stream.&lt;/Typography&gt; : null}</span>
+<span id="L58">      &lt;Typography variant=&quot;body2&quot; color=&quot;text.secondary&quot;&gt;Start early to allow for source startup. Guide changes won’t move this recording.&lt;/Typography&gt;</span>
+<span id="L59">      {save.isError ? &lt;Alert severity=&quot;error&quot;&gt;{getErrorMessage(save.error)}&lt;/Alert&gt; : null}</span>
+<span id="L60">    &lt;/Stack&gt;&lt;/DialogContent&gt;</span>
+<span id="L61">    &lt;DialogActions&gt;&lt;Button onClick={onClose} disabled={save.isPending}&gt;Cancel&lt;/Button&gt;&lt;Button variant=&quot;contained&quot; disabled={save.isPending || !endInstant || (!now &amp;&amp; !startInstant) || minutes &lt;= 0 || minutes &gt; 720} onClick={() =&gt; save.mutate()}&gt;{save.isPending ? &#x27;Saving…&#x27; : recording ? &#x27;Save times&#x27; : now ? &#x27;Record now&#x27; : &#x27;Schedule&#x27;}&lt;/Button&gt;&lt;/DialogActions&gt;</span>
+<span id="L62">  &lt;/Dialog&gt;;</span>
+<span id="L63">};</span>
+<span id="L64">export default RecordingDialog;</span></code></pre>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

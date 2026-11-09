@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>One application, three presentations · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="one-application-three-presentations">One application, three presentations</h1>
+<p>Review 06 · design-only architecture and future acceptance. The owner confirmed keeping three styles while maintaining one product. The prototype demonstrates the separation; it is not application code to transplant.</p>
+<p>The SPORTZZ continuation is documented in <a href="brand-system.html">Brand system</a>.
+Current mockups share <code>sportzz-tokens.css</code> and <code>sportzz-system.css</code>; presentation
+recipes retain composition and accent differences, with common neutral surfaces,
+type and controls. The reference consumes those same files. Original marks and
+icons are reused as supplied; see the README for the asset map and maintenance.</p>
+<h2 id="shared-by-construction">Shared by construction</h2>
+<p>One router and deep-link resolver; one application bootstrap; one query client/cache; one auth and permission layer; one domain model; one API adapter per resource; one validation/save transaction; one field and EN/ES message catalogue; one playback/session owner. Presets must not create another tree that mounts these providers again.</p>
+<p>Feature controllers own drafts, baseline revisions, selections, pending requests and results. Canonical editors receive typed values/actions and semantic slots. A feature is added once to the capability registry and is immediately reachable in all presets. Shared editor markup covers routine administration. Existing <code>StreamLinkFormatsSection</code>, access, source, guide and recording editors retain ownership regardless of contextual entry point. A second entry point is a link to that editor, not another implementation.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Responsibility</th>
+<th>Permitted preset variation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Existing generated API types and shared services</td>
+<td>Methods, parameters, payloads, normalization, errors</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Feature controller / query hooks</td>
+<td>Permissions, request timing, draft revisions, media leases</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Canonical editor and task model</td>
+<td>Labels, help, validation, save/cancel, consequential states</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Semantic design tokens</td>
+<td>Background, surface, text, action, focus, status, spacing, radius, type</td>
+<td>Preset values; theme overrides</td>
+</tr>
+<tr>
+<td>Shared layout recipes</td>
+<td>App shell, field group, list, summary, contextual editor, dialog</td>
+<td>Density, columns, media/text balance and order when meaningful reading order is retained</td>
+</tr>
+<tr>
+<td>Stateless composition slots</td>
+<td>Featured Watch area, programme tiles, category tiles</td>
+<td>Image prominence and arrangement; same view model and actions</td>
+</tr>
+</tbody>
+</table></div>
+<p>Do not duplicate routers, request functions, translation dictionaries, permission checks or business conditionals for a style. Avoid an all-purpose component with dozens of style flags: use a small recipe vocabulary and semantic slots. CSS custom properties and container/media queries handle most differences. A real composition exception must name its reason, owner, shared controller, common interaction tests and evidence that CSS alone was insufficient.</p>
+<h2 id="composition-exception-register">Composition exception register</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Design exception</th>
+<th>Shared contract</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Watch featured item</td>
+<td>Lime compact band; coral image/text split; cyan immersive image area and stacked phone actions</td>
+<td>Same programme identity, exact times, Watch action and recording opener</td>
+<td>#316/#319</td>
+</tr>
+<tr>
+<td>Programme list</td>
+<td>Lime dense rows, coral editorial rows, cyan image cards</td>
+<td>Same query/filter/selection and action names; stable item keys</td>
+<td>#316/#319</td>
+</tr>
+<tr>
+<td>Category links</td>
+<td>Lime compact chips, coral horizontal tiles, cyan image tiles</td>
+<td>Actual catalogue/event taxonomy; no translated machine names or sport substitution</td>
+<td>#316/#319</td>
+</tr>
+<tr>
+<td>Administration</td>
+<td>Token/density/type differences only</td>
+<td>Identical canonical editors and transaction groups</td>
+<td>#318–#322</td>
+</tr>
+</tbody>
+</table></div>
+<p>No exception owns API logic. This register is deliberately small. Additions need evidence, not a new third implementation.</p>
+<h2 id="interface-selector-contract">Interface selector contract</h2>
+<p><strong>Interface / Interfaz</strong> opens three previews with descriptions, selected indication and keyboard-operable buttons. Names in the review are Lime, Coral / navy and Immersive. Final naming is still a proposal. The first-visit and unknown-value fallback is immersive cyan, per the approved execution plan. Theme defaults remain system-derived where available; saved theme and locale are independent.</p>
+<p>Changing style applies immediately. It is not a settings API transaction. Remember a small versioned identifier in the existing preference facility in future application work; catch read/write exceptions. Keep the visible choice in the current tab after storage failure and offer Retry saving preference. Do not discard other saved preferences or treat an unknown value as malformed user content. The disposable prototype writes only <code>ace-design-314:preset</code>; it never writes app preference keys, credentials, drafts or playback state.</p>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>State to retain</th>
+<th>Behavior on interface change</th>
+<th>Prototype demonstration / future acceptance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Draft and validation</td>
+<td>Keep exact values, errors, dirty status and expanded advanced fields</td>
+<td>Shared Maps, stable field IDs; test unsaved source and account forms</td>
+</tr>
+<tr>
+<td>Focus and selection</td>
+<td>Keep focus on initiating selector/control; preserve selected rows and text input value</td>
+<td>Modal traps Tab, Escape closes, focus returns; row selection survives</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Restore same offset after reflow; future app anchors the same logical content if geometry changes substantially</td>
+<td>Prototype restores scrollY; native zoom/manual review remains required</td>
+</tr>
+<tr>
+<td>Route and query</td>
+<td>Keep path meaning, selected channel, filters, return context and unrelated query keys</td>
+<td>Prototype clones URLSearchParams rather than replacing known keys only</td>
+</tr>
+<tr>
+<td>Pending work</td>
+<td>Do not resubmit, cancel or lose pending state; late result updates original editor</td>
+<td>Pending timer model survives switch and returns the result; no network requests</td>
+</tr>
+<tr>
+<td>Playback</td>
+<td>Same viewer/session owner, channel and playback position; no player remount, stop or start</td>
+<td>Same synthetic player DOM node during style/locale/theme change; real lease/media tests are future work</td>
+</tr>
+<tr>
+<td>Open dialog</td>
+<td>Keep purpose, draft and focus containment; avoid reopening as a different transaction</td>
+<td>Selector remains open during choice; dirty guard is independent</td>
+</tr>
+<tr>
+<td>Permissions</td>
+<td>Same visibility, eligibility and denial behavior</td>
+<td>Shared state gates; server enforcement remains authoritative</td>
+</tr>
+</tbody>
+</table></div>
+<p>The disposable renderer replaces ordinary DOM when a preference changes and restores state. The implementation should use stable keyed components, not copy this string renderer. Recreating the query client/provider tree or player is prohibited.</p>
+<h2 id="adding-a-future-capability-once">Adding a future capability once</h2>
+<p>Add its contract-backed service operation and shared controller; add the canonical editor/action and one EN/ES message set; register its destination/context and permission; use existing semantic recipes; run the same behavioral scenarios with all three preset identifiers; inspect presentation and focus/reflow per preset. Only add a stateless layout exception when necessary. A small visual regression suite per preset complements the shared behavioral suite; it cannot replace it.</p>
+<p>The <a href="openapi-contracts-06.md.html">OpenAPI strategy</a> checks the shared network boundary. Endpoint correctness is never tested only in one style-specific service because such services must not exist.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Canonical fields and editing ledger — review 03 · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="canonical-fields-and-editing-ledger--review-03">Canonical fields and editing ledger — review 03</h1>
+<blockquote>
+<p>Review 06 is the current design-only continuation: <a href="README.md.html">package</a>, <a href="before-after-map.md.html">simplified ownership</a>, <a href="shared-foundations-06.md.html">shared presets</a>, <a href="asset-selection-06.md.html">graphics</a> and <a href="verification-review-06.md.html">new evidence</a>. Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+Review 04 update (7 November 2026): <a href="coverage-review-04.md.html">expanded composed coverage</a>, <a href="workflow-specification.md.html">workflow fields/interactions</a>, <a href="verification-review-04.md.html">current verification</a> and <a href="task-refinements-04.md.html">task refinements</a> supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.</p>
+</blockquote>
+<p>Status: proposed design specification. Current contracts are source-checked; the displayed values in mockups are synthetic. This ledger expands critical fields and explicitly inventories <a href="runtime-field-inventory.md.html">all runtime options</a>. It does <strong>not</strong> claim every integration/source-specific field has final approved copy.</p>
+<h2 id="shared-field-rules">Shared field rules</h2>
+<p>Each configuration field inherits: read authoritative value; distinguish unknown/loading from false/zero; retain draft on validation/server failure; disable Save when pristine/invalid/pending; Cancel restores that editor's baseline; show permission/read-only reason. Saving applies only the described endpoint scope. Preserve revision checks; stale writes require review, never silent overwrite. Display backend ranges; do not invent client defaults when unavailable.</p>
+<p>Names, URLs, hashes, environment keys, stored enums and recipes never translate. Labels/help do. No runtime source is duplicated merely because it appears in multiple journeys.</p>
+<h2 id="critical-field-decisions">Critical field decisions</h2>
+<div class="document-table" role="region" aria-label="Reference table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Stable field / source</th>
+<th>Current → proposed home</th>
+<th>EN / ES label and help decision</th>
+<th>Default / bounds / visibility</th>
+<th>Save and effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>recording.enabled; RecordingSettingsFields / config/recordings</td>
+<td>Automation → Settings:Recordings; Recordings link reuses editor</td>
+<td>Enable recordings / Activar grabaciones. “Requires a persistent recording folder.” / “Requiere una carpeta persistente.”</td>
+<td>Opt-in; capability response controls availability; RECORDINGS_DIR stays deployment-owned.</td>
+<td>Section Save; disabling stops active/cancels future, retains files. Impact review before submit.</td>
+</tr>
+<tr>
+<td>recording.max_concurrent</td>
+<td>Same shared editor</td>
+<td>Simultaneous recordings / Grabaciones simultáneas. Explain capacity limit, not a promise of bandwidth.</td>
+<td>1–4; use saved/server default.</td>
+<td>Same transaction, future admission behavior.</td>
+</tr>
+<tr>
+<td>recording.min_free_bytes</td>
+<td>Same</td>
+<td>Keep free (GiB) / Espacio libre mínimo (GiB). “Recording stops when storage is too low.” / “La grabación se detiene si falta espacio.”</td>
+<td>UI currently defaults 2 GiB when absent; keep API bytes; authoritative validation.</td>
+<td>Same transaction; localize decimal display without changing bytes.</td>
+</tr>
+<tr>
+<td>recording.max_recording_bytes</td>
+<td>Same</td>
+<td>Maximum recording size (GiB) / Tamaño máximo de grabación (GiB)</td>
+<td>UI fallback 100 GiB; server constraints authoritative.</td>
+<td>Same transaction; no false remaining-time estimate.</td>
+</tr>
+<tr>
+<td>recording.retention_days</td>
+<td>Same</td>
+<td>Automatically delete old, unprotected recordings / Eliminar automáticamente grabaciones antiguas sin protección</td>
+<td>Null=off; enabling currently proposes 30 days; min 1.</td>
+<td>Explicit toggle + days; review deletion consequences, protected stays protected.</td>
+</tr>
+<tr>
+<td>recording start_time/end_time/timezone; RecordingDialog</td>
+<td>Programme/recording dialog</td>
+<td>Start / Inicio; End / Fin; Timezone / Zona horaria. “Guide updates do not move saved times.” / “Actualizar la guía no cambia estos horarios.”</td>
+<td>Existing exact instants; optional adjustments; now duration 1–720 minutes; ambiguous/nonexistent DST cases explicit.</td>
+<td>Create/edit intent; key stable across retry; opening/cancel no write.</td>
+</tr>
+<tr>
+<td>recording.protected</td>
+<td>Recording details</td>
+<td>Protect recording / Proteger grabación</td>
+<td>Server value; unavailable/deleted explained.</td>
+<td>Explicit immediate action with pending/error; not part of timing draft.</td>
+</tr>
+<tr>
+<td>guide.enabled; GuideMatchingFields / config/epg-matching</td>
+<td>Automation → Guide:Automatic matching; Automation links</td>
+<td>Automatic exact matching / Vinculación exacta automática. Explain can create TV channels/assign streams after updates.</td>
+<td>Off by default.</td>
+<td>Proposed staged editor; current immediate save must be intentionally migrated and tested. Future runs only.</td>
+</tr>
+<tr>
+<td>guide expected_previews + selected IDs</td>
+<td>Guide matching</td>
+<td>Apply selected matches / Aplicar coincidencias seleccionadas</td>
+<td>Zero selected initially; complete source scope; ambiguity not auto-selected.</td>
+<td>Explicit apply rechecks source/revision; stale preview authorizes nothing.</td>
+</tr>
+<tr>
+<td>XML export days_back/days_forward</td>
+<td>Guide export</td>
+<td>Start of export range / Inicio del intervalo; End of export range / Fin del intervalo</td>
+<td>Current slider −14…14; actual past/future behavior retained.</td>
+<td>Local options until download; each thumb named and value text localized.</td>
+</tr>
+<tr>
+<td>engine URL and playback routing use_acexy/acexy_url</td>
+<td>Playback → Playback advanced</td>
+<td>Playback engine / Motor de reproducción; Use Acexy / Usar Acexy</td>
+<td>Engine optional; direct default; pair stored as one setting.</td>
+<td>Preserve saved route; active session retains route until teardown.</td>
+</tr>
+<tr>
+<td>checker enabled/url</td>
+<td>Automation → Background updates</td>
+<td>Dedicated checking engine / Motor de comprobación dedicado</td>
+<td>Bundled read-only; external selection optional.</td>
+<td>Configured checker never falls back on failure; no engines means skipped, preserve samples.</td>
+</tr>
+<tr>
+<td>source/guide/check intervals + schedule_anchors</td>
+<td>Automation → Background updates</td>
+<td>Check for changes / Buscar cambios; Start at / Empezar a las; Timezone / Zona horaria</td>
+<td>Preserve current intervals/anchor semantics; source of next-run truth from server.</td>
+<td>Independent server transaction boundaries visible. FIFO Waiting/Running; no duplicate run-now.</td>
+</tr>
+<tr>
+<td>link formats, default, PID/AppID</td>
+<td>Settings:links + Playlist shared StreamLinkFormatsSection</td>
+<td>Stream links / Enlaces de emisión; Advanced identifiers / Identificadores avanzados</td>
+<td>Existing formats/placeholders unchanged.</td>
+<td>Same editor/API; preserve playlist filters when expanding or saving.</td>
+</tr>
+<tr>
+<td>username/password/administrator/enabled; AccessSettings</td>
+<td>Access → Accounts and access</td>
+<td>Username / Usuario; Administrator / Administrador; Account enabled / Cuenta activada</td>
+<td>Current validation/password policy; no invented role preset.</td>
+<td>Account save; permissions change signs out and revokes credentials.</td>
+</tr>
+<tr>
+<td>permissions:live/channels/guide/events/recordings/playlists</td>
+<td>Account editor</td>
+<td>Live TV / TV en directo; Channels / Canales; Programme guide / Guía; Events / Eventos; Recordings / Grabaciones; Playlists / Listas</td>
+<td>Existing permission enums, not translated stored values.</td>
+<td>Same account transaction. Admin explanation replaces misleading checkbox subset.</td>
+</tr>
+<tr>
+<td>permissions:cast/cast_server</td>
+<td>Account editor</td>
+<td>Cast to my devices / Enviar a mis dispositivos; Cast to server devices / Enviar a dispositivos del servidor</td>
+<td>Preserve separate scopes.</td>
+<td>No invented remote-control permission enum. Remote control also requires account + player opt-in.</td>
+</tr>
+<tr>
+<td>public_features/public_playlists/local_iptv/local_networks</td>
+<td>Access policy</td>
+<td>Viewing without signing in / Ver sin iniciar sesión; Trusted IPTV networks / Redes IPTV de confianza</td>
+<td>Public feature allowlist; network/proxy scopes separate.</td>
+<td>Separate policy Save; accounts are not a universal require-login toggle.</td>
+</tr>
+<tr>
+<td>credential label/kind + one-time token</td>
+<td>Access credentials</td>
+<td>Credential label / Nombre de credencial; Playback only / Solo reproducción; Administrative API / API administrativa</td>
+<td>Kind enum admin/playback; token shown once.</td>
+<td>Issue/revoke commands, not draft save; admin headers never in playlist URLs.</td>
+</tr>
+<tr>
+<td>session revoke / password / disable accounts</td>
+<td>Access</td>
+<td>Sign out session / Cerrar sesión; Change password / Cambiar contraseña</td>
+<td>Current password/confirmation and last-admin safeguards retained.</td>
+<td>Explicit distinct commands; expiry/denial recoveries designed separately.</td>
+</tr>
+<tr>
+<td>source name/type/url/provider/enabled; Scraper/SetupSources</td>
+<td>Setup and Channel sources shared form</td>
+<td>Name (optional) / Nombre (opcional); Source address / Dirección de fuente; Built-in broadcaster / Proveedor integrado</td>
+<td>Installed provider registry; existing source-type constraints.</td>
+<td>Save only vs save then queue; duplicate/source-save failures retain values.</td>
+</tr>
+<tr>
+<td>source extraction_recipe / bare-ID option</td>
+<td>Source advanced + installed recipe editor</td>
+<td>Extraction recipe / Receta de extracción; explain bare IDs before enabling</td>
+<td>Null=automatic; versioned schema, bounded worker; manual paths retained.</td>
+<td>Preview writes nothing; recipe error preserves existing channels.</td>
+</tr>
+<tr>
+<td>source delete_streams</td>
+<td>Source removal confirmation</td>
+<td>Also delete this source's streams / Eliminar también las emisiones de esta fuente</td>
+<td>Current default on preserved; count assigned subset.</td>
+<td>Atomic source-owned stream deletion; TV channels remain; orphan cleanup distinct.</td>
+</tr>
+<tr>
+<td>saved-search query/category/paused</td>
+<td>Sources:saved searches</td>
+<td>Saved search / Búsqueda guardada; Paused / En pausa</td>
+<td>New paused; query/category edits pause.</td>
+<td>Save configuration only; additive import, no accidental run.</td>
+</tr>
+<tr>
+<td>exclusions match/enabled</td>
+<td>Sources:exclusions</td>
+<td>Import exclusions / Exclusiones de importación</td>
+<td>Literal/rule semantics unchanged; preview read-only.</td>
+<td>Future permanent imports, not current playback/editing; manual override isolated.</td>
+</tr>
+<tr>
+<td>TV number/favourite/order/source preferences</td>
+<td>TV channels/detail</td>
+<td>Number / Número; Favourite / Favorito; Save order / Guardar orden</td>
+<td>Blank clears number; full catalogue reorder and saved stream preferences preserved.</td>
+<td>Number Enter/blur; favourite immediate; reorder atomic and stale-protected.</td>
+</tr>
+<tr>
+<td>public address saved override</td>
+<td>Public address → Connections:Address for players</td>
+<td>Address for players / Dirección para reproductores. Show effective source.</td>
+<td>Preserve proxy prefix and saved override.</td>
+<td>Single canonical editor; runtime fallback remains advanced and clearly subordinate.</td>
+</tr>
+<tr>
+<td>tuner source/total startup limits</td>
+<td>Media servers</td>
+<td>Try each source for / Probar cada emisión durante; Total startup limit / Tiempo total de inicio</td>
+<td>Default 15/45 seconds; each 5–180.</td>
+<td>Existing saved tuner setting; not moved to global Network.</td>
+</tr>
+<tr>
+<td>compatible audio / hide_unusable / per_source</td>
+<td>Media servers / Playlist contextual</td>
+<td>Compatible audio / Audio compatible; Hide unusable sources / Ocultar emisiones inutilizables</td>
+<td>Opt-in, actual semantics and overrides from existing contracts.</td>
+<td>Never silently drop optional export/filter capabilities.</td>
+</tr>
+<tr>
+<td>cast compatibility / device / remote opt-in</td>
+<td>Casting / Remote players</td>
+<td>Original video / Vídeo original; Compatible copy / Copia compatible; Allow remote control / Permitir control remoto</td>
+<td>Original default; actual permission/transport/capability gates.</td>
+<td>Ownership-aware actions; conversion yields to recording.</td>
+</tr>
+<tr>
+<td>notifications / Telegram source authorization</td>
+<td>Connection-owned distinct sections</td>
+<td>Notifications / Notificaciones; Telegram sources / Fuentes de Telegram</td>
+<td>Bot vs encrypted user-session credentials separate.</td>
+<td>Save/Test distinct; Test sends a real message only on explicit user action.</td>
+</tr>
+<tr>
+<td>interface language/theme</td>
+<td>Browser preference shared shell/settings</td>
+<td>System default / Predeterminado del sistema; English; Español; Theme / Tema</td>
+<td>No account bootstrap needed; persistence failure disclosed.</td>
+<td>Immediate preference; no app remount, media restart or lost draft.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="newly-merged-fields">Newly merged fields</h2>
+<p>The <a href="current-source-delta.md.html#added-field-specification">current-source delta</a> adds six offline-cleanup/anchor settings plus availability, similar-name review and TV-link fields from develop cf952af. These are part of this ledger. Cleanup Save and schedule-anchor Save are separate transactions; manual/Search Add and Link is atomic, while source Save then import is sequential.</p>
+<h2 id="remaining-field-work">Remaining field work</h2>
+<p>The table covers critical ownership and consequences, not every final field string. Event providers/overlays, W3U folder import, custom stream-format placeholders, per-integration host/port/auth forms, all rule types and detailed source recipes still require per-field EN/ES copy/visibility/validation review under #316 plus #319–#322. The runtime table provides exhaustive generated-option identity/default/range coverage; its translated labels are proposals, and contextual help review is still pending. No field may be marked accepted because it shares a form template.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

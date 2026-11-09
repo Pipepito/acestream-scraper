@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>SPORTZZ — whole-app design review and brand reference · SPORTZZ reference</title>
+<link rel="stylesheet" href="admin-prototype.css">
+<link rel="stylesheet" href="sportzz-tokens.css">
+<link rel="stylesheet" href="sportzz-system.css">
+<link rel="stylesheet" href="brand-reference.css">
+<link rel="stylesheet" href="pages-documents.css"></head>
+<body class="brand-index"><a class="skip" href="#main">Skip to content</a>
+<header class="reference-header"><div>
+<a class="sportzz-brand" href="index.html"><img class="sportzz-wordmark" src="assets/sportzz/logotipo-negro.svg" width="978" height="210" alt="SPORTZZ design home"></a>
+<nav aria-label="Design review"><a href="workflow-prototype.html?screen=dashboard">Mockups</a><a href="brand-system.html">Brand system</a><a href="README.md.html">Reference index</a></nav>
+</div></header><main id="main" class="document-main" tabindex="-1">
+<p class="eyebrow">DESIGN REFERENCE / STATIC SNAPSHOT</p><h1 id="sportzz--whole-app-design-review-and-brand-reference">SPORTZZ — whole-app design review and brand reference</h1>
+<p><strong>Design-only continuation.</strong> Earlier statements that design was closed or implementation would begin next are superseded. The owner approved executing the design plan, including static preview publication. Application implementation requires a separately authorized later session.</p>
+<p>The package uses <strong>one shared application structure and three presentation presets</strong>: lime, coral and immersive cyan. The current SPORTZZ identity pass uses the supplied designer wordmark and symbol, shared Signal Pitch foundations and the existing <strong>Watch, Recordings, Events, Channels, Connections, Settings and System</strong> navigation. Immersive remains the first-visit/unknown-value default. The static mockup identity does not change the production application's name or code.</p>
+<h2 id="explore-and-review">Explore and review</h2>
+<ul>
+<li><a href="index.html">Preview home</a> and <a href="https://pipepito.github.io/acestream-scraper/design/ux-review-314/">published previews</a>.</li>
+<li><a href="brand-system.html">Brand system</a> — current visual reference, actual supplied marks, theme-aware colors, type, imagery and interactive component specimens. Local changes are not automatically published.</li>
+<li><a href="workflow-prototype.html?screen=dashboard">Interactive prototype</a> — use Interface to change presets; review controls select workflows/states. Synthetic local outcomes only.</li>
+<li><a href="workflow-gallery.html">Whole-app gallery</a> — 146 contextual compositions across all three presets. This is not a target page count.</li>
+<li><a href="simplification-06.md.html">Simplification and six task paths</a>, <a href="before-after-map.md.html">exhaustive before/after ownership and saves</a>.</li>
+<li><a href="shared-foundations-06.md.html">One shared implementation architecture</a>, <a href="openapi-contracts-06.md.html">OpenAPI contract strategy</a> and <a href="openapi-contract-map.json">checked operation/field references</a>.</li>
+<li><a href="workflow-specification.md.html">Field and state specification</a>, <a href="traceability-matrix.md.html">traceability</a>, <a href="source-control-map.md.html">source-control map</a>, <a href="source-contracts.md.html">source contracts</a>, <a href="coverage-review-06.md.html">coverage and state catalogue</a>.</li>
+<li><a href="asset-selection-06.md.html">Selected graphics, provenance and genuine gaps</a>, <a href="verification-review-06.md.html">current validation and limitations</a>, <a href="acceptance-protocols.md.html">acceptance protocols</a>.</li>
+<li><a href="task-refinements-06.md.html">Existing task ownership</a>, <a href="implementation-prompt.md.html">future implementation brief</a>, <a href="pages-preview.md.html">Pages publication procedure</a>.</li>
+</ul>
+<h2 id="what-changed">What changed</h2>
+<p>Watch joins the home overview and Live TV while preserving both existing routes. Channels owns source setup, guide matching and advanced streams. Recordings owns its settings. Connections groups browser playback, TVs/players, media servers, playlists and notifications by purpose. Telegram ingestion stays with sources. Settings is a concise index to canonical editors. System includes WARP, services, job history, storage, diagnostics and advanced setup/recovery.</p>
+<p>The prototype has one field catalogue, state/interaction engine and semantic component set. Lime uses compact broadcast rows and condensed headings; coral uses editorial image/text balance; cyan uses a featured illustrated viewing area and richer cards, with separate phone composition. Administration remains calm in each. The selector preserves draft, query, focus, selection, pending action and synthetic player ownership, with namespaced preference storage and a usable failure state.</p>
+<p>Supplier Football/Tennis photos are reused with attribution, joined by Basketball and Formula 1 examples in the reference. Existing selected Inter/Barlow fonts retain OFL notices. The earlier generic nature illustration remains visibly distinguished from programme artwork. This pass copies the requested SPORTZZ marks and supplied icon family, without new artwork generation. Sports concept masters remain outside the deployed payload.</p>
+<h2 id="brand-maintenance">Brand maintenance</h2>
+<ul>
+<li>Authoritative values: <code>sportzz-tokens.css</code>. Shared component treatment: <code>sportzz-system.css</code>, loaded after existing structural styles. <code>presentation-presets.css</code> owns composition differences, not a competing palette. <code>brand-reference.css</code> owns only the reference/index editorial layouts.</li>
+<li>Current reference: <code>brand-system.html</code>; specimen interactions: <code>brand-reference.js</code>. Mockup interactions remain in <code>workflow-engine.js</code>; do not fork the field catalogue or workflow contracts to change appearance.</li>
+<li>Designer originals: <code>/srv/opencode-workspace/assets/designer-reference/sportzz-frontend/</code>. Read its parent README, inspect actual graphics, then select optimized runtime files. Keep originals unchanged. VM paths are maintenance context only, never runtime URLs.</li>
+<li>Preserve logo geometry. Use provided black/white/lime variants. The actual lime SVGs are #B6FF00, not the v2 cyan proposal. Cyan is applied as a background/action token. Conservative digital wordmark sizes and accessible light-theme ramps are documented refinements.</li>
+<li>Every selected asset is mapped in <a href="assets/sportzz/asset-map.json">assets/sportzz/asset-map.json</a>, with source, purpose and SHA256. Keep category attribution JSON and font OFL notices; the earlier <a href="assets/selected/asset-manifest.json">image manifest</a> remains authoritative for existing imagery. Do not infer rights or factual event identity from a filename.</li>
+<li>Use the existing <code>.button</code>, <code>.field</code>, <code>.badge</code>, <code>.notice</code>, native dialog and supplied <code>.icon</code> patterns. New variants belong in the shared stylesheet; add a live specimen here and inspect the corresponding workflow in both themes. Avoid unlabelled icon controls and unrelated decorative photos.</li>
+<li>Update tokens, affected mockups and reference together. Inspect and reuse existing assets before proposing generation; generation needs explicit user authorization. Preserve the static no-backend boundary and relative URLs.</li>
+<li>Refresh landing/gallery HTML with <code>python3 docs/design/ux-review-314/compose_review06.py --pages-only</code>. Full workflow generation also calls this renderer. Regenerate current synthetic gallery exports after visual changes; historical exports remain historical.</li>
+<li><code>prepare_pages_preview.py</code> includes the reference, shared CSS/JS and all selected assets in its existing immutable-commit publication allowlist. Follow <a href="pages-preview.md.html">Pages preparation</a>; no new build system or deployment job is required.</li>
+<li>The inherited review-06 validation report and waiver are historical evidence, not a validation receipt for this pass. See <a href="brand-verification.md.html">brand verification</a> for current commands and gaps.</li>
+</ul>
+<h2 id="source-and-status">Source and status</h2>
+<p>Application evidence is pinned to <code>cf952afc6b4489c02b7a675ff3d634cc13d98e0b</code>; newer source was inspected as git objects separately from this design branch's older application base. See <a href="current-source-delta.md.html">current-source delta</a>. No application merge/rebase is needed to refresh design inventory.</p>
+<p>Observed defects remain open in #315. F15 bulk metadata/repeated-batch behavior is a source finding awaiting isolated reproduction, not a verified performance regression. Now/next artwork and OpenAPI security/error documentation gaps require later work in #318–#320/#324. <a href="source-findings-06.md.html">Backend/source findings</a> distinguish these from owner preferences and design hypotheses.</p>
+<p>Composed and rendered does not mean owner-approved in every visual detail, participant-validated or implemented. Native AT, physical-device, fluent Spanish participant and application/media acceptance retain explicit owners. Review 06 used a design-only validation waiver; that historical waiver is not assumed for the SPORTZZ continuation. Current checks and outstanding application/Docker/E2E acceptance are recorded in <code>brand-verification.md</code>.</p>
+<h2 id="reproduce-design-checks">Reproduce design checks</h2>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh">python3 docs/design/ux-review-314/compose_workflows.py
+python3 docs/design/ux-review-314/openapi_contracts.py --check --self-test
+python3 docs/design/ux-review-314/check_workflows.py --output /tmp/ux-review-06 --exports --axe /path/to/cached/axe.min.js
+python3 docs/design/ux-review-314/check_journeys06.py --output /tmp/ux-journeys-06
+python3 docs/design/ux-review-314/check_image_contrast06.py --output /tmp/ux-image-contrast-06
+python3 docs/design/ux-review-314/check_artifacts.py --output /tmp/ux-artifacts-06
+</code></pre>
+<p>Playwright uses cached tooling and an intercepted <code>design.invalid</code> origin: only local files below this design directory can load. There are no application imports, network APIs, media playback or live mutations. Reports/private captures stay outside Git; deliberately synthetic gallery exports are public design artifacts. See the verification report for exact commands and observed counts.</p>
+<p>The earlier <a href="admin-prototype.html">administration prototype</a>, <a href="prototype.html">illustrative viewing concept</a>, reviews 03–05 and their verification logs are historical context. They neither override review 06 nor establish new passes. The supplied frontend and translation helper remain references, never canonical application roots.</p>
+</main><footer class="document-footer">Design source <code>c7f11fe9df8cee3c8e5833a1c41a708595e41808</code>. Historical reports retain their original scope; this snapshot is not production acceptance.</footer></body></html>

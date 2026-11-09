@@ -934,6 +934,17 @@ class DatabaseMigrator:
                         params,
                     )
                 inserted = v2_conn.total_changes - changes_before
+                # Deferred legacy imports run after Alembic's scalar backfill.
+                # Keep each batch resumable and never replace refreshed observations.
+                if params:
+                    v2_conn.executemany(
+                        """INSERT INTO epg_program_categories (program_id, position, label)
+                           SELECT id, 0, category FROM epg_programs
+                           WHERE epg_channel_id=? AND start_time=? AND end_time=? AND title=?
+                             AND category IS NOT NULL
+                             AND NOT EXISTS (SELECT 1 FROM epg_program_categories WHERE program_id=epg_programs.id)""",
+                        [row[-4:] for row in params],
+                    )
                 v2_conn.commit()
 
                 migrated += inserted

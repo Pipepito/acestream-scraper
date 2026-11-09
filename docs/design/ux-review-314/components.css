@@ -1,0 +1,36 @@
+/* Catalogue layout only. Reusable components live in sportzz-system.css. */
+.component-main { max-width: 1360px; }
+.component-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 64px; padding: 64px 0 48px; align-items: center; }
+.component-hero h1 { font-size: clamp(56px, 6vw, 88px); line-height: 1.02; margin: 24px 0; }
+.component-hero .lede { font-size: 18px; max-width: 52ch; color: var(--muted); margin-bottom: 32px; }
+.component-hero .eyebrow { color: var(--link); }
+.component-hero-preview { padding: 32px; background: var(--subtle); border: 1px solid var(--control); border-radius: 20px; transform: rotate(2deg); }
+.component-hero-preview p { font-size: 14px; color: var(--muted); margin-top: 24px; }
+.hero-token { font: 600 100px/1.2 var(--display); display: flex; align-items: center; gap: 24px; padding: 24px 0; }
+.hero-token span { font: 14px/1.5 var(--font-ui); color: var(--muted); }
+.hero-swatches { display: flex; height: 56px; border-radius: 8px; overflow: hidden; }
+.hero-swatches i { flex: 1; background: var(--signal); }
+.hero-swatches i:nth-child(2) { background: var(--heritage-lime); }
+.hero-swatches i:nth-child(3) { background: var(--ember); }
+.hero-swatches i:nth-child(4) { background: var(--paper); }
+.hero-mini-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
+.hero-mini-controls span { padding: 12px; background: var(--selected); color: var(--selected-text); border: 1px solid var(--selected-text); border-radius: 8px; font-size: 12px; font-weight: 600; }
+.component-note { color: var(--muted); font-size: 13px; margin: 24px 0 0; }
+.component-main .reference-grid { align-items: start; }
+.component-main .reference-grid + .reference-grid { margin-top: 24px; }
+.component-main .specimen { padding: 28px; }
+.component-main .specimen h3 { margin-bottom: 24px; }
+.component-main .specimen p { margin-top: 20px; }
+.component-main .specimen .ds-card p { margin-top: 12px; }
+.component-spaced { margin-top: 24px; }
+.component-status { border-inline-start: 3px solid var(--selected-text); padding: 12px 16px; margin: 24px 0 0; background: var(--subtle); font-size: 14px; }
+.component-main [data-search][hidden] { display: none; }
+.search-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.density-preview { display: grid; border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; }
+.density-preview > span { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 20px 12px; background: var(--subtle); border-bottom: 1px solid var(--line); font-size: 14px; }
+.density-preview.compact > span { padding-block: 10px; }
+.rail-explanation { flex: 1; min-width: 130px; }
+kbd { font: 12px var(--font-ui); padding: 4px 8px; border: 1px solid var(--control); border-radius: 4px; }
+.component-main a { overflow-wrap: anywhere; }
+@media (max-width: 900px) { .component-hero { gap: 32px; } .component-hero-preview { padding: 24px; transform: none; } .hero-token { font-size: 72px; gap: 12px; } }
+@media (max-width: 600px) { .component-hero { grid-template-columns: 1fr; padding-top: 40px; } .component-hero h1 { font-size: 60px; } .component-main .specimen { padding: 20px; } .ds-snackbar { flex-wrap: wrap; bottom: 12px; } .ds-snackbar p { flex-basis: 100%; } .ds-sheet { padding: 24px; } }

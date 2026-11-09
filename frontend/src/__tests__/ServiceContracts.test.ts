@@ -25,6 +25,9 @@ beforeAll(async () => {
     for await (const chunk of request) body.push(Buffer.from(chunk));
     exchanges.push({ method: request.method!, url: `http://contract.test${request.url}`, headers: request.headers, body: Buffer.concat(body).toString() });
     response.setHeader('Content-Type', 'application/json');
+    // The synchronous Python validator blocks this fixture's event loop between
+    // cases; do not reuse a socket whose idle timeout elapsed during validation.
+    response.setHeader('Connection', 'close');
     response.end('{}');
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));

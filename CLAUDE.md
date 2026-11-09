@@ -18,6 +18,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common Commands
 
+Channel categories are stable, owned assignments; On now uses complete current
+programme genres. Preserve ordered/language-tagged XMLTV categories, legacy scalar
+compatibility, source-qualified logos and explicit stale-checked category review.
+Manual clears remain protected; channel cards prefer saved/guide logos before
+illustrations. See `docs/dev/tv-categories.md` and `wiki/TV-Categories.md`.
+
 Backend (run from repo root unless noted):
 
 - Install: `python3 -m venv backend/venv && source backend/venv/bin/activate && pip install -r backend/requirements.txt`

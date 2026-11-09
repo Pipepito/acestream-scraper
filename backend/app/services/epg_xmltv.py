@@ -3,8 +3,9 @@ from bisect import bisect_left
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from typing import Tuple
-from sqlalchemy.orm import Session
-from app.models.models import EPGChannel, EPGProgram
+from sqlalchemy.orm import Session, joinedload
+from app.models.models import EPGChannel, EPGProgram, EPGProgramCategory
+from app.services.programme_categories import xml_categories
 import logging
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,7 @@ class XMLTVProcessing:
 
             existing_programs = (
                 self.db.query(EPGProgram)
+                .options(joinedload(EPGProgram.category_observations))
                 .filter(EPGProgram.epg_channel_id.in_(channel_id_map.values()))
                 .all()
                 if channel_id_map
@@ -126,8 +128,8 @@ class XMLTVProcessing:
                 desc_elem = program_elem.find("desc")
                 description = desc_elem.text if desc_elem is not None else None
 
-                category_elem = program_elem.find("category")
-                category = category_elem.text if category_elem is not None else None
+                categories = xml_categories(program_elem)
+                category = categories[0]['label'] if categories else None
 
                 icon_elem = program_elem.find("icon")
                 image_url = icon_elem.get("src") if icon_elem is not None else None
@@ -157,6 +159,19 @@ class XMLTVProcessing:
                     db_program.description = description
                     db_program.category = category
                     db_program.image_url = image_url
+
+                previous = [(row.label, row.language) for row in db_program.category_observations]
+                incoming = [(item['label'], item['language']) for item in categories]
+                if previous != incoming:
+                    # Reuse positions so refresh cannot insert a duplicate composite key
+                    # before SQLAlchemy has removed the previous observations.
+                    old = {row.position: row for row in db_program.category_observations}
+                    updated = []
+                    for position, item in enumerate(categories):
+                        row = old.get(position) or EPGProgramCategory(position=position)
+                        row.label, row.language = item['label'], item['language']
+                        updated.append(row)
+                    db_program.category_observations = updated
 
             # Replace superseded listings only where this feed supplies valid coverage.
             # Preserve gaps, absent channels and other sources; an empty feed deletes nothing.

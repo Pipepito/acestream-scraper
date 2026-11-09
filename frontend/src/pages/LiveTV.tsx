@@ -17,6 +17,9 @@ import BrowseModeToggle, { parseBrowseMode, type BrowseMode } from '../component
 import TVChannelList from '../components/livetv/TVChannelList';
 import StreamList from '../components/livetv/StreamList';
 import EventList from '../components/livetv/EventList';
+import CategoryBrowser from '../components/livetv/CategoryBrowser';
+import { useQuery } from '@tanstack/react-query';
+import { tvChannelService, type TVBrowseParams } from '../services/tvChannelService';
 
 const SEARCH_LABEL: Record<BrowseMode, string> = { tv: 'Find a channel', streams: 'Find a stream', events: 'Find an event' };
 
@@ -33,10 +36,16 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
   const onlineOnly = params.get('availability') !== 'all';
   const mode = parseBrowseMode(params.get('list'));
   const search = params.get('q') ?? '';
-  const catalog = useTVChannelPages({ watchable: true, online_only: onlineOnly, search, ...(favorites ? { is_favorite: true } : {}) }, mode === 'tv');
+  const basis = params.get('basis') === 'now' ? 'now' : 'channel';
+  const category = params.get('category') ?? '';
+  const filters: TVBrowseParams = { watchable: true, online_only: onlineOnly, search, category_basis: basis, ...(favorites ? { is_favorite: true } : {}) };
+  const categories = useQuery({ queryKey: ['tvChannels', 'categories', filters], queryFn: ({ signal }) => tvChannelService.categories(filters, signal), enabled: mode === 'tv', refetchInterval: 30_000, staleTime: 30_000 });
+  const showChannels = Boolean(category || search);
+  const asOf = basis === 'now' ? categories.data?.as_of : undefined;
+  const catalog = useTVChannelPages({ ...filters, category_id: category === 'all' ? '' : category, ...(asOf ? { as_of: asOf } : {}) }, mode === 'tv' && showChannels && (basis !== 'now' || Boolean(asOf)));
   const loadedChannels = useMemo(() => catalog.data?.pages.flatMap(page => page.items) ?? [], [catalog.data]);
-  const nowNext = useNowNext(mode === 'tv' ? loadedChannels.map(channel => channel.id) : []);
-  const total = catalog.data?.pages[0]?.total ?? 0;
+  const nowNext = useNowNext(mode === 'tv' && showChannels ? loadedChannels.map(channel => channel.id) : [], asOf);
+  const total = categories.data?.total ?? catalog.data?.pages[0]?.total ?? 0;
   const selectedId = Number(params.get('channel')) || 0;
   const selected = useTVChannel(selectedId, 30_000);
   const now = useNow();
@@ -98,6 +107,10 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
             {mode !== 'events' ? <Box component="details" sx={{ color: 'text.secondary', typography: 'body2', '& summary': { cursor: 'pointer', minHeight: 44, display: 'flex', alignItems: 'center' } }}><summary>{tUi('About stream status')}</summary><Typography variant="body2" color="text.secondary">{onlineOnly ? tUi("Showing streams that passed their last check. Offline and unchecked streams stay in your library.") : tUi("Showing all enabled streams, including offline and unchecked ones.")} {' '}{tUi("Scheduled checks continue; this list refreshes automatically.")}</Typography></Box> : null}
           </Stack>
           {mode === 'tv' ? <>
+            <CategoryBrowser basis={basis} selected={category || (search ? 'all' : '')} data={categories.data} loading={categories.isLoading} error={categories.isError}
+              onRetry={() => void categories.refetch()} onBasis={next => updateParams({ basis: next === 'channel' ? null : next, category: null })}
+              onSelect={id => updateParams({ category: id, q: null })} />
+            {showChannels ? <>
             {catalog.isLoading ? <LinearProgress aria-label={tUi("Loading channels")} /> : null}
             {catalog.isError ? <Alert severity="error" action={<Button color="inherit" onClick={() => void catalog.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load channels.")}</Alert> : null}
             {!catalog.isLoading && !catalog.isError && channels.length === 0 ? <Alert severity="info">
@@ -107,6 +120,7 @@ const LiveTV: React.FC<{ home?: boolean }> = ({ home = false }) => {
             <TVChannelList channels={channels} selectedId={selectedId} now={now} nowNext={nowNext.data} nowNextFailed={nowNext.isError} onWatch={watchChannel} />
             <div ref={sentinel} aria-hidden />
             {catalog.hasNextPage ? <Button disabled={catalog.isFetchingNextPage} onClick={() => void catalog.fetchNextPage()} sx={{ my: 2 }}>{catalog.isFetchingNextPage ? tUi('Loading…') : tUi('Show more channels')}</Button> : null}
+            </> : null}
           </> : null}
           {mode === 'streams' ? <StreamList search={search} onlineOnly={onlineOnly} tvNames={tvNames} onWatch={watchStream} /> : null}
           {mode === 'events' ? <EventList search={search} onWatchChannel={watchChannel} /> : null}

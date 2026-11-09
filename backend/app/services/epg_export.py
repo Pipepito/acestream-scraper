@@ -168,8 +168,10 @@ class EPGExportOperations:
         if program.description:
             lines.append(f'    <desc>{html.escape(program.description)}</desc>')
 
-        if program.category:
-            lines.append(f'    <category>{html.escape(program.category)}</category>')
+        from app.services.programme_categories import observations
+        for item in observations(program):
+            language = f' lang="{html.escape(item["language"], quote=True)}"' if item['language'] is not None else ''
+            lines.append(f'    <category{language}>{html.escape(item["label"])}</category>')
 
         if program.image_url:
             lines.append(f'    <icon src="{html.escape(program.image_url)}" />')

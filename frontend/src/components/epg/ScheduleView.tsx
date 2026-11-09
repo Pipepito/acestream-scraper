@@ -9,6 +9,9 @@ import { useEPGPrograms } from '../../hooks/useEPG';
 import type { EPGProgram } from '../../services/epgService';
 import { useNow } from '../../hooks/useNow';
 import NowNext from './NowNext';
+import ProgrammeArtwork from '../ProgrammeArtwork';
+import CategoryArtwork from '../CategoryArtwork';
+import { programmeArtwork } from '../../artwork/categoryArtwork';
 
 export interface ScheduleViewProps {
   epgChannelId: number;
@@ -30,6 +33,7 @@ const ProgramRow: React.FC<{ program: EPGProgram; past: boolean; tvChannelId?: n
   const tUi = useUiText();
   const [open, setOpen] = useState(false);
   const details = [program.subtitle, program.description].filter(Boolean).join(' — ');
+  const categories = program.categories?.length ? program.categories.map(item => item.label) : program.category ? [program.category] : [];
   return (
     <ListItem
       component="li"
@@ -46,12 +50,18 @@ const ProgramRow: React.FC<{ program: EPGProgram; past: boolean; tvChannelId?: n
             <Typography component="span" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
               {program.title}
             </Typography>
-            {program.category ? <Chip label={program.category} size="small" variant="outlined" /> : null}
+            {categories.map((category, index) => <Chip key={`${index}-${category}`} label={category} size="small" variant="outlined" sx={{ maxWidth: '100%', height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />)}
           </Stack>
           {!past && tvChannelId ? <RecordButton channelId={tvChannelId} channelName={tvChannelName ?? "TV Channel"} programme={program} /> : null}
-          {details ? (
+          {details || program.image_url || categories.length ? (
             <>
-              <Collapse in={open}>
+              <Collapse in={open} mountOnEnter unmountOnExit>
+                <Box sx={{ maxWidth: 320, mt: 1 }}>
+                  <ProgrammeArtwork src={program.image_url} fallback={
+                    <CategoryArtwork artwork={programmeArtwork(categories)} sizes="320px"
+                      caption={categories.length ? tUi('Programme category illustration · {{category}}', { category: categories.join(' · ') }) : tUi('Generic programme illustration')} />
+                  } />
+                </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   {details}
                 </Typography>

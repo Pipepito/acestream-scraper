@@ -48,6 +48,7 @@ test('a scheduled check waits for watching to stop even with a dedicated checker
     await page.goto('/live-tv');
     await page.getByRole('checkbox', { name: 'Online only' }).click();
     await expect(page.getByRole('checkbox', { name: 'Online only' })).not.toBeChecked();
+    await page.getByRole('button', { name: /^All channels/ }).click();
     await page.getByRole('button', { name: 'Watch E2E pause watching', exact: true }).click();
     const video = page.locator('video');
     await expect.poll(() => video.evaluate(v => (v as HTMLVideoElement).currentTime), { timeout: 60_000 }).toBeGreaterThan(1);

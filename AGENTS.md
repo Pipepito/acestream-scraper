@@ -723,6 +723,12 @@ remain unchanged; see `wiki/Usage.md#search-and-manual-additions` for recovery.
 
 ## TV and system dashboards
 
+Channel categories are stable, owned assignments; On now uses complete current
+programme genres. Preserve ordered/language-tagged XMLTV categories, legacy scalar
+compatibility, source-qualified logos and explicit stale-checked category review.
+Manual clears remain protected; channel cards prefer saved/guide logos before
+illustrations. See `docs/dev/tv-categories.md` and `wiki/TV-Categories.md`.
+
 The default `/` route combines the Live TV catalogue and Watch overview: app-owned playback, channel/stream
 inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
 diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and

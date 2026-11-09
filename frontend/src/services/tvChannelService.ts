@@ -37,6 +37,9 @@ export interface CreateFromEPGAnalysisResult {
 
 export type TVBrowseParams = NonNullable<paths['/api/v1/tv-channels/browse']['get']['parameters']['query']>;
 export type TVInventory = components['schemas']['TVInventory'];
+export type CategoryView = components['schemas']['CategoryView'];
+export type CategoryInventory = components['schemas']['CategoryInventory'];
+export type CategorySuggestion = components['schemas']['CategorySuggestion'];
 
 export interface TVChannelListFilters {
   favorites?: boolean;
@@ -49,6 +52,15 @@ type TVMatchApplyRequest = components['schemas']['TVMatchApplyRequest'];
 type TVMatchApplyResponse = components['schemas']['TVMatchApplyResponse'];
 
 export const tvChannelService = {
+  categoryDefinitions: async (): Promise<CategoryView[]> => (await apiClient.get(`${BASE_URL}/category-definitions`)).data,
+  categories: async (params: TVBrowseParams, signal?: AbortSignal): Promise<CategoryInventory> =>
+    (await apiClient.get(`${BASE_URL}/categories`, { params, signal })).data,
+  previewCategories: async (channel_ids: number[]): Promise<CategorySuggestion[]> =>
+    (await apiClient.post(`${BASE_URL}/category-suggestions/preview`, { channel_ids })).data,
+  applyCategories: async (items: components['schemas']['CategoryApplyItem'][]): Promise<components['schemas']['CategoryApplyResult']> =>
+    (await apiClient.post(`${BASE_URL}/category-suggestions/apply`, { items })).data,
+  assignCategory: async (id: number, request: components['schemas']['CategoryAssignment']): Promise<TVChannel> =>
+    (await apiClient.put(`${BASE_URL}/${id}/category`, request)).data,
   browse: async (params: TVBrowseParams, signal?: AbortSignal): Promise<{ items: TVChannel[]; total: number }> => {
     const response = await apiClient.get(`${BASE_URL}/browse`, { params, signal });
     return response.data;
@@ -78,8 +90,9 @@ export const tvChannelService = {
   },
 
   /** Now/Next for every active TV channel with a guide mapping, in one request. */
-  nowNext: async (channelIds?: number[]): Promise<TVChannelNowNext[]> => {
-    const params = channelIds ? new URLSearchParams(channelIds.map(id => ['channel_ids', String(id)])) : undefined;
+  nowNext: async (channelIds?: number[], asOf?: string): Promise<TVChannelNowNext[]> => {
+    const params = new URLSearchParams(channelIds?.map(id => ['channel_ids', String(id)]));
+    if (asOf) params.set('as_of', asOf);
     const response = await apiClient.get(`${BASE_URL}/now-next`, { params });
     return response.data;
   },

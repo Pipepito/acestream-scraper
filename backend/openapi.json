@@ -2949,6 +2949,379 @@
         "title": "CatalogueView",
         "type": "object"
       },
+      "CategoryApplyItem": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "maxLength": 100,
+            "title": "Category Id",
+            "type": "string"
+          },
+          "channel_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Channel Id",
+            "type": "integer"
+          },
+          "fingerprint": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Fingerprint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "fingerprint",
+          "category_id"
+        ],
+        "title": "CategoryApplyItem",
+        "type": "object"
+      },
+      "CategoryApplyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryApplyItem"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "CategoryApplyRequest",
+        "type": "object"
+      },
+      "CategoryApplyResult": {
+        "properties": {
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "title": "CategoryApplyResult",
+        "type": "object"
+      },
+      "CategoryAssignment": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "mode": {
+            "default": "manual",
+            "enum": [
+              "manual",
+              "automatic"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "CategoryAssignment",
+        "type": "object"
+      },
+      "CategoryCoverage": {
+        "properties": {
+          "catalogue": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryView"
+            },
+            "title": "Catalogue",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryCoverageRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "integer"
+          },
+          "total_labels": {
+            "title": "Total Labels",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "taxonomy_version",
+          "total_labels",
+          "items",
+          "catalogue"
+        ],
+        "title": "CategoryCoverage",
+        "type": "object"
+      },
+      "CategoryCoverageRow": {
+        "properties": {
+          "artwork_status": {
+            "enum": [
+              "specific",
+              "parent",
+              "neutral",
+              "unmapped"
+            ],
+            "title": "Artwork Status",
+            "type": "string"
+          },
+          "genre_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Genre Ids",
+            "type": "array"
+          },
+          "guide_channel_count": {
+            "title": "Guide Channel Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "programme_count": {
+            "title": "Programme Count",
+            "type": "integer"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "source_id",
+          "programme_count",
+          "guide_channel_count",
+          "genre_ids",
+          "artwork_status"
+        ],
+        "title": "CategoryCoverageRow",
+        "type": "object"
+      },
+      "CategoryInventory": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "basis": {
+            "enum": [
+              "channel",
+              "now"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_change_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Change At"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "basis",
+          "as_of",
+          "taxonomy_version",
+          "total",
+          "items"
+        ],
+        "title": "CategoryInventory",
+        "type": "object"
+      },
+      "CategoryPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Channel Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_ids"
+        ],
+        "title": "CategoryPreviewRequest",
+        "type": "object"
+      },
+      "CategorySuggestion": {
+        "properties": {
+          "category_origin": {
+            "title": "Category Origin",
+            "type": "string"
+          },
+          "category_revision": {
+            "title": "Category Revision",
+            "type": "integer"
+          },
+          "channel_id": {
+            "title": "Channel Id",
+            "type": "integer"
+          },
+          "current_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Category"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "suggested_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Category"
+          }
+        },
+        "required": [
+          "channel_id",
+          "name",
+          "current_category",
+          "category_origin",
+          "category_revision",
+          "suggested_category",
+          "reason",
+          "evidence",
+          "fingerprint"
+        ],
+        "title": "CategorySuggestion",
+        "type": "object"
+      },
+      "CategoryView": {
+        "properties": {
+          "artwork": {
+            "title": "Artwork",
+            "type": "string"
+          },
+          "artwork_status": {
+            "enum": [
+              "specific",
+              "parent",
+              "neutral"
+            ],
+            "title": "Artwork Status",
+            "type": "string"
+          },
+          "count": {
+            "default": 0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "label_es": {
+            "title": "Label Es",
+            "type": "string"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "label_es",
+          "artwork",
+          "artwork_status"
+        ],
+        "title": "CategoryView",
+        "type": "object"
+      },
       "ChannelResult": {
         "description": "Schema for channel result from scraping",
         "properties": {
@@ -3466,6 +3839,30 @@
         "title": "DisableAccess",
         "type": "object"
       },
+      "EPGCategoryObservation": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "EPGCategoryObservation",
+        "type": "object"
+      },
       "EPGChannelListResponse": {
         "description": "Paginated EPG channel response.",
         "properties": {
@@ -3921,6 +4318,13 @@
       "EPGProgramResponse": {
         "description": "Schema for EPG program response",
         "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/EPGCategoryObservation"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
           "category": {
             "anyOf": [
               {
@@ -3951,6 +4355,13 @@
           "epg_channel_id": {
             "title": "Epg Channel Id",
             "type": "integer"
+          },
+          "genre_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Genre Ids",
+            "type": "array"
           },
           "id": {
             "title": "Id",
@@ -6468,10 +6879,24 @@
       },
       "GuideSlot": {
         "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/EPGCategoryObservation"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
           "end": {
             "format": "date-time",
             "title": "End",
             "type": "string"
+          },
+          "genre_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Genre Ids",
+            "type": "array"
           },
           "image_url": {
             "anyOf": [
@@ -8519,6 +8944,13 @@
       },
       "RecordingSnapshot": {
         "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/EPGCategoryObservation"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
           "category": {
             "anyOf": [
               {
@@ -12006,6 +12438,21 @@
             ],
             "title": "Category"
           },
+          "category_id": {
+            "default": "uncategorized",
+            "title": "Category Id",
+            "type": "string"
+          },
+          "category_origin": {
+            "default": "legacy",
+            "title": "Category Origin",
+            "type": "string"
+          },
+          "category_revision": {
+            "default": 0,
+            "title": "Category Revision",
+            "type": "integer"
+          },
           "channel_number": {
             "anyOf": [
               {
@@ -12054,6 +12501,17 @@
               }
             ],
             "title": "Epg Id"
+          },
+          "epg_logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Epg Logo Url"
           },
           "epg_source_id": {
             "anyOf": [
@@ -12257,6 +12715,18 @@
               }
             ],
             "title": "Epg Source Id"
+          },
+          "expected_category_revision": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Category Revision"
           },
           "is_active": {
             "anyOf": [
@@ -32564,6 +33034,48 @@
               "title": "Direction",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Category Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_basis",
+            "required": false,
+            "schema": {
+              "default": "channel",
+              "enum": [
+                "channel",
+                "now"
+              ],
+              "title": "Category Basis",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
           }
         ],
         "responses": {
@@ -32660,6 +33172,730 @@
           }
         },
         "summary": "Bulk Update Epg",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
+    "/api/v1/tv-channels/categories": {
+      "get": {
+        "operationId": "category_inventory_api_v1_tv_channels_categories_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_favorite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Favorite"
+            }
+          },
+          {
+            "in": "query",
+            "name": "epg",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Epg"
+            }
+          },
+          {
+            "in": "query",
+            "name": "epg_source_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Epg Source Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "streams",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "any",
+                    "none",
+                    "multiple"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Streams"
+            }
+          },
+          {
+            "in": "query",
+            "name": "signal",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "verified",
+                    "unverified",
+                    "unknown"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Signal"
+            }
+          },
+          {
+            "in": "query",
+            "name": "number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_streams",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Streams"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_streams",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Streams"
+            }
+          },
+          {
+            "in": "query",
+            "name": "logo_url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Logo Url"
+            }
+          },
+          {
+            "in": "query",
+            "name": "website",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Website"
+            }
+          },
+          {
+            "in": "query",
+            "name": "description",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "yes",
+                    "no"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            }
+          },
+          {
+            "in": "query",
+            "name": "watchable",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Watchable",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "online_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Online Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "default",
+              "enum": [
+                "default",
+                "name",
+                "channel_number",
+                "is_favorite",
+                "category",
+                "language",
+                "country",
+                "acestream_channels",
+                "is_active",
+                "logo_url"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Direction",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Category Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_basis",
+            "required": false,
+            "schema": {
+              "default": "channel",
+              "enum": [
+                "channel",
+                "now"
+              ],
+              "title": "Category Basis",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryInventory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Category Inventory",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
+    "/api/v1/tv-channels/category-coverage": {
+      "get": {
+        "operationId": "category_coverage_api_v1_tv_channels_category_coverage_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryCoverage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Category Coverage",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
+    "/api/v1/tv-channels/category-definitions": {
+      "get": {
+        "operationId": "category_definitions_api_v1_tv_channels_category_definitions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryView"
+                  },
+                  "title": "Response Category Definitions Api V1 Tv Channels Category Definitions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Category Definitions",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
+    "/api/v1/tv-channels/category-suggestions/apply": {
+      "post": {
+        "operationId": "apply_categories_api_v1_tv_channels_category_suggestions_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryApplyResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Apply Categories",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
+    "/api/v1/tv-channels/category-suggestions/preview": {
+      "post": {
+        "operationId": "preview_categories_api_v1_tv_channels_category_suggestions_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategorySuggestion"
+                  },
+                  "title": "Response Preview Categories Api V1 Tv Channels Category Suggestions Preview Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Preview Categories",
         "tags": [
           "tv-channels"
         ],
@@ -32843,6 +34079,23 @@
               "title": "Channel Ids",
               "type": "array"
             }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
           }
         ],
         "responses": {
@@ -32943,6 +34196,73 @@
           }
         },
         "summary": "Reorder Tv Channels",
+        "tags": [
+          "tv-channels"
+        ],
+        "x-access-class": "management"
+      }
+    },
+    "/api/v1/tv-channels/{channel_id}/category": {
+      "put": {
+        "operationId": "assign_category_api_v1_tv_channels__channel_id__category_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "channel_id",
+            "required": true,
+            "schema": {
+              "title": "Channel Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryAssignment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TVChannelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApplicationProblem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApplicationProblem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApplicationProblem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApplicationProblem422Validation"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Assign Category",
         "tags": [
           "tv-channels"
         ],

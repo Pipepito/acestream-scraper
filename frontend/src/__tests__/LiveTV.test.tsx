@@ -6,6 +6,8 @@ import { TestMemoryRouter as MemoryRouter } from '../testUtils/router';
 import { ThemeProvider } from '@mui/material/styles';
 import LiveTV from '../pages/LiveTV';
 import { createAppTheme } from '../theme';
+import { tvChannelService } from '../services/tvChannelService';
+jest.mock('../services/tvChannelService', () => ({ tvChannelService: { categories: jest.fn() } }));
 
 const mockSend = jest.fn();
 const mockPlayers = jest.fn();
@@ -29,10 +31,11 @@ const channels = (count: number) => Array.from({ length: count }, (_, i) => ({ i
 const pages = (items: Array<Record<string, unknown>>, total: number, extra: Record<string, unknown> = {}) => ({
   data: { pages: [{ items, total }], pageParams: [1] }, fetchNextPage: jest.fn(), hasNextPage: items.length < total, isFetchingNextPage: false, isLoading: false, isError: false, refetch: jest.fn(), ...extra,
 });
-const renderPage = (route = '/live-tv') => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={[route]}><ThemeProvider theme={createAppTheme('light')}><LiveTV /></ThemeProvider></MemoryRouter></QueryClientProvider>);
+const renderPage = (route = '/live-tv?category=all') => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={[route]}><ThemeProvider theme={createAppTheme('light')}><LiveTV /></ThemeProvider></MemoryRouter></QueryClientProvider>);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.mocked(tvChannelService.categories).mockResolvedValue({ basis: 'channel', as_of: new Date().toISOString(), taxonomy_version: 1, total: 1, items: [{ id: 'sports', label: 'Sports', label_es: 'Deportes', artwork: 'sports-general', artwork_status: 'specific', count: 1 }] });
   mockPlayers.mockReturnValue({ data: [{ id: 7, name: 'Living room', kind: 'vlc' }] });
   mockSend.mockResolvedValue({ warnings: [] });
   mockTVChannel.mockReturnValue({});
@@ -56,9 +59,23 @@ it('shows only active TV channels with streams in one unpaginated list', () => {
   expect(screen.getByRole('button', { name: 'TV channels', pressed: true })).toBeInTheDocument();
 });
 
-it('hides channels without streams or inactive and highlights the playing row', () => {
+it('starts with categories and preserves playback when switching discovery modes', async () => {
   mockTVChannel.mockReturnValue({ data: { id: 1, name: 'Watchable', acestream_channels: [{ id: 'one' }] } });
   renderPage('/live-tv?channel=1');
+  expect(screen.queryByRole('button', { name: 'Watch Watchable' })).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByRole('button', { name: /Sports.*1 channel/ }));
+  await waitFor(() => expect(mockCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ category_id: 'sports', category_basis: 'channel' }), true));
+  expect(screen.getByRole('dialog', { name: 'Watchable' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'On now' }));
+  await waitFor(() => expect(tvChannelService.categories).toHaveBeenLastCalledWith(expect.objectContaining({ category_basis: 'now' }), expect.anything()));
+  expect(screen.getByRole('dialog', { name: 'Watchable' })).toBeInTheDocument();
+  fireEvent.click(await screen.findByRole('button', { name: /Sports.*1 channel/ }));
+  await waitFor(() => expect(mockCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ category_id: 'sports', category_basis: 'now', as_of: expect.any(String) }), true));
+});
+
+it('hides channels without streams or inactive and highlights the playing row', () => {
+  mockTVChannel.mockReturnValue({ data: { id: 1, name: 'Watchable', acestream_channels: [{ id: 'one' }] } });
+  renderPage('/live-tv?channel=1&category=all');
   expect(screen.getByRole('button', { name: 'Watch Watchable' })).toBeEnabled();
   expect(screen.queryByText('Empty channel')).not.toBeInTheDocument();
   expect(screen.queryByText('Inactive channel')).not.toBeInTheDocument();
@@ -93,7 +110,7 @@ it('opens streams mode from the URL and drops the online filter when the switch 
 it('keeps the TV list available when streams fail, and shows loading and empty states', () => {
   const refetch = jest.fn();
   mockPages.mockReturnValue(pages([], 0, { isError: true, refetch }));
-  let view = renderPage('/live-tv?list=streams');
+  let view = renderPage('/live-tv?list=streams&category=all');
   expect(screen.getByText('Unable to load streams.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
   expect(refetch).toHaveBeenCalled();
@@ -106,7 +123,7 @@ it('keeps the TV list available when streams fail, and shows loading and empty s
   view.unmount();
   mockPages.mockReturnValue(pages([], 0));
   mockCatalog.mockReturnValue({ data: [] });
-  renderPage('/live-tv?list=streams');
+  renderPage('/live-tv?list=streams&category=all');
   expect(screen.getByText('No online streams.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'TV channels' }));
   expect(screen.getByText(/No channels have an online stream yet/)).toBeInTheDocument();
@@ -121,7 +138,7 @@ it('events mode offers Watch for linked broadcasters and Link for the rest', asy
   expect(screen.getByRole('button', { name: 'TV channels', pressed: true })).toBeInTheDocument();
 });
 
-it.each([['Watchable', 'one', '/live-tv'], ['Independent', 'raw', '/live-tv?list=streams']])('sends %s directly without opening the web player', async (title, contentId, route) => {
+it.each([['Watchable', 'one', '/live-tv?category=all'], ['Independent', 'raw', '/live-tv?list=streams']])('sends %s directly without opening the web player', async (title, contentId, route) => {
   renderPage(route);
   fireEvent.click(screen.getByRole('button', { name: `Send to player ${title}` }));
   fireEvent.click(screen.getByRole('menuitem', { name: 'Living room (VLC)' }));
@@ -161,7 +178,7 @@ it('hides offline and unchecked channels, shows returning streams, and preserves
   const unknown = { id: 3, name: 'Unchecked TV', is_active: true, acestream_channels: [{ id: 'three', is_active: true, is_online: null }] };
   mockCatalog.mockReturnValue({ data: [online, offline, unknown] });
   mockTVChannel.mockReturnValue({ data: online });
-  renderPage('/live-tv?channel=1');
+  renderPage('/live-tv?channel=1&category=all');
   expect(screen.queryByRole('button', { name: 'Watch Offline TV' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Watch Unchecked TV' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('checkbox', { name: 'Online only' }));

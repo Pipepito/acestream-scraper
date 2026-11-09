@@ -19,6 +19,7 @@ for (const mode of ['light', 'dark']) {
       if (request.method() !== 'GET') mutations.push(`${request.method()} ${path}`);
       const fixtures: Record<string, unknown> = {
         '/api/v1/tv-channels/browse': { items: [], total: 0 },
+        '/api/v1/tv-channels/categories': { basis: 'channel', as_of: new Date().toISOString(), taxonomy_version: 1, total: 0, items: [] },
         '/api/v1/tv-channels/now-next': [],
         '/api/v1/recordings/upcoming': { total: 0, items: [] },
         '/api/v1/recordings/capabilities': { enabled: false, storage_ready: false, message: 'Configure recordings.' },

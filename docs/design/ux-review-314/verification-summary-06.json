@@ -1,0 +1,255 @@
+{
+  "observed_date": "2026-11-07",
+  "scope": "Design only; counts overlap; raw reports remain outside Git.",
+  "application_source": "cf952afc6b4489c02b7a675ff3d634cc13d98e0b",
+  "main_source": "180f544c140f2f0361c386ebd395dcf366ae343d",
+  "prototype_sha256": {
+    "workflow-engine.js": "094048f525cc2e596d05b06d920767c1352b0ce14c545179f11a785cdcbba03d",
+    "workflow-data.json": "1d29020d71c5bfc5e0c9a55ef988950c7982afb35d75f133df4f3ff09b328574",
+    "workflow-data.js": "fbbe5928a9adc20a824b478927ebe5b5e20ca8cb7fcd335067beea24cc1ec54a",
+    "presentation-presets.css": "c54accd4ab6584ec9b7630fb4720d4159fd0db90c9a85b9ce44db37064ad118b",
+    "workflow-prototype.html": "63dd1db4030c0bf44289a3dbca08fe3948cc6f59e41c86078ae0d10f7a383f49",
+    "openapi-contract-map.json": "b693710cf52517208338774e9bb47eaedf6198d53e0bb3d7c3ebf25f27e10555"
+  },
+  "reports": {
+    "full": {
+      "file": "workflow-checks.json",
+      "sha256": "a78f6ac423823e6396869582040d2160daf7d172f083b6b1b982178b3e58a693",
+      "summary": {
+        "screens": 146,
+        "layout_cases": 10077,
+        "layout_failures": 4,
+        "axe_cases": 877,
+        "axe_violating_cases": 0,
+        "functional_pass": 105,
+        "functional_fail": 0,
+        "reflow_cases": 14,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0,
+        "exports": 876
+      }
+    },
+    "final-affected": {
+      "file": "workflow-checks.json",
+      "sha256": "424946d8956bc67b4916f981987d77a1bc9afb68335cd394c0b5e27420cc7a2c",
+      "summary": {
+        "screens": 8,
+        "layout_cases": 675,
+        "layout_failures": 0,
+        "axe_cases": 48,
+        "axe_violating_cases": 0,
+        "functional_pass": 0,
+        "functional_fail": 0,
+        "reflow_cases": 0,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0,
+        "exports": 0
+      }
+    },
+    "final-exports": {
+      "file": "workflow-checks.json",
+      "sha256": "23e2e1e09e3d8be85fcf6d7f64dbaa6286aad82609bd84ff77dcd8f88eb11f92",
+      "summary": {
+        "screens": 146,
+        "layout_cases": 1752,
+        "layout_failures": 0,
+        "axe_cases": 0,
+        "axe_violating_cases": 0,
+        "functional_pass": 105,
+        "functional_fail": 0,
+        "reflow_cases": 14,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0,
+        "exports": 876
+      }
+    },
+    "final-source-copy": {
+      "file": "workflow-checks.json",
+      "sha256": "68de10bcedb4ccab6b8c714286c5b24f0bd23505f5ca960b09b3e241eff1c9a8",
+      "summary": {
+        "screens": 6,
+        "layout_cases": 414,
+        "layout_failures": 0,
+        "axe_cases": 36,
+        "axe_violating_cases": 0,
+        "functional_pass": 0,
+        "functional_fail": 0,
+        "reflow_cases": 0,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0,
+        "exports": 36
+      }
+    },
+    "final-recovery": {
+      "file": "workflow-checks.json",
+      "sha256": "ffb7719e9d99d607f8f47fed8a095f4b00a6b01f170ad44109be92f941de29b3",
+      "summary": {
+        "screens": 2,
+        "layout_cases": 126,
+        "layout_failures": 0,
+        "axe_cases": 12,
+        "axe_violating_cases": 0,
+        "functional_pass": 0,
+        "functional_fail": 0,
+        "reflow_cases": 0,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0,
+        "exports": 12
+      }
+    },
+    "final-hero": {
+      "file": "workflow-checks.json",
+      "sha256": "a8ca14740b893c140cd1f2568d15b3448a36ac4a9eb16f59bcc97c86b8bc284b",
+      "summary": {
+        "screens": 1,
+        "layout_cases": 105,
+        "layout_failures": 0,
+        "axe_cases": 6,
+        "axe_violating_cases": 0,
+        "functional_pass": 0,
+        "functional_fail": 0,
+        "reflow_cases": 0,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0,
+        "exports": 6
+      }
+    },
+    "final-interactions": {
+      "file": "workflow-checks.json",
+      "sha256": "e97dabb694780757180d332612bf0702ae9d2df7be49655a9a62df9154cacb26",
+      "summary": {
+        "screens": 146,
+        "layout_cases": 0,
+        "layout_failures": 0,
+        "axe_cases": 1,
+        "axe_violating_cases": 0,
+        "functional_pass": 105,
+        "functional_fail": 0,
+        "reflow_cases": 14,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0,
+        "exports": 0
+      }
+    },
+    "journeys-final": {
+      "file": "journey-checks.json",
+      "sha256": "bfbea87704a0ad3bb847e6f2c7830694a5e7628f57b0f2637ad03eb2553e963e",
+      "summary": {
+        "passed": 48,
+        "failed": 0,
+        "errors": 0,
+        "blocked": 0
+      }
+    },
+    "gallery-final": {
+      "file": "gallery-checks.json",
+      "sha256": "c1d88c831f95971a8c11972f25242d1773b7daa0a4ab43f08d686663edc361be",
+      "summary": {
+        "gallery_widths": 4,
+        "gallery_images": 146,
+        "gallery_failures": 0,
+        "critical_state_axe_cases": 138,
+        "axe_violating_cases": 0,
+        "contrast_pairs": 78,
+        "contrast_failures": 0,
+        "minimum_text_ratio": 4.988,
+        "minimum_ui_ratio": 3.51,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0
+      }
+    },
+    "image-contrast-final": {
+      "file": "image-contrast-checks.json",
+      "sha256": "4eeb28a905e7b3567e8e92e6b1cc45515a713eeefddfc96ed8b6c16371160964",
+      "summary": {
+        "contexts": 24,
+        "text_rectangles": 215,
+        "failures": 0,
+        "minimum_ratio": 4.886,
+        "blocked": 0,
+        "errors": 0
+      }
+    },
+    "pages": {
+      "file": "pages-checks.json",
+      "sha256": "4a547cf9a20105214dd6f05aa2d47675d56dcd832a44040f8f1e3725b8d1d5f8",
+      "summary": {
+        "static_cases": 8,
+        "static_failures": 0,
+        "long_content_cases": 6,
+        "long_content_failures": 0,
+        "errors": 0,
+        "blocked": 0,
+        "console": 0
+      }
+    },
+    "artifacts": {
+      "file": "artifact-checks.json",
+      "sha256": "fa04ef42acce45236bbab5c631063ffc565f864594c81a2c71588b6b5146095e",
+      "summary": {
+        "selected_image_files": 5,
+        "selected_image_bytes": 254922,
+        "local_links": 3896,
+        "local_fragments": 642,
+        "generated_files": 10,
+        "generated_drift": [],
+        "screens": 146,
+        "exports": 876,
+        "historical_exports": 288,
+        "runtime_fields": 47,
+        "failures": []
+      }
+    },
+    "pages-candidate": {
+      "file": "pages-checks.json",
+      "sha256": "5d75c328b0b01930ea116c34192b789939f1cf10d4a067b330c79adfa263c6ea",
+      "summary": {
+        "static_cases": 8,
+        "static_failures": 0,
+        "long_content_cases": 6,
+        "long_content_failures": 0,
+        "errors": 0,
+        "blocked": 0,
+        "console": 0
+      }
+    },
+    "hosted-final": {
+      "file": "hosted-checks.json",
+      "sha256": "f1e1fb3e8deee515ba0b7add8da7e058695932a41e930543deb8798ca887b6be",
+      "summary": {
+        "files": 1290,
+        "matching": 1290,
+        "failures": 0,
+        "preserved_site_files": 102,
+        "bytes": 87498385
+      }
+    },
+    "hosted-browser-final": {
+      "file": "hosted-browser-checks.json",
+      "sha256": "c28fc15ccff0f53e04fd9bee4ed211aa0eb262a7701fd118fe4712e96532dab0",
+      "summary": {
+        "cases": 6,
+        "assertions": 42,
+        "failures": 0,
+        "errors": 0,
+        "console": 0,
+        "blocked": 0
+      }
+    }
+  },
+  "publication": {
+    "design_source": "530b366996265d351fe2ede9b29f462b1d3d6178",
+    "site_source": "ebea374d0e62da1ac7bf52c322ccad8daf1990fd",
+    "pages_commit": "c20548ab0dedaecdfec5a322595183c498091eaa",
+    "built_at": "2026-11-07T21:19:33Z",
+    "preserved_site_files": 102
+  }
+}

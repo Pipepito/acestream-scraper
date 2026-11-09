@@ -4341,6 +4341,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tv-channels/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category Inventory */
+        get: operations["category_inventory_api_v1_tv_channels_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category Coverage */
+        get: operations["category_coverage_api_v1_tv_channels_category_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-definitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category Definitions */
+        get: operations["category_definitions_api_v1_tv_channels_category_definitions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-suggestions/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Categories */
+        post: operations["apply_categories_api_v1_tv_channels_category_suggestions_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-suggestions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Categories */
+        post: operations["preview_categories_api_v1_tv_channels_category_suggestions_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tv-channels/create-from-epg-analysis": {
         parameters: {
             query?: never;
@@ -4429,6 +4514,23 @@ export interface paths {
          * @description Save the complete channel order atomically using consecutive channel numbers.
          */
         post: operations["reorder_tv_channels_api_v1_tv_channels_reorder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{channel_id}/category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assign Category */
+        put: operations["assign_category_api_v1_tv_channels__channel_id__category_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5999,6 +6101,137 @@ export interface components {
             /** Warnings */
             warnings?: string[];
         };
+        /** CategoryApplyItem */
+        CategoryApplyItem: {
+            /** Category Id */
+            category_id: string;
+            /** Channel Id */
+            channel_id: number;
+            /** Fingerprint */
+            fingerprint: string;
+        };
+        /** CategoryApplyRequest */
+        CategoryApplyRequest: {
+            /** Items */
+            items: components["schemas"]["CategoryApplyItem"][];
+        };
+        /** CategoryApplyResult */
+        CategoryApplyResult: {
+            /** Updated */
+            updated: number;
+        };
+        /** CategoryAssignment */
+        CategoryAssignment: {
+            /** Category */
+            category?: string | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Mode
+             * @default manual
+             * @enum {string}
+             */
+            mode?: "manual" | "automatic";
+        };
+        /** CategoryCoverage */
+        CategoryCoverage: {
+            /** Catalogue */
+            catalogue: components["schemas"]["CategoryView"][];
+            /** Items */
+            items: components["schemas"]["CategoryCoverageRow"][];
+            /** Taxonomy Version */
+            taxonomy_version: number;
+            /** Total Labels */
+            total_labels: number;
+        };
+        /** CategoryCoverageRow */
+        CategoryCoverageRow: {
+            /**
+             * Artwork Status
+             * @enum {string}
+             */
+            artwork_status: "specific" | "parent" | "neutral" | "unmapped";
+            /** Genre Ids */
+            genre_ids: string[];
+            /** Guide Channel Count */
+            guide_channel_count: number;
+            /** Label */
+            label: string;
+            /** Programme Count */
+            programme_count: number;
+            /** Source Id */
+            source_id: number;
+        };
+        /** CategoryInventory */
+        CategoryInventory: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "channel" | "now";
+            /** Items */
+            items: components["schemas"]["CategoryView"][];
+            /** Next Change At */
+            next_change_at?: string | null;
+            /** Taxonomy Version */
+            taxonomy_version: number;
+            /** Total */
+            total: number;
+        };
+        /** CategoryPreviewRequest */
+        CategoryPreviewRequest: {
+            /** Channel Ids */
+            channel_ids: number[];
+        };
+        /** CategorySuggestion */
+        CategorySuggestion: {
+            /** Category Origin */
+            category_origin: string;
+            /** Category Revision */
+            category_revision: number;
+            /** Channel Id */
+            channel_id: number;
+            /** Current Category */
+            current_category: string | null;
+            /** Evidence */
+            evidence: string[];
+            /** Fingerprint */
+            fingerprint: string;
+            /** Name */
+            name: string;
+            /** Reason */
+            reason: string;
+            /** Suggested Category */
+            suggested_category: string | null;
+        };
+        /** CategoryView */
+        CategoryView: {
+            /** Artwork */
+            artwork: string;
+            /**
+             * Artwork Status
+             * @enum {string}
+             */
+            artwork_status: "specific" | "parent" | "neutral";
+            /**
+             * Count
+             * @default 0
+             */
+            count?: number;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Label Es */
+            label_es: string;
+            /** Parent */
+            parent?: string | null;
+        };
         /**
          * ChannelResult
          * @description Schema for channel result from scraping
@@ -6234,6 +6467,13 @@ export interface components {
              */
             current_password: string;
         };
+        /** EPGCategoryObservation */
+        EPGCategoryObservation: {
+            /** Label */
+            label: string;
+            /** Language */
+            language?: string | null;
+        };
         /**
          * EPGChannelListResponse
          * @description Paginated EPG channel response.
@@ -6435,6 +6675,8 @@ export interface components {
          * @description Schema for EPG program response
          */
         EPGProgramResponse: {
+            /** Categories */
+            categories?: components["schemas"]["EPGCategoryObservation"][];
             /** Category */
             category?: string | null;
             /** Description */
@@ -6446,6 +6688,8 @@ export interface components {
             end_time: string;
             /** Epg Channel Id */
             epg_channel_id: number;
+            /** Genre Ids */
+            genre_ids?: string[];
             /** Id */
             id: number;
             /** Image Url */
@@ -7474,11 +7718,15 @@ export interface components {
         };
         /** GuideSlot */
         GuideSlot: {
+            /** Categories */
+            categories?: components["schemas"]["EPGCategoryObservation"][];
             /**
              * End
              * Format: date-time
              */
             end: string;
+            /** Genre Ids */
+            genre_ids?: string[];
             /** Image Url */
             image_url?: string | null;
             /**
@@ -8319,6 +8567,8 @@ export interface components {
         };
         /** RecordingSnapshot */
         RecordingSnapshot: {
+            /** Categories */
+            categories?: components["schemas"]["EPGCategoryObservation"][];
             /** Category */
             category?: string | null;
             /** Channel Name */
@@ -9703,6 +9953,21 @@ export interface components {
             acestream_channels?: components["schemas"]["AcestreamChannelResponse"][];
             /** Category */
             category?: string | null;
+            /**
+             * Category Id
+             * @default uncategorized
+             */
+            category_id?: string;
+            /**
+             * Category Origin
+             * @default legacy
+             */
+            category_origin?: string;
+            /**
+             * Category Revision
+             * @default 0
+             */
+            category_revision?: number;
             /** Channel Number */
             channel_number?: number | null;
             /** Country */
@@ -9716,6 +9981,8 @@ export interface components {
             description?: string | null;
             /** Epg Id */
             epg_id?: string | null;
+            /** Epg Logo Url */
+            epg_logo_url?: string | null;
             /** Epg Source Id */
             epg_source_id?: number | null;
             /** Id */
@@ -9782,6 +10049,8 @@ export interface components {
             epg_id?: string | null;
             /** Epg Source Id */
             epg_source_id?: number | null;
+            /** Expected Category Revision */
+            expected_category_revision?: number | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Is Favorite */
@@ -20402,6 +20671,9 @@ export interface operations {
                 online_only?: boolean;
                 sort?: "default" | "name" | "channel_number" | "is_favorite" | "category" | "language" | "country" | "acestream_channels" | "is_active" | "logo_url";
                 direction?: "asc" | "desc";
+                category_id?: string;
+                category_basis?: "channel" | "now";
+                as_of?: string | null;
             };
             header?: never;
             path?: never;
@@ -20448,6 +20720,186 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TVChannelBulkEPGUpdateResponse"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    category_inventory_api_v1_tv_channels_categories_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                search?: string;
+                category?: string;
+                country?: string;
+                language?: string;
+                is_active?: boolean | null;
+                is_favorite?: boolean | null;
+                epg?: ("yes" | "no") | null;
+                epg_source_id?: number | null;
+                streams?: ("any" | "none" | "multiple") | null;
+                signal?: ("verified" | "unverified" | "unknown") | null;
+                number?: ("yes" | "no") | null;
+                min_number?: number | null;
+                max_number?: number | null;
+                min_streams?: number | null;
+                max_streams?: number | null;
+                logo_url?: ("yes" | "no") | null;
+                website?: ("yes" | "no") | null;
+                description?: ("yes" | "no") | null;
+                watchable?: boolean;
+                online_only?: boolean;
+                sort?: "default" | "name" | "channel_number" | "is_favorite" | "category" | "language" | "country" | "acestream_channels" | "is_active" | "logo_url";
+                direction?: "asc" | "desc";
+                category_id?: string;
+                category_basis?: "channel" | "now";
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryInventory"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    category_coverage_api_v1_tv_channels_category_coverage_get: {
+        parameters: {
+            query?: {
+                source_id?: number | null;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryCoverage"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    category_definitions_api_v1_tv_channels_category_definitions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryView"][];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    apply_categories_api_v1_tv_channels_category_suggestions_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryApplyResult"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    preview_categories_api_v1_tv_channels_category_suggestions_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorySuggestion"][];
                 };
             };
             400: components["responses"]["ApplicationProblem400"];
@@ -20556,6 +21008,7 @@ export interface operations {
         parameters: {
             query?: {
                 channel_ids?: number[];
+                as_of?: string | null;
             };
             header?: never;
             path?: never;
@@ -20602,6 +21055,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    assign_category_api_v1_tv_channels__channel_id__category_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryAssignment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TVChannelResponse"];
                 };
             };
             400: components["responses"]["ApplicationProblem400"];

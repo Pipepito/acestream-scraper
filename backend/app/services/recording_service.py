@@ -165,7 +165,7 @@ class RecordingService:
                     raise APIError('PROGRAMME_CHANGED', 'Programme or channel mapping changed. Refresh the guide.', 409)
                 occurrence = fingerprint([source.recording_uuid, guide.channel_xml_id, program.start_time.isoformat()])
                 snapshot = RecordingSnapshot(title=program.title, channel_name=channel.name,
-                    subtitle=program.subtitle, description=program.description, category=program.category,
+                    subtitle=program.subtitle, description=program.description, category=program.category, categories=program.categories,
                     guide_source_uuid=source.recording_uuid, guide_channel_id=guide.channel_xml_id,
                     original_start=program.start_time, original_end=program.end_time, provider_programme_id=program.program_xml_id)
             pending = self.repo.pending()

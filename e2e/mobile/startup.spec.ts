@@ -7,6 +7,9 @@ for (const mode of ['light', 'dark']) {
     page.on('pageerror', error => errors.push(error.message));
     let status = 'starting';
     const actions: string[] = [];
+    await page.route('**/api/v1/auth/status', route => route.fulfill({ json: {
+      mode: 'open', user: null, permissions: [], csrf: 'test-csrf', legacy_token: false, account_transport: 'local_http',
+    } }));
     await page.route('**/api/v1/startup**', async route => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/diagnostics')) {

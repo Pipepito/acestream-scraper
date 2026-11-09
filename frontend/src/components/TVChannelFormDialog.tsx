@@ -2,6 +2,7 @@ import { useUiText } from '../i18n/useUiText';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -20,6 +21,9 @@ import { useUnsavedChanges } from './UnsavedChanges';
 import { useConfirm } from './ConfirmDialog';
 import { TVChannelCreate, TVChannelUpdate } from '../types/tvChannelTypes';
 import { TVChannelFormErrors } from '../hooks/useTVChannelForm';
+import { useQuery } from '@tanstack/react-query';
+import { tvChannelService } from '../services/tvChannelService';
+import { useTranslation } from 'react-i18next';
 
 interface TVChannelFormDialogProps {
   mode: 'create' | 'edit';
@@ -49,6 +53,8 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
   onSubmit,
 }) => {
   const tUi = useUiText();
+  const { i18n } = useTranslation();
+  const definitions = useQuery({ queryKey: ['categoryDefinitions'], queryFn: tvChannelService.categoryDefinitions, enabled: open, staleTime: Infinity });
   const current = JSON.stringify(formData);
   const [initial, setInitial] = useState(current);
   const wasOpen = useRef(false);
@@ -98,7 +104,11 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
             {tUi("Optional details")}</Typography>
           <Stack spacing={2}>
             <TextField name="logo_url" label={tUi("Logo URL")} fullWidth value={formData.logo_url || ''} onChange={onChange} />
-            <TextField name="category" label={tUi("Category")} fullWidth value={formData.category || ''} onChange={onChange} />
+            <Autocomplete freeSolo options={definitions.data?.map(item => item.id) ?? []} value={formData.category || ''}
+              getOptionLabel={value => { const item = definitions.data?.find(row => row.id === value); return item ? i18n.resolvedLanguage?.startsWith('es') ? item.label_es : item.label : value; }}
+              onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') onChange({ target: { name: 'category', value, type: 'text' } } as React.ChangeEvent<HTMLInputElement>); }}
+              onChange={(_, value) => onChange({ target: { name: 'category', value: value ?? '', type: 'text' } } as React.ChangeEvent<HTMLInputElement>)}
+              renderInput={params => <TextField {...params} name="category" label={tUi('Channel category')} helperText={tUi('Choose a category or enter your own. This stays independent of current programmes.')} />} />
             <TextField name="country" label={tUi("Country")} fullWidth value={formData.country || ''} onChange={onChange} />
             <TextField name="language" label={tUi("Language")} fullWidth value={formData.language || ''} onChange={onChange} />
             {mode === 'edit' ? <TextField name="epg_id" label={tUi("EPG ID")} fullWidth value={formData.epg_id || ''} onChange={onChange} /> : null}

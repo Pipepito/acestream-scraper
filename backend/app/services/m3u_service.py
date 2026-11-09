@@ -260,10 +260,17 @@ class M3UService:
                 continue
             epg_channel = epg_service.find_channel_by_xml_id_across_sources(tvg_id)
             if epg_channel:
+                from app.services.category_taxonomy import channel_category, CHANNEL_IDS, TAXONOMY_VERSION
+                groups = sorted({parsed_channels[idx][2].get('group_title') for idx in indices
+                                 if parsed_channels[idx][2].get('group_title')})
+                keys = {channel_category(group).id for group in groups}
+                category = next(iter(keys)) if len(keys) == 1 and keys <= CHANNEL_IDS else None
                 tv_channel_data = {
                     'name': epg_channel.name,
                     'logo_url': getattr(epg_channel, 'icon_url', None),
-                    'category': getattr(epg_channel, 'group', None),
+                    'category': category,
+                    'category_origin': 'import' if category else 'automatic',
+                    'category_evidence': {'source_groups': groups, 'taxonomy_version': TAXONOMY_VERSION},
                     'language': getattr(epg_channel, 'language', None),
                     'epg_id': epg_channel.channel_xml_id,
                     'epg_source_id': epg_channel.epg_source_id,

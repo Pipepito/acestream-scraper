@@ -1,6 +1,7 @@
 """Bounded catalogue reads; filters always precede ordering and pagination."""
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TVBrowseFilters(BaseModel):
@@ -29,6 +30,16 @@ class TVBrowseFilters(BaseModel):
     online_only: bool = False
     sort: Literal['default', 'name', 'channel_number', 'is_favorite', 'category', 'language', 'country', 'acestream_channels', 'is_active', 'logo_url'] = 'default'
     direction: Literal['asc', 'desc'] = 'asc'
+    category_id: str = Field('', max_length=100)
+    category_basis: Literal['channel', 'now'] = 'channel'
+    as_of: datetime | None = None
+
+    @field_validator('as_of')
+    @classmethod
+    def aware_reference(cls, value):
+        if value is not None and value.utcoffset() is None:
+            raise ValueError('Reference time must include a timezone')
+        return value
 
 
 class TVInventory(BaseModel):

@@ -1,0 +1,14 @@
+{
+  "provider": "unsplash",
+  "license": "Unsplash License (free)",
+  "license_url": "https://unsplash.com/license",
+  "category": "tenis",
+  "photo_title": "tennis ball on tennis court",
+  "photo_id": "0wbYOLZwDPY",
+  "photo_url": "https://unsplash.com/photos/tennis-ball-on-tennis-court-0wbYOLZwDPY?utm_source=sportzz&utm_medium=referral",
+  "photo_author": "Matthias David",
+  "photo_author_url": "https://unsplash.com/@matthias_d?utm_source=sportzz&utm_medium=referral",
+  "local_cover": "cover.webp",
+  "image_id": "photo-1627314387807-df615e8567de",
+  "note": "Manually selected on unsplash.com and downloaded for local hosting. Not Unsplash+."
+}

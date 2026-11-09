@@ -31,6 +31,7 @@ import type { TVBrowseParams } from '../services/tvChannelService';
 
 const TVChannelReorder = lazy(() => import('../components/TVChannelReorder'));
 const TVAutoMatchDialog = lazy(() => import('../components/TVAutoMatchDialog'));
+const CategoryReviewDialog = lazy(() => import('../components/CategoryReviewDialog'));
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -39,6 +40,7 @@ const TVChannels: React.FC = () => {
   const [reordering, setReordering] = useState(false);
   const reorderMutation = useReorderTVChannels();
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
+  const [categoryReviewIds, setCategoryReviewIds] = useState<number[] | null>(null);
   const theme = useTheme();
   const shellLayout = getShellLayout(theme);
   const isPhone = useMediaQuery(`(max-width:${shellLayout.phoneMaxWidth}px)`);
@@ -233,6 +235,7 @@ const TVChannels: React.FC = () => {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Button variant="outlined" disabled={reordering || inventoryTotal < 2} onClick={() => setReordering(true)}>{tUi("Reorder channels")}</Button>
             <Button variant="outlined" disabled={reordering} onClick={() => setAutoMatchOpen(true)}>{tUi("Auto-match streams")}</Button>
+            <Button variant="outlined" disabled={reordering || !channels.length} onClick={() => setCategoryReviewIds(channels.map(channel => channel.id))}>{tUi('Review channel categories')}</Button>
             <Button variant="outlined" disabled={reordering} onClick={() => refetchCatalog()}>
               {tUi("Refresh")}</Button>
             <Button variant="contained" color="primary" disabled={reordering} onClick={handleOpenCreateDialog}>
@@ -306,6 +309,7 @@ const TVChannels: React.FC = () => {
 
       {autoMatchOpen ? <Suspense fallback={<CircularProgress aria-label={tUi("Loading auto-match")} />}><TVAutoMatchDialog onClose={() => setAutoMatchOpen(false)} /></Suspense> : null}
 
+      {categoryReviewIds ? <Suspense fallback={<CircularProgress />}><CategoryReviewDialog ids={categoryReviewIds} onClose={() => setCategoryReviewIds(null)} /></Suspense> : null}
       <TVChannelFormDialog
         mode="create"
         open={openCreateDialog}

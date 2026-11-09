@@ -19,6 +19,7 @@ export interface TVChannelCreate extends TVChannelBase {
 }
 
 export interface TVChannelUpdate {
+  expected_category_revision?: number;
   name?: string;
   logo_url?: string;
   description?: string;
@@ -34,6 +35,10 @@ export interface TVChannelUpdate {
 }
 
 export interface TVChannel extends TVChannelBase {
+  category_id?: string;
+  category_origin?: string;
+  category_revision?: number;
+  epg_logo_url?: string | null;
   id: number;
   epg_source_id?: number;
   created_at: string; // ISO date string

@@ -1,6 +1,6 @@
 import { useUiText } from '../../i18n/useUiText';
 import { useAppPreferences } from '../../preferences/AppPreferences';
-import ProgrammeArtwork from '../ProgrammeArtwork';
+import ChannelArtwork from './ChannelArtwork';
 import React, { useEffect, useRef } from 'react';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
@@ -49,8 +49,11 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
   return <Box component="article" ref={ref} aria-label={channel.name} aria-current={selected ? 'true' : undefined}
     sx={{ py: 2, px: preset === 'lime' ? 1 : 2, mx: preset === 'lime' ? -1 : 0, minWidth: 0, border: preset === 'lime' ? 0 : 1, borderBottom: 1, borderRadius: preset === 'lime' ? 0 : 2, borderColor: 'divider', contentVisibility: 'auto', containIntrinsicSize: 'auto 140px',
       ...(selected ? { bgcolor: 'action.selected', borderRadius: 1 } : {}) }}>
-    <Box sx={{ display: preset === 'lime' ? 'none' : 'block' }}><ProgrammeArtwork src={row?.now?.image_url} /></Box>
+    <Box sx={{ display: 'grid', gap: preset === 'coral' ? 2 : 0, gridTemplateColumns: preset === 'coral' ? { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 200px) minmax(0, 1fr)' } : 'minmax(0, 1fr)', alignItems: 'start' }}>
+    {preset !== 'lime' ? <ChannelArtwork channel={channel} /> : null}
+    <Box sx={{ minWidth: 0 }}>
     <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
+      {preset === 'lime' ? <ChannelArtwork channel={channel} compact /> : null}
       <Box sx={{ flex: '1 1 180px', minWidth: 0 }}>
         <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? tUi("{{value0}}. ", { value0: channel.channel_number }) : ''}{channel.name}</Typography>
         <Typography variant="body2" color="text.secondary">{onlineStreams.length ? tUi("{{value0}} online stream{{value1}}", { value0: onlineStreams.length, value1: onlineStreams.length === 1 ? '' : 's' }) : tUi("No stream verified online")}{channel.category ? tUi(" · {{value0}}", { value0: channel.category }) : ''}</Typography>
@@ -65,6 +68,8 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
     {/* Same slot in every state, so an opened guide (and its dialogs) survives the batch loading or failing.
         While the batch loads, `null` keeps the guide's own per-channel queries off: the batch is the only read. */}
     {hasGuide || fallback ? <ChannelGuide channel={channel} now={now} compact nowNext={fallback ? undefined : (row ?? null)} expanderOnly={!fallback} /> : null}
+    </Box>
+    </Box>
   </Box>;
 };
 

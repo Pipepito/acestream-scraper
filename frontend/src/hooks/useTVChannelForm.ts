@@ -55,6 +55,7 @@ export const useTVChannelForm = () => {
       is_favorite: channel.is_favorite,
       epg_id: channel.epg_id || '',
       channel_number: channel.channel_number,
+      expected_category_revision: channel.category_revision,
     });
     setOpenEditDialog(true);
   };
@@ -81,6 +82,7 @@ export const useTVChannelForm = () => {
 
   const validateForm = (): TVChannelCreate | TVChannelUpdate | null => {
     const payload = getSanitizedPayload();
+    if (openEditDialog && payload.category === (selectedChannel?.category ?? '')) delete payload.category;
 
     if (!payload.name) {
       setFormErrors({ name: 'Enter a channel name before saving.' });

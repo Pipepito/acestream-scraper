@@ -107,7 +107,7 @@ class ChannelRepository:
         items = query.options(selectinload(TVChannel.acestream_channels)).order_by(*self._tv_channel_ordering(), TVChannel.id).offset(skip).limit(limit).all()
         return items, total
 
-    def browse_tv_channels(self, filters):
+    def filtered_tv_query(self, filters):
         from sqlalchemy import String, cast, select
         stream_count = (select(func.count(AcestreamChannel.id))
                         .where(AcestreamChannel.tv_channel_id == TVChannel.id)
@@ -158,6 +158,16 @@ class ChannelRepository:
             if filters.online_only:
                 stream = and_(stream, AcestreamChannel.is_online.is_(True))
             query = query.filter(TVChannel.is_active.is_(True), TVChannel.acestream_channels.any(stream))
+        return query
+
+    def browse_tv_channels(self, filters, channel_ids=None):
+        from sqlalchemy import select
+        query = self.filtered_tv_query(filters)
+        if channel_ids is not None:
+            query = query.filter(TVChannel.id.in_(channel_ids))
+        stream_count = (select(func.count(AcestreamChannel.id))
+                        .where(AcestreamChannel.tv_channel_id == TVChannel.id)
+                        .correlate(TVChannel).scalar_subquery())
         total = query.count()
         if filters.sort == 'default':
             ordering = (*self._tv_channel_ordering(), TVChannel.id)
@@ -709,13 +719,16 @@ class ChannelRepository:
                          epg_source_id: Optional[int] = None,
                          channel_number: Optional[int] = None,
                          is_active: bool = True,
-                         is_favorite: bool = False, *, commit: bool = True) -> TVChannel:
+                         is_favorite: bool = False, *, commit: bool = True,
+                         category_origin: str = 'automatic', category_evidence=None) -> TVChannel:
         """Create a new TV channel"""
         tv_channel = TVChannel(
             name=name,
             logo_url=logo_url,
             description=description,
             category=category,
+            category_origin=category_origin,
+            category_evidence=category_evidence,
             country=country,
             language=language,
             website=website,
@@ -735,10 +748,19 @@ class ChannelRepository:
 
     def update_tv_channel(self, tv_channel_id: int, updates: Dict[str, Any]) -> Optional[TVChannel]:
         """Update TV channel properties"""
+        updates = dict(updates)
+        expected = updates.pop('expected_category_revision', None)
+        if 'category' in updates:
+            from app.repositories.category_repository import CategoryRepository
+            CategoryRepository(self.db).claim(tv_channel_id, expected)
         tv_channel = self.get_tv_channel_by_id(tv_channel_id)
         if not tv_channel:
             return None
 
+        if 'category' in updates:
+            tv_channel.category_origin = 'manual'
+            tv_channel.category_revision += 1
+            tv_channel.category_evidence = None
         # Update fields from the dictionary
         for key, value in updates.items():
             if hasattr(tv_channel, key):

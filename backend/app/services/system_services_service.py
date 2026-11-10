@@ -417,6 +417,8 @@ class SystemServicesService:
                 f"{name} is not supervised by this container, so it cannot be restarted from here."
             )
         (self.run_dir / f"{name}.restart").write_text(datetime.now(timezone.utc).isoformat())
+        if name == "warp":
+            self._hold_warp_guard()
         self._terminate(proc.pid)
         logger.info("Restart requested for service %s (pid %s)", name, proc.pid)
         return {
@@ -424,6 +426,19 @@ class SystemServicesService:
             "success": True,
             "message": f"Restart requested; the supervisor relaunches {name} in a moment.",
         }
+
+    @staticmethod
+    def _hold_warp_guard() -> None:
+        # A clean stop removes WARP's own firewall. Block direct traffic
+        # before the signal; the supervisor repeats this when the daemon exits.
+        rules = os.environ.get("SCRAPER_WARP_GUARD")
+        if not rules:
+            return
+        from warp_guard import Guard, GuardError
+        try:
+            Guard(Path(rules)).arm()
+        except GuardError:
+            logger.warning("Could not block direct traffic before restarting WARP; the supervisor retries")
 
     @staticmethod
     def _terminate(pid: int) -> None:

@@ -38,7 +38,8 @@ def test_inaccessible_device_is_reported(tmp_path, monkeypatch):
     def denied(*args):
         raise PermissionError
     monkeypatch.setattr(prerequisites.os, 'open', denied)
-    assert prerequisites.missing_prerequisites(status, device) == ['/dev/net/tun (missing or inaccessible)']
+    # The node is mapped, so "missing" would send the operator the wrong way.
+    assert prerequisites.missing_prerequisites(status, device) == ['/dev/net/tun (present, but access is denied)']
 
 
 @pytest.mark.parametrize('capabilities,expected', [('1000', []), ('200000', ['NET_ADMIN']), ('0', ['NET_ADMIN'])])

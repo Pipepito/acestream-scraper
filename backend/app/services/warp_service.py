@@ -1,12 +1,21 @@
 """
 WARP service for interacting with Cloudflare WARP client
 """
+import asyncio
 import subprocess
 import logging
 import os
+import time
 from enum import Enum
+from pathlib import Path
 from typing import Dict, Optional, Tuple, List, Any
 import httpx
+
+from warp_guard import Guard, GuardError
+from warp_startup import StateError, Store
+
+# Below the web client's request timeout; the coordinator keeps trying after it.
+RECONNECT_WAIT_SECONDS = 20.0
 
 class WarpMode(Enum):
     """Available WARP modes"""
@@ -21,6 +30,29 @@ class WarpMode(Enum):
 
 # No trailing slash: Cloudflare answers /cdn-cgi/trace/ with 404.
 CLOUDFLARE_TRACE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
+
+
+def kill_switch_state() -> Dict[str, Optional[bool]]:
+    """Whether direct traffic is blocked because WARP is not in charge.
+
+    The entrypoint exports SCRAPER_WARP_GUARD only when the guard was
+    installed; its coordinator owns the state this reads."""
+    rules = os.environ.get("SCRAPER_WARP_GUARD")
+    if not rules:
+        if os.environ.get("SCRAPER_WARP_GUARD_UNAVAILABLE"):
+            # Wanted, but this host could not install it: WARP runs unguarded.
+            return {"enabled": False, "blocking": False, "unavailable": True}
+        return {"enabled": False, "blocking": False}
+    try:
+        if Store.environment().configured():
+            # WARP's own firewall is in charge.
+            return {"enabled": True, "blocking": False}
+        # Read from the kernel: a block that lapsed must not be reported as held.
+        if Guard(Path(rules)).active():
+            return {"enabled": True, "blocking": True}
+        return {"enabled": True, "blocking": False, "unprotected": True}
+    except (StateError, GuardError, OSError, KeyError):
+        return {"enabled": True, "blocking": None}
 
 
 class WarpService:
@@ -179,6 +211,37 @@ class WarpService:
                 "error": str(e)
             }
 
+    async def reconnect(self) -> Dict[str, Any]:
+        """Disconnect and connect again without a direct-traffic gap."""
+        if os.environ.get("SCRAPER_WARP_GUARD"):
+            return await self._reconnect_through_coordinator()
+        result = await self.disconnect()
+        if not result.get("success"):
+            return result
+        result = await self.connect()
+        if result.get("success"):
+            result["message"] = "Reconnected to WARP successfully"
+        return result
+
+    async def _reconnect_through_coordinator(self) -> Dict[str, Any]:
+        """With the kill switch on, the entrypoint's coordinator disconnects,
+        reconnects and holds the block until WARP is configured again. The app
+        only asks and waits, so no failure here can leave traffic unblocked."""
+        try:
+            store = Store.environment()
+            await asyncio.to_thread(store.reconnect)
+            deadline = time.monotonic() + RECONNECT_WAIT_SECONDS
+            while time.monotonic() < deadline:
+                await asyncio.sleep(0.1)
+                if not store.path("reconnect").exists() and await asyncio.to_thread(store.configured):
+                    return {"success": True, "message": "Reconnected to WARP successfully",
+                            "status": await self.get_status()}
+        except (StateError, OSError, KeyError):
+            message = "WARP is not connected right now, so there is nothing to reconnect. It is already being restarted."
+            return {"success": False, "message": message, "error": message}
+        message = "WARP has not reconnected yet. Direct traffic stays blocked while the app keeps trying."
+        return {"success": False, "message": message, "error": message}
+
     async def set_mode(self, mode: str) -> Dict[str, Any]:
         """
         Set the WARP mode
@@ -319,7 +382,8 @@ class WarpService:
             "colo": None,
             "tunnel": {},
             "registration": {},
-            "cf_trace": {}
+            "cf_trace": {},
+            "kill_switch": await asyncio.to_thread(kill_switch_state)
         }
 
         # Check if running

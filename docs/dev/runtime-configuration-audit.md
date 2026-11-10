@@ -96,6 +96,7 @@ restart. Values passed with Docker `-e` or Compose seed only missing keys.
 | `ENABLE_WARP` | services | `false` |
 | `ACESTREAM_BIND_ALL` | services | `true` |
 | `WARP_ENABLE_NAT` | services | `false` |
+| `WARP_KILL_SWITCH` | services | `true` |
 | `WARP_FORCE_IPV4` | services | `true` |
 | `ZERONET_URL` | advanced | `http://127.0.0.1:43110` |
 | `IPFS_GATEWAY_URL` | advanced | `http://127.0.0.1:8081` |

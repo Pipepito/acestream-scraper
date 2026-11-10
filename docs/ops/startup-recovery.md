@@ -38,8 +38,68 @@ The private coordinator state and retry mailbox live under `SUPERVISOR_RUN_DIR`,
 are scoped to one container boot and WARP daemon generation, and never enter
 catalogue exports or database recovery. The entrypoint releases sidecars once;
 database retries do not start them again. Shutdown terminates configuration
-children before stopping supervised daemons. Existing post-start WARP relaunch
-failure behavior is retained; this is not a continuous traffic kill switch.
+children before stopping supervised daemons.
+
+### WARP kill switch
+
+With automatic full tunneling (`ENABLE_WARP=true`, `WARP_ENABLE_NAT=true`,
+not DNS-only), direct internet traffic stays blocked whenever the WARP daemon
+is not in charge. `WARP_KILL_SWITCH=false` turns this off.
+
+Two mechanisms cover different periods:
+
+- While `warp-svc` runs connected or reconnecting, Cloudflare's own firewall
+  (`inet cloudflare-warp`, output policy drop) rejects direct traffic. It stays
+  in place after a crash until the relaunched daemon replaces it.
+- A clean daemon exit removes that firewall, and it does not exist before the
+  first launch. For those periods `backend/warp_guard.py` installs one private
+  table, `inet scraper_warp_guard`. It passes loopback, the `CloudflareWARP`
+  interface, WARP's default local exclusions and the daemon itself, and rejects
+  everything else.
+
+The daemon is recognized by its group (GID 5743), not by address: until the
+tunnel is up, `warp-svc` does not mark its own registration, DNS and tunnel
+packets, so a mark or a list of Cloudflare addresses cannot let it connect.
+
+The guard is armed before the daemon first starts, whenever the daemon process
+is lost, before an app-initiated WARP restart, for the whole of a Reconnect, and
+during container shutdown. The startup coordinator removes it once the current
+daemon generation is configured, and nothing else ever removes it.
+
+**Reconnect** on the WARP page is a request to that coordinator
+(`warp-startup.reconnect`, accepted only for the connected daemon of this boot).
+The coordinator blocks, disconnects, runs the normal configuration and keeps the
+block refreshed until WARP is connected again, for as long as that takes. The
+app neither disconnects nor connects, so a failed or slow reconnect cannot turn
+into a disconnect. The WARP supervisor relaunches the daemon after any exit,
+including exit 0: before issue #329 a clean exit ended supervision and traffic
+continued on the normal connection.
+
+The block expires after 30 seconds unless refreshed, and the entrypoint removes
+the table when it stops. The coordinator refreshes it every five seconds; if the
+coordinator is lost before network services start, the entrypoint refreshes it
+instead, and after they start the container exits. The state shown on the WARP
+page is read from nftables, never inferred, so a lapsed block is reported as
+unprotected rather than as blocking. A killed container therefore cannot leave a host or
+shared network namespace without internet access; an expired table passes all
+traffic. Saved exclusions and custom split-tunnel routes are honoured only by
+WARP's firewall, so excluded hosts are unreachable while the guard is armed.
+
+After network services have started, a failed relaunch configuration is retried
+behind the guard for the same ten-minute window before the container exits.
+Without the guard (`WARP_KILL_SWITCH=false`) the first failure still ends the
+container, because nothing else stops direct traffic.
+
+Limits, by design: **Disconnect** and non-tunnel modes chosen on the WARP page
+are the operator's decision and use the normal connection; an external graceful
+stop of `warp-svc` is blocked a few milliseconds after it exits, not before;
+and the kill switch does not apply to manual-connect or DNS-only startup.
+If the table cannot be installed at startup (no nftables support in the host
+kernel, or no `SETGID` capability), WARP starts exactly as it did before the
+kill switch existed. The entrypoint logs one line, and the WARP page says that
+WARP runs without the kill switch. An upgrade never stops a host that worked;
+`WARP_KILL_SWITCH=false` silences the notice. Once installed, a later nftables
+failure still fails closed.
 
 The startup API includes a freshly generated UTC `server_time` and a nullable
 `startup_dependency` (`warp` while blocked). The browser compares server time with

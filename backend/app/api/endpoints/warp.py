@@ -92,6 +92,19 @@ async def disconnect_from_warp():
         raise _internal_error("disconnect", exc, "WARP_DISCONNECT_UNAVAILABLE") from exc
 
 
+@router.post("/reconnect", summary="Reconnect WARP")
+async def reconnect_warp():
+    try:
+        result = await _unwrap_result(await warp_service.reconnect())
+        if not result.get("success", False):
+            raise _failure_error("reconnect", result, "WARP_RECONNECT_FAILED")
+        return JSONResponse(content=result, status_code=http_status.HTTP_200_OK)
+    except APIError:
+        raise
+    except Exception as exc:
+        raise _internal_error("reconnect", exc, "WARP_RECONNECT_UNAVAILABLE") from exc
+
+
 @router.post("/mode", summary="Set WARP mode")
 async def set_warp_mode(request: WarpModeRequest):
     mode = request.mode.value if hasattr(request.mode, "value") else str(request.mode)

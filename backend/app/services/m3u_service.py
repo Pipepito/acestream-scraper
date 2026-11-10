@@ -12,6 +12,35 @@ from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)
 
+_M3U_EXTENSIONS = ('.m3u', '.m3u8')
+_HLS_STREAM_TAGS = ('#EXT-X-TARGETDURATION', '#EXT-X-STREAM-INF')
+
+
+def has_m3u_extension(url: str) -> bool:
+    """Whether the URL's path ends in .m3u or .m3u8.
+
+    The extension is read from the path, so a query string or fragment after
+    it ("list.m3u?raw=true") does not hide it.
+    """
+    try:
+        path = urlparse(url).path
+    except ValueError:
+        return False
+    return path.lower().endswith(_M3U_EXTENSIONS)
+
+
+def is_channel_playlist(content: str) -> bool:
+    """Whether downloaded text is an M3U channel list, judged by its header.
+
+    A leading byte order mark is tolerated because some playlist editors save
+    one. An HLS manifest also starts with #EXTM3U, but it describes a single
+    stream: its URIs are that stream's variants and segments, and reading it
+    as a list would import each of them as a channel.
+    """
+    if not content.lstrip('﻿ \t\r\n').startswith('#EXTM3U'):
+        return False
+    return not any(tag in content for tag in _HLS_STREAM_TAGS)
+
 
 class M3UService:
     """Service for handling M3U files and extracting channel information."""

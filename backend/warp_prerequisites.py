@@ -9,8 +9,18 @@ WARP_DOCKER_GUIDANCE = (
     "WARP cannot start with this container's permissions. Recreate the container "
     "with --cap-add NET_ADMIN --device /dev/net/tun:/dev/net/tun, "
     "keeping your existing data mounts. Alternatively, disable WARP in the saved "
-    "runtime-config.json and recreate the container. Network services are paused "
-    "to prevent a direct-connection fallback."
+    "runtime-config.json and recreate the container. On SELinux hosts such as "
+    "Fedora with Podman, a mapped device can still be denied: add "
+    "--security-opt label=disable. Network services are paused to prevent a "
+    "direct-connection fallback."
+)
+WARP_GUARD_GUIDANCE = (
+    "The WARP kill switch could not be set up, so network services are paused "
+    "to prevent a direct-connection fallback. It needs nftables support in the "
+    "host kernel and Docker's default SETGID capability. Download diagnostics "
+    "and check the entrypoint log, then correct the deployment and restart the "
+    "container. To run WARP without the kill switch, set WARP_KILL_SWITCH=false "
+    "and restart."
 )
 WARP_SETUP_GUIDANCE = (
     "WARP setup did not complete. Network services are paused to prevent a "
@@ -48,9 +58,16 @@ def missing_prerequisites(status_path=Path('/proc/self/status'), tun_path=Path('
         metadata = tun_path.stat()
         if not stat.S_ISCHR(metadata.st_mode) or (os.major(metadata.st_rdev), os.minor(metadata.st_rdev)) != (10, 200):
             raise OSError('Not a TUN device')
+    except OSError:
+        missing.append('/dev/net/tun (missing or inaccessible)')
+        return missing
+    try:
         # A device node alone does not prove the container device policy allows it.
         descriptor = os.open(tun_path, os.O_RDWR | os.O_NONBLOCK)
         os.close(descriptor)
+    except PermissionError:
+        # Mapped but refused: the device was not granted, or SELinux denies it.
+        missing.append('/dev/net/tun (present, but access is denied)')
     except OSError:
         missing.append('/dev/net/tun (missing or inaccessible)')
     return missing

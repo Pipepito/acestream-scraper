@@ -27891,6 +27891,25 @@
         ]
       }
     },
+    "/api/v1/warp/reconnect": {
+      "post": {
+        "operationId": "reconnect_warp_api_v1_warp_reconnect_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reconnect WARP",
+        "tags": [
+          "warp"
+        ]
+      }
+    },
     "/api/v1/warp/status": {
       "get": {
         "operationId": "get_warp_status_api_v1_warp_status_get",

@@ -38,6 +38,15 @@ export const disconnectWarp = async (): Promise<WarpResponse> => {
 };
 
 /**
+ * Disconnect and connect again in one server-side step, so the server can
+ * block direct traffic for the gap when the kill switch is on.
+ */
+export const reconnectWarp = async (): Promise<WarpResponse> => {
+  const response = await apiClient.post<WarpResponse>(`${API_PATH}/reconnect`);
+  return response.data;
+};
+
+/**
  * Set WARP mode
  */
 export const setWarpMode = async (mode: WarpMode): Promise<WarpResponse> => {

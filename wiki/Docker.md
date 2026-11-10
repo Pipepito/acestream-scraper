@@ -193,6 +193,32 @@ an advisory warning: see [clock troubleshooting](Troubleshooting.md#warp-startup
 If the host has no `/dev/net/tun` but the command includes `--device`, Docker
 itself refuses to create the container, before the app can show diagnostics.
 Choose DNS-only mode and omit that device mapping, or provide host TUN support.
+On SELinux hosts such as Fedora with Podman, a mapped device can still be
+denied: startup reports `/dev/net/tun (present, but access is denied)`. Adding
+`--security-opt label=disable` next to `--device /dev/net/tun` resolves it.
+
+### WARP kill switch
+
+When WARP connects before engines start in full tunnel mode, the app also
+blocks direct internet traffic whenever the WARP service is not running:
+before it first connects, while it restarts, and during container shutdown.
+While the service runs, Cloudflare's own firewall does the same job during
+reconnects. If WARP stops by itself, it is restarted and reconnected without
+restarting the container. The WARP page shows **Kill switch on**, and says when
+traffic is being blocked.
+
+- **Disconnect** on the WARP page is your decision: traffic then uses your
+  normal connection until you connect again. **Reconnect** has no such gap.
+- Local networks stay reachable while traffic is blocked. Hosts you excluded
+  from WARP are unreachable until WARP is connected again.
+- It needs nftables support on the host and Docker's default `SETGID`
+  capability. If it cannot be set up, startup stops and explains why. Set
+  `WARP_KILL_SWITCH=false`, or clear **Block direct traffic while WARP is down**
+  under WARP → Startup settings, to run WARP without it.
+- It does not apply to manual connection (`WARP_ENABLE_NAT=false`) or DNS-only
+  mode, where the normal connection is used by design.
+
+Details: [startup recovery](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/startup-recovery.md#warp-kill-switch).
 
 ### Pre-release channel (`develop`)
 

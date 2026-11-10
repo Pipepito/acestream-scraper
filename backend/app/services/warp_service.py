@@ -1,12 +1,17 @@
 """
 WARP service for interacting with Cloudflare WARP client
 """
+import asyncio
 import subprocess
 import logging
 import os
 from enum import Enum
+from pathlib import Path
 from typing import Dict, Optional, Tuple, List, Any
 import httpx
+
+from warp_guard import Guard, GuardError
+from warp_startup import StateError, Store
 
 class WarpMode(Enum):
     """Available WARP modes"""
@@ -21,6 +26,19 @@ class WarpMode(Enum):
 
 # No trailing slash: Cloudflare answers /cdn-cgi/trace/ with 404.
 CLOUDFLARE_TRACE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
+
+
+def kill_switch_state() -> Dict[str, Optional[bool]]:
+    """Whether direct traffic is blocked because WARP is not in charge.
+
+    The entrypoint exports SCRAPER_WARP_GUARD only when the guard was
+    installed; its coordinator owns the state this reads."""
+    if not os.environ.get("SCRAPER_WARP_GUARD"):
+        return {"enabled": False, "blocking": False}
+    try:
+        return {"enabled": True, "blocking": not Store.environment().configured()}
+    except (StateError, OSError, KeyError):
+        return {"enabled": True, "blocking": None}
 
 
 class WarpService:
@@ -179,6 +197,26 @@ class WarpService:
                 "error": str(e)
             }
 
+    async def reconnect(self) -> Dict[str, Any]:
+        """Disconnect and connect again without a direct-traffic gap.
+
+        Disconnecting removes WARP's own firewall. With the kill switch on,
+        hold the guard first; it expires by itself once WARP is back."""
+        rules = os.environ.get("SCRAPER_WARP_GUARD")
+        if rules:
+            try:
+                await asyncio.to_thread(Guard(Path(rules)).arm)
+            except GuardError:
+                message = "WARP was left connected: direct traffic could not be blocked for the reconnect."
+                return {"success": False, "message": message, "error": message}
+        result = await self.disconnect()
+        if not result.get("success"):
+            return result
+        result = await self.connect()
+        if result.get("success"):
+            result["message"] = "Reconnected to WARP successfully"
+        return result
+
     async def set_mode(self, mode: str) -> Dict[str, Any]:
         """
         Set the WARP mode
@@ -319,7 +357,8 @@ class WarpService:
             "colo": None,
             "tunnel": {},
             "registration": {},
-            "cf_trace": {}
+            "cf_trace": {},
+            "kill_switch": kill_switch_state()
         }
 
         # Check if running

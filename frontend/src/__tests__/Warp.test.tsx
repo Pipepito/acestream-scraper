@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import WarpPage, { describeWarpStatus } from '../pages/WARP';
 import { createAppTheme } from '../theme';
@@ -38,7 +38,8 @@ describe('WARP page', () => {
     jest.clearAllMocks();
     (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({ data: connectedStatus, isLoading: false, error: undefined });
     (warpHooks.useWarpConnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
-    (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), mutateAsync: jest.fn(), isPending: false });
+    (warpHooks.useWarpReconnect as jest.Mock).mockReturnValue({ mutateAsync: jest.fn().mockResolvedValue({ success: true }), isPending: false });
     (warpHooks.useWarpSetMode as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
     (warpHooks.useWarpRegisterLicense as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   });
@@ -96,5 +97,66 @@ describe('WARP page', () => {
     expect(screen.queryByRole('region', { name: 'Current path' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeDisabled();
+  });
+
+  it('reconnects through one request so the server can block direct traffic first', async () => {
+    const reconnect = jest.fn().mockResolvedValue({ success: true });
+    const disconnect = jest.fn();
+    (warpHooks.useWarpReconnect as jest.Mock).mockReturnValue({ mutateAsync: reconnect, isPending: false });
+    (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), mutateAsync: disconnect, isPending: false });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
+
+    await waitFor(() => expect(reconnect).toHaveBeenCalledTimes(1));
+    expect(disconnect).not.toHaveBeenCalled();
+  });
+
+  it('keeps a failed reconnect visible with the next step', async () => {
+    (warpHooks.useWarpReconnect as jest.Mock).mockReturnValue({ mutateAsync: jest.fn().mockRejectedValue(new Error('WARP reconnect failed')), isPending: false });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not reconnect WARP: WARP reconnect failed. Check the connection status and use Connect to retry.');
+  });
+
+  it('says the kill switch is on while WARP is in charge', () => {
+    (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({ data: { ...connectedStatus, kill_switch: { enabled: true, blocking: false } }, isLoading: false, error: undefined });
+    renderPage();
+
+    expect(screen.getByRole('status', { name: 'WARP status' })).toHaveTextContent('Kill switch on');
+    expect(screen.queryByText(/Direct internet traffic is blocked/)).not.toBeInTheDocument();
+  });
+
+  it('explains that direct traffic is blocked while WARP is not running', () => {
+    (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({
+      data: { running: false, connected: false, mode: null, account_type: '', ip: null, cf_trace: {}, kill_switch: { enabled: true, blocking: true } },
+      isLoading: false,
+      error: undefined,
+    });
+    renderPage();
+
+    expect(screen.getByText('Direct internet traffic is blocked until WARP is connected again. The app restarts WARP by itself.')).toBeInTheDocument();
+    // The setup hint is for a container without WARP, not for a restart in progress.
+    expect(screen.queryByText(/WARP is not running in this container/)).not.toBeInTheDocument();
+  });
+
+  it('warns that disconnecting by hand sends traffic over the normal connection', () => {
+    (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({
+      data: { ...connectedStatus, connected: false, kill_switch: { enabled: true, blocking: false } },
+      isLoading: false,
+      error: undefined,
+    });
+    renderPage();
+
+    expect(screen.getByText('WARP is disconnected, so traffic uses your normal connection. The kill switch covers WARP stopping or restarting, not a disconnect you choose. Connect to protect traffic again.')).toBeInTheDocument();
+  });
+
+  it('says nothing about the kill switch when it does not apply', () => {
+    (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({ data: { ...connectedStatus, kill_switch: { enabled: false, blocking: false } }, isLoading: false, error: undefined });
+    renderPage();
+
+    expect(screen.getByRole('status', { name: 'WARP status' })).not.toHaveTextContent('Kill switch');
   });
 });

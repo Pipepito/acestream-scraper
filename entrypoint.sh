@@ -216,6 +216,9 @@ supervise_engine() {
 # daemonizing launcher or intentional stop must not be respawned), and a
 # first launch that fails fast propagates its real status immediately — the
 # runtime contract expects "<label> startup command exited with status N".
+# WARP is the exception to exit 0: its startup coordinator follows this exact
+# process, so it never supported a daemonizing launcher, and a clean exit
+# takes Cloudflare's firewall with it. It is relaunched like a crash (#329).
 supervise_service() {
     local label="$1"
     local command="$2"
@@ -282,6 +285,11 @@ supervise_service() {
             status=$?
         fi
         inner_pid=""
+        if [ "$slug" = warp ] && [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+            # Before anything else: without the daemon nothing stops direct
+            # traffic. The coordinator keeps this block refreshed.
+            nft -f "$SCRAPER_WARP_GUARD" || log "WARP traffic guard could not be armed"
+        fi
         ended_at=$(date +%s)
         rm -f "$SUPERVISOR_RUN_DIR/$slug.pid"
         if [ -f "$SUPERVISOR_RUN_DIR/$slug.restart" ]; then
@@ -293,13 +301,16 @@ supervise_service() {
             continue
         fi
 
-        if [ "$status" -eq 0 ]; then
+        if [ "$status" -eq 0 ] && { [ "$slug" != warp ] || [ -z "${SCRAPER_WARP_BOOT:-}" ]; }; then
             # Clean exit: the launcher daemonized (its children keep running
             # in the setsid group) or the service stopped on purpose.
             # Restarting would spawn duplicates.
             log "$label exited cleanly; not restarting"
             exit 0
         fi
+        # Giving up must stay visible to the entrypoint even after exit 0.
+        local failure_status="$status"
+        [ "$failure_status" -ne 0 ] || failure_status=1
 
         if [ $((ended_at - started_at)) -lt "$fast_exit_window" ]; then
             fast_exits=$((fast_exits + 1))
@@ -309,12 +320,12 @@ supervise_service() {
 
         if [ "$launches" -eq 1 ] && [ "$fast_exits" -gt 0 ]; then
             log "$label startup command exited with status $status"
-            exit "$status"
+            exit "$failure_status"
         fi
 
         if [ "$fast_exits" -ge "$fast_exit_limit" ]; then
             log "$label exited with status $status $fast_exits times within ${fast_exit_window}s of starting; giving up"
-            exit "$status"
+            exit "$failure_status"
         fi
 
         log "$label exited with status $status; restarting in ${restart_delay}s"
@@ -569,11 +580,15 @@ child_pids=()
 child_names=()
 unset SCRAPER_WARP_STARTUP_ERROR
 unset SCRAPER_WARP_BOOT
+unset SCRAPER_WARP_GUARD
 warp_coordinator_pid=""
 network_services_started=false
+runtime_stopping=false
 app_pid=""
 WARP_COORDINATOR_SCRIPT="$(dirname "$CAPTURE_SCRIPT")/warp_startup.py"
 if [ ! -f "$WARP_COORDINATOR_SCRIPT" ]; then WARP_COORDINATOR_SCRIPT=/app/warp_startup.py; fi
+WARP_GUARD_SCRIPT="$(dirname "$CAPTURE_SCRIPT")/warp_guard.py"
+if [ ! -f "$WARP_GUARD_SCRIPT" ]; then WARP_GUARD_SCRIPT=/app/warp_guard.py; fi
 WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
 # Resolve this before the web process inherits the applied environment.
 ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")
@@ -585,11 +600,23 @@ start_warp_coordinator() {
 }
 
 shutdown_runtime() {
+    runtime_stopping=true
+    # WARP stops before the engines and takes its firewall with it. Block
+    # direct traffic while the remaining services shut down.
+    if [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+        nft -f "$SCRAPER_WARP_GUARD" 2>/dev/null || true
+    fi
     shutdown_children "${warp_coordinator_pid:-}"
     if [ -n "${SCRAPER_WARP_BOOT:-}" ]; then
         python3 "$WARP_COORDINATOR_SCRIPT" cleanup || true
     fi
     shutdown_children "${app_pid:-}" "${child_pids[@]:-}"
+    if [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+        # A host or shared network namespace outlives this container: leave
+        # no rules behind. A killed container's block expires by itself.
+        python3 "$WARP_GUARD_SCRIPT" standby || true
+        SCRAPER_WARP_GUARD=""
+    fi
 }
 trap 'shutdown_runtime' INT TERM EXIT
 
@@ -600,13 +627,28 @@ if feature_enabled "$ENABLE_WARP"; then
     if bash "$(dirname "$0")/warp-setup.sh" prepare; then
         # warp-svc inherits this from its supervisor.
         export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
-        SCRAPER_WARP_BOOT=$(python3 "$WARP_COORDINATOR_SCRIPT" identity)
-        export SCRAPER_WARP_BOOT
-        python3 "$WARP_COORDINATOR_SCRIPT" init
-        supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos}" &
-        child_pids+=("$!")
-        child_names+=("WARP")
-        start_warp_coordinator
+        warp_daemon_command="${WARP_START_COMMAND:-warp-svc --accept-tos}"
+        if python3 "$WARP_GUARD_SCRIPT" enabled; then
+            # Automatic full tunnel: block direct traffic before the daemon
+            # exists. The daemon runs in the one group the block lets through,
+            # so it can still register and connect.
+            warp_guard_rules="$SUPERVISOR_RUN_DIR/warp-guard.nft"
+            if python3 "$WARP_GUARD_SCRIPT" install "$warp_guard_rules"; then
+                export SCRAPER_WARP_GUARD="$warp_guard_rules"
+                warp_daemon_command="exec python3 $(printf '%q' "$WARP_GUARD_SCRIPT") daemon $(printf '%q' "$warp_daemon_command")"
+            else
+                export SCRAPER_WARP_STARTUP_ERROR=guard
+            fi
+        fi
+        if [ -z "${SCRAPER_WARP_STARTUP_ERROR:-}" ]; then
+            SCRAPER_WARP_BOOT=$(python3 "$WARP_COORDINATOR_SCRIPT" identity)
+            export SCRAPER_WARP_BOOT
+            python3 "$WARP_COORDINATOR_SCRIPT" init
+            supervise_service "WARP" "$warp_daemon_command" &
+            child_pids+=("$!")
+            child_names+=("WARP")
+            start_warp_coordinator
+        fi
     else
         warp_prepare_status=$?
         export SCRAPER_WARP_STARTUP_ERROR=setup
@@ -715,7 +757,8 @@ wait_for_supervised_exit() {
         local pid
         prune_finished_children
 
-        if [ -n "${SCRAPER_WARP_BOOT:-}" ]; then
+        # A coordinator stopped by shutdown is not a WARP failure.
+        if [ -n "${SCRAPER_WARP_BOOT:-}" ] && [ "$runtime_stopping" = false ]; then
             if [ -n "$warp_coordinator_pid" ] && ! kill -0 "$warp_coordinator_pid" 2>/dev/null; then
                 wait "$warp_coordinator_pid" || true
                 warp_coordinator_pid=""

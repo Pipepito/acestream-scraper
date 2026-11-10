@@ -16,6 +16,7 @@ export default function WarpStartupSection() {
   const options = [
     ['ENABLE_WARP', 'Enable WARP service at startup'],
     ['WARP_ENABLE_NAT', 'Connect WARP before engines start'],
+    ['WARP_KILL_SWITCH', 'Block direct traffic while WARP is down'],
     ['WARP_FORCE_IPV4', 'Prefer IPv4 for the WARP connection'],
   ];
   const checked = (name: string) => draft[name] ?? query.data?.runtime[name] === true;

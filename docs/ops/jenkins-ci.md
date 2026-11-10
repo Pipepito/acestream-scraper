@@ -47,9 +47,12 @@ maintainer action, Jenkins runs:
 3. the complete backend and frontend suite: generated API types, ESLint and
    TypeScript first, then backend tests, frontend tests and the production build.
 
-The dependency runner for step 3 is built from the pull request's merge base on
-the protected target, never from proposed manifests. Known
-documentation/metadata-only changes use lightweight data validation instead.
+Step 3 runs automatically when the branch's dependency manifests are the same
+as on the target branch; the test environment is built from the target, never
+from proposed manifests. If they differ, because you changed them or because the
+target changed them after you branched, the suite runs in the authorized job
+described below (updating your branch avoids that when you did not change them).
+Known documentation/metadata-only changes use lightweight data validation instead.
 Editing a public selector, validator or Jenkinsfile cannot change Jenkins policy.
 
 Two things run on the build host with network access and therefore need
@@ -62,7 +65,7 @@ after the work, and never publishes from a pull request.
 | Portable application sources only, from the maintainer | Every image flavor built and started on amd64, automatically |
 | Build, runtime or dependency inputs (`Dockerfile`, `docker/`, runtime scripts, manifests), or a release PR, from the maintainer | Every flavor on amd64, arm64 and arm/v7, automatically; changed dependencies are installed and tested first |
 | Portable application sources only, from another contributor | None. The status turns green after the isolated checks; `develop` builds and tests every image after merge, before publishing |
-| Build, runtime or dependency inputs, from another contributor | Waits for the maintainer to review and approve that exact revision, then every flavor and platform |
+| Build, runtime or dependency inputs, from another contributor | Waits for the maintainer to review and approve that exact revision, then every flavor and platform. The branch must include the latest target commit first, so the review covers exactly what is built |
 
 New revisions need new authorization. The required status stays pending until
 the work the change needs has succeeded. A wait holds neither an executor nor
@@ -76,8 +79,9 @@ request and updates it as work finishes, and the same text is in the
 
 - **Application tests and coverage**: test counts, line coverage and coverage of
   the lines you changed (advisory, goal 80%). On failure it names the failing
-  step, lists up to twenty failed tests and gives the command that reproduces
-  the step locally.
+  step, lists up to twenty failed backend tests and frontend test files, and
+  gives the command that reproduces the step locally. Test titles and output
+  are not shown.
 - **Image builds**: passed, running, waiting for the maintainer, or deferred to
   `develop`.
 - **Source and security scan**: new findings compared with the target branch.

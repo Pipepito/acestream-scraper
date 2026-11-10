@@ -83,6 +83,7 @@ def classify(repo, base, head="HEAD", pull_request=False):
             raise ValueError("no successful baseline")
         base = git(repo, "rev-parse", "--verify", f"{base}^{{commit}}").decode().strip()
         head = git(repo, "rev-parse", "--verify", f"{head}^{{commit}}").decode().strip()
+        target = base
         if pull_request:
             base = git(repo, "merge-base", base, head).decode().strip()
         elif subprocess.call(["git", "-C", str(repo), "merge-base", "--is-ancestor", base, head],
@@ -99,6 +100,13 @@ def classify(repo, base, head="HEAD", pull_request=False):
                     if path.decode() in paths and not meta.startswith(b"100644 blob "):
                         result["APPLICATION"] = True
                         result["IMAGES"] = True
+        if pull_request and result["APPLICATION"] and not result["IMAGES"]:
+            # Images are built from the head's whole tree, not from its diff. A
+            # branch that is behind the target, or rooted at a commit that was
+            # never the target's reviewed state, can carry different build
+            # inputs without changing them itself. Compare with the tip too.
+            tip = git(repo, "diff", "--no-ext-diff", "--no-renames", "--name-only", "-z", target, head).decode().split("\0")
+            result["IMAGES"] = classify_paths(set(filter(None, tip)))["IMAGES"]
         return result
     except (subprocess.CalledProcessError, ValueError, UnicodeError, OSError):
         return dict.fromkeys(KEYS, True)

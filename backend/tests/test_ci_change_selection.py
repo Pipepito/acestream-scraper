@@ -115,6 +115,24 @@ def test_pr_compares_entire_branch_from_merge_base(repo):
     assert all(selection.classify(repo, target, head).values())  # rewritten develop history
 
 
+def test_pr_image_scope_also_compares_build_inputs_with_the_target_tip(repo):
+    # Images are built from the head's whole tree. A portable change keeps the
+    # narrow scope only while its build inputs match the current target.
+    base = git(repo, "rev-parse", "HEAD")
+    git(repo, "checkout", "-qb", "feature")
+    head = commit(repo, "backend/app/main.py")
+    assert not selection.classify(repo, base, head, pull_request=True)["IMAGES"]
+    git(repo, "checkout", "--detach", base)
+    target = commit(repo, "Dockerfile")
+    result = selection.classify(repo, target, head, pull_request=True)
+    assert result["APPLICATION"] and result["IMAGES"]
+    docs_target = commit(repo, "docs/new-guide.md")
+    git(repo, "checkout", "-q", "feature")
+    git(repo, "merge", "-q", "--no-edit", docs_target)
+    updated = git(repo, "rev-parse", "HEAD")
+    assert not selection.classify(repo, docs_target, updated, pull_request=True)["IMAGES"]
+
+
 def test_target_changes_are_not_counted_as_pr_changes(repo):
     base = git(repo, "rev-parse", "HEAD")
     git(repo, "checkout", "-qb", "feature")

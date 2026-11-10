@@ -196,6 +196,33 @@ def test_m3u_path_records_ok_and_errors(monkeypatch):
     assert recorded == [(url, "OK"), (url, "Error: node down")]
 
 
+def test_http_only_playlist_without_extension_is_returned(monkeypatch):
+    """A playlist is accepted by its header: one without acestream:// links at
+    a path without .m3u used to be retried and refused as "No acestream data"."""
+    playlist = "#EXTM3U\n#EXTINF:-1,Web\nhttp://example.com/web/index.m3u8\n"
+    requested = []
+    class Response:
+        headers = {'Content-Type': 'text/plain'}
+        def raise_for_status(self): pass
+        async def text(self): return playlist
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+    class Session:
+        def get(self, url, **kwargs): requested.append(url); return Response()
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+    monkeypatch.setattr(zeronet_module, 'source_session', lambda **kwargs: Session())
+    monkeypatch.setattr(zeronet_module, 'validate_outbound_url', lambda url: None)
+    monkeypatch.setattr(zeronet_module.asyncio, 'sleep', _no_sleep)
+    url = f'zero://{SITE}/lists/sports'
+    async def run():
+        scraper = create_scraper_for_url(url, 'zeronet')
+        scraper.retries = 3
+        return await scraper.fetch_content(url)
+    assert asyncio.run(run()) == playlist
+    assert len(requested) == 1
+
+
 def test_site_that_never_becomes_ready_has_bounded_retries_and_error_status(monkeypatch):
     requested = []
     class Response:

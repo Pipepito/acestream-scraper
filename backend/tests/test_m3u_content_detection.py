@@ -6,8 +6,9 @@ import asyncio
 
 import pytest
 
-from app.models.url_types import RegularURL
+from app.models.url_types import RegularURL, ZeronetURL
 from app.scrapers.http import HTTPScraper
+from app.scrapers.zeronet import ZeronetScraper
 from app.services.m3u_service import has_m3u_extension, is_channel_playlist
 
 ID_A = "a" * 40
@@ -131,4 +132,14 @@ def test_m3u_extension_keeps_playlist_parsing_without_header():
     ids, _status, fetched = _scrape("http://example.com/lists/sports.m3u", body)
 
     assert ids == {ID_A}
+    assert len(fetched) == 1
+
+
+def test_zeronet_playlist_without_extension_uses_the_same_rule():
+    # ZeroNet only special-cases paths ending in .m3u; anything else falls
+    # back to the base scraper, so it gets the content check too.
+    url = "zero://example.bit/lists/sports"
+    ids, _status, fetched = _scrape(url, PLAYLIST, lambda: ZeronetScraper(ZeronetURL(url)))
+
+    assert {ID_A, ID_B} <= ids
     assert len(fetched) == 1

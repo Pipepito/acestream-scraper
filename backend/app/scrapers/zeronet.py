@@ -12,6 +12,7 @@ from urllib.parse import urlparse, urljoin
 
 from app.models.url_types import ZeronetURL
 from app.scrapers.base import BaseScraper
+from app.services.m3u_service import has_m3u_extension, is_channel_playlist
 from app.config.settings import settings
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
@@ -160,7 +161,7 @@ class ZeronetScraper(BaseScraper):
         validate_outbound_url(internal_url)
 
         # Check if URL is directly pointing to an M3U file
-        is_m3u_file = internal_url.lower().endswith(('.m3u', '.m3u8'))
+        is_m3u_file = has_m3u_extension(internal_url)
         if is_m3u_file:
             logger.info(f"Detected direct M3U file URL: {internal_url}")
         else:
@@ -200,6 +201,11 @@ class ZeronetScraper(BaseScraper):
                                 return content  # Always return the raw content as string
                             else:
                                 logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")
+
+                        # A playlist is accepted by its header, whatever the
+                        # path ends with and whatever its entries point at.
+                        if is_channel_playlist(content):
+                            return content
 
                         # Check for new_era_iframe.html format by looking for specific HTML structure
                         if 'channel-item' in content or 'ACEStream NEW ERA' in content:
@@ -283,7 +289,7 @@ class ZeronetScraper(BaseScraper):
         used to leave it at "active" with no processing time)."""
         url_to_scrape = url if url else self.url_obj.get_normalized_url()
         path = urlparse(url_to_scrape).path.lower()
-        if path.endswith(('.m3u', '.m3u8')):
+        if has_m3u_extension(url_to_scrape):
             try:
                 content = await self.fetch_content(url_to_scrape)
                 # Delegate all parsing to M3UService for consistency and logging

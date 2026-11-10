@@ -41,8 +41,10 @@ export interface WarpRegistrationDetails {
 /** The guard that blocks direct traffic while WARP is not in charge. */
 export interface WarpKillSwitch {
   enabled: boolean;
-  /** null when the server cannot tell. */
+  /** Read from the firewall; null when the server cannot tell. */
   blocking: boolean | null;
+  /** WARP is not in charge and nothing blocks direct traffic. */
+  unprotected?: boolean;
 }
 
 export interface WarpStatus {

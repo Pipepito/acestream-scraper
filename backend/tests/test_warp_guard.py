@@ -154,3 +154,31 @@ def test_command_line_failures_exit_nonzero_with_a_fixed_message(tmp_path):
                             env=environment, capture_output=True, text=True)
     assert result.returncode == 1
     assert 'WARP traffic guard' in result.stderr
+
+
+@pytest.mark.parametrize('stdout, expected', [
+    ('{"nftables": [{"metainfo": {}}, {"set": {"name": "armed", "elem": [{"elem": {"val": "ipv4", "timeout": 30, "expires": 12}}, {"elem": {"val": "ipv6", "timeout": 30, "expires": 12}}]}}]}', True),
+    # Expired: the table remains but passes everything.
+    ('{"nftables": [{"metainfo": {}}, {"set": {"name": "armed"}}]}', False),
+    ('{"nftables": [{"set": {"name": "armed", "elem": [{"elem": {"val": "ipv4", "timeout": 30, "expires": 3}}]}}]}', False),
+])
+def test_active_reads_whether_the_block_is_held_right_now(tmp_path, stdout, expected):
+    def run(argv, **options):
+        assert argv == ['nft', '-j', 'list', 'set', 'inet', 'scraper_warp_guard', 'armed']
+        return subprocess.CompletedProcess(argv, 0, stdout, '')
+
+    assert Guard(tmp_path / 'rules', run=run).active() is expected
+
+
+def test_active_is_false_without_the_table_and_an_error_when_nft_cannot_tell(tmp_path):
+    missing = subprocess.CompletedProcess(['nft'], 1, '', 'Error: No such file or directory')
+    assert Guard(tmp_path / 'rules', run=lambda *a, **k: missing).active() is False
+    garbage = subprocess.CompletedProcess(['nft'], 0, 'not json', '')
+    with pytest.raises(GuardError):
+        Guard(tmp_path / 'rules', run=lambda *a, **k: garbage).active()
+
+    def unavailable(*a, **k):
+        raise FileNotFoundError('nft')
+
+    with pytest.raises(GuardError):
+        Guard(tmp_path / 'rules', run=unavailable).active()

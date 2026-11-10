@@ -14,6 +14,7 @@ Stdlib only: used by the entrypoint, the startup coordinator and the app.
 """
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -100,6 +101,25 @@ class Guard:
 
     def standby(self) -> None:
         self._nft('-', REMOVAL)
+
+    def active(self) -> bool:
+        """Whether the kernel holds the block right now; never inferred."""
+        try:
+            result = self.run(['nft', '-j', 'list', 'set', 'inet', TABLE, 'armed'],
+                              capture_output=True, text=True, timeout=10, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            raise GuardError('nft is unavailable or did not answer.') from None
+        if result.returncode:
+            if 'No such file or directory' in result.stderr:
+                return False
+            raise GuardError('nftables could not report the guard state.')
+        try:
+            held = {entry['elem']['val'] for item in json.loads(result.stdout)['nftables']
+                    if 'set' in item for entry in item['set'].get('elem', [])}
+        except (ValueError, KeyError, TypeError):
+            raise GuardError('nftables returned an unsupported guard state.') from None
+        # An expired hold leaves the table in place, passing everything.
+        return {'ipv4', 'ipv6'} <= held
 
     def install(self, *, check_group=group_available) -> None:
         check_group()

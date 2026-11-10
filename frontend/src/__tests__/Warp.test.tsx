@@ -142,6 +142,18 @@ describe('WARP page', () => {
     expect(screen.queryByText(/WARP is not running in this container/)).not.toBeInTheDocument();
   });
 
+  it('never claims a block the server could not confirm', () => {
+    (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({
+      data: { running: false, connected: false, mode: null, account_type: '', ip: null, cf_trace: {}, kill_switch: { enabled: true, blocking: false, unprotected: true } },
+      isLoading: false,
+      error: undefined,
+    });
+    renderPage();
+
+    expect(screen.getByText('WARP is not running and direct traffic is not blocked. Restart the container to restore protection.')).toBeInTheDocument();
+    expect(screen.queryByText(/Direct internet traffic is blocked/)).not.toBeInTheDocument();
+  });
+
   it('warns that disconnecting by hand sends traffic over the normal connection', () => {
     (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({
       data: { ...connectedStatus, connected: false, kill_switch: { enabled: true, blocking: false } },

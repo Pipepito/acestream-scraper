@@ -180,10 +180,11 @@ def test_guard_blocks_until_the_current_daemon_is_configured(guarded):
     coordinator.tick(fd)
     coordinator.tick(fd)
     assert guard.calls == []
+    # Written before the tick that starts the next attempt: no race with its shell.
+    coordinator.script.write_text('exit 0\n')
     now[0] += 5
     coordinator.tick(fd)
     assert guard.calls == ['arm']
-    coordinator.script.write_text('exit 0\n')
     finish(coordinator, fd)
     assert store.state()['phase'] == 'configured'
     assert guard.calls[-1] == 'standby'
@@ -258,6 +259,80 @@ def test_post_start_recovery_window_still_ends_the_container(guarded):
         coordinator.tick(fd)
     # The entrypoint stops the container; it stays blocked while that happens.
     assert guard.calls == ['arm']
+
+
+def test_reconnect_request_is_carried_out_by_the_coordinator_behind_the_guard(guarded):
+    store, coordinator, now, fd, guard = guarded
+    coordinator.disconnect = lambda: guard.calls.append('disconnect')
+    coordinator.script.write_text('exit 0\n')
+    coordinator.tick(fd)
+    finish(coordinator, fd)
+    store.release()
+    guard.calls.clear()
+    store.reconnect()
+    coordinator.tick(fd)
+    # Blocked first, then disconnected: never the other way round.
+    assert guard.calls[:2] == ['arm', 'disconnect']
+    assert store.state()['phase'] != 'configured'
+    assert not store.path('reconnect').exists()
+    finish(coordinator, fd)
+    assert store.state()['phase'] == 'configured'
+    assert guard.calls[-1] == 'standby'
+    assert guard.calls.count('disconnect') == 1
+
+
+def test_failed_reconnect_stays_blocked_and_keeps_trying(guarded):
+    store, coordinator, now, fd, guard = guarded
+    coordinator.disconnect = lambda: None
+    coordinator.script.write_text('exit 0\n')
+    coordinator.tick(fd)
+    finish(coordinator, fd)
+    store.release()
+    coordinator.script.write_text('exit 1\n')
+    store.reconnect()
+    coordinator.tick(fd)
+    finish(coordinator, fd)
+    assert store.state()['phase'] == 'backoff'
+    guard.calls.clear()
+    # Far longer than one hold: the block is refreshed, never left to lapse.
+    for _ in range(12):
+        now[0] += 5
+        coordinator.tick(fd)
+        finish(coordinator, fd)
+    assert 'standby' not in guard.calls
+    assert guard.calls.count('arm') >= 12
+
+
+def test_reconnect_is_only_accepted_for_the_connected_daemon_of_this_boot(guarded):
+    store, coordinator, now, fd, guard = guarded
+    coordinator.disconnect = lambda: guard.calls.append('disconnect')
+    with pytest.raises(StateError):
+        store.reconnect()  # not configured, not released
+    coordinator.script.write_text('exit 0\n')
+    coordinator.tick(fd)
+    finish(coordinator, fd)
+    with pytest.raises(StateError):
+        store.reconnect()  # configured, but network services are not released
+    store.release()
+    # A request left behind for an earlier daemon is discarded, not replayed.
+    store.write('reconnect', generation='an-earlier-daemon', request='late')
+    guard.calls.clear()
+    coordinator.tick(fd)
+    assert guard.calls == []
+    assert store.state()['phase'] == 'configured'
+    assert not store.path('reconnect').exists()
+
+
+def test_reconnect_requests_are_ignored_without_the_guard(runtime):
+    store, coordinator, _, fd = runtime
+    coordinator.disconnect = lambda: pytest.fail('the app reconnects by itself without the guard')
+    coordinator.script.write_text('exit 0\n')
+    coordinator.tick(fd)
+    finish(coordinator, fd)
+    store.release()
+    store.reconnect()
+    coordinator.tick(fd)
+    assert store.state()['phase'] == 'configured'
 
 
 def test_guard_failure_stops_the_coordinator_instead_of_running_unprotected(guarded):
@@ -394,6 +469,7 @@ class EntrypointHarness:
             f'import sys\nsys.path.insert(0, {backend!r})\nimport warp_startup as w\n'
             'original = w.Coordinator.__init__\n'
             f'def init(self, *args, **kwargs):\n    original(self, *args, window_seconds={window_seconds}, **kwargs)\n'
+            f'if sys.argv[1] == "run": open({str(tmp_path / "coordinator.pid")!r}, "w").write(str(__import__("os").getpid()))\n'
             'w.Coordinator.__init__ = init\nw.main()\n')
         # Changing group needs root; everything else in the guard is real.
         (stage / 'backend/warp_guard.py').write_text(
@@ -599,3 +675,16 @@ def test_entrypoint_gives_up_loudly_when_warp_keeps_exiting_cleanly(tmp_path):
         run.until(lambda: run.process.poll() is not None, alive=False)
         assert run.process.returncode != 0
         assert 'WARP startup command exited with status 0' in run.console()
+
+
+def test_entrypoint_keeps_blocking_when_the_coordinator_is_lost_before_release(tmp_path):
+    """Nothing else refreshes the block; it must not lapse while WARP is unconfigured."""
+    with EntrypointHarness(tmp_path) as run:
+        store = run.store()
+        run.until(lambda: store.state()['phase'] == 'backoff')
+        os.kill(int((tmp_path / 'coordinator.pid').read_text()), signal.SIGKILL)
+        run.until(lambda: store.state()['phase'] == 'failed')
+        before = len(run.events())
+        run.until(lambda: run.events()[before:].count('arm warp-guard.nft') >= 2, timeout=25)
+        assert not run.launches('engine')
+        assert not store.released()

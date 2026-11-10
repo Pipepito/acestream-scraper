@@ -5,6 +5,7 @@ import asyncio
 import subprocess
 import logging
 import os
+import time
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional, Tuple, List, Any
@@ -12,6 +13,9 @@ import httpx
 
 from warp_guard import Guard, GuardError
 from warp_startup import StateError, Store
+
+# Below the web client's request timeout; the coordinator keeps trying after it.
+RECONNECT_WAIT_SECONDS = 20.0
 
 class WarpMode(Enum):
     """Available WARP modes"""
@@ -33,11 +37,18 @@ def kill_switch_state() -> Dict[str, Optional[bool]]:
 
     The entrypoint exports SCRAPER_WARP_GUARD only when the guard was
     installed; its coordinator owns the state this reads."""
-    if not os.environ.get("SCRAPER_WARP_GUARD"):
+    rules = os.environ.get("SCRAPER_WARP_GUARD")
+    if not rules:
         return {"enabled": False, "blocking": False}
     try:
-        return {"enabled": True, "blocking": not Store.environment().configured()}
-    except (StateError, OSError, KeyError):
+        if Store.environment().configured():
+            # WARP's own firewall is in charge.
+            return {"enabled": True, "blocking": False}
+        # Read from the kernel: a block that lapsed must not be reported as held.
+        if Guard(Path(rules)).active():
+            return {"enabled": True, "blocking": True}
+        return {"enabled": True, "blocking": False, "unprotected": True}
+    except (StateError, GuardError, OSError, KeyError):
         return {"enabled": True, "blocking": None}
 
 
@@ -198,17 +209,9 @@ class WarpService:
             }
 
     async def reconnect(self) -> Dict[str, Any]:
-        """Disconnect and connect again without a direct-traffic gap.
-
-        Disconnecting removes WARP's own firewall. With the kill switch on,
-        hold the guard first; it expires by itself once WARP is back."""
-        rules = os.environ.get("SCRAPER_WARP_GUARD")
-        if rules:
-            try:
-                await asyncio.to_thread(Guard(Path(rules)).arm)
-            except GuardError:
-                message = "WARP was left connected: direct traffic could not be blocked for the reconnect."
-                return {"success": False, "message": message, "error": message}
+        """Disconnect and connect again without a direct-traffic gap."""
+        if os.environ.get("SCRAPER_WARP_GUARD"):
+            return await self._reconnect_through_coordinator()
         result = await self.disconnect()
         if not result.get("success"):
             return result
@@ -216,6 +219,25 @@ class WarpService:
         if result.get("success"):
             result["message"] = "Reconnected to WARP successfully"
         return result
+
+    async def _reconnect_through_coordinator(self) -> Dict[str, Any]:
+        """With the kill switch on, the entrypoint's coordinator disconnects,
+        reconnects and holds the block until WARP is configured again. The app
+        only asks and waits, so no failure here can leave traffic unblocked."""
+        try:
+            store = Store.environment()
+            await asyncio.to_thread(store.reconnect)
+            deadline = time.monotonic() + RECONNECT_WAIT_SECONDS
+            while time.monotonic() < deadline:
+                await asyncio.sleep(0.1)
+                if not store.path("reconnect").exists() and await asyncio.to_thread(store.configured):
+                    return {"success": True, "message": "Reconnected to WARP successfully",
+                            "status": await self.get_status()}
+        except (StateError, OSError, KeyError):
+            message = "WARP is not connected right now, so there is nothing to reconnect. It is already being restarted."
+            return {"success": False, "message": message, "error": message}
+        message = "WARP has not reconnected yet. Direct traffic stays blocked while the app keeps trying."
+        return {"success": False, "message": message, "error": message}
 
     async def set_mode(self, mode: str) -> Dict[str, Any]:
         """
@@ -358,7 +380,7 @@ class WarpService:
             "tunnel": {},
             "registration": {},
             "cf_trace": {},
-            "kill_switch": kill_switch_state()
+            "kill_switch": await asyncio.to_thread(kill_switch_state)
         }
 
         # Check if running

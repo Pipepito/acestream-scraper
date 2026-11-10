@@ -36,25 +36,43 @@ def test_kill_switch_is_reported_off_when_the_guard_does_not_apply(monkeypatch):
     assert kill_switch_state() == {'enabled': False, 'blocking': False}
 
 
-def test_kill_switch_blocks_until_warp_is_configured(boot):
+@pytest.fixture
+def live_guard(monkeypatch):
+    state = {'active': True}
+    monkeypatch.setattr(warp_guard.Guard, 'active', lambda self: state['active'])
+    return state
+
+
+def test_kill_switch_blocks_until_warp_is_configured(boot, live_guard):
     assert kill_switch_state() == {'enabled': True, 'blocking': True}
     configure(boot)
     assert kill_switch_state() == {'enabled': True, 'blocking': False}
 
 
-def test_kill_switch_blocks_again_when_the_daemon_is_gone(boot):
+def test_kill_switch_blocks_again_when_the_daemon_is_gone(boot, live_guard):
     exited = subprocess.Popen(['true'])
     exited.wait()
     configure(boot, pid=exited.pid)
     assert kill_switch_state() == {'enabled': True, 'blocking': True}
 
 
-def test_kill_switch_state_is_unknown_rather_than_guessed(boot):
+def test_kill_switch_never_claims_a_block_the_kernel_does_not_hold(boot, live_guard):
+    """Blocking is read from nftables, not inferred from the startup state."""
+    live_guard['active'] = False
+    assert kill_switch_state() == {'enabled': True, 'blocking': False, 'unprotected': True}
+
+
+def test_kill_switch_state_is_unknown_rather_than_guessed(boot, monkeypatch):
+    def broken(self):
+        raise warp_guard.GuardError('nft failed')
+
+    monkeypatch.setattr(warp_guard.Guard, 'active', broken)
+    assert kill_switch_state() == {'enabled': True, 'blocking': None}
     boot.path('json').write_text('not json')
     assert kill_switch_state() == {'enabled': True, 'blocking': None}
 
 
-def test_status_carries_the_kill_switch_even_when_warp_is_not_running(boot):
+def test_status_carries_the_kill_switch_even_when_warp_is_not_running(boot, live_guard):
     service = WarpService()
 
     async def not_running():
@@ -75,19 +93,73 @@ class Commands:
         return (1, '', 'refused') if args[0] in self.failing else (0, 'Success', '')
 
 
-def test_reconnect_blocks_direct_traffic_before_disconnecting(boot, monkeypatch):
+def released(store):
+    configure(store)
+    store.release()
+
+
+def coordinator_answers(store, *, reconnects=True):
+    """Stand in for the entrypoint's coordinator consuming the request."""
+    import threading
+    import time
+
+    def run():
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not store.path('reconnect').exists():
+            time.sleep(0.01)
+        state = {key: value for key, value in store.state().items() if key != 'boot'}
+        store.write('json', **{**state, 'phase': 'starting', 'heartbeat': time.monotonic()})
+        store.path('reconnect').unlink(missing_ok=True)
+        if reconnects:
+            time.sleep(0.05)
+            configure(store)
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    return thread
+
+
+def test_reconnect_is_handed_to_the_coordinator_that_owns_the_block(boot, monkeypatch):
+    released(boot)
     service = WarpService()
     commands = Commands()
     service._run_command = commands
-    monkeypatch.setattr(warp_guard.Guard, 'arm', lambda self: commands.calls.append('arm'))
+    monkeypatch.setattr(warp_guard.Guard, 'arm', lambda self: pytest.fail('only the coordinator changes the guard'))
 
     async def status():
         return {'connected': True}
 
     service.get_status = status
+    answer = coordinator_answers(boot)
     result = asyncio.run(service.reconnect())
+    answer.join()
     assert result['success'] is True
-    assert commands.calls == ['arm', 'disconnect', 'connect']
+    assert result['message'] == 'Reconnected to WARP successfully'
+    # The app neither disconnects nor connects: one owner, no unprotected gap.
+    assert commands.calls == []
+
+
+def test_reconnect_that_does_not_finish_reports_that_traffic_stays_blocked(boot, monkeypatch):
+    released(boot)
+    monkeypatch.setattr(module, 'RECONNECT_WAIT_SECONDS', 0.3)
+    service = WarpService()
+    service._run_command = Commands()
+    answer = coordinator_answers(boot, reconnects=False)
+    result = asyncio.run(service.reconnect())
+    answer.join()
+    assert result['success'] is False
+    assert 'stays blocked' in result['message']
+
+
+def test_reconnect_is_refused_while_warp_is_not_in_charge(boot):
+    # Not configured yet: the coordinator is already connecting it.
+    service = WarpService()
+    commands = Commands()
+    service._run_command = commands
+    result = asyncio.run(service.reconnect())
+    assert result['success'] is False
+    assert commands.calls == []
+    assert not boot.path('reconnect').exists()
 
 
 def test_reconnect_without_the_guard_only_reconnects(monkeypatch):
@@ -95,7 +167,6 @@ def test_reconnect_without_the_guard_only_reconnects(monkeypatch):
     service = WarpService()
     commands = Commands()
     service._run_command = commands
-    monkeypatch.setattr(warp_guard.Guard, 'arm', lambda self: pytest.fail('guard does not apply'))
 
     async def status():
         return {'connected': True}
@@ -105,25 +176,11 @@ def test_reconnect_without_the_guard_only_reconnects(monkeypatch):
     assert commands.calls == ['disconnect', 'connect']
 
 
-def test_reconnect_never_disconnects_when_it_cannot_block_first(boot, monkeypatch):
-    service = WarpService()
-    commands = Commands()
-    service._run_command = commands
-
-    def broken(self):
-        raise warp_guard.GuardError('nft failed')
-
-    monkeypatch.setattr(warp_guard.Guard, 'arm', broken)
-    result = asyncio.run(service.reconnect())
-    assert result['success'] is False
-    assert commands.calls == []
-
-
-def test_reconnect_reports_a_failed_disconnect_without_connecting(boot, monkeypatch):
+def test_reconnect_without_the_guard_reports_a_failed_disconnect(monkeypatch):
+    monkeypatch.delenv('SCRAPER_WARP_GUARD', raising=False)
     service = WarpService()
     commands = Commands(failing=('disconnect',))
     service._run_command = commands
-    monkeypatch.setattr(warp_guard.Guard, 'arm', lambda self: None)
     result = asyncio.run(service.reconnect())
     assert result['success'] is False
     assert commands.calls == ['disconnect']

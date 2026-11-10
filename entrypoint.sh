@@ -584,6 +584,7 @@ unset SCRAPER_WARP_GUARD
 warp_coordinator_pid=""
 network_services_started=false
 runtime_stopping=false
+warp_guard_hold=4
 app_pid=""
 WARP_COORDINATOR_SCRIPT="$(dirname "$CAPTURE_SCRIPT")/warp_startup.py"
 if [ ! -f "$WARP_COORDINATOR_SCRIPT" ]; then WARP_COORDINATOR_SCRIPT=/app/warp_startup.py; fi
@@ -770,6 +771,15 @@ wait_for_supervised_exit() {
             fi
             if [ -z "$warp_coordinator_pid" ] && python3 "$WARP_COORDINATOR_SCRIPT" retry-pending 2>/dev/null; then
                 start_warp_coordinator
+            fi
+            if [ -z "$warp_coordinator_pid" ] && [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+                # Only the coordinator refreshes the block. While it is gone
+                # and WARP is unconfigured, keep the block from lapsing.
+                warp_guard_hold=$((warp_guard_hold + 1))
+                if [ "$warp_guard_hold" -ge 5 ]; then
+                    warp_guard_hold=0
+                    nft -f "$SCRAPER_WARP_GUARD" 2>/dev/null || log "WARP traffic guard could not be armed"
+                fi
             fi
             if [ "$network_services_started" = false ] && python3 "$WARP_COORDINATOR_SCRIPT" configured; then
                 start_network_services

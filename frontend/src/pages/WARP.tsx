@@ -143,7 +143,13 @@ const WarpPage: React.FC = () => {
         </Alert>
       ) : null}
 
-      {killSwitch?.enabled && killSwitch.blocking === false && running && !connected ? (
+      {killSwitch?.enabled && killSwitch.unprotected ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          WARP is not running and direct traffic is not blocked. Restart the container to restore protection.
+        </Alert>
+      ) : null}
+
+      {killSwitch?.enabled && killSwitch.blocking === false && !killSwitch.unprotected && running && !connected ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
           WARP is disconnected, so traffic uses your normal connection. The kill switch covers WARP stopping or restarting, not a disconnect you choose. Connect to protect traffic again.
         </Alert>

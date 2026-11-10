@@ -43,8 +43,9 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
   WARP waiting cancellable, database work protected on shutdown, and clock hints
   advisory. See `docs/ops/startup-recovery.md`.
 - The entrypoint's coordinator owns the WARP kill switch (`warp_guard.py`). The
-  app only reads its state and holds the block before an action that stops the
-  daemon or disconnects for a reconnect; it never stands the guard down.
+  app only reads its state (from nftables, never inferred) and holds the block
+  before restarting the daemon. Reconnect is a request the coordinator carries
+  out; the app never disconnects for it and never stands the guard down.
 
 - Production schema ownership belongs to Alembic. Add a revision for model changes,
   and test both a fresh upgrade and an upgrade from the relevant prior revision.

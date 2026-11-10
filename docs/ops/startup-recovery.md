@@ -62,14 +62,25 @@ tunnel is up, `warp-svc` does not mark its own registration, DNS and tunnel
 packets, so a mark or a list of Cloudflare addresses cannot let it connect.
 
 The guard is armed before the daemon first starts, whenever the daemon process
-is lost, before an app-initiated WARP restart or Reconnect, and during container
-shutdown. The startup coordinator removes it once the current daemon generation
-is configured. The WARP supervisor relaunches the daemon after any exit,
+is lost, before an app-initiated WARP restart, for the whole of a Reconnect, and
+during container shutdown. The startup coordinator removes it once the current
+daemon generation is configured, and nothing else ever removes it.
+
+**Reconnect** on the WARP page is a request to that coordinator
+(`warp-startup.reconnect`, accepted only for the connected daemon of this boot).
+The coordinator blocks, disconnects, runs the normal configuration and keeps the
+block refreshed until WARP is connected again, for as long as that takes. The
+app neither disconnects nor connects, so a failed or slow reconnect cannot turn
+into a disconnect. The WARP supervisor relaunches the daemon after any exit,
 including exit 0: before issue #329 a clean exit ended supervision and traffic
 continued on the normal connection.
 
 The block expires after 30 seconds unless refreshed, and the entrypoint removes
-the table when it stops. A killed container therefore cannot leave a host or
+the table when it stops. The coordinator refreshes it every five seconds; if the
+coordinator is lost before network services start, the entrypoint refreshes it
+instead, and after they start the container exits. The state shown on the WARP
+page is read from nftables, never inferred, so a lapsed block is reported as
+unprotected rather than as blocking. A killed container therefore cannot leave a host or
 shared network namespace without internet access; an expired table passes all
 traffic. Saved exclusions and custom split-tunnel routes are honoured only by
 WARP's firewall, so excluded hosts are unreachable while the guard is armed.

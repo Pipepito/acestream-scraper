@@ -54,37 +54,12 @@ fi
 echo "Running docs contract guard..."
 PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests/docker/test_docs_contract.py
 
-echo "Running canonical backend suite ($PROFILE)..."
-coverage_args=()
-if [[ -n "${CI_COVERAGE_DIR:-}" ]]; then
-  mkdir -p "$CI_COVERAGE_DIR/backend" "$CI_COVERAGE_DIR/frontend"
-  coverage_args=(--cov=backend --cov-branch
-    "--cov-config=${CI_COVERAGE_CONFIG:-.coveragerc}"
-    "--cov-report=xml:$CI_COVERAGE_DIR/backend/coverage.xml"
-    "--cov-report=json:$CI_COVERAGE_DIR/backend/coverage.json"
-    "--junitxml=$CI_COVERAGE_DIR/backend/junit.xml")
-fi
-if [[ "$PROFILE" == "quick" ]]; then
-  PYTHONPATH=backend "$BACKEND_PYTEST" -q \
-    backend/tests/contracts/test_channel_contracts.py \
-    backend/tests/contracts/test_config_contracts.py \
-    backend/tests/contracts/test_integrations_contracts.py \
-    backend/tests/contracts/test_urls_contracts.py \
-    backend/tests/test_error_contracts.py \
-    backend/tests/test_zeronet_verification.py \
-    backend/tests/regression/test_legacy_behavior_parity.py
-else
-  # backend/tests/docker builds images with buildx (QEMU for ARM) and boots
-  # the real engines; the Jenkinsfiles run those files as explicit smoke
-  # stages, so keep them out of the unit/contract run.
-  PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests --ignore=backend/tests/docker "${coverage_args[@]}"
-fi
-
+# Cheap checks run first so a lint, type or generated-schema error is reported
+# in about a minute instead of after the complete backend suite.
 echo "Refreshing OpenAPI schema for codegen..."
-PYTHONPATH=backend "$BACKEND_PYTEST" --version >/dev/null 2>&1 || true
 PYTHONPATH=backend backend/venv/bin/python backend/scripts/dump_openapi.py
 
-echo "Running canonical frontend suite ($PROFILE)..."
+echo "Running static frontend checks (generated API types, ESLint, TypeScript)..."
 (
   cd frontend
   if [[ "${CI_USE_PREINSTALLED_DEPS:-0}" == "1" ]]; then
@@ -119,7 +94,45 @@ echo "Running canonical frontend suite ($PROFILE)..."
 
   npm run lint -- --max-warnings=0
   npm run typecheck
+)
 
+echo "Running canonical backend suite ($PROFILE)..."
+coverage_args=()
+if [[ -n "${CI_COVERAGE_DIR:-}" ]]; then
+  mkdir -p "$CI_COVERAGE_DIR/backend" "$CI_COVERAGE_DIR/frontend"
+  coverage_args=(--cov=backend --cov-branch
+    "--cov-config=${CI_COVERAGE_CONFIG:-.coveragerc}"
+    "--cov-report=xml:$CI_COVERAGE_DIR/backend/coverage.xml"
+    "--cov-report=json:$CI_COVERAGE_DIR/backend/coverage.json"
+    "--junitxml=$CI_COVERAGE_DIR/backend/junit.xml")
+fi
+if [[ "$PROFILE" == "quick" ]]; then
+  PYTHONPATH=backend "$BACKEND_PYTEST" -q \
+    backend/tests/contracts/test_channel_contracts.py \
+    backend/tests/contracts/test_config_contracts.py \
+    backend/tests/contracts/test_integrations_contracts.py \
+    backend/tests/contracts/test_urls_contracts.py \
+    backend/tests/test_error_contracts.py \
+    backend/tests/test_zeronet_verification.py \
+    backend/tests/regression/test_legacy_behavior_parity.py
+else
+  # backend/tests/docker builds images with buildx (QEMU for ARM) and boots
+  # the real engines; the Jenkinsfiles run those files as explicit smoke
+  # stages, so keep them out of the unit/contract run.
+  # Optional process-level parallelism: set CI_PYTEST_WORKERS (for example 4)
+  # with pytest-xdist installed in backend/venv. Without both, the run is serial.
+  worker_args=()
+  if [[ "${CI_PYTEST_WORKERS:-}" =~ ^([2-9]|[1-9][0-9])$ ]] &&
+      backend/venv/bin/python -c 'import xdist' >/dev/null 2>&1; then
+    worker_args=(-n "$CI_PYTEST_WORKERS")
+  fi
+  PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests --ignore=backend/tests/docker \
+    ${worker_args[@]+"${worker_args[@]}"} ${coverage_args[@]+"${coverage_args[@]}"}
+fi
+
+echo "Running canonical frontend suite ($PROFILE)..."
+(
+  cd frontend
   if [[ "$PROFILE" == "quick" ]]; then
     CI=true npm test -- --watch=false --runInBand Dashboard.test.tsx AcestreamChannelsPage.test.tsx
   else
@@ -133,7 +146,7 @@ echo "Running canonical frontend suite ($PROFILE)..."
         --coverageReporters=cobertura --coverageReporters=json-summary --coverageReporters=lcovonly
         --json "--outputFile=$CI_COVERAGE_DIR/frontend/tests.json")
     fi
-    CI=true npm test -- --watch=false --runInBand "${jest_args[@]}"
+    CI=true npm test -- --watch=false --runInBand ${jest_args[@]+"${jest_args[@]}"}
   fi
 
   npm run build

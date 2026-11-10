@@ -9,10 +9,13 @@ repository. Application contributors do not need access to that repository.
 
 Push a branch and open a pull request into `develop`. Fork and same-repository
 branches have the same CI permissions. Only `develop` may open a release PR into
-`main`. The required commit status is `PR Validation`.
+`main`. The required commit status is `PR Validation / develop` (or
+`PR Validation / main` for the release PR).
 
 Application tests, dependency manifests, runtime Dockerfiles, local Docker-build
-commands and architecture validators remain public. From this repository:
+commands and architecture validators remain public. `bash scripts/ci/local_gate.sh`
+runs the checks that match your change (`--plan` lists them first). Individual
+commands, from this repository:
 
 ```sh
 bash scripts/ci/run_v2_test_suite.sh --profile quick
@@ -36,18 +39,55 @@ does not grant permission to run host builds or publish images.
 
 Automatic PR checks use a fixed administrator-managed pipeline and private host
 validators. Application code runs in disposable containers without networking,
-Jenkins credentials or the Docker socket. A verified runner is selected from
-protected dependency inputs. Changed dependencies need maintainer approval before
-installation; architecture contracts still run automatically on amd64, arm64 and
-arm/v7. Known documentation/metadata-only changes use lightweight data validation.
+Jenkins credentials or the Docker socket. For every pull request, with no
+maintainer action, Jenkins runs:
+
+1. repository metadata, source and secret scans;
+2. runtime contracts on amd64, arm64 and arm/v7;
+3. the complete backend and frontend suite: generated API types, ESLint and
+   TypeScript first, then backend tests, frontend tests and the production build.
+
+Step 3 runs automatically when the branch's dependency manifests are the same
+as on the target branch; the test environment is built from the target, never
+from proposed manifests. If they differ, because you changed them or because the
+target changed them after you branched, the suite runs in the authorized job
+described below (updating your branch avoids that when you did not change them).
+Known documentation/metadata-only changes use lightweight data validation instead.
 Editing a public selector, validator or Jenkinsfile cannot change Jenkins policy.
 
-Application PRs additionally wait for owner-approved host image validation. The
-approval binds the PR number, exact head, protected base and target branch. Jenkins
-rechecks that identity before and after the work, and builds supported image
-flavors/platforms without publishing. New revisions need new approval. The required
-status stays pending until the approved validation succeeds. An approval wait
-holds neither an executor nor the shared Docker lock.
+Two things run on the build host with network access and therefore need
+authorization for the exact PR number, head, base and target: installing changed
+dependencies and building images. Jenkins rechecks that identity before and
+after the work, and never publishes from a pull request.
+
+| Pull request | Host work before merge |
+| --- | --- |
+| Portable application sources only, from the maintainer | Every image flavor built and started on amd64, automatically |
+| Build, runtime or dependency inputs (`Dockerfile`, `docker/`, runtime scripts, manifests), or a release PR, from the maintainer | Every flavor on amd64, arm64 and arm/v7, automatically; changed dependencies are installed and tested first |
+| Portable application sources only, from another contributor | None. The status turns green after the isolated checks; `develop` builds and tests every image after merge, before publishing |
+| Build, runtime or dependency inputs, from another contributor | Waits for the maintainer to review and approve that exact revision, then every flavor and platform. The branch must include the latest target commit first, so the review covers exactly what is built |
+
+New revisions need new authorization. The required status stays pending until
+the work the change needs has succeeded. A wait holds neither an executor nor
+the shared Docker lock.
+
+### Reading the result on your pull request
+
+You do not need access to Jenkins. Each run leaves one comment on the pull
+request and updates it as work finishes, and the same text is in the
+`Code Quality / develop` check:
+
+- **Application tests and coverage**: test counts, line coverage and coverage of
+  the lines you changed (advisory, goal 80%). On failure it names the failing
+  step, lists up to twenty failed backend tests and frontend test files, and
+  gives the command that reproduces the step locally. Test titles and output
+  are not shown.
+- **Image builds**: passed, running, waiting for the maintainer, or deferred to
+  `develop`.
+- **Source and security scan**: new findings compared with the target branch.
+
+Test output and logs are not posted. If the summary is not enough to reproduce
+a failure, ask in the pull request.
 
 All Docker workloads acquire the same FIFO lock before their agent and retain it
 through cleanup. Existing executions retain the policy with which they started.
@@ -79,8 +119,8 @@ Docker Hub text is copied manually. Public wiki and release notes remain here.
 
 A repository change is not proof that Jenkins has deployed it. Compare the app
 commit SHA and infrastructure revision in build logs, and distinguish the Jenkins
-result from GitHub's commit status. PR #207 is the current release PR; inspect its
-live state before reporting readiness. A passing historical build does not validate
+result from GitHub's commit status. Inspect the live state of the current release
+PR before reporting readiness. A passing historical build does not validate
 new commits. See [collaborator safety](jenkins-collaborator-safety.md).
 
 ## Production image acceptance

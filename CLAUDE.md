@@ -55,15 +55,15 @@ Cutover / CI:
 
 Docker:
 
-- `docker compose up -d` (uses `pipepito/acestream-scraper:latest` = `scraper-acestream-acexy` payload; published flavors: `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`)
+- `docker compose up -d` (uses `pipepito/acestream-scraper:latest` = `scraper-acestream-acexy` payload; published flavors: `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`, `scraper-outpace`)
 - Optional ZeroNet sidecar: `docker compose --profile zeronet up -d`
 - Docker packaging tests (manifest schema, build-arg derivation, installer layout, engine runtime smoke; the installer/smoke tests build images with Docker buildx): `PYTHONPATH=backend backend/venv/bin/pytest -q backend/tests/docker`
 - Docker manifest + vendored payload validator (schema, `docker/vendor/**/SHA256SUMS`, mirror URLs): `python3 scripts/ci/validate_docker_manifest_metadata.py`
 
 Branching and release flow (adopted 2026-08-28):
 
-- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation`, no force-push/deletion). PRs into `main` are accepted only from `develop` — the private PR pipeline fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
-- All PRs use the administrator-managed private PR pipeline and pinned private infrastructure helpers. Application/runtime checks run in restricted containers. Proposed dependencies and production image builds require the fixed private owner-approval pipeline, approved by the owner for an exact head/base/target. `PR Validation` waits for its result. See `docs/ops/jenkins-collaborator-safety.md`; editing repository files alone does not activate this boundary.
+- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation / develop` or `PR Validation / main`, no force-push/deletion). PRs into `main` are accepted only from `develop` — the private PR pipeline fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
+- All PRs use the administrator-managed private PR pipeline and pinned private infrastructure helpers. The complete backend/frontend suite runs automatically for every PR in a restricted container (no network, credentials or Docker socket) and reports tests and coverage on the PR. Installing proposed dependencies and building images run on the build host, so they stay in the separate authorized job for an exact head/base/target: automatic for verified owner PRs, owner-approved for anyone else, and requested only when the change reaches build or dependency inputs. The required status waits for whatever the change needs. See `docs/ops/jenkins-collaborator-safety.md`; editing repository files alone does not activate this boundary.
 - PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and new revisions never abort the lock holder. Approval waits hold no executor or Docker lock; each automatic/approved workload retains the lock through cleanup. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
 - Every push to `develop` runs the private develop pipeline. Its private selector compares the last successful build; known documentation-only changes do not publish images. Application changes run the full suite and Docker/runtime smokes. Only the current protected develop revision can publish floating `develop*` tags. Publication previews and policy tests live in the private infrastructure repository; public application checks remain available here.
 - `version.txt` records the selected release version without a `-dev` suffix (`v2.2.0` for this cycle). Update it through a PR into `develop` when choosing the next release. Development publication uses only floating `develop*` tags; versioned tags and `latest` remain exclusive to manual release from `main`. The existing rejection of accidental `-dev` versions in release mode remains a defensive guard.
@@ -144,7 +144,7 @@ Real constraints, not TODOs — do not "fix" them without new evidence:
 
 ### Docker image flavors
 
-The root `Dockerfile` is multi-stage with named targets `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`. `latest` is the same payload as `scraper-acestream-acexy`. AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) are platform-gated by `docker/manifests/acestream.json`, which covers `linux/amd64,linux/arm/v7,linux/arm64` (`scripts/ci/flavor_platforms.py` resolves this automatically); the baseline flavors (`scraper`, `scraper-acexy`) cover ARMv7/ARM64 as before. The manifest picks an install kind per target platform: `linux/amd64` → `executable` (native Linux engine 3.2.11 tarball); `linux/arm64` (support `stable`) and `linux/arm/v7` (support `experimental` — builds and installs, but cannot run under qemu-user and has not been runtime-tested on real 32-bit hardware) → `oci-image`, selecting the matching platform variant of digest-pinned `jopsis/acestream:v3.2.17-fix`. Both ARM variants carry Android engine 3.2.17 and a matching bionic userland, grafted under `/opt/acestream` and `/system` with this project's persistent Linux bootstrap. No chroot, `--privileged`, or extra capabilities are required. The engine is opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default), so the app itself is unaffected on ARM.
+The root `Dockerfile` is multi-stage with named targets `scraper`, `scraper-acestream`, `scraper-acexy`, `scraper-acestream-acexy`, `scraper-outpace`. `latest` is the same payload as `scraper-acestream-acexy`. AceStream-enabled flavors (`scraper-acestream`, `scraper-acestream-acexy`, `latest`) are platform-gated by `docker/manifests/acestream.json`, which covers `linux/amd64,linux/arm/v7,linux/arm64` (`scripts/ci/flavor_platforms.py` resolves this automatically); the baseline flavors (`scraper`, `scraper-acexy`) cover ARMv7/ARM64 as before. The manifest picks an install kind per target platform: `linux/amd64` → `executable` (native Linux engine 3.2.11 tarball); `linux/arm64` (support `stable`) and `linux/arm/v7` (support `experimental` — builds and installs, but cannot run under qemu-user and has not been runtime-tested on real 32-bit hardware) → `oci-image`, selecting the matching platform variant of digest-pinned `jopsis/acestream:v3.2.17-fix`. Both ARM variants carry Android engine 3.2.17 and a matching bionic userland, grafted under `/opt/acestream` and `/system` with this project's persistent Linux bootstrap. No chroot, `--privileged`, or extra capabilities are required. The engine is opt-in (`ENABLE_ACESTREAM_ENGINE=false` by default), so the app itself is unaffected on ARM.
 
 Two interpreters are pinned by `Dockerfile` build args: `ARG APP_PYTHON_VERSION=3.13` is the app's Python (`python-deps` and `runtime-base` stages, so every `scraper*` flavor can track new CPython releases), while `ARG ACESTREAM_ENGINE_PYTHON_VERSION=3.10` is the x86_64 engine's Python (`acestream-installer` and `engine-python` stages) and must match `install.python_version` in `docker/manifests/acestream.json`; the Android engine used on ARM ships its own bionic CPython 3.8 and ignores both.
 
@@ -154,35 +154,48 @@ The `frontend-builder`, `acexy-builder` and `ffmpeg-builder` stages run on `$BUI
 
 `entrypoint.sh` enforces the install/runtime split: which binaries are installed is set by the chosen flavor (`IMAGE_HAS_ACESTREAM`, `IMAGE_HAS_ACEXY`); whether they actually start is controlled by `ENABLE_ACESTREAM_ENGINE`, `ENABLE_ACEXY`, `ENABLE_WARP`, `ENABLE_IPFS`, `ENABLE_ZERONET` (+`ENABLE_TOR`). Every amd64 and arm64 image also bundles a ZeroNet node (`docker/scripts/install-zeronet.sh`: zeronet-conservancy pinned by commit with DHT, on its own Python 3.11 and gevent 26.8.0). `IMAGE_HAS_ZERONET` is derived from the launcher's presence at runtime; state lives at `/data/zeronet`, with configuration and private state under `.node/`. The entrypoint copies legacy `sites.json` and `users.json` into `.node/private` only when absent, preserving the originals. UI uses `43110`, fileserver `26552`, and `ENABLE_ZERONET=true` defaults `ZERONET_URL` to the embedded node. Every flavor bundles the Kubo IPFS daemon on amd64/arm64 (`docker/scripts/install-ipfs.sh`, SHA-256-pinned source with reviewed Go module locks; see `docker/ipfs/README.md`; Kubo has no 32-bit ARM build, so arm/v7 ships without it and `IMAGE_HAS_IPFS` is derived from the binary's presence at runtime). `ipfs://`/`ipns://` sources are fetched through `IPFS_GATEWAY_URL` (default `http://127.0.0.1:8081` — the embedded gateway binds 8081 because Acexy owns 8080 in-container); the repo lives at `/data/ipfs` (`IPFS_PATH`). Full WARP requires `NET_ADMIN` and `/dev/net/tun` (amd64 and arm64 images); `WARP_DNS_ONLY=true` needs only `NET_ADMIN`. The current client does not require `SYS_ADMIN`; the command builder retains it for older release selections. Acexy refuses to target `localhost:6878` if the in-container engine is disabled. On ARM images the engine is launched through `/opt/acestream/start-engine` (`docker/scripts/acestream-android/start-engine`), which requires a 4 KB-page kernel (`getconf PAGESIZE` must be 4096; Raspberry Pi 5 needs `kernel=kernel8.img` in `config.txt`) and keeps state/cache/logs under `ACESTREAM_HOME=/var/lib/acestream` (mount a volume, e.g. `-v acestream-state:/var/lib/acestream`); `ACESTREAM_START_COMMAND` is unchanged for all platforms. Known ARM limitations: both ARM engines are 3.2.17 while amd64 is 3.2.11 (`platform` reports `android` on ARM), and ARM has no WebRTC transport. WARP (cloudflare-warp) is installed on amd64 and arm64 images (Cloudflare's apt repo ships both); linux/arm/v7 has no build.
 
-## Mandatory completion validation
+## Completion validation
 
-Before declaring a task complete, run the full local validation set against the
-final changes. This is an explicit maintainer requirement to catch failures before
-slow Jenkins runs and reduce the pipeline queue. Quick profiles, focused tests,
-docs-only CI classification and previously passing runs are useful during
-iteration, but do not replace this completion gate, regardless of change size.
+Before declaring a task complete, run the validation tier that matches what the
+final change touches. The tiers mirror what Jenkins runs before merge, so local
+effort goes where a failure can come from. `bash scripts/ci/local_gate.sh`
+picks the tier with the selector Jenkins uses (`scripts/ci/classify_changes.py`)
+and runs it; `--plan` only prints the commands. It compares against `develop`
+and counts committed, staged, unstaged and untracked files.
 
-- Inspect the current validation definitions in the private infrastructure
-  repository and `docs/ops/jenkins-ci.md`; reproduce every validation stage locally,
-  including the full backend/frontend gate, lint/typechecks, generated-artifact
-  drift, documentation/metadata/runtime contracts, all supported architecture and
-  image-flavor build checks, and Docker packaging/service/media smoke tests. The
-  public `run_v2_test_suite.sh --profile full` excludes Docker tests, so it is not
-  sufficient by itself. Run the complete automated browser/E2E suites too, following
-  `e2e/AGENTS.md` and using isolated test data and services.
-- Check Docker/buildx availability before starting. If Docker is stopped or
-  disabled, explicitly ask the user to start it, then resume and run the outstanding
-  checks. Distinguish a sandbox/socket permission failure from a stopped daemon;
-  request the required tool permission rather than assuming Docker is down.
-- Missing dependencies (including FFmpeg or browsers), unavailable infrastructure,
-  unsupported local architecture execution, skipped tests and failed checks are
-  outstanding validation, not passes. Fix the prerequisite or identify the exact
-  blocker and ask for what is needed. Never silently omit tests or claim the task
-  is complete while required validation remains unexecuted. Only an explicit user
-  waiver may narrow this requirement for a particular task.
-- Keep logs and report the commands, tested revision/worktree, pass/fail/skip counts,
-  warnings and any remaining blockers. After a fix, rerun failed checks and every
-  affected/dependent stage; completion evidence must cover the final changes.
+| The change touches | Tier | Run locally |
+| --- | --- | --- |
+| Only documentation or repository metadata: `docs/`, `wiki/`, the root and nested guides, issue forms, ruleset JSON | `docs` | Documentation, Docker-docs and command-builder validators, plus the metadata validator for `.github/` data |
+| Portable application sources: `backend/app`, migrations, backend tests, `frontend/`, `e2e/`, `scripts/` | `application` | The `docs` tier, the repository/Dockerfile/runtime contracts, the complete backend and frontend suite (`run_v2_test_suite.sh --profile full`) and the architecture plan dry run. A `frontend/` or `e2e/` change adds the mocked browser suite (`cd e2e && npm run test:mobile`) |
+| Build, runtime or dependency inputs: `Dockerfile`, `docker/`, `entrypoint.sh`, `healthcheck.sh`, `warp-setup.sh`, the runtime helpers in `backend/*.py`, dependency manifests, `version.txt`, CI selection scripts, or any path the selector does not recognize | `images` | The `application` tier, the Docker manifest validator, every image flavour built for this machine's native platform, and the Docker packaging tests in `backend/tests/docker` |
+
+- Other architectures are Jenkins' job. Do not emulate amd64 or ARM image builds
+  locally unless the change is specific to that architecture and you are
+  debugging it. Jenkins builds and starts every flavour on every platform
+  before `develop` publishes, and for every pull request that reaches build
+  inputs. Say in your report that cross-architecture builds were left to Jenkins.
+- The live journey (`cd e2e && npm test` with the stack, see `e2e/AGENTS.md`) is
+  required in the `images` tier and whenever the change alters playback,
+  engines, the tuner, recordings, casting or the journeys themselves. The
+  helper lists it and does not run it; the gate is not complete until it has.
+- Never lower a tier by hand. When unsure, or when the helper is unavailable,
+  use the higher tier. The maintainer may ask for a higher tier on any change.
+- Prerequisites of the tier you are in are outstanding validation when missing,
+  not passes: `backend/venv`, `frontend/node_modules`, FFmpeg for the media
+  tests, Playwright browsers for the browser suites, Docker for the `images`
+  tier and the live journey. Fix the prerequisite or name the exact blocker and
+  ask. For Docker, tell a stopped daemon from a sandbox or socket permission
+  failure, and ask the user to start it or grant access. Skipped and failed
+  checks are outstanding too. Only an explicit user waiver narrows a tier.
+- Quick profiles, focused tests and earlier passing runs are for iteration. They
+  do not replace the tier, and completion evidence must cover the final changes.
+- CI replaces `frontend/.eslintrc.cjs`, `frontend/tsconfig.json` and
+  `frontend/jest.config.js` with reviewed private copies. A change to any of
+  them, or a new kind of imported asset, can pass locally and fail in Jenkins:
+  say so in the pull request so the private copy is reviewed with it.
+- Keep logs (the helper writes `.quality-reports/local-gate/`) and report the
+  tier, commands, tested revision, pass/fail/skip counts, warnings and any
+  remaining blockers. After a fix, rerun the failed check and every step after it.
 - This authorizes local validation, not publication or shared-infrastructure
   mutation. Do not trigger/cancel Jenkins jobs, publish images, promote tags, merge,
   change Jenkins policy or prune unrelated Docker resources without the separate
@@ -536,9 +549,14 @@ permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
 
 The PR job uses an administrator-managed pipeline, never a branch's Jenkinsfile.
 Fork and origin PRs use the same pinned protected-target orchestration and isolated
-checks. Application PRs wait for a separate owner-approved job bound to exact head,
-base and target; it runs the full gate and every supported image combination without
-publication. Dependency changes wait for this approval before installation. The
+checks, which include the complete application suite whenever the dependency
+runner can be built from protected inputs. Host work (proposed dependencies, image
+builds) runs in a separate authorized job bound to exact head, base and target,
+without publication: verified owner PRs are authorized automatically, other
+authors need the owner's approval. Portable application changes build every
+flavour on amd64 only; build, runtime and dependency inputs and release PRs build
+every platform. For another author's portable-only change no host work runs
+before merge: develop builds and tests every image before publishing. The
 parent releases its Docker lock before waiting; each job holds the shared FIFO lock
 for its complete Docker workload and cleanup. Only owner-merged protected develop
 commits may publish floating tags; main releases remain manual. Pipeline definition,
@@ -588,10 +606,12 @@ separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
 ## Repository contribution governance
 
 `.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
-it. Baseline main/develop rules require PRs, resolved conversations and the
-Jenkins-bound `PR Validation`, without bypass. A separate one-approval rule allows
-automatic exemption for Pipepito as the merging user (not by PR author); it
-cannot bypass baseline CI. Collaborators still need approval when merging.
+it. Baseline main/develop rules require PRs and resolved conversations, without
+bypass. Each branch has its own Jenkins-bound status ruleset (`PR Validation /
+develop`, `PR Validation / main`); the develop one lets Pipepito bypass it through
+a pull request, the main one has no bypass. A separate one-approval rule allows
+automatic exemption for Pipepito as the merging user (not by PR author).
+Collaborators still need approval when merging.
 Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns
 other authors' PRs to Pipepito using metadata only: never check out or execute
 contributor code in `pull_request_target`. Issue forms and assignment activate

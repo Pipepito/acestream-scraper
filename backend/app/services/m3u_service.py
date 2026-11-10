@@ -13,7 +13,8 @@ from urllib.parse import urljoin, urlparse
 logger = logging.getLogger(__name__)
 
 _M3U_EXTENSIONS = ('.m3u', '.m3u8')
-_HLS_STREAM_TAGS = ('#EXT-X-TARGETDURATION', '#EXT-X-STREAM-INF')
+# Tags every HLS media or master manifest carries, on a line of their own.
+_HLS_STREAM_TAG = re.compile(r'^[ \t]*#EXT-X-(?:TARGETDURATION|STREAM-INF)\b', re.MULTILINE)
 
 
 def has_m3u_extension(url: str) -> bool:
@@ -29,17 +30,48 @@ def has_m3u_extension(url: str) -> bool:
     return path.lower().endswith(_M3U_EXTENSIONS)
 
 
+def is_hls_stream_manifest(content: str) -> bool:
+    """Whether downloaded text is the manifest of a single HLS stream.
+
+    Such a manifest also starts with #EXTM3U, but its URIs are that stream's
+    variants and segments: reading it as a channel list would import each of
+    them as a channel.
+    """
+    return bool(_HLS_STREAM_TAG.search(content))
+
+
 def is_channel_playlist(content: str) -> bool:
     """Whether downloaded text is an M3U channel list, judged by its header.
 
     A leading byte order mark is tolerated because some playlist editors save
-    one. An HLS manifest also starts with #EXTM3U, but it describes a single
-    stream: its URIs are that stream's variants and segments, and reading it
-    as a list would import each of them as a channel.
+    one. HLS stream manifests are left out.
     """
-    if not content.lstrip('﻿ \t\r\n').startswith('#EXTM3U'):
+    if not content.lstrip('\ufeff \t\r\n').startswith('#EXTM3U'):
         return False
-    return not any(tag in content for tag in _HLS_STREAM_TAGS)
+    return not is_hls_stream_manifest(content)
+
+
+def url_ends_with_m3u(url: str) -> bool:
+    """The rule used before #332: the whole URL ends in .m3u or .m3u8.
+
+    It is kept as given, so every address that was read as a playlist still
+    is, including a "?f=.m3u" appended to force it.
+    """
+    return url.lower().endswith(_M3U_EXTENSIONS)
+
+
+def is_m3u_source(url: str, content: str) -> bool:
+    """Whether a fetched source is parsed as an M3U channel list.
+
+    Addresses the old rule accepted stay playlists whatever they serve.
+    Otherwise the download decides: an extension in the path or the #EXTM3U
+    header, and never an HLS stream manifest.
+    """
+    if url_ends_with_m3u(url):
+        return True
+    if is_hls_stream_manifest(content):
+        return False
+    return has_m3u_extension(url) or is_channel_playlist(content)
 
 
 class M3UService:

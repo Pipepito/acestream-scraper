@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 
 from app.models.url_types import BaseURL
-from app.services.m3u_service import M3UService, has_m3u_extension, is_channel_playlist
+from app.services.m3u_service import M3UService, is_m3u_source, url_ends_with_m3u
 from app.config.database import get_db
 from app.utils.url_guard import BlockedURLError
 from sqlalchemy.orm import Session
@@ -366,7 +366,8 @@ class BaseScraper(ABC):
         # through its API and imported as the M3U list it amounts to.
         from app.services import live_providers
         live_provider = live_providers.for_source_url(url_to_scrape)
-        is_m3u_url = has_m3u_extension(url_to_scrape) or live_provider is not None
+        # Unchanged by #332: these are playlists whatever they serve.
+        forced_m3u = url_ends_with_m3u(url_to_scrape) or live_provider is not None
         while retries_left >= 0:
             try:
                 if live_provider is not None:
@@ -377,9 +378,9 @@ class BaseScraper(ABC):
                 if named_channels:
                     channels.extend(named_channels)
                     break
-                # A playlist served from an address without the extension is
-                # recognised by what was downloaded (#332).
-                if is_m3u_url or is_channel_playlist(content):
+                # A playlist served from an address without a trailing .m3u
+                # is recognised from what was downloaded (#332).
+                if forced_m3u or is_m3u_source(url_to_scrape, content):
                     logger.info(f"Processing direct M3U file: {url_to_scrape}")
                     direct_channels = self.m3u_service.extract_channels_from_content(
                         content,
@@ -396,7 +397,10 @@ class BaseScraper(ABC):
                         logger.info(f"Extracted {len(channels)} channels from direct M3U file")
                     else:
                         logger.warning(f"No channels found in M3U file content")
-                    break
+                    if forced_m3u or channels:
+                        break
+                    # A list recognised only from its download and holding
+                    # no entries is read as a page, as it was before #332.
                 soup = BeautifulSoup(content, 'html.parser')
                 script_channels = [(id, name, {}) for id, name in self.extract_from_script(soup)]
                 if script_channels:

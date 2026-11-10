@@ -98,7 +98,8 @@ Unstructured bare hashes on other pages still require **Harvest bare content IDs
 
 M3U playlists are recognized by their `#EXTM3U` first line, whatever the address
 ends with: a link with a query string or without a file extension works. An
-address whose path ends in `.m3u` or `.m3u8` is always read as a playlist.
+address ending in `.m3u` or `.m3u8`, with or without a query string, is read as a
+playlist even without that line.
 
 Select **Add**, then use the row's **Scrape** action. **Scrape all** processes every enabled source.
 

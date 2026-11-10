@@ -9,7 +9,7 @@ import pytest
 from app.models.url_types import RegularURL, ZeronetURL
 from app.scrapers.http import HTTPScraper
 from app.scrapers.zeronet import ZeronetScraper
-from app.services.m3u_service import has_m3u_extension, is_channel_playlist
+from app.services.m3u_service import has_m3u_extension, is_channel_playlist, is_m3u_source
 
 ID_A = "a" * 40
 ID_B = "b" * 40
@@ -20,6 +20,11 @@ PLAYLIST = (
     f'#EXTINF:-1,News Two\nacestream://{ID_B}\n'
     '#EXTINF:-1,Web Three\nhttp://example.com/web/index.m3u8\n'
 )
+# Entries without the #EXTM3U first line.
+HEADERLESS = (
+    f'#EXTINF:-1,Sports One\nacestream://{ID_A}\n'
+    f'#EXTINF:-1,News Two\nacestream://{ID_B}\n'
+)
 HLS_MASTER = (
     '#EXTM3U\n#EXT-X-VERSION:3\n'
     '#EXT-X-STREAM-INF:BANDWIDTH=800000\n'
@@ -27,7 +32,7 @@ HLS_MASTER = (
 )
 
 
-def _scrape(url, content, make_scraper=None):
+def _scrape(url, content, make_scraper=None, bare_ids=False):
     """Scrape `url` with the network stubbed: the source answers `content`
     and anything the scraper follows from it answers 404."""
     fetched = []
@@ -46,6 +51,7 @@ def _scrape(url, content, make_scraper=None):
         scraper = make_scraper() if make_scraper else HTTPScraper(RegularURL(url))
         scraper.fetch_content = fake_fetch
         scraper.update_url_status = noop_update
+        scraper.scrape_bare_ids = bare_ids
         return await scraper.scrape()
 
     channels, status = asyncio.run(run())
@@ -73,19 +79,40 @@ def test_has_m3u_extension(url, expected):
 
 @pytest.mark.parametrize("content, expected", [
     ("#EXTM3U\n#EXTINF:-1,One\nacestream://" + "a" * 40 + "\n", True),
-    ("﻿#EXTM3U\n#EXTINF:-1,One\nhttp://example.com/one.m3u8\n", True),
+    ("\ufeff#EXTM3U\n#EXTINF:-1,One\nhttp://example.com/one.m3u8\n", True),
     ("\r\n \t#EXTM3U url-tvg=\"http://example.com/epg.xml\"\n", True),
     ("", False),
-    ("﻿ \n", False),
+    ("\ufeff \n", False),
     ("<html><body><pre>#EXTM3U\n#EXTINF:-1,One</pre></body></html>", False),
     # Header-less lists are recognised by their extension only.
     ("#EXTINF:-1,One\nacestream://" + "a" * 40 + "\n", False),
     # HLS manifests describe one stream: their URIs are variants and segments.
     ("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=800000\nhttps://cdn.example.com/low/index.m3u8\n", False),
     ("#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXTINF:6.0,\nhttps://cdn.example.com/seg10.ts\n", False),
+    # Only a tag line makes a manifest, not a channel that mentions one.
+    ("#EXTM3U\n#EXTINF:-1,Guide to #EXT-X-STREAM-INF tags\nacestream://" + "a" * 40 + "\n", True),
 ])
 def test_is_channel_playlist(content, expected):
     assert is_channel_playlist(content) is expected
+
+
+@pytest.mark.parametrize("url, content, expected", [
+    # Recognised from what was downloaded.
+    ("http://example.com/lists/sports", PLAYLIST, True),
+    ("http://example.com/lists/sports.m3u?raw=true", HEADERLESS, True),
+    ("http://example.com/lists/sports", HEADERLESS, False),
+    # An address the old rule read as a playlist still is, whatever it serves:
+    # the "?f=.m3u" workaround keeps working for lists without a header.
+    ("http://example.com/lists/sports?f=.m3u", HEADERLESS, True),
+    ("http://example.com/lists/sports#.m3u", HEADERLESS, True),
+    ("ipfs://bafyexample?filename=list.m3u", HEADERLESS, True),
+    ("http://example.com/live/master.m3u8", HLS_MASTER, True),
+    # A stream manifest is never newly read as a list.
+    ("http://example.com/live/master.m3u8?token=x", HLS_MASTER, False),
+    ("http://example.com/live/master", HLS_MASTER, False),
+])
+def test_is_m3u_source(url, content, expected):
+    assert is_m3u_source(url, content) is expected
 
 
 @pytest.mark.parametrize("url", [
@@ -119,12 +146,34 @@ def test_html_page_is_still_parsed_as_html():
     assert ids == {ID_A}
 
 
-def test_hls_stream_manifest_without_extension_imports_no_channels():
+@pytest.mark.parametrize("url", [
+    "http://example.com/live/master?token=x",
+    "http://example.com/live/master.m3u8?token=x",
+])
+def test_hls_stream_manifest_is_not_newly_read_as_a_list(url):
     # A stream address, not a list: its variants must not become channels.
-    ids, status, _fetched = _scrape("http://example.com/live/master?token=x", HLS_MASTER)
+    ids, status, _fetched = _scrape(url, HLS_MASTER)
 
     assert status == "OK"
     assert ids == set()
+
+
+def test_old_workaround_url_still_reads_a_list_without_header():
+    ids, status, fetched = _scrape("http://example.com/lists/sports?f=.m3u", HEADERLESS)
+
+    assert status == "OK"
+    assert ids == {ID_A, ID_B}
+    assert len(fetched) == 1
+
+
+def test_detected_playlist_without_entries_is_still_read_as_a_page():
+    # Raw hashes are not M3U entries; with the bare-ID option the page reader
+    # finds them, as it did before the header was recognised.
+    body = f"#EXTM3U\n#EXTINF:-1,Sports One\n{ID_A}\n#EXTINF:-1,News Two\n{ID_B}\n"
+    ids, status, _fetched = _scrape("http://example.com/lists/sports", body, bare_ids=True)
+
+    assert status == "OK"
+    assert ids == {ID_A, ID_B}
 
 
 def test_m3u_extension_keeps_playlist_parsing_without_header():
@@ -142,4 +191,12 @@ def test_zeronet_playlist_without_extension_uses_the_same_rule():
     ids, _status, fetched = _scrape(url, PLAYLIST, lambda: ZeronetScraper(ZeronetURL(url)))
 
     assert {ID_A, ID_B} <= ids
+    assert len(fetched) == 1
+
+
+def test_zeronet_old_workaround_url_still_reads_a_list_without_header():
+    url = "zero://example.bit/lists/sports?f=.m3u"
+    ids, _status, fetched = _scrape(url, HEADERLESS, lambda: ZeronetScraper(ZeronetURL(url)))
+
+    assert ids == {ID_A, ID_B}
     assert len(fetched) == 1

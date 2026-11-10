@@ -38,6 +38,17 @@ export interface WarpRegistrationDetails {
   license?: string | null;
 }
 
+/** The guard that blocks direct traffic while WARP is not in charge. */
+export interface WarpKillSwitch {
+  enabled: boolean;
+  /** Read from the firewall; null when the server cannot tell. */
+  blocking: boolean | null;
+  /** WARP is not in charge and nothing blocks direct traffic. */
+  unprotected?: boolean;
+  /** Wanted, but this host could not install it. */
+  unavailable?: boolean;
+}
+
 export interface WarpStatus {
   running: boolean;
   connected: boolean;
@@ -49,6 +60,7 @@ export interface WarpStatus {
   tunnel?: WarpTunnelDetails;
   registration?: WarpRegistrationDetails;
   cf_trace: Record<string, string>;
+  kill_switch?: WarpKillSwitch;
 }
 
 /**

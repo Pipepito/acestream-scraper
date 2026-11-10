@@ -903,6 +903,23 @@ startup until that release; WARP failures never enable database recovery. Clock
 warnings compare server/browser UTC as advisory only; never set host time or
 bypass TLS. See `docs/ops/startup-recovery.md`.
 
+The WARP kill switch (`WARP_KILL_SWITCH`, default on) applies to automatic full
+tunneling only. Cloudflare's own firewall blocks direct traffic while `warp-svc`
+runs; `backend/warp_guard.py` covers the periods without it (before the first
+launch, after any daemon exit, during shutdown) with the private nftables table
+`inet scraper_warp_guard`. The daemon is exempt by group ID, never by mark or by
+Cloudflare address: it does not mark its packets until the tunnel is up. Keep the
+block self-expiring and remove the table on shutdown, so a killed container cannot
+cut off a host or shared network namespace. Arm before stopping the daemon; only
+the coordinator stands the guard down, for a configured current daemon generation.
+The WARP supervisor relaunches after exit 0 as well (issue #329). Reconnect is a
+request the coordinator carries out behind the block; the app must not disconnect
+for it or hold the block on a timer. Report blocking from nftables, not from
+startup state. A host that cannot install the guard at startup runs WARP without
+it and says so on the WARP page; never turn that into a startup failure. Explicit
+Disconnect remains the operator's choice. Change the rules only with the
+real-kernel check in `backend/tests/docker/test_warp_guard_kernel.py`.
+
 WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and
 `backend/warp_exclusions.py`, shared with `warp-setup.sh`. Persist desired and
 previously managed hosts beside the database; retain pending removals after partial

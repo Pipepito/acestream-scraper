@@ -1,5 +1,5 @@
 import apiClient from '../services/apiClient';
-import { connectWarp, disconnectWarp, getWarpStatus, registerWarpLicense, setWarpMode } from '../services/warpService';
+import { connectWarp, disconnectWarp, getWarpStatus, reconnectWarp, registerWarpLicense, setWarpMode } from '../services/warpService';
 import { WarpMode } from '../types/warpTypes';
 
 jest.mock('../services/apiClient', () => ({
@@ -32,6 +32,12 @@ describe('warpService', () => {
     expect(mockedClient.post).toHaveBeenNthCalledWith(1, '/v1/warp/connect');
     expect(mockedClient.post).toHaveBeenNthCalledWith(2, '/v1/warp/disconnect');
     expect(mockedClient.post).toHaveBeenNthCalledWith(3, '/v1/warp/mode', { mode: 'warp' });
+  });
+
+  it('reconnects through the single server-side operation', async () => {
+    await reconnectWarp();
+    expect(mockedClient.post).toHaveBeenCalledTimes(1);
+    expect(mockedClient.post).toHaveBeenCalledWith('/v1/warp/reconnect');
   });
 
   it('registers a license with the license_key field the backend schema declares', async () => {

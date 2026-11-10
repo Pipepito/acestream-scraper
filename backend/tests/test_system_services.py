@@ -144,6 +144,55 @@ def test_restart_writes_marker_and_signals_the_process_group(tmp_path, monkeypat
     assert (tmp_path / "acexy.restart").exists()
 
 
+def test_warp_restart_blocks_direct_traffic_before_the_daemon_stops(tmp_path, monkeypatch):
+    """A clean stop removes WARP's own firewall: hold the guard first."""
+    import warp_guard
+
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("SCRAPER_WARP_GUARD", str(tmp_path / "warp-guard.nft"))
+    (tmp_path / "warp.pid").write_text(str(os.getpid()))
+    service = _service(tmp_path, FakeHttp({}))
+    order: list[object] = []
+    monkeypatch.setattr(warp_guard.Guard, "arm", lambda self: order.append(("arm", str(self.rules))))
+    monkeypatch.setattr(service, "_terminate", lambda pid: order.append(pid))
+
+    assert service.restart("warp")["success"] is True
+    assert order == [("arm", str(tmp_path / "warp-guard.nft")), os.getpid()]
+
+
+def test_warp_restart_still_happens_when_the_early_block_fails(tmp_path, monkeypatch):
+    """The supervisor blocks again as soon as the daemon exits."""
+    import warp_guard
+
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("SCRAPER_WARP_GUARD", str(tmp_path / "warp-guard.nft"))
+    (tmp_path / "warp.pid").write_text(str(os.getpid()))
+    service = _service(tmp_path, FakeHttp({}))
+    signalled: list[int] = []
+
+    def broken(self):
+        raise warp_guard.GuardError("nft failed")
+
+    monkeypatch.setattr(warp_guard.Guard, "arm", broken)
+    monkeypatch.setattr(service, "_terminate", lambda pid: signalled.append(pid))
+
+    assert service.restart("warp")["success"] is True
+    assert signalled == [os.getpid()]
+
+
+def test_other_services_restart_without_touching_the_warp_guard(tmp_path, monkeypatch):
+    import warp_guard
+
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("SCRAPER_WARP_GUARD", str(tmp_path / "warp-guard.nft"))
+    (tmp_path / "acexy.pid").write_text(str(os.getpid()))
+    service = _service(tmp_path, FakeHttp({}))
+    monkeypatch.setattr(warp_guard.Guard, "arm", lambda self: pytest.fail("not the WARP daemon"))
+    monkeypatch.setattr(service, "_terminate", lambda pid: None)
+
+    assert service.restart("acexy")["success"] is True
+
+
 def test_restart_refused_when_not_supervised(tmp_path, monkeypatch):
     _clear_env(monkeypatch)
     with pytest.raises(ServiceNotManagedError):

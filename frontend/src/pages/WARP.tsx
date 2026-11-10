@@ -17,7 +17,7 @@ import {
   Typography,
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
-import { useWarpStatus, useWarpConnect, useWarpDisconnect, useWarpSetMode, useWarpRegisterLicense } from '../hooks/useWarp';
+import { useWarpStatus, useWarpConnect, useWarpDisconnect, useWarpReconnect, useWarpSetMode, useWarpRegisterLicense } from '../hooks/useWarp';
 import { WarpMode, WarpStatus } from '../types/warpTypes';
 import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
@@ -43,6 +43,7 @@ const WarpPage: React.FC = () => {
   const { data: status, isLoading, error } = useWarpStatus();
   const connectMutation = useWarpConnect();
   const disconnectMutation = useWarpDisconnect();
+  const reconnectMutation = useWarpReconnect();
   const setModeMutation = useWarpSetMode();
   const registerLicenseMutation = useWarpRegisterLicense();
 
@@ -54,16 +55,14 @@ const WarpPage: React.FC = () => {
     if (status?.mode) setSelectedMode(status.mode);
   }, [status?.mode]);
 
-  const [reconnecting, setReconnecting] = useState(false);
+  const reconnecting = reconnectMutation.isPending;
   const reconnect = async () => {
-    setReconnecting(true);
     setActionError(null);
     try {
-      await disconnectMutation.mutateAsync();
-      await connectMutation.mutateAsync();
+      await reconnectMutation.mutateAsync();
     } catch (err) {
       setActionError(`Could not reconnect WARP: ${err instanceof Error ? err.message : 'unknown error'}. Check the connection status and use Connect to retry.`);
-    } finally { setReconnecting(false); }
+    }
   };
 
   const handleModeChange = (event: SelectChangeEvent) => setSelectedMode(event.target.value as WarpMode);
@@ -109,6 +108,8 @@ const WarpPage: React.FC = () => {
   const connected = Boolean(status?.connected);
   const chipColor = !running ? 'default' : connected ? 'success' : 'warning';
   const chipLabel = !running ? 'Not running' : connected ? 'Connected' : 'Disconnected';
+  const killSwitch = status?.kill_switch;
+  const blocking = killSwitch?.enabled === true && killSwitch.blocking === true;
 
   return (
     <Box>
@@ -132,9 +133,33 @@ const WarpPage: React.FC = () => {
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap role="status" aria-label="WARP status" sx={{ mb: 2 }}>
         <Chip label={chipLabel} color={chipColor} variant="outlined" sx={{ fontWeight: 600, minWidth: 110 }} />
         <Typography variant="body2" color="text.secondary">
-          {describeWarpStatus(status)}
+          {describeWarpStatus(status)}{killSwitch?.enabled ? ' · Kill switch on' : ''}
         </Typography>
       </Stack>
+
+      {blocking ? (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Direct internet traffic is blocked until WARP is connected again. The app restarts WARP by itself.
+        </Alert>
+      ) : null}
+
+      {killSwitch?.unavailable ? (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          The kill switch could not be set up on this host, so WARP runs without it. If WARP stops, traffic uses your normal connection. It needs nftables support on the host and Docker’s default SETGID capability.
+        </Alert>
+      ) : null}
+
+      {killSwitch?.enabled && killSwitch.unprotected ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          WARP is not running and direct traffic is not blocked. Restart the container to restore protection.
+        </Alert>
+      ) : null}
+
+      {killSwitch?.enabled && killSwitch.blocking === false && !killSwitch.unprotected && running && !connected ? (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          WARP is disconnected, so traffic uses your normal connection. The kill switch covers WARP stopping or restarting, not a disconnect you choose. Connect to protect traffic again.
+        </Alert>
+      ) : null}
 
       {actionError ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
@@ -142,7 +167,7 @@ const WarpPage: React.FC = () => {
         </Alert>
       ) : null}
 
-      {!running ? (
+      {!running && !killSwitch?.enabled ? (
         <Alert severity="info" sx={{ mb: 2 }}>
           WARP is not running in this container. Enable it with <code>ENABLE_WARP=true</code>.
           DNS-only startup uses <code>WARP_DNS_ONLY=true</code> and needs <code>NET_ADMIN</code>.

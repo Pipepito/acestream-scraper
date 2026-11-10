@@ -95,6 +95,11 @@ selection preserves direct HTTP fetching.
 Plain `.txt` lists with alternating channel-name and 40-character ID lines are
 recognized automatically, preserving their names. Malformed hashes are skipped.
 Unstructured bare hashes on other pages still require **Harvest bare content IDs**.
+
+M3U playlists are recognized by their `#EXTM3U` first line, whatever the address
+ends with: a link with a query string or without a file extension works. An
+address whose path ends in `.m3u` or `.m3u8` is always read as a playlist.
+
 Select **Add**, then use the row's **Scrape** action. **Scrape all** processes every enabled source.
 
 The table records the last result, last run, and number of channels found. If a source fails, its error remains visible there.

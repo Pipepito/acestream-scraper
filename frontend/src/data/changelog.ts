@@ -23,7 +23,8 @@ export const releases: ReleaseNotes[] = [
         "items": [
           "Recover WARP startup automatically after temporary network or clock failures, with a ten-minute retry window and a working manual Retry afterward. Network services stay paused until configuration succeeds. Startup warns when server and browser clocks differ significantly and links to host time troubleshooting.",
           "Show one EPG channel linked to all matching sources when their XMLTV channel ID and name agree. Name matching ignores case and repeated spaces. Existing programmes and TV assignments are preserved; choose a source on the channel's detail page to view its schedule.",
-          "Keep spaces in playlist and XMLTV channel IDs when duplicate guide sources require a source prefix. Refresh both the playlist and guide after updating so cached IDs match."
+          "Keep spaces in playlist and XMLTV channel IDs when duplicate guide sources require a source prefix. Refresh both the playlist and guide after updating so cached IDs match.",
+          "Read M3U playlists from addresses that do not end in .m3u, such as links with a query string or no file extension. These sources used to report OK with no channels."
         ]
       }
     ]

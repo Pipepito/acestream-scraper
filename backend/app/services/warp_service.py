@@ -39,6 +39,9 @@ def kill_switch_state() -> Dict[str, Optional[bool]]:
     installed; its coordinator owns the state this reads."""
     rules = os.environ.get("SCRAPER_WARP_GUARD")
     if not rules:
+        if os.environ.get("SCRAPER_WARP_GUARD_UNAVAILABLE"):
+            # Wanted, but this host could not install it: WARP runs unguarded.
+            return {"enabled": False, "blocking": False, "unavailable": True}
         return {"enabled": False, "blocking": False}
     try:
         if Store.environment().configured():

@@ -212,9 +212,10 @@ traffic is being blocked.
 - Local networks stay reachable while traffic is blocked. Hosts you excluded
   from WARP are unreachable until WARP is connected again.
 - It needs nftables support on the host and Docker's default `SETGID`
-  capability. If it cannot be set up, startup stops and explains why. Set
-  `WARP_KILL_SWITCH=false`, or clear **Block direct traffic while WARP is down**
-  under WARP → Startup settings, to run WARP without it.
+  capability. On a host without them, WARP still starts, without the kill
+  switch, and the WARP page says so. Set `WARP_KILL_SWITCH=false`, or clear
+  **Block direct traffic while WARP is down** under WARP → Startup settings, to
+  turn it off.
 - It does not apply to manual connection (`WARP_ENABLE_NAT=false`) or DNS-only
   mode, where the normal connection is used by design.
 

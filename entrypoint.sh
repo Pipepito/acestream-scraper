@@ -581,6 +581,7 @@ child_names=()
 unset SCRAPER_WARP_STARTUP_ERROR
 unset SCRAPER_WARP_BOOT
 unset SCRAPER_WARP_GUARD
+unset SCRAPER_WARP_GUARD_UNAVAILABLE
 warp_coordinator_pid=""
 network_services_started=false
 runtime_stopping=false
@@ -638,18 +639,19 @@ if feature_enabled "$ENABLE_WARP"; then
                 export SCRAPER_WARP_GUARD="$warp_guard_rules"
                 warp_daemon_command="exec python3 $(printf '%q' "$WARP_GUARD_SCRIPT") daemon $(printf '%q' "$warp_daemon_command")"
             else
-                export SCRAPER_WARP_STARTUP_ERROR=guard
+                # An upgrade must not stop WARP on a host that worked before.
+                # Run as before and let the WARP page say it is unguarded.
+                export SCRAPER_WARP_GUARD_UNAVAILABLE=1
+                log "WARP kill switch is unavailable on this host; WARP runs without it. It needs nftables support and the default SETGID capability. Set WARP_KILL_SWITCH=false to silence this."
             fi
         fi
-        if [ -z "${SCRAPER_WARP_STARTUP_ERROR:-}" ]; then
-            SCRAPER_WARP_BOOT=$(python3 "$WARP_COORDINATOR_SCRIPT" identity)
-            export SCRAPER_WARP_BOOT
-            python3 "$WARP_COORDINATOR_SCRIPT" init
-            supervise_service "WARP" "$warp_daemon_command" &
-            child_pids+=("$!")
-            child_names+=("WARP")
-            start_warp_coordinator
-        fi
+        SCRAPER_WARP_BOOT=$(python3 "$WARP_COORDINATOR_SCRIPT" identity)
+        export SCRAPER_WARP_BOOT
+        python3 "$WARP_COORDINATOR_SCRIPT" init
+        supervise_service "WARP" "$warp_daemon_command" &
+        child_pids+=("$!")
+        child_names+=("WARP")
+        start_warp_coordinator
     else
         warp_prepare_status=$?
         export SCRAPER_WARP_STARTUP_ERROR=setup

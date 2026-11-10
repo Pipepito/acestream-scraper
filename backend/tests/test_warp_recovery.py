@@ -498,7 +498,7 @@ class EntrypointHarness:
             "with (root / (name + '.launches')).open('a') as f: f.write(str(os.getpid()) + '\\n')\n"
             "with (root / 'events').open('a') as f: f.write('launch ' + name + '\\n')\n"
             "if name == 'web': (root / 'boot').write_text(os.environ.get('SCRAPER_WARP_BOOT', ''))\n"
-            "if name == 'web': (root / 'web.env').write_text(os.environ.get('SCRAPER_WARP_STARTUP_ERROR', '') + '|' + os.environ.get('SCRAPER_WARP_GUARD', ''))\n"
+            "if name == 'web': (root / 'web.env').write_text('|'.join(os.environ.get(key, '') for key in ('SCRAPER_WARP_STARTUP_ERROR', 'SCRAPER_WARP_GUARD', 'SCRAPER_WARP_GUARD_UNAVAILABLE')))\n"
             # Like warp-svc: SIGTERM is a clean exit.
             "signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
             'while True: time.sleep(0.1)\n')
@@ -606,7 +606,7 @@ def test_entrypoint_blocks_direct_traffic_before_warp_and_until_it_is_configured
         # Armed before the daemon exists; the daemon runs in the exempt group.
         assert events.index('arm warp-guard.nft') < events.index('daemon-group') < events.index('launch warp')
         assert 'standby' not in events
-        assert (tmp_path / 'web.env').read_text() == '|' + str(tmp_path / 'run/warp-guard.nft')
+        assert (tmp_path / 'web.env').read_text() == '|' + str(tmp_path / 'run/warp-guard.nft') + '|'
         run.ready()
         run.until(lambda: 'standby' in run.events())
         events = run.events()
@@ -649,20 +649,26 @@ def test_entrypoint_blocks_during_shutdown_and_leaves_no_rules_behind(tmp_path):
         assert run.process.returncode == 0
 
 
-def test_entrypoint_keeps_network_services_paused_when_the_guard_cannot_start(tmp_path):
-    with EntrypointHarness(tmp_path, group_available=False) as run:
-        run.until(lambda: (tmp_path / 'web.env').exists())
-        assert (tmp_path / 'web.env').read_text() == 'guard|'
-        time.sleep(1.5)
-        assert not run.launches('warp')
-        assert not run.launches('engine')
-        assert 'arm warp-guard.nft' not in run.events()
+def test_entrypoint_continues_without_the_guard_on_a_host_that_cannot_support_it(tmp_path):
+    """An upgrade must not stop WARP on a host without nftables or SETGID."""
+    with EntrypointHarness(tmp_path, group_available=False, environment=ESTABLISHED) as run:
+        run.ready()
+        # No startup error; the app is told so it can say WARP runs unguarded.
+        assert (tmp_path / 'web.env').read_text() == '||1'
+        assert 'WARP kill switch is unavailable on this host' in run.console()
+        # The previous launch and supervision are kept, including the relaunch.
+        assert 'daemon-group' not in run.events()
+        os.kill(int(run.launches('warp')[0]), signal.SIGTERM)
+        run.until(lambda: len(run.launches('warp')) == 2)
+        run.stop()
+        assert not [event for event in run.events() if not event.startswith('launch ')]
 
 
 def test_entrypoint_without_the_guard_keeps_the_previous_daemon_launch(tmp_path):
     with EntrypointHarness(tmp_path, environment={**ESTABLISHED, 'WARP_KILL_SWITCH': 'false'}) as run:
         run.ready()
-        assert (tmp_path / 'web.env').read_text() == '|'
+        # Turned off on purpose: nothing to warn about.
+        assert (tmp_path / 'web.env').read_text() == '||'
         os.kill(int(run.launches('warp')[0]), signal.SIGTERM)
         # The clean-exit relaunch does not depend on the guard.
         run.until(lambda: len(run.launches('warp')) == 2)

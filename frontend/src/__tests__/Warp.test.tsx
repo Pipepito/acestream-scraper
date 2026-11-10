@@ -142,6 +142,14 @@ describe('WARP page', () => {
     expect(screen.queryByText(/WARP is not running in this container/)).not.toBeInTheDocument();
   });
 
+  it('says when the kill switch could not be set up on this host', () => {
+    (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({ data: { ...connectedStatus, kill_switch: { enabled: false, blocking: false, unavailable: true } }, isLoading: false, error: undefined });
+    renderPage();
+
+    expect(screen.getByText('The kill switch could not be set up on this host, so WARP runs without it. If WARP stops, traffic uses your normal connection. It needs nftables support on the host and Docker’s default SETGID capability.')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'WARP status' })).not.toHaveTextContent('Kill switch on');
+  });
+
   it('never claims a block the server could not confirm', () => {
     (warpHooks.useWarpStatus as jest.Mock).mockReturnValue({
       data: { running: false, connected: false, mode: null, account_type: '', ip: null, cf_trace: {}, kill_switch: { enabled: true, blocking: false, unprotected: true } },

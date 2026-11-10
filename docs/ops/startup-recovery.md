@@ -94,9 +94,12 @@ Limits, by design: **Disconnect** and non-tunnel modes chosen on the WARP page
 are the operator's decision and use the normal connection; an external graceful
 stop of `warp-svc` is blocked a few milliseconds after it exits, not before;
 and the kill switch does not apply to manual-connect or DNS-only startup.
-If the table cannot be installed (no nftables support in the host kernel, or no
-`SETGID` capability), startup stops with network services paused and names
-`WARP_KILL_SWITCH=false` as the way to run without it.
+If the table cannot be installed at startup (no nftables support in the host
+kernel, or no `SETGID` capability), WARP starts exactly as it did before the
+kill switch existed. The entrypoint logs one line, and the WARP page says that
+WARP runs without the kill switch. An upgrade never stops a host that worked;
+`WARP_KILL_SWITCH=false` silences the notice. Once installed, a later nftables
+failure still fails closed.
 
 The startup API includes a freshly generated UTC `server_time` and a nullable
 `startup_dependency` (`warp` while blocked). The browser compares server time with

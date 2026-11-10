@@ -143,6 +143,12 @@ const WarpPage: React.FC = () => {
         </Alert>
       ) : null}
 
+      {killSwitch?.unavailable ? (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          The kill switch could not be set up on this host, so WARP runs without it. If WARP stops, traffic uses your normal connection. It needs nftables support on the host and Docker’s default SETGID capability.
+        </Alert>
+      ) : null}
+
       {killSwitch?.enabled && killSwitch.unprotected ? (
         <Alert severity="error" sx={{ mb: 2 }}>
           WARP is not running and direct traffic is not blocked. Restart the container to restore protection.

@@ -856,7 +856,9 @@ the coordinator stands the guard down, for a configured current daemon generatio
 The WARP supervisor relaunches after exit 0 as well (issue #329). Reconnect is a
 request the coordinator carries out behind the block; the app must not disconnect
 for it or hold the block on a timer. Report blocking from nftables, not from
-startup state. Explicit Disconnect remains the operator's choice. Change the rules only with the
+startup state. A host that cannot install the guard at startup runs WARP without
+it and says so on the WARP page; never turn that into a startup failure. Explicit
+Disconnect remains the operator's choice. Change the rules only with the
 real-kernel check in `backend/tests/docker/test_warp_guard_kernel.py`.
 
 WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and

@@ -45,6 +45,8 @@ export interface WarpKillSwitch {
   blocking: boolean | null;
   /** WARP is not in charge and nothing blocks direct traffic. */
   unprotected?: boolean;
+  /** Wanted, but this host could not install it. */
+  unavailable?: boolean;
 }
 
 export interface WarpStatus {

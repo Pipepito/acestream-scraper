@@ -14,14 +14,6 @@ WARP_DOCKER_GUIDANCE = (
     "--security-opt label=disable. Network services are paused to prevent a "
     "direct-connection fallback."
 )
-WARP_GUARD_GUIDANCE = (
-    "The WARP kill switch could not be set up, so network services are paused "
-    "to prevent a direct-connection fallback. It needs nftables support in the "
-    "host kernel and Docker's default SETGID capability. Download diagnostics "
-    "and check the entrypoint log, then correct the deployment and restart the "
-    "container. To run WARP without the kill switch, set WARP_KILL_SWITCH=false "
-    "and restart."
-)
 WARP_SETUP_GUIDANCE = (
     "WARP setup did not complete. Network services are paused to prevent a "
     "direct-connection fallback. Download diagnostics, check the WARP logs, "

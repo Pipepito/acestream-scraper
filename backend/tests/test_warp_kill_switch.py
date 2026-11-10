@@ -9,7 +9,7 @@ import warp_guard
 from app.services import warp_service as module
 from app.services.startup_service import StartupService
 from app.services.warp_service import WarpService, kill_switch_state
-from warp_prerequisites import WARP_DOCKER_GUIDANCE, WARP_GUARD_GUIDANCE, WarpStartupError
+from warp_prerequisites import WARP_DOCKER_GUIDANCE, WARP_SETUP_GUIDANCE, WarpStartupError
 from warp_startup import Store, process_identity
 
 
@@ -204,14 +204,20 @@ def test_reconnect_endpoint_maps_failures_like_connect(client, monkeypatch):
     assert response.json()['success'] is True
 
 
-def test_guard_startup_failure_explains_the_way_out(monkeypatch):
-    monkeypatch.setenv('SCRAPER_WARP_STARTUP_ERROR', 'guard')
+def test_kill_switch_that_could_not_be_installed_is_reported_not_hidden(monkeypatch):
+    monkeypatch.delenv('SCRAPER_WARP_GUARD', raising=False)
+    monkeypatch.setenv('SCRAPER_WARP_GUARD_UNAVAILABLE', '1')
+    assert kill_switch_state() == {'enabled': False, 'blocking': False, 'unavailable': True}
+
+
+def test_an_unavailable_kill_switch_never_stops_startup(monkeypatch):
+    """The entrypoint no longer raises a startup error for it; nothing maps one."""
+    monkeypatch.setenv('SCRAPER_WARP_STARTUP_ERROR', 'setup')
     service = StartupService()
     service.fail(WarpStartupError())
-    assert service.guidance == WARP_GUARD_GUIDANCE
-    assert service.startup_dependency == 'warp'
-    assert 'WARP_KILL_SWITCH=false' in WARP_GUARD_GUIDANCE
-    assert 'paused' in WARP_GUARD_GUIDANCE
+    assert service.guidance == WARP_SETUP_GUIDANCE
+    import warp_prerequisites
+    assert not hasattr(warp_prerequisites, 'WARP_GUARD_GUIDANCE')
 
 
 def test_container_guidance_names_the_selinux_case():

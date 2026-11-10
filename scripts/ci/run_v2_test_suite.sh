@@ -122,7 +122,7 @@ else
   # Optional process-level parallelism: set CI_PYTEST_WORKERS (for example 4)
   # with pytest-xdist installed in backend/venv. Without both, the run is serial.
   worker_args=()
-  if [[ "${CI_PYTEST_WORKERS:-}" =~ ^[1-9][0-9]?$ ]] &&
+  if [[ "${CI_PYTEST_WORKERS:-}" =~ ^([2-9]|[1-9][0-9])$ ]] &&
       backend/venv/bin/python -c 'import xdist' >/dev/null 2>&1; then
     worker_args=(-n "$CI_PYTEST_WORKERS")
   fi

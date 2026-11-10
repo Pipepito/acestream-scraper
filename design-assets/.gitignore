@@ -1,0 +1,15 @@
+# Rebuild archives outside Git; their canonical contents are already versioned.
+*.zip
+**/work/
+**/__pycache__/
+*.pyc
+*.pid
+*.log
+.venv/
+# Rejected unretouched promo source and editing-only frame dumps stay local.
+sportzz/brand-promo-10s/source/video/sportzz-generated-source-preview.mp4
+sportzz/brand-promo-10s/previews/calibration-*
+sportzz/brand-promo-10s/previews/source-frame-*
+sportzz/brand-promo-10s/previews/shoe-source-grid.jpg
+sportzz/brand-promo-10s/previews/sportzz-source-review.jpg
+sportzz/brand-promo-10s/previews/sportzz-retouched-shoe-*

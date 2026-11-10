@@ -1,0 +1,10 @@
+{
+  "method": "Manually reviewed screen-corner anchors, interpolated across the gentle generated camera push; source order TL, TR, BR, BL.",
+  "canvas": [1280, 720],
+  "start": 4.0,
+  "end": 6.95,
+  "anchors": [
+    {"time": 4.0, "quad": [[359,148],[920,148],[926,464],[355,464]]},
+    {"time": 6.9583333333, "quad": [[334,129],[947,129],[952,475],[329,475]]}
+  ]
+}

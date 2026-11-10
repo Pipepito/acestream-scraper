@@ -1,0 +1,109 @@
+{
+  "duration_target_seconds": 10,
+  "fps_target": 24,
+  "frames_target": 240,
+  "resolution": [
+    1280,
+    720
+  ],
+  "color": "SDR Rec.709, not an HDR delivery",
+  "voice_model": "ElevenLabs v3 via Magnific",
+  "voice_catalog": "Emilio Salcedo, Peninsular Spanish",
+  "voice_timeline_offset_seconds": 0.6,
+  "voice_source_duration_seconds": 7.6,
+  "soundtrack": "Native generated audio plus original locally synthesized dry percussion and electronic pulse; ducked beneath voice",
+  "outputs": {
+    "sportzz-brand-promo-10s-clean.mp4": {
+      "duration_seconds": 10.0,
+      "frames": 240,
+      "fps": "24/1",
+      "resolution": [
+        1280,
+        720
+      ],
+      "codec": "h264",
+      "has_audio": false,
+      "bytes": 1824690
+    },
+    "sportzz-brand-promo-10s-master.mp4": {
+      "duration_seconds": 10.0,
+      "frames": 240,
+      "fps": "24/1",
+      "resolution": [
+        1280,
+        720
+      ],
+      "codec": "h264",
+      "has_audio": true,
+      "bytes": 3449042
+    },
+    "sportzz-brand-promo-10s-silent.mp4": {
+      "duration_seconds": 10.0,
+      "frames": 240,
+      "fps": "24/1",
+      "resolution": [
+        1280,
+        720
+      ],
+      "codec": "h264",
+      "has_audio": false,
+      "bytes": 1701193
+    },
+    "sportzz-brand-promo-10s-web.mp4": {
+      "duration_seconds": 10.0,
+      "frames": 240,
+      "fps": "24/1",
+      "resolution": [
+        1280,
+        720
+      ],
+      "codec": "h264",
+      "has_audio": true,
+      "bytes": 1595004
+    },
+    "sportzz-brand-promo-10s-web.webm": {
+      "duration_seconds": 10.0,
+      "frames": 240,
+      "fps": "24/1",
+      "resolution": [
+        1280,
+        720
+      ],
+      "codec": "vp9",
+      "has_audio": false,
+      "bytes": 1311325
+    }
+  },
+  "audio_loudness_summary": "Integrated loudness:\n    I:         -16.4 LUFS\n    Threshold: -27.9 LUFS\n\n  Loudness range:\n    LRA:         6.2 LU\n    Threshold: -37.7 LUFS\n    LRA low:   -21.9 LUFS\n    LRA high:  -15.7 LUFS\n\n  True peak:\n    Peak:       -2.6 dBFS",
+  "browser_review": {
+    "engine": "isolated VM Chromium",
+    "duration": 10,
+    "resolution": [
+      1280,
+      720
+    ],
+    "playback_pass": true,
+    "seek_states": [
+      "sports",
+      "experience",
+      "brand"
+    ],
+    "console_errors": [],
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "horizontal_overflow": false,
+    "browser_closed": true,
+    "download_server": "Existing user-requested temporary transfer server reused, port 8767, PID 353545; remains open for the active download/review."
+  },
+  "editorial_review": {
+    "note": "Internal review of sampled frames; synthetic scenes and local shoe texture smoothing remain subject to owner creative approval. Not an anatomical or rights certification.",
+    "commercial_clearance": "pending",
+    "conceptual_ui_replacement": "pending"
+  }
+}

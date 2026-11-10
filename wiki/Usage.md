@@ -19,7 +19,7 @@ Choose **Wiki** in the top bar for these guides and troubleshooting help. It sta
 ## Named sources and built-in broadcasters
 
 In **Scraper → Add URL**, choose **Built-in provider** for Atresmedia, Mediaset,
-Telemadrid or 7 Rioja. The form fills the supported URL and marks it **Built-in
+Telemadrid, 7 Rioja or À Punt. The form fills the supported URL and marks it **Built-in
 broadcaster**. These adapters import broadcaster channels directly; custom HTTP,
 ZeroNet and IPFS sources retain their extraction workflow. Saving the definition
 never starts an import: use the source's Scrape action when ready.

@@ -8,7 +8,8 @@ export const releases: ReleaseNotes[] = [
       {
         "title": "Added",
         "items": [
-          "Import Spain's sports TV agenda from MARCA, including dated fixtures, sports, competitions and broadcaster names. Imports use Europe/Madrid and include only dates already published by the provider. Same-day time and broadcaster changes update existing events; changed dates or titles create separate occurrences."
+          "Import Spain's sports TV agenda from MARCA, including dated fixtures, sports, competitions and broadcaster names. Imports use Europe/Madrid and include only dates already published by the provider. Same-day time and broadcaster changes update existing events; changed dates or titles create separate occurrences.",
+          "Add À Punt, the Valencian public channel, as a built-in broadcaster: choose À Punt under Built-in provider when adding a scraper source. The channel keeps working when the broadcaster replaces its live stream, without scraping again."
         ]
       },
       {

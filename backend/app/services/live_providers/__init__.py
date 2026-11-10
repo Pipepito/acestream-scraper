@@ -2,9 +2,10 @@
 
 Adding a broadcaster's website as a scraper source (https://www.atresplayer.com,
 https://www.mediasetinfinity.es, https://www.7riojaplay.tv,
-https://www.telemadrid.es) imports its channels like any M3U list: the
-source is recognised by its host and its channels are written out as M3U,
-each stream stored as `<scheme>://<id>` with the headers playback needs.
+https://www.telemadrid.es, https://www.apuntmedia.es) imports its channels
+like any M3U list: the source is recognised by its host and its channels are
+written out as M3U, each stream stored as `<scheme>://<id>` with the headers
+playback needs.
 
 Their links carry signed tokens that expire -- Mediaset's master playlist
 after about ten minutes, Atresmedia's after eight hours -- so they are never
@@ -15,15 +16,16 @@ from typing import Optional
 from types import ModuleType
 from urllib.parse import urlparse
 
-from app.services.live_providers import atresplayer, base, mediaset, sietetv, telemadrid
+from app.services.live_providers import apunt, atresplayer, base, mediaset, sietetv, telemadrid
 
-PROVIDERS = (atresplayer, mediaset, sietetv, telemadrid)
+PROVIDERS = (atresplayer, mediaset, sietetv, telemadrid, apunt)
 # One advertised source per installed adapter; no network requests during listing.
 BUILTIN_SOURCES = (
     {'id': 'atresplayer', 'name': 'Atresmedia', 'url': 'https://www.atresplayer.com'},
     {'id': 'mediaset', 'name': 'Mediaset', 'url': 'https://www.mediasetinfinity.es'},
     {'id': '7riojaplay', 'name': '7 Rioja', 'url': 'https://www.7riojaplay.tv'},
     {'id': 'telemadrid', 'name': 'Telemadrid', 'url': 'https://www.telemadrid.es'},
+    {'id': 'apunt', 'name': 'À Punt', 'url': 'https://www.apuntmedia.es'},
 )
 LIVE_PATH = '/live/'
 

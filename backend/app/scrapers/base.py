@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 
 from app.models.url_types import BaseURL
-from app.services.m3u_service import M3UService
+from app.services.m3u_service import M3UService, has_m3u_extension, is_channel_playlist
 from app.config.database import get_db
 from app.utils.url_guard import BlockedURLError
 from sqlalchemy.orm import Session
@@ -362,12 +362,11 @@ class BaseScraper(ABC):
         channels = []
         status = "OK"
         retries_left = self.retries
-        is_m3u_file = url_to_scrape.lower().endswith((".m3u", ".m3u8"))
         # A broadcaster's website (atresplayer.com, telemadrid.es...) is read
         # through its API and imported as the M3U list it amounts to.
         from app.services import live_providers
         live_provider = live_providers.for_source_url(url_to_scrape)
-        is_m3u_file = is_m3u_file or live_provider is not None
+        is_m3u_url = has_m3u_extension(url_to_scrape) or live_provider is not None
         while retries_left >= 0:
             try:
                 if live_provider is not None:
@@ -378,7 +377,9 @@ class BaseScraper(ABC):
                 if named_channels:
                     channels.extend(named_channels)
                     break
-                if is_m3u_file:
+                # A playlist served from an address without the extension is
+                # recognised by what was downloaded (#332).
+                if is_m3u_url or is_channel_playlist(content):
                     logger.info(f"Processing direct M3U file: {url_to_scrape}")
                     direct_channels = self.m3u_service.extract_channels_from_content(
                         content,

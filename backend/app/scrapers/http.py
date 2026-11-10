@@ -11,6 +11,7 @@ from urllib.parse import urljoin
 
 from app.models.url_types import RegularURL
 from app.scrapers.base import BaseScraper
+from app.services.m3u_service import has_m3u_extension
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
 MAX_REDIRECTS = 5
@@ -33,7 +34,7 @@ class HTTPScraper(BaseScraper):
         validate_outbound_url(url)
 
         # Check if URL is directly pointing to an M3U file
-        is_m3u_file = url.lower().endswith(('.m3u', '.m3u8'))
+        is_m3u_file = has_m3u_extension(url)
         if is_m3u_file:
             logger.info(f"Detected direct M3U file URL: {url}")
         else:

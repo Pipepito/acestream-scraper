@@ -2,9 +2,53 @@
 Sources: an M3U channel list is recognised by what was downloaded, not only
 by a URL ending in .m3u / .m3u8 (issue #332).
 """
+import asyncio
+
 import pytest
 
+from app.models.url_types import RegularURL
+from app.scrapers.http import HTTPScraper
 from app.services.m3u_service import has_m3u_extension, is_channel_playlist
+
+ID_A = "a" * 40
+ID_B = "b" * 40
+
+PLAYLIST = (
+    '#EXTM3U\n'
+    f'#EXTINF:-1 group-title="Sports",Sports One\nacestream://{ID_A}\n'
+    f'#EXTINF:-1,News Two\nacestream://{ID_B}\n'
+    '#EXTINF:-1,Web Three\nhttp://example.com/web/index.m3u8\n'
+)
+HLS_MASTER = (
+    '#EXTM3U\n#EXT-X-VERSION:3\n'
+    '#EXT-X-STREAM-INF:BANDWIDTH=800000\n'
+    'https://cdn.example.com/live/low/index.m3u8\n'
+)
+
+
+def _scrape(url, content, make_scraper=None):
+    """Scrape `url` with the network stubbed: the source answers `content`
+    and anything the scraper follows from it answers 404."""
+    fetched = []
+
+    async def fake_fetch(fetch_url):
+        fetched.append(fetch_url)
+        if len(fetched) > 1:
+            raise RuntimeError("404 Not Found")
+        return content
+
+    async def noop_update(url, status, error=None):
+        return None
+
+    async def run():
+        # Some scrapers need a running event loop to be built.
+        scraper = make_scraper() if make_scraper else HTTPScraper(RegularURL(url))
+        scraper.fetch_content = fake_fetch
+        scraper.update_url_status = noop_update
+        return await scraper.scrape()
+
+    channels, status = asyncio.run(run())
+    return {channel[0] for channel in channels}, status, fetched
 
 
 @pytest.mark.parametrize("url, expected", [
@@ -41,3 +85,50 @@ def test_has_m3u_extension(url, expected):
 ])
 def test_is_channel_playlist(content, expected):
     assert is_channel_playlist(content) is expected
+
+
+@pytest.mark.parametrize("url", [
+    "http://example.com/lists/sports",
+    "http://example.com/lists/sports.m3u?raw=true",
+    "http://example.com/get?format=m3u",
+    "http://example.com/lists/sports.m3u",
+])
+def test_playlist_is_read_whatever_the_url_ends_with(url):
+    ids, status, fetched = _scrape(url, PLAYLIST)
+
+    assert status == "OK"
+    # Both acestream entries, plus the http entry as a url: stream.
+    assert len(ids) == 3 and {ID_A, ID_B} <= ids
+    # Read as a list, not as a page: the .m3u8 entry inside is not fetched.
+    assert fetched == [url]
+
+
+def test_playlist_with_byte_order_mark_is_detected():
+    ids, _status, fetched = _scrape("http://example.com/lists/sports", "\ufeff" + PLAYLIST)
+
+    assert {ID_A, ID_B} <= ids
+    assert len(fetched) == 1
+
+
+def test_html_page_is_still_parsed_as_html():
+    page = f'<html><body><a href="acestream://{ID_A}">Sports One</a></body></html>'
+    ids, status, _fetched = _scrape("http://example.com/lists/sports", page)
+
+    assert status == "OK"
+    assert ids == {ID_A}
+
+
+def test_hls_stream_manifest_without_extension_imports_no_channels():
+    # A stream address, not a list: its variants must not become channels.
+    ids, status, _fetched = _scrape("http://example.com/live/master?token=x", HLS_MASTER)
+
+    assert status == "OK"
+    assert ids == set()
+
+
+def test_m3u_extension_keeps_playlist_parsing_without_header():
+    body = f"#EXTINF:-1,Sports One\nacestream://{ID_A}\n"
+    ids, _status, fetched = _scrape("http://example.com/lists/sports.m3u", body)
+
+    assert ids == {ID_A}
+    assert len(fetched) == 1

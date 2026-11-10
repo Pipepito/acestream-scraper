@@ -29,6 +29,7 @@ Some Spanish free-to-air broadcasters publish no playlist, but their websites pl
 | `https://www.mediasetinfinity.es` | Mediaset (Telecinco, Cuatro, FDF, Divinity, Energy, Be Mad, Boing) |
 | `https://www.telemadrid.es` | Telemadrid, La Otra |
 | `https://www.7riojaplay.tv` | 7 TV La Rioja |
+| `https://www.apuntmedia.es` | À Punt |
 
 None of them needs an account. Their links carry tokens that expire, so they are never stored: the playlist points at `/live/<stream id>`, which asks the broadcaster for a fresh link when the player opens the channel and redirects to it.
 

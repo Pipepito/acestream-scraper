@@ -11419,6 +11419,23 @@
             "title": "Recovery Token",
             "type": "string"
           },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "startup_dependency": {
+            "anyOf": [
+              {
+                "const": "warp",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startup Dependency"
+          },
           "status": {
             "enum": [
               "starting",

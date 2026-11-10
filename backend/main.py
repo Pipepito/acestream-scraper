@@ -186,6 +186,7 @@ async def lifespan(app: FastAPI):
     reaper = None
     data_lock = None
     services_started = False
+    stopping = asyncio.Event()
 
     from app.services.telegram.manager import manager as telegram_manager
     from app.services.recording_coordinator import recording_coordinator
@@ -211,7 +212,7 @@ async def lifespan(app: FastAPI):
                 task_service.shutdown()
                 services_started = False
 
-    async def boot(action='retry'):
+    async def boot(action='retry', retry_warp=False):
         nonlocal reaper, data_lock, services_started
         database_phase = True
         from app.repositories.access_repository import AccessRepository
@@ -226,9 +227,13 @@ async def lifespan(app: FastAPI):
         # Entrypoint keeps the HTTP process alive after WARP setup failures.
         # Preserve access-store initialization above, but do not migrate the
         # catalogue, start jobs, or permit media/source APIs on the direct route.
-        if os.environ.get('SCRAPER_WARP_STARTUP_ERROR'):
-            from warp_prerequisites import WarpStartupError
-            startup_service.fail(WarpStartupError(), database=False)
+        from app.services.warp_startup_service import wait_for_warp
+        from warp_prerequisites import WarpStartupError
+        try:
+            if not await wait_for_warp(startup_service, stopping, retry=retry_warp):
+                return
+        except WarpStartupError as exc:
+            startup_service.fail(exc, database=False)
             return
         try:
             if data_lock is None:
@@ -296,13 +301,15 @@ async def lifespan(app: FastAPI):
             startup_service.fail(exc, database=database_phase and data_lock is not None)
 
     def retry_startup(action):
-        app.state.startup_task = asyncio.create_task(boot(action))
+        retry_warp = startup_service.startup_dependency == 'warp'
+        app.state.startup_task = asyncio.create_task(boot(action, retry_warp=retry_warp))
 
     app.state.retry_startup = retry_startup
     retry_startup('retry')
     try:
         yield
     finally:
+        stopping.set()
         # Do not cancel a to_thread database operation and release its lock
         # while it is still writing. Finish the current operation first.
         await app.state.startup_task

@@ -73,6 +73,48 @@ Open the normal app address or `/startup`. The screen remains available during d
 
 Recovery retains originals, sidecar files and checkpoints in a private backup folder. Do not share databases as diagnostic attachments or mix files from different backups. For rollback/recovery details use the [operator recovery guide](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/startup-recovery.md) and [upgrade guide](Installation.md#updating-to-a-newer-image).
 
+## WARP startup and system clock
+
+An incorrect date can prevent WARP from establishing a TLS connection. Devices
+without a battery-backed real-time clock may need a network time update after
+every boot. The container uses the Docker host kernel's clock; changing the
+display timezone does not correct an incorrect instant. On Docker Desktop that
+kernel runs in Docker's Linux VM.
+
+Open the startup screen. WARP configuration retries automatically for ten minutes
+while network services remain paused. After that, fix the clock or connection and
+choose **Try startup again**. The daemon remains running; a transient failure no
+longer requires a container restart. Missing container permissions or binaries
+still require correcting the deployment. Docker health remains unhealthy while
+startup is blocked; Docker alone does not restart unhealthy containers. Give
+external restart/autoheal policies enough time for synchronization and recovery.
+
+If the server and browser clocks differ by more than five minutes, the screen
+shows both UTC times and a warning. Check both devices: the browser is not a
+trusted reference clock. The warning never bypasses TLS checks or connects
+outside the selected WARP mode.
+
+On a Linux host, inspect UTC time with `date -u`. For a host using
+`systemd-timesyncd`, inspect `timedatectl status` and
+`timedatectl timesync-status`. Ensure the host's time synchronization service is
+enabled, can reach its configured time servers, and does not depend on the WARP
+container already being connected. For chrony or a NAS, use that platform's time
+service and administration interface rather than enabling a competing daemon.
+
+On hosts already using `systemd-timesyncd`, an optional systemd service that
+launches this container can order itself after `time-sync.target`, with
+`systemd-time-wait-sync.service` enabled. Both the synchronization service and
+the wait service must actually be configured: `After=time-sync.target` alone
+does not prove the clock is synchronized. Apply this to the container's launch
+service, not indiscriminately to all Docker workloads. Docker restart policies
+can start containers independently of a Compose launch service, so verify the
+actual boot path. Waiting for time may delay launch indefinitely while offline;
+the application's bounded recovery remains useful without this arrangement.
+See [systemd's synchronization documentation](https://www.freedesktop.org/software/systemd/man/254/systemd-timesyncd.html).
+
+The scraper does not set the system clock, require `SYS_TIME`, install a host
+time service or fake process clocks. Host synchronization is the durable fix.
+
 ## Collect evidence for a bug report
 
 Choose **Overview → Services → Download diagnostics**. The ZIP includes bounded recent scraper, entrypoint and per-service logs, including a dedicated checker when enabled. Capture starts with the updated container; it cannot recover old output or external-engine logs. Logs survive container replacement only if you persist the log directory.

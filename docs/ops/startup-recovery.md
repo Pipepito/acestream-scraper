@@ -17,6 +17,40 @@ remains usable. A restart resumes retryable imports from their saved checkpoint.
 
 ## If startup stops
 
+### WARP startup recovery
+
+When WARP is enabled, the entrypoint keeps its daemon supervised and serves the
+web startup screen while configuration runs. Configuration retries for up to ten
+minutes, including attempts and delays of 5, 10, 20, then at most 30 seconds.
+The deadline uses monotonic time, so NTP clock corrections cannot extend it or
+expire it early. `WARP_READY_ATTEMPTS` (30) and `WARP_READY_INTERVAL` (1 second)
+still control each readiness wait, capped by the remaining recovery window.
+
+Network sidecars, catalogue initialization and application jobs remain blocked
+until configuration and saved exclusions succeed. Auto-connect also requires a
+final JSON `Connected` status. A successful `connect` command alone is not enough.
+Manual-connect and DNS-only mode retain their existing semantics. After ten
+minutes, diagnostics remain available and **Try startup again** starts a fresh
+window without replacing the container or web process. Missing binaries, TUN or
+capabilities require fixing the deployment; a retry cannot grant permissions.
+
+The private coordinator state and retry mailbox live under `SUPERVISOR_RUN_DIR`,
+are scoped to one container boot and WARP daemon generation, and never enter
+catalogue exports or database recovery. The entrypoint releases sidecars once;
+database retries do not start them again. Shutdown terminates configuration
+children before stopping supervised daemons. Existing post-start WARP relaunch
+failure behavior is retained; this is not a continuous traffic kill switch.
+
+The startup API includes a freshly generated UTC `server_time` and a nullable
+`startup_dependency` (`warp` while blocked). The browser compares server time with
+its request midpoint and warns about differences greater than five minutes.
+Slow requests (over five seconds), ambiguous timestamps and browser clock jumps
+are excluded. The browser may itself be wrong: this is an advisory hint, never
+a replacement for TLS or WARP readiness. See the
+[host clock guide](../../wiki/Troubleshooting.md#warp-startup-and-system-clock).
+
+### Application and database failures
+
 The screen stays available and explains the next action. Free disk space or fix
 data-folder permissions if needed, then choose **Try startup again**. Startup
 never falls back to an empty database automatically.

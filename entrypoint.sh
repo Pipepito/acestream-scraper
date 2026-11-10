@@ -260,6 +260,9 @@ supervise_service() {
         launches=$((launches + 1))
         printf '%s\n' "$inner_pid" > "$SUPERVISOR_RUN_DIR/$slug.pid"
         printf '%s\n' "$started_at" > "$SUPERVISOR_RUN_DIR/$slug.started"
+        if [ "$slug" = warp ] && [ -n "${SCRAPER_WARP_BOOT:-}" ]; then
+            python3 "$WARP_COORDINATOR_SCRIPT" daemon "$inner_pid"
+        fi
         # Some daemons need their runtime state restored after the process is
         # relaunched. WARP, for example, starts disconnected even when the
         # container was configured to auto-connect. The initial launch is
@@ -565,6 +568,30 @@ configure_ipfs_repo() {
 child_pids=()
 child_names=()
 unset SCRAPER_WARP_STARTUP_ERROR
+unset SCRAPER_WARP_BOOT
+warp_coordinator_pid=""
+network_services_started=false
+app_pid=""
+WARP_COORDINATOR_SCRIPT="$(dirname "$CAPTURE_SCRIPT")/warp_startup.py"
+if [ ! -f "$WARP_COORDINATOR_SCRIPT" ]; then WARP_COORDINATOR_SCRIPT=/app/warp_startup.py; fi
+WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
+# Resolve this before the web process inherits the applied environment.
+ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")
+export ACESTREAM_BIND_ALL
+
+start_warp_coordinator() {
+    python3 "$WARP_COORDINATOR_SCRIPT" run "$WARP_SETUP_SCRIPT" &
+    warp_coordinator_pid=$!
+}
+
+shutdown_runtime() {
+    shutdown_children "${warp_coordinator_pid:-}"
+    if [ -n "${SCRAPER_WARP_BOOT:-}" ]; then
+        python3 "$WARP_COORDINATOR_SCRIPT" cleanup || true
+    fi
+    shutdown_children "${app_pid:-}" "${child_pids[@]:-}"
+}
+trap 'shutdown_runtime' INT TERM EXIT
 
 if feature_enabled "$ENABLE_WARP"; then
     # warp-svc runs under the supervisor (restartable from the app, relaunched
@@ -573,16 +600,13 @@ if feature_enabled "$ENABLE_WARP"; then
     if bash "$(dirname "$0")/warp-setup.sh" prepare; then
         # warp-svc inherits this from its supervisor.
         export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
-        WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
-        supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos}" "bash \"$WARP_SETUP_SCRIPT\" configure" &
+        SCRAPER_WARP_BOOT=$(python3 "$WARP_COORDINATOR_SCRIPT" identity)
+        export SCRAPER_WARP_BOOT
+        python3 "$WARP_COORDINATOR_SCRIPT" init
+        supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos}" &
         child_pids+=("$!")
         child_names+=("WARP")
-        if ! bash "$WARP_SETUP_SCRIPT" configure; then
-            export SCRAPER_WARP_STARTUP_ERROR=setup
-            shutdown_children "${child_pids[@]}"
-            child_pids=()
-            child_names=()
-        fi
+        start_warp_coordinator
     else
         warp_prepare_status=$?
         export SCRAPER_WARP_STARTUP_ERROR=setup
@@ -592,10 +616,8 @@ if feature_enabled "$ENABLE_WARP"; then
     fi
 fi
 
-if [ -n "${SCRAPER_WARP_STARTUP_ERROR:-}" ]; then
-    log "WARP setup failed; keeping the web UI and diagnostics available. Network services are blocked until the container configuration is fixed and restarted."
-else
-# Do not start any network sidecar after a requested WARP setup failed.
+start_network_services() {
+# Called once, only after the WARP configuration barrier is satisfied.
 if feature_enabled "$ENABLE_ZERONET"; then
     mkdir -p "$ZERONET_DATA_DIR"
     if feature_enabled "$ENABLE_TOR"; then
@@ -649,8 +671,6 @@ fi
 # Docker Desktop host path are accepted through a published 6878. The API is
 # unauthenticated either way: publish 6878 only on trusted networks.
 # ACESTREAM_BIND_ALL=false restores the engine's own address filter.
-ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")
-export ACESTREAM_BIND_ALL
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
     if feature_enabled "$ACESTREAM_BIND_ALL"; then
         case " $ACESTREAM_START_COMMAND " in *" --bind-all "*) ;; *) ACESTREAM_START_COMMAND="$ACESTREAM_START_COMMAND --bind-all" ;; esac
@@ -673,6 +693,13 @@ if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then
     child_pids+=("$!")
     child_names+=("Acexy")
 fi
+network_services_started=true
+}
+
+if [ -n "${SCRAPER_WARP_STARTUP_ERROR:-}" ]; then
+    log "WARP preparation failed; keeping the web UI and diagnostics available. Fix the container prerequisites and restart."
+elif ! feature_enabled "$ENABLE_WARP"; then
+    start_network_services
 fi
 
 APP_COMMAND=("$@")
@@ -688,6 +715,27 @@ wait_for_supervised_exit() {
         local pid
         prune_finished_children
 
+        if [ -n "${SCRAPER_WARP_BOOT:-}" ]; then
+            if [ -n "$warp_coordinator_pid" ] && ! kill -0 "$warp_coordinator_pid" 2>/dev/null; then
+                wait "$warp_coordinator_pid" || true
+                warp_coordinator_pid=""
+                python3 "$WARP_COORDINATOR_SCRIPT" cleanup || true
+                if [ "$network_services_started" = true ]; then
+                    fail "WARP relaunch configuration failed"
+                fi
+                python3 "$WARP_COORDINATOR_SCRIPT" lost || true
+            fi
+            if [ -z "$warp_coordinator_pid" ] && python3 "$WARP_COORDINATOR_SCRIPT" retry-pending 2>/dev/null; then
+                start_warp_coordinator
+            fi
+            if [ "$network_services_started" = false ] && python3 "$WARP_COORDINATOR_SCRIPT" configured; then
+                start_network_services
+                # Revalidate generation after launching. A lost barrier must
+                # terminate the new children, never release the application.
+                python3 "$WARP_COORDINATOR_SCRIPT" release || fail "WARP changed during network startup"
+            fi
+        fi
+
         if ! kill -0 "$app_pid" 2>/dev/null; then
             wait "$app_pid" 2>/dev/null
             return $?
@@ -696,8 +744,6 @@ wait_for_supervised_exit() {
         sleep 1
     done
 }
-
-trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT
 
 (capture_output scraper; exec "${APP_COMMAND[@]}") &
 app_pid=$!
@@ -708,7 +754,7 @@ else
     app_status=$?
 fi
 
-shutdown_children "$app_pid" "${child_pids[@]:-}"
+shutdown_runtime
 
 trap - INT TERM EXIT
 exit "$app_status"

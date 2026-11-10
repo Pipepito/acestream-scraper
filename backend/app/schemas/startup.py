@@ -1,6 +1,7 @@
 """Database-independent startup contracts."""
 from typing import Literal
-from pydantic import BaseModel
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field
 
 
 class StartupEvent(BaseModel):
@@ -20,6 +21,8 @@ class MigrationProgress(BaseModel):
 
 
 class StartupStatus(BaseModel):
+    server_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    startup_dependency: Literal['warp'] | None = None
     status: Literal['starting', 'ready', 'failed']
     phase: str
     events: list[StartupEvent]

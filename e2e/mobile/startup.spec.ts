@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v1/auth/status', route => route.fulfill({ json: {
+    mode: 'open', user: null, permissions: [], csrf: 'test-csrf', legacy_token: false, account_transport: 'local_http',
+  } }));
+});
+
 for (const mode of ['light', 'dark']) {
   test(`${mode}: startup, diagnostics and confirmed recovery`, async ({ page }) => {
     await page.addInitScript((theme) => localStorage.setItem('app-theme-mode', theme), mode);
@@ -7,9 +13,6 @@ for (const mode of ['light', 'dark']) {
     page.on('pageerror', error => errors.push(error.message));
     let status = 'starting';
     const actions: string[] = [];
-    await page.route('**/api/v1/auth/status', route => route.fulfill({ json: {
-      mode: 'open', user: null, permissions: [], csrf: 'test-csrf', legacy_token: false, account_transport: 'local_http',
-    } }));
     await page.route('**/api/v1/startup**', async route => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/diagnostics')) {
@@ -50,3 +53,35 @@ for (const mode of ['light', 'dark']) {
     await page.screenshot({ path: `/tmp/acestream-startup-${mode}-${test.info().project.name}.png`, fullPage: true });
   });
 }
+
+test('WARP clock warning remains advisory and clears after correction', async ({ page }) => {
+  let skew = 47 * 86400 * 1000;
+  let status = 'failed';
+  let retries = 0;
+  await page.route('**/api/v1/startup', route => route.fulfill({ json: {
+    status, phase: 'Waiting for WARP', startup_dependency: 'warp',
+    server_time: new Date(Date.now() + skew).toISOString(),
+    events: [], recovery_available: false, recovery_token: 'warp-nonce',
+  } }));
+  await page.route('**/api/v1/startup/recover', async route => {
+    expect(route.request().postDataJSON()).toEqual({ action: 'retry', recovery_token: 'warp-nonce', confirm: false });
+    retries += 1;
+    status = 'starting';
+    await route.fulfill({ json: { status, phase: 'Retrying WARP', startup_dependency: 'warp',
+      server_time: new Date(Date.now() + skew).toISOString(), events: [], recovery_available: false,
+      recovery_token: 'new-nonce' } });
+  });
+  await page.goto('/startup');
+  await expect(page.getByText(/The server and browser clocks differ/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Clock troubleshooting' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start fresh', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Try startup again' }).click();
+  await expect.poll(() => retries).toBe(1);
+  await expect(page.getByRole('progressbar', { name: 'Startup in progress' })).toBeVisible();
+  await expect(page.getByText(/The server and browser clocks differ/)).toBeVisible();
+  skew = 0;
+  await expect(page.getByText(/The server and browser clocks differ/)).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  status = 'ready';
+  await expect(page.getByRole('link', { name: 'Open app' })).toBeVisible();
+});

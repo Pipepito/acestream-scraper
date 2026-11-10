@@ -9566,6 +9566,13 @@ export interface components {
             /** Recovery Token */
             recovery_token: string;
             /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time?: string;
+            /** Startup Dependency */
+            startup_dependency?: "warp" | null;
+            /**
              * Status
              * @enum {string}
              */

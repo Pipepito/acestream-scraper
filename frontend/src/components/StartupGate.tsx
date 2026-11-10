@@ -25,6 +25,9 @@ const StartupGate: React.FC<React.PropsWithChildren> = ({ children }) => {
     refetchInterval: (state) => state.state.data?.status === 'ready' && !state.state.data.migration && !dedicated ? 15000 : 2000,
   });
   const data = query.data;
+  const clockWarning = !query.isError && data?.status !== 'ready'
+    && data?.startup_dependency === 'warp' && data.clockSample
+    && Math.abs(data.clockSample.differenceMs) > 5 * 60 * 1000 ? data.clockSample : undefined;
   const authRequired = query.error instanceof ApiError && query.error.status === 401;
   const importPending = data?.migration && !['completed', 'complete', 'done', 'skipped'].includes(data.migration.status);
 
@@ -74,7 +77,7 @@ const StartupGate: React.FC<React.PropsWithChildren> = ({ children }) => {
             : data?.status === 'ready' ? tUi("Startup and migration") : tUi("Getting your app ready")}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
-          {data?.status === 'starting' ? tUi("Your database is being prepared. Large updates can take a while. Keep the app running.")
+          {data?.status === 'starting' ? tUi("Your app is being prepared. Startup can take a while. Keep the app running.")
             : data?.status === 'ready' ? tUi("The app is ready. Programme listings may continue importing in the background.")
               : tUi("Follow startup progress and save a report if you need help.")}
         </Typography>
@@ -95,6 +98,17 @@ const StartupGate: React.FC<React.PropsWithChildren> = ({ children }) => {
           {data?.status === 'starting' || !data ? <LinearProgress aria-label={tUi("Startup in progress")} sx={{ mt: 2,
             '@media (prefers-reduced-motion: reduce)': { '& .MuiLinearProgress-bar': { animation: 'none' } } }} /> : null}
         </Box>
+        {clockWarning ? <Alert severity="warning">
+          <Typography>{tUi('The server and browser clocks differ. Check the host’s date and time synchronization. An incorrect clock can prevent WARP from connecting.')}</Typography>
+          <Typography variant="body2" sx={{ mt: 1, overflowWrap: 'anywhere' }}>
+            {tUi('Server: {{server}} · Browser: {{browser}} · About {{minutes}} minutes apart.', {
+              server: new Date(clockWarning.serverTime).toISOString(), browser: new Date(clockWarning.browserTime).toISOString(),
+              minutes: Math.round(Math.abs(clockWarning.differenceMs) / 60000).toLocaleString(getLocale()),
+            })}
+          </Typography>
+          <Typography variant="body2">{tUi('The browser clock may also be incorrect. This warning does not change connection checks.')}</Typography>
+          <Button href="https://github.com/Pipepito/acestream-scraper/blob/develop/wiki/Troubleshooting.md#warp-startup-and-system-clock" target="_blank" rel="noopener noreferrer" color="inherit">{tUi('Clock troubleshooting')}</Button>
+        </Alert> : null}
         {data?.guidance ? <Alert severity="error">{data.guidance}</Alert> : null}
         {data?.migration ? <Box>
           <Typography component="h2" variant="h6">{tUi("Programme listings")}</Typography>

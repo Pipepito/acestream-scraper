@@ -1,4 +1,9 @@
 {
+  "Your app is being prepared. Startup can take a while. Keep the app running.": "Your app is being prepared. Startup can take a while. Keep the app running.",
+  "The server and browser clocks differ. Check the host’s date and time synchronization. An incorrect clock can prevent WARP from connecting.": "The server and browser clocks differ. Check the host’s date and time synchronization. An incorrect clock can prevent WARP from connecting.",
+  "Server: {{server}} · Browser: {{browser}} · About {{minutes}} minutes apart.": "Server: {{server}} · Browser: {{browser}} · About {{minutes}} minutes apart.",
+  "The browser clock may also be incorrect. This warning does not change connection checks.": "The browser clock may also be incorrect. This warning does not change connection checks.",
+  "Clock troubleshooting": "Clock troubleshooting",
   "MARCA · Spain · daily sports TV agenda": "MARCA · Spain · daily sports TV agenda",
   "Daily sports listings with competitions and TV channels in Spain. Times use Europe/Madrid. Only dates published by MARCA are available; the window advances on every refresh.": "Daily sports listings with competitions and TV channels in Spain. Times use Europe/Madrid. Only dates published by MARCA are available; the window advances on every refresh.",
   "Also import new matching events automatically": "Also import new matching events automatically",

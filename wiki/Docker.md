@@ -185,6 +185,11 @@ unhealthy until fixed. Recreate the container with the required permissions and
 the same data mounts, or explicitly disable WARP in the saved runtime configuration.
 An in-app setting cannot add Docker capabilities or devices. Retry in the startup
 screen cannot repair container permissions; restart after correcting deployment.
+For transient configuration failures, WARP stays supervised and configuration
+retries for up to ten minutes. **Try startup again** opens another recovery
+window afterward. Network services start only after setup and saved exclusions
+succeed; auto-connect requires `Connected`. A server/browser clock mismatch is
+an advisory warning: see [clock troubleshooting](Troubleshooting.md#warp-startup-and-system-clock).
 If the host has no `/dev/net/tun` but the command includes `--device`, Docker
 itself refuses to create the container, before the app can show diagnostics.
 Choose DNS-only mode and omit that device mapping, or provide host TUN support.

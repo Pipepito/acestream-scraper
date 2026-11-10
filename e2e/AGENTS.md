@@ -15,9 +15,10 @@ media; see `README.md`. Run the full journeys against a real FFmpeg-equipped
 backend with strict error monitoring. These synthetic engine/proxy responses do
 not replace the real Docker service smokes or architecture/flavour matrix.
 The first journey saves the actual setup wizard before later journeys navigate.
-Run the separate mobile and monitor configurations as well. The root mandatory
-completion policy applies: missing Docker, prerequisites, skipped or failed checks
-must be resolved or explicitly waived before declaring the work complete.
+Run the separate mobile and monitor configurations as well. The root completion
+validation tiers say when the live journeys are required. When they are, missing
+Docker, prerequisites, skipped or failed checks must be resolved or explicitly
+waived before declaring the work complete.
 
 ## Safe run sequence
 

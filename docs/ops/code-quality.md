@@ -41,6 +41,6 @@ PR conversation summary per execution, updated with the final result. It include
 the exact revisions, counts and up to 20 fixable high/critical dependency findings,
 with new blockers first. Private infrastructure links, source snippets, secret
 locations and discovered secret values are omitted. Source-scan success does not
-replace application/image checks or owner approval. Report false positives
+replace application/image checks or maintainer authorization. Report false positives
 to the maintainer; exceptions require a fingerprint, reason, reviewer and expiry
 in the infrastructure repository. PR-owned suppressions do not weaken CI policy.

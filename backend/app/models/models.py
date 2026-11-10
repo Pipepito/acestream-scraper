@@ -208,6 +208,15 @@ class TVChannel(Base):
     epg_source = relationship("EPGSource", back_populates="tv_channels")
 
 
+class EPGChannelIdentity(Base):
+    """One logical channel, with source-qualified EPGChannel memberships."""
+    __tablename__ = 'epg_channel_identities'
+    __table_args__ = (UniqueConstraint('channel_xml_id', 'normalized_name', name='uq_epg_channel_identity'),)
+    id = Column(Integer, primary_key=True)
+    channel_xml_id = Column(String(255), nullable=False)
+    normalized_name = Column(String(255), nullable=False)
+
+
 class EPGChannel(Base):
     """Model for EPG channels"""
     __tablename__ = "epg_channels"
@@ -216,6 +225,7 @@ class EPGChannel(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    identity_id = Column(Integer, ForeignKey('epg_channel_identities.id'), nullable=True, index=True)
     epg_source_id = Column(Integer, ForeignKey("epg_sources.id"), nullable=False)
     channel_xml_id = Column(String(255), nullable=False, index=True)
     name = Column(String(255), nullable=False)

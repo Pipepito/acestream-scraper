@@ -15,7 +15,9 @@ WARP_DOCKER_GUIDANCE = (
 WARP_SETUP_GUIDANCE = (
     "WARP setup did not complete. Network services are paused to prevent a "
     "direct-connection fallback. Download diagnostics, check the WARP logs, "
-    "correct the configuration and restart the container."
+    "check the host's date, time synchronization and network connection, then "
+    "choose Try startup again for another ten-minute recovery window. Missing "
+    "container prerequisites still require correcting the deployment and restarting."
 )
 WARP_DNS_GUIDANCE = (
     "WARP DNS-only mode needs --cap-add NET_ADMIN to configure container networking. "

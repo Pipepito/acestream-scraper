@@ -21,6 +21,7 @@ class StartupService:
             self.migration = None
             self.recovery_available = False
             self.guidance = None
+            self.startup_dependency = None
             self.recovery_token = secrets.token_urlsafe(32)
 
     def record(self, message, level='info'):
@@ -38,6 +39,7 @@ class StartupService:
         cause = exc.orig if isinstance(exc, DBAPIError) else exc
         guidance = 'Download diagnostics and try again. If this keeps happening, share the report with support.'
         if isinstance(cause, WarpStartupError):
+            self.startup_dependency = 'warp'
             guidance = WARP_DOCKER_GUIDANCE if os.environ.get('SCRAPER_WARP_STARTUP_ERROR') == 'prerequisites' else WARP_SETUP_GUIDANCE
             if os.environ.get('SCRAPER_WARP_STARTUP_ERROR') == 'prerequisites' and os.environ.get('WARP_DNS_ONLY', '').lower() in ('true', '1', 'yes', 'on'):
                 guidance = WARP_DNS_GUIDANCE
@@ -69,7 +71,8 @@ class StartupService:
         with self.lock:
             return StartupStatus(status=self.status, phase=self.phase, events=list(self.events),
                 migration=self.migration, recovery_available=self.recovery_available,
-                recovery_token=self.recovery_token, guidance=self.guidance)
+                recovery_token=self.recovery_token, guidance=self.guidance,
+                startup_dependency=self.startup_dependency)
 
     def diagnostics(self):
         return self.snapshot().model_dump_json(indent=2, exclude={'recovery_token'})

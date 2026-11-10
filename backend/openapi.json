@@ -3129,6 +3129,17 @@
             "title": "Id",
             "type": "integer"
           },
+          "identity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Id"
+          },
           "language": {
             "anyOf": [
               {
@@ -3143,6 +3154,13 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/EPGChannelSource"
+            },
+            "title": "Sources",
+            "type": "array"
           },
           "updated_at": {
             "format": "date-time",
@@ -3159,6 +3177,34 @@
           "updated_at"
         ],
         "title": "EPGChannelResponse",
+        "type": "object"
+      },
+      "EPGChannelSource": {
+        "properties": {
+          "channel_id": {
+            "title": "Channel Id",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id",
+          "source_id",
+          "name",
+          "enabled"
+        ],
+        "title": "EPGChannelSource",
         "type": "object"
       },
       "EPGMatchAnalysisRequest": {
@@ -3832,6 +3878,11 @@
       "EventApply": {
         "additionalProperties": false,
         "properties": {
+          "import_new": {
+            "default": false,
+            "title": "Import New",
+            "type": "boolean"
+          },
           "refresh_source": {
             "default": false,
             "title": "Refresh Source",
@@ -4725,7 +4776,8 @@
           "provider": {
             "enum": [
               "wosti_es",
-              "openfootball"
+              "openfootball",
+              "marca_es"
             ],
             "title": "Provider",
             "type": "string"
@@ -4775,6 +4827,11 @@
       "EventRefreshResult": {
         "additionalProperties": false,
         "properties": {
+          "created": {
+            "default": 0,
+            "title": "Created",
+            "type": "integer"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -4839,6 +4896,9 @@
             "title": "Format",
             "type": "string"
           },
+          "interests": {
+            "$ref": "#/components/schemas/EventInterests"
+          },
           "provider_options": {
             "anyOf": [
               {
@@ -4891,6 +4951,13 @@
               }
             ],
             "title": "Url"
+          },
+          "window_days": {
+            "default": 14,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Window Days",
+            "type": "integer"
           }
         },
         "title": "EventSourcePreviewRequest",
@@ -4935,6 +5002,14 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "import_new": {
+            "default": false,
+            "title": "Import New",
+            "type": "boolean"
+          },
+          "interests": {
+            "$ref": "#/components/schemas/EventInterests"
           },
           "last_attempt": {
             "anyOf": [
@@ -5007,6 +5082,13 @@
             "default": "UTC",
             "title": "Timezone",
             "type": "string"
+          },
+          "window_days": {
+            "default": 14,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Window Days",
+            "type": "integer"
           }
         },
         "required": [
@@ -10328,6 +10410,23 @@
           "recovery_token": {
             "title": "Recovery Token",
             "type": "string"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "startup_dependency": {
+            "anyOf": [
+              {
+                "const": "warp",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startup Dependency"
           },
           "status": {
             "enum": [

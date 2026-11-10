@@ -676,14 +676,13 @@ See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 
 Sporting-event URL sources accept reviewed version-1 schedules or bounded
 SportsEvent JSON/HTML JSON-LD with stable IDs and explicit timezone/date rules.
-Only approved, still-present event identities refresh through `url_scraping`'s
-FIFO/catch-up; new rows require review. Retention defaults off and runs during
+Saved event sources refresh through `url_scraping`'s FIFO/catch-up. Existing sources stay reviewed-only; explicit automatic import adds new matching observations within the saved rolling window. Retention defaults off and runs during
 existing daily cleanup, protects followed events and never deletes permanent
 channels. Preserve source revisions, manual broadcaster mappings, archive clocks
 and private guarded artwork fetching. See `docs/dev/sporting-events.md`.
 
 
-Built-in event providers use guarded fixed WOSTI Spain/OpenFootball adapters and
+Built-in event providers use guarded fixed WOSTI Spain/MARCA/OpenFootball adapters and
 saved OR interests with a default 14-day source window. WOSTI has occurrence
 snapshots, not stable fixture IDs: changed dates/times need review, never silent
 reschedule merging. OpenFootball date-only fixtures keep kickoff unknown.
@@ -695,7 +694,7 @@ known and different countries never match. A manual link saved with "apply to al
 older per-event entries; an event-only link wins over the alias, and the
 `{"kind": "none"}` marker keeps the source broadcast for one event. Aliases are
 managed under Events → Sources & retention → Broadcaster links. Links are not
-media/signal evidence. Keep new events review-only and preserve data outside filters.
+media/signal evidence. New events require review unless the saved source explicitly enables automatic imports within its rolling window and interests. Preserve data outside filters.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 
 
@@ -896,6 +895,14 @@ bounded automatic TV discovery when the inventory is empty, including after rest
 
 ## WARP management
 
+WARP startup uses a per-boot coordinator under `SUPERVISOR_RUN_DIR`. Configuration
+retries within a 600-second monotonic budget, then the authenticated startup Retry
+opens a new window. Keep daemon supervision alive, serialize configuration across
+daemon generations, and let only the entrypoint release sidecars once. Block app
+startup until that release; WARP failures never enable database recovery. Clock
+warnings compare server/browser UTC as advisory only; never set host time or
+bypass TLS. See `docs/ops/startup-recovery.md`.
+
 WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and
 `backend/warp_exclusions.py`, shared with `warp-setup.sh`. Persist desired and
 previously managed hosts beside the database; retain pending removals after partial
@@ -934,3 +941,8 @@ Offline cleanup is opt-in, FIFO-scheduled and bounded to 500 recoverable AceStre
 per run. Track `offline_since` only from confirmed lookups, with no migration
 backfill; require a recent repeat check, preserve linked streams by default and
 defer while viewing/recording. See `wiki/Usage.md#remove-long-offline-streams`.
+
+
+## Shared EPG channel inventory
+
+EPG channels with the same exact XMLTV ID and case/whitespace-normalized name share one logical identity (`epg_channel_identities`). Preserve accents and regional/quality suffixes. Source memberships retain their existing IDs, programmes, rules and TV/recording links. Inventory pagination counts logical channels; details expose every source and show a chosen source schedule. Never mix or overwrite another source's programmes during refresh/deletion. See `docs/ops/epg-channel-inventory.md`.

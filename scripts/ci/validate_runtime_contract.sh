@@ -300,6 +300,7 @@ if [ ! -f "${FAKE_WARP_READY_FILE:?}.connected" ]; then
     exit 1
 fi
 printf '%s\n' "$*" >> "${FAKE_NFT_LOG:?FAKE_NFT_LOG is required}"
+if [ "${1:-}" = -j ]; then printf '{"nftables":[]}\n'; fi
 exit 0
 EOF
 chmod +x "$FAKE_BIN/nft"

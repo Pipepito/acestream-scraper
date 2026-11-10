@@ -6230,15 +6230,30 @@ export interface components {
             icon_url?: string | null;
             /** Id */
             id: number;
+            /** Identity Id */
+            identity_id?: number | null;
             /** Language */
             language?: string | null;
             /** Name */
             name: string;
+            /** Sources */
+            sources?: components["schemas"]["EPGChannelSource"][];
             /**
              * Updated At
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** EPGChannelSource */
+        EPGChannelSource: {
+            /** Channel Id */
+            channel_id: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Name */
+            name: string;
+            /** Source Id */
+            source_id: number;
         };
         /** EPGMatchAnalysisRequest */
         EPGMatchAnalysisRequest: {
@@ -6535,6 +6550,11 @@ export interface components {
         };
         /** EventApply */
         EventApply: {
+            /**
+             * Import New
+             * @default false
+             */
+            import_new?: boolean;
             /**
              * Refresh Source
              * @default false
@@ -6867,7 +6887,7 @@ export interface components {
              * Provider
              * @enum {string}
              */
-            provider: "wosti_es" | "openfootball";
+            provider: "wosti_es" | "openfootball" | "marca_es";
             /** Season */
             season?: string;
             /**
@@ -6888,6 +6908,11 @@ export interface components {
         };
         /** EventRefreshResult */
         EventRefreshResult: {
+            /**
+             * Created
+             * @default 0
+             */
+            created?: number;
             /** Message */
             message: string;
             /**
@@ -6927,6 +6952,7 @@ export interface components {
              * @enum {string}
              */
             format?: "event_import" | "schema_org";
+            interests?: components["schemas"]["EventInterests"];
             provider_options?: components["schemas"]["EventProviderOptions"] | null;
             /** Source Id */
             source_id?: string | null;
@@ -6939,6 +6965,11 @@ export interface components {
             timezone?: string;
             /** Url */
             url?: string | null;
+            /**
+             * Window Days
+             * @default 14
+             */
+            window_days?: number;
         };
         /** EventSourceUpdate */
         EventSourceUpdate: {
@@ -6959,6 +6990,12 @@ export interface components {
             format?: "event_import" | "schema_org";
             /** Id */
             id: string;
+            /**
+             * Import New
+             * @default false
+             */
+            import_new?: boolean;
+            interests?: components["schemas"]["EventInterests"];
             /** Last Attempt */
             last_attempt: string | null;
             last_result: components["schemas"]["EventRefreshResult"] | null;
@@ -6983,6 +7020,11 @@ export interface components {
              * @default UTC
              */
             timezone?: string;
+            /**
+             * Window Days
+             * @default 14
+             */
+            window_days?: number;
         };
         /** EventUpdate */
         EventUpdate: {
@@ -9176,6 +9218,13 @@ export interface components {
             recovery_available?: boolean;
             /** Recovery Token */
             recovery_token: string;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time?: string;
+            /** Startup Dependency */
+            startup_dependency?: "warp" | null;
             /**
              * Status
              * @enum {string}

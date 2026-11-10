@@ -3,11 +3,26 @@ export interface ReleaseNotes { version: string; summary: string; sections: Arra
 export const releases: ReleaseNotes[] = [
   {
     "version": "v2.2.1",
-    "summary": "Preserve readable spaces in exported programme-guide identifiers.",
+    "summary": "Add MARCA event schedules, rolling automatic imports and shared EPG channels, while preserving readable exported guide identifiers.",
     "sections": [
+      {
+        "title": "Added",
+        "items": [
+          "Import Spain's sports TV agenda from MARCA, including dated fixtures, sports, competitions and broadcaster names. Imports use Europe/Madrid and include only dates already published by the provider. Same-day time and broadcaster changes update existing events; changed dates or titles create separate occurrences."
+        ]
+      },
+      {
+        "title": "Improved",
+        "items": [
+          "Enable automatic import on a saved event source to keep its rolling day window populated: scheduled refreshes update existing events and add new matches without duplicating previously imported occurrences. Manual corrections, followed events and broadcaster links are preserved. Existing saved sources keep their reviewed-events-only mode until automatic import is enabled.",
+          "Choose sport, competition and team interests before fetching an event schedule, including schedule URLs. Save an empty selection to start tracking future matching events, and see separate counts for newly imported and refreshed events."
+        ]
+      },
       {
         "title": "Fixed",
         "items": [
+          "Recover WARP startup automatically after temporary network or clock failures, with a ten-minute retry window and a working manual Retry afterward. Network services stay paused until configuration succeeds. Startup warns when server and browser clocks differ significantly and links to host time troubleshooting.",
+          "Show one EPG channel linked to all matching sources when their XMLTV channel ID and name agree. Name matching ignores case and repeated spaces. Existing programmes and TV assignments are preserved; choose a source on the channel's detail page to view its schedule.",
           "Keep spaces in playlist and XMLTV channel IDs when duplicate guide sources require a source prefix. Refresh both the playlist and guide after updating so cached IDs match."
         ]
       }

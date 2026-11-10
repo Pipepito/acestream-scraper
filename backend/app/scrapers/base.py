@@ -365,7 +365,15 @@ class BaseScraper(ABC):
         # A broadcaster's website (atresplayer.com, telemadrid.es...) is read
         # through its API and imported as the M3U list it amounts to.
         from app.services import live_providers
-        live_provider = live_providers.for_source_url(url_to_scrape)
+        try:
+            live_provider = live_providers.for_source_url(url_to_scrape)
+        except ValueError as e:
+            # A malformed address cannot be fetched: report it like any other
+            # failed source instead of raising.
+            logger.error(f"Invalid URL {url_to_scrape}: {str(e)}")
+            status = f"Error: {str(e)}"
+            await self.update_url_status(url_to_scrape, status)
+            return channels, status
         # Unchanged by #332: these are playlists whatever they serve.
         forced_m3u = url_ends_with_m3u(url_to_scrape) or live_provider is not None
         while retries_left >= 0:

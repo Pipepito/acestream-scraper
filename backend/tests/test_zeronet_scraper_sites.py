@@ -223,6 +223,60 @@ def test_http_only_playlist_without_extension_is_returned(monkeypatch):
     assert len(requested) == 1
 
 
+def _serve(monkeypatch, body):
+    """Answer every node request with `body`; returns the requested URLs."""
+    requested = []
+    class Response:
+        headers = {'Content-Type': 'text/plain'}
+        def raise_for_status(self): pass
+        async def text(self): return body
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+    class Session:
+        def get(self, url, **kwargs): requested.append(url); return Response()
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+    monkeypatch.setattr(zeronet_module, 'source_session', lambda **kwargs: Session())
+    monkeypatch.setattr(zeronet_module, 'validate_outbound_url', lambda url: None)
+    monkeypatch.setattr(zeronet_module.asyncio, 'sleep', _no_sleep)
+    return requested
+
+
+def _fetch(url):
+    async def run():
+        scraper = create_scraper_for_url(url, 'zeronet')
+        scraper.retries = 3
+        return await scraper.fetch_content(url)
+    return asyncio.run(run())
+
+
+def test_m3u_file_without_header_or_acestream_links_is_returned(monkeypatch):
+    """A .m3u file of plain HTTP entries used to be retried and refused as
+    "No acestream data found": its #EXTINF entries are enough."""
+    playlist = "#EXTINF:-1,Web\nhttp://example.com/web/index.m3u8\n"
+    requested = _serve(monkeypatch, playlist)
+
+    assert _fetch(f'zero://{SITE}/lista.m3u') == playlist
+    assert len(requested) == 1
+
+
+def test_m3u_file_with_byte_order_mark_is_not_reported_as_invalid(monkeypatch, caplog):
+    playlist = "\ufeff#EXTM3U\n#EXTINF:-1,Web\nhttp://example.com/web/index.m3u8\n"
+    _serve(monkeypatch, playlist)
+
+    with caplog.at_level("WARNING", logger="app.scrapers.zeronet"):
+        assert _fetch(f'zero://{SITE}/lista.m3u') == playlist
+    assert "doesn't appear to be a valid M3U file" not in caplog.text
+
+
+def test_m3u_address_answering_a_page_is_still_refused(monkeypatch):
+    # A node that does not hold the file yet answers a page; that is not a list.
+    _serve(monkeypatch, "<html><body><p>Site is loading</p></body></html>")
+
+    with pytest.raises(ValueError, match="No acestream data found"):
+        _fetch(f'zero://{SITE}/lista.m3u')
+
+
 def test_site_that_never_becomes_ready_has_bounded_retries_and_error_status(monkeypatch):
     requested = []
     class Response:

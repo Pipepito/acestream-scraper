@@ -9,7 +9,12 @@ import pytest
 from app.models.url_types import RegularURL, ZeronetURL
 from app.scrapers.http import HTTPScraper
 from app.scrapers.zeronet import ZeronetScraper
-from app.services.m3u_service import has_m3u_extension, is_channel_playlist, is_m3u_source
+from app.services.m3u_service import (
+    has_m3u_extension,
+    is_channel_playlist,
+    is_m3u_source,
+    looks_like_m3u,
+)
 
 ID_A = "a" * 40
 ID_B = "b" * 40
@@ -32,7 +37,7 @@ HLS_MASTER = (
 )
 
 
-def _scrape(url, content, make_scraper=None, bare_ids=False):
+def _scrape(url, content, make_scraper=None, bare_ids=False, scrape_url=None):
     """Scrape `url` with the network stubbed: the source answers `content`
     and anything the scraper follows from it answers 404."""
     fetched = []
@@ -52,7 +57,7 @@ def _scrape(url, content, make_scraper=None, bare_ids=False):
         scraper.fetch_content = fake_fetch
         scraper.update_url_status = noop_update
         scraper.scrape_bare_ids = bare_ids
-        return await scraper.scrape()
+        return await (scraper.scrape(scrape_url) if scrape_url else scraper.scrape())
 
     channels, status = asyncio.run(run())
     return {channel[0] for channel in channels}, status, fetched
@@ -89,6 +94,12 @@ def test_has_m3u_extension(url, expected):
     # HLS manifests describe one stream: their URIs are variants and segments.
     ("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=800000\nhttps://cdn.example.com/low/index.m3u8\n", False),
     ("#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXTINF:6.0,\nhttps://cdn.example.com/seg10.ts\n", False),
+    ("#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:0.5,\nhttps://cdn.example.com/seg1.ts\n", False),
+    # A channel list stays one even with a stray stream tag line: its entries
+    # are acestream links or carry the "-1"/"0" duration of a live channel.
+    (PLAYLIST + "#EXT-X-TARGETDURATION:6\n", True),
+    ("#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXTINF:-1,Web\nhttp://example.com/web/index.m3u8\n", True),
+    ("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\n#EXTINF:0 tvg-id=\"web\",Web\nhttp://example.com/web/index.m3u8\n", True),
     # Only a tag line makes a manifest, not a channel that mentions one.
     ("#EXTM3U\n#EXTINF:-1,Guide to #EXT-X-STREAM-INF tags\nacestream://" + "a" * 40 + "\n", True),
 ])
@@ -200,3 +211,41 @@ def test_zeronet_old_workaround_url_still_reads_a_list_without_header():
 
     assert ids == {ID_A, ID_B}
     assert len(fetched) == 1
+
+
+@pytest.mark.parametrize("content, expected", [
+    ("\ufeff#EXTM3U\n#EXTINF:-1,Web\nhttp://example.com/web/index.m3u8\n", True),
+    ("#EXTINF:-1,Web\nhttp://example.com/web/index.m3u8\n", True),
+    (f"Sports One acestream://{ID_A}\n", True),
+    ("<html><body><p>Site is loading</p></body></html>", False),
+    ("", False),
+])
+def test_looks_like_m3u(content, expected):
+    assert looks_like_m3u(content) is expected
+
+
+def test_html_page_quoting_a_playlist_is_still_read_as_a_page():
+    # The header counts only at the start of the download. Read as a page,
+    # the scraper follows the list it links to; read as a list, it would not.
+    page = (
+        f'<html><body><pre>#EXTM3U\n#EXTINF:-1,Example\nacestream://{ID_A}\n</pre>'
+        '<a href="http://example.com/nested.m3u">the list</a></body></html>'
+    )
+    url = "http://example.com/docs/playlists"
+    _ids, status, fetched = _scrape(url, page)
+
+    assert status == "OK"
+    assert fetched == [url, "http://example.com/nested.m3u"]
+
+
+@pytest.mark.parametrize("valid, malformed, make_scraper", [
+    ("http://example.com/lists/sports", "http://[bad/list.m3u", None),
+    ("zero://example.bit/lists/sports", "zero://[bad/list.m3u",
+     lambda: ZeronetScraper(ZeronetURL("zero://example.bit/lists/sports"))),
+])
+def test_malformed_url_is_reported_as_an_error_not_raised(valid, malformed, make_scraper):
+    ids, status, fetched = _scrape(valid, PLAYLIST, make_scraper, scrape_url=malformed)
+
+    assert ids == set()
+    assert status.startswith("Error:")
+    assert fetched == []

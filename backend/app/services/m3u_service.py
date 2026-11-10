@@ -30,14 +30,28 @@ def has_m3u_extension(url: str) -> bool:
     return path.lower().endswith(_M3U_EXTENSIONS)
 
 
+_EXTINF_LINE = re.compile(r'^[ \t]*#EXTINF:', re.MULTILINE)
+# Live channels are listed with a duration of -1 (or 0); a stream's segments
+# always have a positive one, and a master manifest has no #EXTINF at all.
+_CHANNEL_ENTRY = re.compile(r'^[ \t]*#EXTINF:[ \t]*(?:-\d+|0)(?=[ \t,\r]|$)', re.MULTILINE)
+
+
+def _has_m3u_header(content: str) -> bool:
+    # A leading byte order mark is tolerated: some playlist editors save one.
+    return content.lstrip('\ufeff \t\r\n').startswith('#EXTM3U')
+
+
 def is_hls_stream_manifest(content: str) -> bool:
     """Whether downloaded text is the manifest of a single HLS stream.
 
     Such a manifest also starts with #EXTM3U, but its URIs are that stream's
     variants and segments: reading it as a channel list would import each of
-    them as a channel.
+    them as a channel. A channel list that merely carries a stray stream tag
+    is told apart by its entries: acestream links or live-channel durations.
     """
-    return bool(_HLS_STREAM_TAG.search(content))
+    if not _HLS_STREAM_TAG.search(content):
+        return False
+    return 'acestream://' not in content and not _CHANNEL_ENTRY.search(content)
 
 
 def is_channel_playlist(content: str) -> bool:
@@ -46,9 +60,18 @@ def is_channel_playlist(content: str) -> bool:
     A leading byte order mark is tolerated because some playlist editors save
     one. HLS stream manifests are left out.
     """
-    if not content.lstrip('\ufeff \t\r\n').startswith('#EXTM3U'):
-        return False
-    return not is_hls_stream_manifest(content)
+    return _has_m3u_header(content) and not is_hls_stream_manifest(content)
+
+
+def looks_like_m3u(content: str) -> bool:
+    """Whether downloaded text carries any sign of an M3U playlist: the header,
+    #EXTINF entries or acestream links.
+
+    Looser than is_channel_playlist: it tells a playlist from a page that
+    answered in its place, for an address that already says it is one.
+    """
+    return (_has_m3u_header(content) or bool(_EXTINF_LINE.search(content))
+            or 'acestream://' in content)
 
 
 def url_ends_with_m3u(url: str) -> bool:

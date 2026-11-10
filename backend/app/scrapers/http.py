@@ -11,7 +11,7 @@ from urllib.parse import urljoin
 
 from app.models.url_types import RegularURL
 from app.scrapers.base import BaseScraper
-from app.services.m3u_service import has_m3u_extension, url_ends_with_m3u
+from app.services.m3u_service import has_m3u_extension, looks_like_m3u, url_ends_with_m3u
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
 MAX_REDIRECTS = 5
@@ -64,7 +64,7 @@ class HTTPScraper(BaseScraper):
 
                         # If it's an M3U file, validate and log appropriately
                         if is_m3u_file:
-                            if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
+                            if looks_like_m3u(content):
                                 logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
                             else:
                                 logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")

@@ -12,7 +12,12 @@ from urllib.parse import urlparse, urljoin
 
 from app.models.url_types import ZeronetURL
 from app.scrapers.base import BaseScraper
-from app.services.m3u_service import has_m3u_extension, is_channel_playlist, url_ends_with_m3u
+from app.services.m3u_service import (
+    has_m3u_extension,
+    is_channel_playlist,
+    looks_like_m3u,
+    url_ends_with_m3u,
+)
 from app.config.settings import settings
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
@@ -193,7 +198,7 @@ class ZeronetScraper(BaseScraper):
 
                         # If it's an M3U file, just return the content without further processing
                         if is_m3u_file:
-                            if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
+                            if looks_like_m3u(content):
                                 logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
                                 # Parse channels for logging/debugging, but do not return the list
                                 channels = await self.parse_m3u_content(content)
@@ -288,7 +293,11 @@ class ZeronetScraper(BaseScraper):
         Both early paths record the source's status like the base does (they
         used to leave it at "active" with no processing time)."""
         url_to_scrape = url if url else self.url_obj.get_normalized_url()
-        path = urlparse(url_to_scrape).path.lower()
+        try:
+            path = urlparse(url_to_scrape).path.lower()
+        except ValueError:
+            # A malformed address: the base scraper reports it as an error.
+            path = ''
         if path.endswith(('.m3u', '.m3u8')):
             try:
                 content = await self.fetch_content(url_to_scrape)

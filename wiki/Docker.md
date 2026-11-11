@@ -233,10 +233,14 @@ ports let them use it:
   (`socks5h://`). It starts after WARP connects and only with
   `WARP_ENABLE_NAT=true` in full tunnel mode; with the kill switch on, nothing
   it relays leaves while WARP is down.
+- `TOR_SOCKS_PORT=9150` exposes the embedded Tor's SOCKS port, which only
+  listens inside the container, on that container port so it can be published.
+  It needs `ENABLE_TOR=true` with `ENABLE_ZERONET=true`, and cannot be `9050`,
+  which Tor itself holds.
 
-The port has no password, so it is limited: clients must come from
-`TUNER_ALLOWED_NETWORKS` (private ranges by default), and it only connects to
-public addresses, never to the container's own services or your local network.
+Neither port has a password, so clients must come from `TUNER_ALLOWED_NETWORKS`
+(private ranges by default). The WARP port also only connects to public
+addresses, never to the container's own services or your local network.
 
 ### Pre-release channel (`develop`)
 

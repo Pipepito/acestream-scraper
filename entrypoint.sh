@@ -507,6 +507,12 @@ if [ -n "${WARP_SOCKS_PORT:-}" ]; then
     valid_port "$WARP_SOCKS_PORT" || fail "WARP_SOCKS_PORT must be a port number (1-65535)"
     warp_full_tunnel || log "WARP_SOCKS_PORT needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; not starting the SOCKS port"
 fi
+if [ -n "${TOR_SOCKS_PORT:-}" ]; then
+    { valid_port "$TOR_SOCKS_PORT" && [ "$TOR_SOCKS_PORT" != 9050 ]; } ||
+        fail "TOR_SOCKS_PORT must be a port number (1-65535) other than 9050, which Tor itself holds"
+    { feature_enabled "$ENABLE_TOR" && feature_enabled "$ENABLE_ZERONET"; } ||
+        log "TOR_SOCKS_PORT needs ENABLE_TOR=true and ENABLE_ZERONET=true; not starting the Tor port"
+fi
 
 export ACEXY_NO_RESPONSE_TIMEOUT="${ACEXY_NO_RESPONSE_TIMEOUT:-30s}"
 
@@ -579,6 +585,11 @@ EOF
     supervise_service "Tor" "tor -f $torrc" &
     child_pids+=("$!")
     child_names+=("Tor")
+    # Tor only listens on the container's loopback; this exposes its SOCKS
+    # port on another container port, which can be published.
+    if [ -n "${TOR_SOCKS_PORT:-}" ]; then
+        start_helper "Tor-SOCKS" "exec python3 $(printf '%q' "$HELPERS_DIR/tcp-forward.py") --port $TOR_SOCKS_PORT --to 127.0.0.1:9050 --allow $(printf '%q' "$TUNER_ALLOWED_NETWORKS")"
+    fi
 }
 
 configure_ipfs_repo() {

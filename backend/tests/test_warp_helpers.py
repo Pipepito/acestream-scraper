@@ -1,4 +1,4 @@
-"""Ports for programs outside the container: the WARP SOCKS port and its wiring."""
+"""Ports for programs outside the container: WARP's SOCKS port, the Tor port, their wiring."""
 import asyncio
 import importlib.util
 import os
@@ -22,6 +22,7 @@ def _load(name, filename):
 
 
 warp_socks = _load("warp_socks", "warp-socks.py")
+tcp_forward = _load("tcp_forward", "tcp-forward.py")
 
 
 def _socks_request(port, host, target_port, *, command=1):
@@ -150,6 +151,28 @@ def test_client_networks_accept_ipv4_mapped_peers():
     assert not warp_socks.client_allowed(("203.0.113.9", 1), networks)
 
 
+def test_tcp_forward_relays_allowed_clients_and_closes_others():
+    async def scenario(allow):
+        echo, echo_port = await _echo_server()
+        server, port = await _serve(tcp_forward.handler(
+            "127.0.0.1", echo_port, tcp_forward.parse_networks(allow)))
+
+        def client():
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as s:
+                s.sendall(b"hola")
+                try:
+                    return s.recv(100)
+                except ConnectionResetError:
+                    return b""
+        try:
+            return await asyncio.to_thread(client)
+        finally:
+            await _close(server, echo)
+
+    assert asyncio.run(scenario(LOOPBACK)) == b"echo:hola"
+    assert asyncio.run(scenario("10.0.0.0/8")) == b""
+
+
 # --- wiring -----------------------------------------------------------------
 
 def _entrypoint(tmp_path, **extra):
@@ -185,4 +208,25 @@ def test_socks_port_starts_with_the_network_services_under_the_supervisor():
     assert 'start_helper "WARP-SOCKS"' in services
     assert "--allow $(printf '%q' \"$TUNER_ALLOWED_NETWORKS\")" in services
     assert "warp-socks" not in (ROOT / "warp-setup.sh").read_text()
-    assert "docker/scripts/warp-socks.py /usr/local/bin/warp-socks.py" in (ROOT / "Dockerfile").read_text()
+    assert "docker/scripts/warp-socks.py docker/scripts/tcp-forward.py /usr/local/bin/" in (ROOT / "Dockerfile").read_text()
+
+
+@pytest.mark.parametrize("port", ["9050", "abc"])
+def test_entrypoint_rejects_a_tor_port_it_cannot_use(tmp_path, port):
+    result = _entrypoint(tmp_path, TOR_SOCKS_PORT=port)
+    assert result.returncode != 0
+    assert "TOR_SOCKS_PORT must be a port number" in result.stdout + result.stderr
+
+
+def test_entrypoint_skips_the_tor_port_without_tor(tmp_path):
+    result = _entrypoint(tmp_path, TOR_SOCKS_PORT="9150")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "not starting the Tor port" in result.stdout + result.stderr
+
+
+def test_tor_port_starts_with_tor():
+    entrypoint = (ROOT / "entrypoint.sh").read_text()
+    tor = entrypoint[entrypoint.index("start_tor() {"):]
+    tor = tor[:tor.index("\n}\n")]
+    assert 'start_helper "Tor-SOCKS"' in tor
+    assert "--to 127.0.0.1:9050 --allow" in tor

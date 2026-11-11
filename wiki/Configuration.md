@@ -172,6 +172,7 @@ The amd64 and arm64 images bundle a ZeroNet node (zeronet-conservancy v0.7.10) t
 |----------|-------------|---------|-------|
 | `ENABLE_ZERONET` | Start the bundled ZeroNet node | `false` | amd64 images only; fails with a clear error elsewhere |
 | `ENABLE_TOR` | Run TOR for the bundled node | `false` | Only takes effect with `ENABLE_ZERONET=true`; the node auto-detects TOR over the control port |
+| `TOR_SOCKS_PORT` | Container port that exposes Tor's SOCKS port | *(none)* | Needs `ENABLE_TOR=true`; not `9050`. Clients from `TUNER_ALLOWED_NETWORKS`. See [WARP and Tor ports](Docker.md#warp-and-tor-ports) |
 | `ZERONET_URL` | Address the scraper fetches `zero://` sources through | `http://host.docker.internal:43110` in the checked-in compose example | With `ENABLE_ZERONET=true` and no explicit value it targets the embedded UI port automatically |
 | `ZERONET_DATA_DIR` | Bundled node's state directory | `/data/zeronet` | Mount a volume there |
 | `ZERONET_UI_PORT` | Bundled node's web UI port | `43110` | |

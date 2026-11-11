@@ -30,11 +30,14 @@ Some Spanish free-to-air broadcasters publish no playlist, but their websites pl
 | `https://www.telemadrid.es` | Telemadrid, La Otra |
 | `https://www.7riojaplay.tv` | 7 TV La Rioja |
 | `https://www.apuntmedia.es` | À Punt |
+| `https://pluto.tv` | Pluto TV's channels for the server's region (Spain only) |
+| `https://watch.plex.tv` | Plex's free live channels for Spain |
+| `https://www.samsungtvplus.com` | Samsung TV Plus's channels for Spain, except those with DRM |
 
 None of them needs an account. Their links carry tokens that expire, so they are never stored: the playlist points at `/live/<stream id>`, which asks the broadcaster for a fresh link when the player opens the channel and redirects to it.
 
 `/live/` needs no API token, because a player following a playlist link cannot send one. Like the tuner routes, it only answers clients allowed by `TUNER_ALLOWED_NETWORKS`.
 
-Broadcaster checks resolve a fresh link and then verify its media; resolving a URL alone does not set online status. These integrations depend on each broadcaster's website and can break when it changes.
+Broadcaster checks resolve a fresh link and then verify its media; resolving a URL alone does not set online status. Pluto TV, Plex and Samsung TV Plus channels are left out of status checks and report "not checked": their services refuse a sweep over hundreds of channels, and opening a channel is unaffected. These integrations depend on each broadcaster's website and can break when it changes.
 
 Manifest rewriting resolves key and initialization URIs against the origin and preserves byte-range offsets, media sequence and discontinuity state. Completed, low-latency/delta, multiple-key-format and encrypted-initialization playlists keep their complete tag ordering rather than being trimmed. The URI and byte-range rules follow [RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html). Unsupported forms fail clearly; the server never sends upstream playlists to ffprobe or gives it network access.

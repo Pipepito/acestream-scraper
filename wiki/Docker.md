@@ -242,6 +242,18 @@ Neither port has a password, so clients must come from `TUNER_ALLOWED_NETWORKS`
 (private ranges by default). The WARP port also only connects to public
 addresses, never to the container's own services or your local network.
 
+### Inbound connections with WARP
+
+In full tunnel mode WARP's own firewall drops connections that come from a
+public address, and replies would go into the tunnel anyway: the engine's P2P
+port and remote access from outside your network stop working. Clients on
+private ranges are not affected. `WARP_ALLOW_INBOUND=true` (with
+`WARP_ENABLE_NAT=true`) lets connections that arrive on the container's
+`eth0` (`WARP_INBOUND_IFACE`) in again after every WARP reconnect, and sends
+only their replies outside the tunnel; everything the container starts itself
+still leaves through WARP. While WARP is down, the kill switch keeps rejecting
+those replies too.
+
 ### Pre-release channel (`develop`)
 
 The tags above are release tags: `latest` and the immutable `vX.Y.Z` / `vX.Y.Z-<flavor>` tags are cut from the `main` branch. Next to them, validated application or build changes on the `develop` branch publish a pre-release channel:

@@ -507,6 +507,9 @@ if [ -n "${WARP_SOCKS_PORT:-}" ]; then
     valid_port "$WARP_SOCKS_PORT" || fail "WARP_SOCKS_PORT must be a port number (1-65535)"
     warp_full_tunnel || log "WARP_SOCKS_PORT needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; not starting the SOCKS port"
 fi
+if feature_enabled "${WARP_ALLOW_INBOUND:-false}" && ! warp_full_tunnel; then
+    log "WARP_ALLOW_INBOUND needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; ignoring it"
+fi
 if [ -n "${TOR_SOCKS_PORT:-}" ]; then
     { valid_port "$TOR_SOCKS_PORT" && [ "$TOR_SOCKS_PORT" != 9050 ]; } ||
         fail "TOR_SOCKS_PORT must be a port number (1-65535) other than 9050, which Tor itself holds"
@@ -776,6 +779,11 @@ fi
 # up; the kill switch then blocks the helper's traffic whenever WARP is down.
 if [ -n "${WARP_SOCKS_PORT:-}" ] && warp_full_tunnel; then
     start_helper "WARP-SOCKS" "exec python3 $(printf '%q' "$HELPERS_DIR/warp-socks.py") --port $WARP_SOCKS_PORT --allow $(printf '%q' "$TUNER_ALLOWED_NETWORKS")"
+fi
+# WARP's firewall drops connections from public addresses (#93); this lets
+# them in again after every reconnect and keeps their replies off the tunnel.
+if feature_enabled "${WARP_ALLOW_INBOUND:-false}" && warp_full_tunnel; then
+    start_helper "WARP-inbound" "exec sh $(printf '%q' "$HELPERS_DIR/warp-inbound.sh")"
 fi
 network_services_started=true
 }

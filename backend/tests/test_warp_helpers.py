@@ -1,4 +1,4 @@
-"""Ports for programs outside the container: WARP's SOCKS port, the Tor port, their wiring."""
+"""Helpers for WARP's full tunnel and Tor: SOCKS port, Tor port, inbound connections."""
 import asyncio
 import importlib.util
 import os
@@ -6,6 +6,7 @@ from pathlib import Path
 import socket
 import struct
 import subprocess
+import time
 
 import pytest
 
@@ -208,7 +209,7 @@ def test_socks_port_starts_with_the_network_services_under_the_supervisor():
     assert 'start_helper "WARP-SOCKS"' in services
     assert "--allow $(printf '%q' \"$TUNER_ALLOWED_NETWORKS\")" in services
     assert "warp-socks" not in (ROOT / "warp-setup.sh").read_text()
-    assert "docker/scripts/warp-socks.py docker/scripts/tcp-forward.py /usr/local/bin/" in (ROOT / "Dockerfile").read_text()
+    assert "docker/scripts/warp-socks.py docker/scripts/tcp-forward.py docker/scripts/warp-inbound.sh /usr/local/bin/" in (ROOT / "Dockerfile").read_text()
 
 
 @pytest.mark.parametrize("port", ["9050", "abc"])
@@ -230,3 +231,52 @@ def test_tor_port_starts_with_tor():
     tor = tor[:tor.index("\n}\n")]
     assert 'start_helper "Tor-SOCKS"' in tor
     assert "--to 127.0.0.1:9050 --allow" in tor
+
+
+def test_entrypoint_ignores_inbound_without_the_full_tunnel(tmp_path):
+    result = _entrypoint(tmp_path, WARP_ALLOW_INBOUND="true")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "WARP_ALLOW_INBOUND needs ENABLE_WARP=true" in result.stdout + result.stderr
+
+
+def test_inbound_helper_starts_with_the_network_services():
+    entrypoint = (ROOT / "entrypoint.sh").read_text()
+    services = entrypoint[entrypoint.index("start_network_services() {"):]
+    services = services[:services.index("network_services_started=true")]
+    assert 'start_helper "WARP-inbound"' in services
+    assert "warp-inbound" not in (ROOT / "warp-setup.sh").read_text()
+
+
+def test_inbound_script_tags_with_warps_own_mark_and_reopens_its_firewall():
+    """What the script asks of nftables, with fake ip and nft commands."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        bin_dir = Path(tmp)
+        log = bin_dir / "nft.log"
+        (bin_dir / "ip").write_text(
+            "#!/bin/sh\necho '5209: not from all fwmark 0x1000000 lookup 65743'\n")
+        (bin_dir / "nft").write_text(
+            "#!/bin/sh\n"
+            f"echo \"$*\" >> {log}\n"
+            # The private table does not exist yet; WARP's chains exist without our rule.
+            "case \"$*\" in 'list table inet warp_inbound') exit 1 ;; esac\n"
+            "case \"$*\" in 'list chain inet cloudflare-warp '*) echo 'policy drop;' ;; esac\n")
+        for name in ("ip", "nft"):
+            (bin_dir / name).chmod(0o755)
+        process = subprocess.Popen(["sh", str(SCRIPTS / "warp-inbound.sh")],
+                                   env={**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"})
+        try:
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                text = log.read_text() if log.exists() else ""
+                if text.count("insert rule inet cloudflare-warp") >= 2:
+                    break
+                time.sleep(0.05)
+        finally:
+            process.kill()
+            process.wait()
+        text = log.read_text()
+    assert 'add rule inet warp_inbound pre iifname eth0 ct state new ct mark set 0x1000000' in text
+    assert 'add rule inet warp_inbound out ct mark 0x1000000 meta mark set 0x1000000' in text
+    assert 'insert rule inet cloudflare-warp input ct mark 0x1000000 accept' in text
+    assert 'insert rule inet cloudflare-warp output ct mark 0x1000000 accept' in text

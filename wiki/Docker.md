@@ -221,6 +221,23 @@ traffic is being blocked.
 
 Details: [startup recovery](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/startup-recovery.md#warp-kill-switch).
 
+### WARP and Tor ports
+
+In full tunnel mode everything the container sends leaves through WARP, but
+other programs (a media centre add-on, another container) cannot use that
+tunnel, and WARP's own proxy mode would switch the tunnel off. These optional
+ports let them use it:
+
+- `WARP_SOCKS_PORT=1080` starts a SOCKS5 server on that container port; publish
+  it (`-p 127.0.0.1:1080:1080`) and point the program at it with remote DNS
+  (`socks5h://`). It starts after WARP connects and only with
+  `WARP_ENABLE_NAT=true` in full tunnel mode; with the kill switch on, nothing
+  it relays leaves while WARP is down.
+
+The port has no password, so it is limited: clients must come from
+`TUNER_ALLOWED_NETWORKS` (private ranges by default), and it only connects to
+public addresses, never to the container's own services or your local network.
+
 ### Pre-release channel (`develop`)
 
 The tags above are release tags: `latest` and the immutable `vX.Y.Z` / `vX.Y.Z-<flavor>` tags are cut from the `main` branch. Next to them, validated application or build changes on the `develop` branch publish a pre-release channel:

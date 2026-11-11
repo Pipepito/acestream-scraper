@@ -493,6 +493,21 @@ if feature_enabled "$ENABLE_TOR" && ! feature_enabled "$ENABLE_ZERONET"; then
     log "ENABLE_TOR=true has no effect without ENABLE_ZERONET=true; skipping TOR"
 fi
 
+# Ports that let programs outside the container use WARP (and Tor). Their
+# helpers start with the network services; see wiki/Docker.md#warp-and-tor-ports.
+valid_port() {
+    case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+warp_full_tunnel() {
+    feature_enabled "$ENABLE_WARP" && feature_enabled "${WARP_ENABLE_NAT:-false}" &&
+        ! feature_enabled "${WARP_DNS_ONLY:-false}"
+}
+if [ -n "${WARP_SOCKS_PORT:-}" ]; then
+    valid_port "$WARP_SOCKS_PORT" || fail "WARP_SOCKS_PORT must be a port number (1-65535)"
+    warp_full_tunnel || log "WARP_SOCKS_PORT needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; not starting the SOCKS port"
+fi
+
 export ACEXY_NO_RESPONSE_TIMEOUT="${ACEXY_NO_RESPONSE_TIMEOUT:-30s}"
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
@@ -538,6 +553,13 @@ if feature_enabled "$ENABLE_ZERONET"; then
         *) log "WARNING: ENABLE_ZERONET=true but ZERONET_URL points at $ZERONET_URL — the scraper will not use the embedded node" ;;
     esac
 fi
+
+HELPERS_DIR="$(dirname "$0")"
+start_helper() {
+    supervise_service "$1" "$2" &
+    child_pids+=("$!")
+    child_names+=("$1")
+}
 
 start_tor() {
     if ! command -v tor >/dev/null 2>&1; then
@@ -737,6 +759,12 @@ if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then
     supervise_service "Acexy" "$ACEXY_START_COMMAND" &
     child_pids+=("$!")
     child_names+=("Acexy")
+fi
+
+# Started after the WARP barrier, so nothing is relayed before the tunnel is
+# up; the kill switch then blocks the helper's traffic whenever WARP is down.
+if [ -n "${WARP_SOCKS_PORT:-}" ] && warp_full_tunnel; then
+    start_helper "WARP-SOCKS" "exec python3 $(printf '%q' "$HELPERS_DIR/warp-socks.py") --port $WARP_SOCKS_PORT --allow $(printf '%q' "$TUNER_ALLOWED_NETWORKS")"
 fi
 network_services_started=true
 }

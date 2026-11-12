@@ -160,6 +160,21 @@ export const useUpdateChannelStatusInterval = () => {
   });
 };
 
+export const useAcestreamCheckTimeout = () => useQuery({
+  queryKey: ['acestreamCheckTimeout'], queryFn: configService.getAcestreamCheckTimeout,
+});
+
+export const useUpdateAcestreamCheckTimeout = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: configService.updateAcestreamCheckTimeout,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['acestreamCheckTimeout'] });
+      queryClient.invalidateQueries({ queryKey: ['allSettings'] });
+    },
+  });
+};
+
 export const usePlaybackRouting = () => useQuery({ queryKey: ['playbackRouting'], queryFn: configService.getPlaybackRouting });
 export const useUpdatePlaybackRouting = () => {
   const queryClient = useQueryClient();

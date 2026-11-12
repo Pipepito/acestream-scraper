@@ -193,6 +193,24 @@ class ConfigService:
             SettingsRepository.CHANNEL_STATUS_INTERVAL, str(minutes), "Minutes between stream online checks"
         )
 
+    def get_acestream_check_timeout(self) -> int:
+        """Seconds a stream check waits for an acestream to start."""
+        try:
+            value = int(float(self.settings_repo.get_setting(SettingsRepository.ACESTREAM_CHECK_TIMEOUT)))
+            return value if 5 <= value <= 120 else int(SettingsRepository.DEFAULT_ACESTREAM_CHECK_TIMEOUT)
+        except (ValueError, TypeError):
+            return int(SettingsRepository.DEFAULT_ACESTREAM_CHECK_TIMEOUT)
+
+    def set_acestream_check_timeout(self, seconds: int) -> bool:
+        # A small ARM machine starts some acestreams cold in 15-20 s: with the
+        # default 10 s they were checked as dead and the relay hardly tried
+        # them. It existed only as a database row; now it can be set.
+        if not 5 <= seconds <= 120:
+            raise HTTPException(status_code=422, detail="Stream check timeout must be 5 to 120 seconds")
+        return self.settings_repo.set_setting(
+            SettingsRepository.ACESTREAM_CHECK_TIMEOUT, str(seconds), "Seconds before an engine status check times out"
+        )
+
     def get_epg_refresh_interval(self) -> int:
         """Hours between automatic EPG refreshes."""
         interval_str = self.settings_repo.get_setting(SettingsRepository.EPG_REFRESH_INTERVAL)

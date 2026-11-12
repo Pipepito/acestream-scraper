@@ -304,6 +304,23 @@ class M3UService:
         # Parsing is read-only; the importing service owns admission and assignment.
         return channels
 
+    @staticmethod
+    def _tv_channel_name(epg_channel, stream_name: str) -> str:
+        """The name a TV channel created from the guide is born with.
+
+        The guide's display name, unless it is just the guide id: a guide may
+        publish `<channel id="Alpha.TV"><display-name>Alpha.TV`, and TV channels
+        were born named like that. Then the stream's own name is used, without
+        what publishers append after `-->` (the
+        matcher drops it too). A name given later in the interface always
+        wins: an existing TV channel is never renamed here.
+        """
+        guide_name = (epg_channel.name or '').strip()
+        if guide_name and guide_name != epg_channel.channel_xml_id:
+            return guide_name
+        own = (stream_name or '').split('-->', 1)[0].strip()
+        return own or guide_name or epg_channel.channel_xml_id
+
     def auto_create_tv_channels_from_epg(self, db, parsed_channels, epg_service, tv_channel_service):
         """
         For each unique tvg_id in parsed_channels, if no TV channel exists but EPG has a channel,
@@ -345,7 +362,7 @@ class M3UService:
             epg_channel = epg_service.find_channel_by_xml_id_across_sources(tvg_id)
             if epg_channel:
                 tv_channel_data = {
-                    'name': epg_channel.name,
+                    'name': self._tv_channel_name(epg_channel, parsed_channels[indices[0]][1]),
                     'logo_url': getattr(epg_channel, 'icon_url', None),
                     'category': getattr(epg_channel, 'group', None),
                     'language': getattr(epg_channel, 'language', None),

@@ -47,6 +47,10 @@ jest.mock('../hooks/useTVChannels', () => ({
 
 type MockTableChannel = { id: number; name: string; acestream_channels: Array<{ id?: string; channel_id: string }> };
 
+jest.mock('../hooks/useEPG', () => ({
+  useEPGSources: () => ({ data: [] }),
+}));
+
 jest.mock('../components/player/ChannelPlayerDialog', () => ({
   __esModule: true,
   default: ({ open, title, contentId }: { open: boolean; title: string; contentId: string | null }) =>

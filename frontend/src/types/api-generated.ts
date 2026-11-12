@@ -5278,6 +5278,8 @@ export interface components {
             kind: "browser" | "relay";
             /** Peers */
             peers?: number | null;
+            /** Source State */
+            source_state?: ("probing" | "playing") | null;
             /** Started At */
             started_at?: string | null;
             /**

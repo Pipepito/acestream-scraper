@@ -928,6 +928,21 @@
             ],
             "title": "Peers"
           },
+          "source_state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "probing",
+                  "playing"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source State"
+          },
           "started_at": {
             "anyOf": [
               {

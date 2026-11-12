@@ -13,11 +13,17 @@ installs `stream_history.StreamHistoryRecorder`, which queues the outcome and
 writes one `stream_attempts` row on a background thread, so a slow or failing
 SQLite write never delays or breaks playback.
 
+A viewing is written while it plays: once a source has played 30 s it is
+written as `ok` with those seconds and rewritten every 30 s, and its end
+rewrites the outcome of the same row. A machine switched off mid-viewing keeps
+what was watched. `/tuner/stream/<id>.ts` records viewings the same way.
+
 | Outcome | Meaning | Counts as |
 |---|---|---|
 | `ok` | Played until the client left | 1 |
 | `ended` | Played, then the source ended | 0.5 |
 | `stall` | Played, then went silent mid-stream | 0.3 |
+| `jumpy` | Played, but its clock went back twice or more (the viewer saw the same play again); also recorded by `/tuner/stream/` | 0.1 |
 | `early_death` | Video, then silent within the first minute | 0 |
 | `no_data`, `empty_session`, `engine_refused`, `upstream_error` | Never played | 0 |
 | `engine_unavailable` | The engine was down: says nothing about the source | ignored |

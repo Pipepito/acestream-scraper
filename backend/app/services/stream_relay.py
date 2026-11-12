@@ -15,7 +15,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional
+from typing import Any, AsyncIterator, Callable, Dict, List, Literal, Optional
 from urllib.parse import urlsplit
 
 import anyio
@@ -73,6 +73,10 @@ class RelayInfo:
     started_at: float
     bytes_sent: int = 0
     finished_at: Optional[float] = None
+    #: ``probing`` while the current source is open but has not delivered a
+    #: byte yet; ``playing`` once it has. Bytes the route sends of its own
+    #: do not count.
+    source_state: Literal["probing", "playing"] = "probing"
 
 
 class RelayRegistry:
@@ -110,8 +114,19 @@ class RelayRegistry:
         return info
 
     def select_stream(self, relay_id: str, content_id: str) -> None:
+        """Book the source the relay starts trying: it is probing until
+        ``source_playing``."""
         with self._lock:
-            self._relays[relay_id].content_id = content_id
+            info = self._relays[relay_id]
+            info.content_id = content_id
+            info.source_state = "probing"
+
+    def source_playing(self, relay_id: str) -> None:
+        """The current source has delivered its first bytes."""
+        with self._lock:
+            info = self._relays.get(relay_id)
+            if info is not None:
+                info.source_state = "playing"
 
     def close(self, relay_id: str) -> None:
         with self._lock:
@@ -233,6 +248,8 @@ async def relay_engine_stream(
                     if response.status_code != 200:
                         raise EngineStreamError(f"Engine stream returned HTTP {response.status_code}")
                     async for chunk in response.aiter_bytes(CHUNK_SIZE):
+                        if not info.bytes_sent:
+                            registry.source_playing(info.id)
                         info.bytes_sent += len(chunk)
                         yield chunk
         except (httpx.HTTPError, httpx.InvalidURL) as exc:

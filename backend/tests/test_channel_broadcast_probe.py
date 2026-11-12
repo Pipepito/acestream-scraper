@@ -4,7 +4,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.models.models import AcestreamChannel
-from app.services.channel_status_service import ChannelStatusService
+from app.services.channel_status_service import ChannelStatusService, SustainedGrowth, GROWTH_CONFIRM_BYTES
+
+LIVE_GROWTH = GROWTH_CONFIRM_BYTES + 1
+MB = 1_000_000
 
 
 @pytest.fixture(autouse=True)
@@ -61,7 +64,7 @@ async def test_media_packets_confirm_broadcast_and_stop_session(probe, monkeypat
     probe._fetch_engine_response = AsyncMock(side_effect=[
         (200, session_response(), None),
         (200, {'response': {'status': 'dl', 'downloaded': 100}}, None),
-        (200, {'response': {'status': 'dl', 'downloaded': 200}}, None),
+        (200, {'response': {'status': 'dl', 'downloaded': 100 + LIVE_GROWTH}}, None),
         (200, {'response': 'ok'}, None),
     ])
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), identifier='infohash', persist=False)
@@ -133,7 +136,7 @@ async def test_downloads_without_verified_media_are_not_online(probe, monkeypatc
         probe._fetch_engine_response = AsyncMock(side_effect=[
             (200, session_response(), None),
             (200, {'response': {'status': 'dl', 'downloaded': 100}}, None),
-            (200, {'response': {'status': 'dl', 'downloaded': 200}}, None),
+            (200, {'response': {'status': 'dl', 'downloaded': 100 + LIVE_GROWTH}}, None),
             (200, {'response': 'ok'}, None),
         ])
         result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
@@ -329,3 +332,76 @@ async def test_outpace_idle_lease_reads_media_and_releases(probe, monkeypatch, v
     assert result['is_online'] is verified
     sample.assert_awaited_once_with('http://engine.test:6878', 'http://engine.test:6878/ace/r/hash/session', timeout=0.015)
     assert probe._fetch_engine_response.call_args.args[:2] == ('http://engine.test:6878/ace/cmd/hash/session', {'method': 'stop'})
+
+
+# Engine stat series measured 2026-11-12 (seconds, status, MB downloaded).
+# A stalled source hands its stored prebuffer over in one go and stays flat.
+STALLED = [(1, 'prebuf', 0.0), (2, 'prebuf', 1.8)] + [(t, 'dl', 9.44) for t in range(3, 61)]
+# Same, but the handover trickles in over 25 s before going flat.
+SLOW_HANDOVER = ([(t, 'prebuf', 0.41 * (t - 1)) for t in range(1, 21)]
+                 + [(21, 'dl', 8.4), (22, 'dl', 8.7), (23, 'dl', 9.0), (24, 'dl', 9.2)]
+                 + [(t, 'dl', 9.44) for t in range(25, 91)])
+# Live sources: about 1 MB/s, or a slow one in 1 MB pieces with long gaps.
+LIVE = [(1, 'prebuf', 2.6)] + [(t, 'dl', 11.5 + 1.05 * (t - 2)) for t in range(2, 61)]
+SLOW_LIVE = ([(1, 'prebuf', 0.0)] + [(t, 'dl', 9.44) for t in range(3, 12)]
+             + [(t, 'dl', 10.48) for t in range(12, 30)] + [(t, 'dl', 11.53) for t in range(30, 61)])
+
+
+def verdict(series):
+    growth = SustainedGrowth()
+    for t, status, mb in series:
+        result = growth.observe(float(t), status, mb * MB)
+        if result is not None:
+            return result, t
+    return None, None
+
+
+@pytest.mark.parametrize('series, expected, by', [
+    (STALLED, False, 28),
+    (SLOW_HANDOVER, False, 46),
+    (LIVE, True, 6),
+    (SLOW_LIVE, True, 12),
+])
+def test_sustained_growth_tells_live_from_a_prebuffer_handover(series, expected, by):
+    result, at = verdict(series)
+    assert result is expected
+    assert at <= by
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    async def sleep(self, seconds):
+        self.now += max(seconds, 0.001)
+
+
+def engine_replaying(series, clock):
+    async def fetch(url, params, timeout):
+        if '/getstream' in url:
+            return 200, session_response(), None
+        if params.get('method') == 'stop':
+            return 200, {'response': 'ok'}, None
+        current = [row for row in series if row[0] <= clock.now + 1] or series[:1]
+        _t, status, mb = current[-1]
+        return 200, {'response': {'status': status, 'downloaded': int(mb * MB)}}, None
+    return fetch
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('series, online', [(STALLED, False), (SLOW_HANDOVER, False), (LIVE, True), (SLOW_LIVE, True)])
+async def test_stalled_sources_are_offline_even_with_media_in_the_handover(probe, monkeypatch, series, online):
+    clock = FakeClock()
+    monkeypatch.setattr('app.services.channel_status_service._clock', clock)
+    monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', clock.sleep)
+    media_probe = AsyncMock(return_value={'signal_verified': True})  # the handover carries real A/V
+    monkeypatch.setattr('app.services.channel_status_service.probe_media', media_probe)
+    probe._get_timeout = lambda: 10.0
+    probe._fetch_engine_response = engine_replaying(series, clock)
+    result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), persist=False)
+    assert result['is_online'] is online
+    assert media_probe.await_count == (1 if online else 0)
+    assert clock.now < 10.0 + 25.0 + 25.0

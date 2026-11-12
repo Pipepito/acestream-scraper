@@ -30,6 +30,55 @@ logger = logging.getLogger(__name__)
 FUTURE_CHECK_TOLERANCE = timedelta(minutes=5)
 
 
+# A source whose broadcaster has stopped still answers: the engine hands over
+# the stored prebuffer in one go (6-11 MB; status prebuf, then dl) and then the
+# download total stays flat. That block grows the total and carries real A/V
+# packets, so it passed as a live broadcast. A live source keeps growing after
+# it: fast ones by about 1 MB/s, slow ones in 1 MB pieces up to ~18 s apart.
+GROWTH_CONFIRM_BYTES = 4 * 1024 * 1024
+GROWTH_SETTLE_SECONDS = 8.0
+GROWTH_WINDOW_SECONDS = 25.0
+
+
+def _clock() -> float:
+    return asyncio.get_running_loop().time()
+
+
+class SustainedGrowth:
+    """Tell a live download from a one-off prebuffer handover.
+
+    The first ``dl`` poll sets the base. Growth of GROWTH_CONFIRM_BYTES over the
+    base, or any growth after the first GROWTH_SETTLE_SECONDS (once the handover
+    has landed), confirms a live source. Still flat GROWTH_WINDOW_SECONDS after
+    the base means the source has stalled.
+    """
+
+    def __init__(self) -> None:
+        self.base: Optional[float] = None
+        self.base_time = 0.0
+        self.settled: Optional[float] = None
+
+    def observe(self, now: float, status: Any, downloaded: float) -> Optional[bool]:
+        if self.base is None:
+            if status != 'dl':
+                return None  # still prebuffering
+            self.base, self.base_time, self.settled = downloaded, now, downloaded
+            return None
+        if downloaded - self.base >= GROWTH_CONFIRM_BYTES:
+            return True
+        elapsed = now - self.base_time
+        if elapsed < GROWTH_SETTLE_SECONDS:
+            self.settled = max(self.settled, downloaded)
+            return None
+        if downloaded > self.settled:
+            return True
+        return False if elapsed >= GROWTH_WINDOW_SECONDS else None
+
+    def deadline(self, default: float) -> float:
+        """The base may need GROWTH_WINDOW_SECONDS beyond the configured timeout."""
+        return default if self.base is None else max(default, self.base_time + GROWTH_WINDOW_SECONDS)
+
+
 def _from_the_future(checked: Optional[datetime], now: datetime) -> bool:
     if checked is None:
         return False
@@ -144,11 +193,22 @@ class ChannelStatusService:
                 return False, 'Engine could not start the stream', None
             if not stat_url or not command_url:
                 return False, 'Engine did not provide a verifiable playback session', None
-            deadline = asyncio.get_running_loop().time() + timeout
+            deadline = _clock() + timeout
+            # A source still prebuffering at the configured timeout gets the
+            # growth window to reach dl, and the base its own window after that.
+            growth_limit = deadline + GROWTH_WINDOW_SECONDS
             previous_downloaded = None
+            gaining_seen = False
+            growth = SustainedGrowth()
             while True:
-                remaining = deadline - asyncio.get_running_loop().time()
+                now = _clock()
+                if gaining_seen:
+                    # A total that never moved keeps the configured timeout.
+                    deadline = growth.deadline(max(deadline, growth_limit))
+                remaining = deadline - now
                 if remaining <= 0:
+                    if gaining_seen and growth.base is not None:
+                        return False, 'Stream stalled after its prebuffer', None
                     return False, 'No broadcast data received before timeout', None
                 http_status, stats, parse_error = await self._fetch_engine_response(stat_url, {}, remaining)
                 if http_status != 200 or parse_error or not isinstance(stats, dict):
@@ -176,13 +236,17 @@ class ChannelStatusService:
                     gaining = (previous_downloaded is not None and downloaded > previous_downloaded
                                and state.get('status') in ('dl', 'prebuf', 'buf'))
                     previous_downloaded = downloaded
-                    if gaining or lazy_reader:
+                    gaining_seen = gaining_seen or gaining
+                    sustained = None if lazy_reader else growth.observe(_clock(), state.get('status'), downloaded)
+                    if sustained is False:
+                        return False, 'Stream stalled after its prebuffer', None
+                    if sustained or lazy_reader:
                         playback_url = self._session_url(engine_url, response.get('playback_url'), 'r')
                         media = None if self._in_use(channel_id) else await probe_media(engine_url, playback_url, timeout=timeout)
                         if media and media.get('signal_verified') is True:
                             return True, 'Media signal verified', media
                         return False, 'ID found, but no media signal verified before timeout', media
-                await asyncio.sleep(min(1.0, max(0, deadline - asyncio.get_running_loop().time())))
+                await asyncio.sleep(min(1.0, max(0, deadline - _clock())))
         finally:
             if command_url:
                 try:

@@ -25,6 +25,11 @@ from app.services.telegram.vault import Vault
 
 _T = TypeVar("_T")
 
+# A chat lookup lists up to 500 dialogs; reuse it between batches.
+ENTITY_TTL_SECONDS = 300
+# Pause between batches of retained messages: each one is two Telegram requests.
+RECONCILE_PACE_SECONDS = 2.0
+
 
 async def threaded(function: Callable[..., _T], *args: Any) -> _T:
     task = asyncio.create_task(asyncio.to_thread(function, *args))
@@ -49,6 +54,8 @@ class Manager:
         self.reconcile = set()
         self.pending = {}
         self.chat_ids = set()
+        self.entities = {}
+        self.backlog = False
         self.last_reconcile = 0.0
         self.last_prune = 0.0
         self.wake = asyncio.Event()
@@ -101,6 +108,7 @@ class Manager:
             self.pending.clear()
             self.reconcile.clear()
             self.chat_ids.clear()
+            self.entities.clear()
             while not self.queue.empty():
                 self.queue.get_nowait()
             self.retry_at = None
@@ -208,6 +216,7 @@ class Manager:
         self.wake.set()
 
     async def disconnect(self) -> None:
+        self.entities.clear()
         if self.client:
             await self.client.disconnect()
             self.client = None
@@ -318,10 +327,27 @@ class Manager:
             return
         source, generation = snap
         try:
-            entity, _ = await self.client.member(source.chat_id)
+            entity = await self._entity(source.chat_id)
         except (ValueError, errors.UserNotParticipantError, errors.ChannelPrivateError):
             await threaded(repo.set_status, source.id, 'access_lost', 'Chat access lost. Rejoin in Telegram, then scan again.')
             return
+        try:
+            await self._read(source, generation, entity, hints)
+        except BaseException:
+            # A failed read may mean lost access: look the chat up again next time.
+            self.entities.pop(source.chat_id, None)
+            raise
+
+    async def _entity(self, chat_id: str) -> Any:
+        cached = self.entities.get(chat_id)
+        if cached and cached[1] > time.monotonic():
+            return cached[0]
+        entity, _ = await self.client.member(chat_id)
+        self.entities[chat_id] = (entity, time.monotonic() + ENTITY_TTL_SECONDS)
+        return entity
+
+    async def _read(self, source: TelegramSource, generation: int, entity: Any,
+                    hints: list[tuple[str | None, int, bool]]) -> None:
         # Reconcile persisted observations on restart/overflow; chunked network
         # reads avoid unbounded Telegram batches. No whole message history stored.
         pending = self.pending.setdefault(source.id, set())
@@ -342,7 +368,7 @@ class Manager:
                     return
                 pending.discard(mid)
         if pending:
-            self.wake.set()
+            self.backlog = True  # paced by run(), not an immediate wake
         messages = await self.client.after(entity, source.cursor, 10, source.topic_id)
         for raw in messages:
             if not await self.process(source, generation, normalize(raw, forum=getattr(entity, 'forum', False)), True):
@@ -424,6 +450,7 @@ class Manager:
                 if '*' in self.reconcile:
                     self.reconcile.update(source.id for source in sources)
                     self.reconcile.discard('*')
+                self.backlog = False
                 for source in sources:
                     async with self.lock:
                         if self.state != 'connected' or not self.client:
@@ -435,7 +462,7 @@ class Manager:
                             await threaded(repo.set_status, source.id, 'error', 'Extraction failed. Test the source recipe before retrying.')
                 self.message = ''
                 self.failures = 0
-                delay = 10
+                delay = RECONCILE_PACE_SECONDS if self.backlog else 10
                 await asyncio.sleep(0.25)
             except asyncio.CancelledError:
                 raise
@@ -443,7 +470,10 @@ class Manager:
                 delay = self.failure(exc)
                 if not self.retry_at:
                     self.retry_at = datetime.now(timezone.utc) + timedelta(seconds=delay)
-                self.reconcile.add('*')
+                # A flood wait loses no updates and keeps the pending batches:
+                # requeuing the whole window would restart the burst when it ends.
+                if not isinstance(exc, errors.FloodWaitError):
+                    self.reconcile.add('*')
 
 
 manager = Manager()

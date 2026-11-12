@@ -532,3 +532,76 @@ def test_persisted_source_diagnostic_has_a_localizable_code(alembic_backend_runt
     assert restored.message == 'Chat access lost'
     assert restored.message_code == 'TELEGRAM_CHAT_LOST'
     assert restored.chat_label == 'Original chat name'
+
+
+class CountingTransport(FakeTransport):
+    """Counts chat lookups and can answer one message read with a flood wait."""
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.member_calls = 0
+        self.flood_once = False
+    async def member(self, chat):
+        self.member_calls += 1
+        return await super().member(chat)
+    async def by_ids(self, entity, ids):
+        if self.flood_once:
+            self.flood_once = False
+            raise errors.FloodWaitError(None, capture=123)
+        return await super().by_ids(entity, ids)
+
+
+async def _observed_source(count):
+    """A connected manager whose only source has ``count`` retained messages."""
+    manager = Manager(CountingTransport)
+    await manager.login(TelegramLogin(api_id=12345, api_hash='a'*32, phone='+123456789'))
+    await manager.authorize('12345')
+    source = await manager.save_source(TelegramSourceCreate(name='Sports', chat_id='-100123'))
+    manager.client.messages = [raw(mid) for mid in range(1, count + 1)]
+    while (await manager.sources())[0].cursor < count:
+        await manager.scan(source.id, [])
+    return manager, source
+
+
+@pytest.mark.asyncio
+async def test_scans_of_one_chat_look_the_chat_up_once(alembic_backend_runtime, private_settings):
+    # Each lookup lists up to 500 dialogs: once per ten-message batch flooded the account.
+    manager, source = await _observed_source(25)
+    manager.client.member_calls = 0
+    manager.reconcile.add(source.id)
+    for _ in range(3):
+        await manager.scan(source.id, [])
+    assert manager.client.member_calls <= 1
+    await manager.stop()
+
+
+@pytest.mark.asyncio
+async def test_reconciling_retained_messages_is_paced(alembic_backend_runtime, private_settings):
+    # Waking at once after every batch of ten turned the retained window into a burst.
+    manager, source = await _observed_source(25)
+    manager.reconcile.add(source.id)
+    manager.wake.clear()
+    await manager.scan(source.id, [])
+    assert manager.pending[source.id]
+    assert not manager.wake.is_set()
+    await manager.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_flood_wait_does_not_requeue_every_retained_message(alembic_backend_runtime, private_settings):
+    # Requeuing the whole window after a flood wait restarted the burst when the wait ended.
+    manager, source = await _observed_source(25)
+    manager.client.flood_once = True
+    task = asyncio.create_task(manager.run())
+    try:
+        for _ in range(100):
+            if manager.retry_at:
+                break
+            await asyncio.sleep(0.05)
+        assert manager.retry_at is not None
+        assert '*' not in manager.reconcile
+        assert source.id not in manager.reconcile
+    finally:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await manager.stop()

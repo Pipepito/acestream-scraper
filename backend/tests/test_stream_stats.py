@@ -60,7 +60,7 @@ async def test_probe_persists_atomic_latest_sample_and_api_exposes_it(db_session
     service._fetch_engine_response = AsyncMock(side_effect=[
         (200, {'response': {'stat_url': '/ace/stat/a/b', 'command_url': '/ace/cmd/a/b', 'playback_url': '/ace/r/a/b'}}, None),
         (200, {'response': {'status': 'dl', 'downloaded': 100, 'peers': 12, 'speed_down': 900, 'speed_up': 10}}, None),
-        (200, {'response': {'status': 'dl', 'downloaded': 200, 'peers': 0, 'speed_down': 0}}, None),
+        (200, {'response': {'status': 'dl', 'downloaded': 100 + 5 * 1024 * 1024, 'peers': 0, 'speed_down': 0}}, None),
         (200, {'response': 'ok'}, None),
     ])
     result = await service.check_channel_status(channel)

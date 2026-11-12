@@ -279,7 +279,9 @@ A full queue leaves playback using the currently known sources.
 HEAD requests and direct content-ID URLs do not trigger these refreshes. Sources
 currently used by an app relay or web player are protected from disruptive probes.
 While the TV relay is active, refreshes repeat every 60 seconds and after source
-failure. Viewers share the existing bounded refresh queue; active playback ownership
+failure. Each refresh looks only at the next three sources the relay would try
+after the one playing, checks those not checked in the last 10 minutes, and
+stops when the channel's viewer leaves. Viewers share the existing bounded refresh queue; active playback ownership
 continues to protect sources from disruptive checks. Refreshing never switches away
 from a source that is still delivering.
 

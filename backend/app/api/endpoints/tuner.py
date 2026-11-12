@@ -438,6 +438,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
         tuner_playback_service.end_opening(key, shared)
         monitor.cancel()
         await asyncio.gather(monitor, return_exceptions=True)
+        tuner_probe_service.stop_channel(tv_channel_id)
         if iterator is not None:
             await iterator.aclose()
         if engine is not None:
@@ -465,6 +466,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
             tuner_playback_service.end_opening(key, shared)
             monitor.cancel()
             await asyncio.gather(monitor, return_exceptions=True)
+            tuner_probe_service.stop_channel(tv_channel_id)
             await iterator.aclose()
 
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)

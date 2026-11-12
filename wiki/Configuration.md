@@ -172,6 +172,7 @@ The amd64 and arm64 images bundle a ZeroNet node (zeronet-conservancy v0.7.10) t
 |----------|-------------|---------|-------|
 | `ENABLE_ZERONET` | Start the bundled ZeroNet node | `false` | amd64 images only; fails with a clear error elsewhere |
 | `ENABLE_TOR` | Run TOR for the bundled node | `false` | Only takes effect with `ENABLE_ZERONET=true`; the node auto-detects TOR over the control port |
+| `TOR_SOCKS_PORT` | Container port that exposes Tor's SOCKS port | *(none)* | Needs `ENABLE_TOR=true`; not `9050`. Clients from `TUNER_ALLOWED_NETWORKS`. See [WARP and Tor ports](Docker.md#warp-and-tor-ports) |
 | `ZERONET_URL` | Address the scraper fetches `zero://` sources through | `http://host.docker.internal:43110` in the checked-in compose example | With `ENABLE_ZERONET=true` and no explicit value it targets the embedded UI port automatically |
 | `ZERONET_DATA_DIR` | Bundled node's state directory | `/data/zeronet` | Mount a volume there |
 | `ZERONET_UI_PORT` | Bundled node's web UI port | `43110` | |
@@ -207,6 +208,8 @@ Cloudflare WARP provides enhanced privacy and secure connection options:
 | `WARP_KILL_SWITCH` | Block direct traffic while WARP is down (`develop`) | `true` | Applies with `WARP_ENABLE_NAT=true` in full tunnel mode. Needs nftables on the host. See [WARP kill switch](Docker.md#warp-kill-switch) |
 | `WARP_READY_ATTEMPTS` | Status polls per WARP readiness wait | `30` | Deployment-only; each wait is capped by the remaining ten-minute startup recovery window |
 | `WARP_READY_INTERVAL` | Seconds between WARP readiness polls | `1` | Deployment-only; automatic recovery uses monotonic elapsed time and Retry starts another window |
+| `WARP_ALLOW_INBOUND` | Accept connections from public addresses with WARP connected | `false` | Full tunnel mode with `WARP_ENABLE_NAT=true`. Only their replies leave outside the tunnel. See [Inbound connections with WARP](Docker.md#inbound-connections-with-warp) |
+| `WARP_SOCKS_PORT` | SOCKS5 port whose traffic leaves through WARP | *(none)* | Full tunnel mode with `WARP_ENABLE_NAT=true`. Clients from `TUNER_ALLOWED_NETWORKS`, public destinations only. See [WARP and Tor ports](Docker.md#warp-and-tor-ports) |
 | `WARP_DNS_ONLY` | Use encrypted DNS without tunneling traffic (`develop`) | `false` | Requires `NET_ADMIN`, but no `SYS_ADMIN` or `/dev/net/tun`. Video and other traffic keep the normal connection |
 | `WARP_LICENSE_KEY` | WARP license key | - | Optional: For WARP+ or Team accounts |
 

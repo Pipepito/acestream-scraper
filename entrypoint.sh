@@ -493,6 +493,30 @@ if feature_enabled "$ENABLE_TOR" && ! feature_enabled "$ENABLE_ZERONET"; then
     log "ENABLE_TOR=true has no effect without ENABLE_ZERONET=true; skipping TOR"
 fi
 
+# Ports that let programs outside the container use WARP (and Tor). Their
+# helpers start with the network services; see wiki/Docker.md#warp-and-tor-ports.
+valid_port() {
+    case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+warp_full_tunnel() {
+    feature_enabled "$ENABLE_WARP" && feature_enabled "${WARP_ENABLE_NAT:-false}" &&
+        ! feature_enabled "${WARP_DNS_ONLY:-false}"
+}
+if [ -n "${WARP_SOCKS_PORT:-}" ]; then
+    valid_port "$WARP_SOCKS_PORT" || fail "WARP_SOCKS_PORT must be a port number (1-65535)"
+    warp_full_tunnel || log "WARP_SOCKS_PORT needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; not starting the SOCKS port"
+fi
+if feature_enabled "${WARP_ALLOW_INBOUND:-false}" && ! warp_full_tunnel; then
+    log "WARP_ALLOW_INBOUND needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; ignoring it"
+fi
+if [ -n "${TOR_SOCKS_PORT:-}" ]; then
+    { valid_port "$TOR_SOCKS_PORT" && [ "$TOR_SOCKS_PORT" != 9050 ]; } ||
+        fail "TOR_SOCKS_PORT must be a port number (1-65535) other than 9050, which Tor itself holds"
+    { feature_enabled "$ENABLE_TOR" && feature_enabled "$ENABLE_ZERONET"; } ||
+        log "TOR_SOCKS_PORT needs ENABLE_TOR=true and ENABLE_ZERONET=true; not starting the Tor port"
+fi
+
 export ACEXY_NO_RESPONSE_TIMEOUT="${ACEXY_NO_RESPONSE_TIMEOUT:-30s}"
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
@@ -539,6 +563,13 @@ if feature_enabled "$ENABLE_ZERONET"; then
     esac
 fi
 
+HELPERS_DIR="$(dirname "$0")"
+start_helper() {
+    supervise_service "$1" "$2" &
+    child_pids+=("$!")
+    child_names+=("$1")
+}
+
 start_tor() {
     if ! command -v tor >/dev/null 2>&1; then
         fail "ENABLE_TOR=true but the tor binary is not installed in this image (amd64 and arm64 images only)"
@@ -557,6 +588,11 @@ EOF
     supervise_service "Tor" "tor -f $torrc" &
     child_pids+=("$!")
     child_names+=("Tor")
+    # Tor only listens on the container's loopback; this exposes its SOCKS
+    # port on another container port, which can be published.
+    if [ -n "${TOR_SOCKS_PORT:-}" ]; then
+        start_helper "Tor-SOCKS" "exec python3 $(printf '%q' "$HELPERS_DIR/tcp-forward.py") --port $TOR_SOCKS_PORT --to 127.0.0.1:9050 --allow $(printf '%q' "$TUNER_ALLOWED_NETWORKS")"
+    fi
 }
 
 configure_ipfs_repo() {
@@ -737,6 +773,17 @@ if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then
     supervise_service "Acexy" "$ACEXY_START_COMMAND" &
     child_pids+=("$!")
     child_names+=("Acexy")
+fi
+
+# Started after the WARP barrier, so nothing is relayed before the tunnel is
+# up; the kill switch then blocks the helper's traffic whenever WARP is down.
+if [ -n "${WARP_SOCKS_PORT:-}" ] && warp_full_tunnel; then
+    start_helper "WARP-SOCKS" "exec python3 $(printf '%q' "$HELPERS_DIR/warp-socks.py") --port $WARP_SOCKS_PORT --allow $(printf '%q' "$TUNER_ALLOWED_NETWORKS")"
+fi
+# WARP's firewall drops connections from public addresses (#93); this lets
+# them in again after every reconnect and keeps their replies off the tunnel.
+if feature_enabled "${WARP_ALLOW_INBOUND:-false}" && warp_full_tunnel; then
+    start_helper "WARP-inbound" "exec sh $(printf '%q' "$HELPERS_DIR/warp-inbound.sh")"
 fi
 network_services_started=true
 }

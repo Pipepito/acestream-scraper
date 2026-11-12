@@ -221,6 +221,39 @@ traffic is being blocked.
 
 Details: [startup recovery](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/startup-recovery.md#warp-kill-switch).
 
+### WARP and Tor ports
+
+In full tunnel mode everything the container sends leaves through WARP, but
+other programs (a media centre add-on, another container) cannot use that
+tunnel, and WARP's own proxy mode would switch the tunnel off. These optional
+ports let them use it:
+
+- `WARP_SOCKS_PORT=1080` starts a SOCKS5 server on that container port; publish
+  it (`-p 127.0.0.1:1080:1080`) and point the program at it with remote DNS
+  (`socks5h://`). It starts after WARP connects and only with
+  `WARP_ENABLE_NAT=true` in full tunnel mode; with the kill switch on, nothing
+  it relays leaves while WARP is down.
+- `TOR_SOCKS_PORT=9150` exposes the embedded Tor's SOCKS port, which only
+  listens inside the container, on that container port so it can be published.
+  It needs `ENABLE_TOR=true` with `ENABLE_ZERONET=true`, and cannot be `9050`,
+  which Tor itself holds.
+
+Neither port has a password, so clients must come from `TUNER_ALLOWED_NETWORKS`
+(private ranges by default). The WARP port also only connects to public
+addresses, never to the container's own services or your local network.
+
+### Inbound connections with WARP
+
+In full tunnel mode WARP's own firewall drops connections that come from a
+public address, and replies would go into the tunnel anyway: the engine's P2P
+port and remote access from outside your network stop working. Clients on
+private ranges are not affected. `WARP_ALLOW_INBOUND=true` (with
+`WARP_ENABLE_NAT=true`) lets connections that arrive on the container's
+`eth0` (`WARP_INBOUND_IFACE`) in again after every WARP reconnect, and sends
+only their replies outside the tunnel; everything the container starts itself
+still leaves through WARP. While WARP is down, the kill switch keeps rejecting
+those replies too.
+
 ### Pre-release channel (`develop`)
 
 The tags above are release tags: `latest` and the immutable `vX.Y.Z` / `vX.Y.Z-<flavor>` tags are cut from the `main` branch. Next to them, validated application or build changes on the `develop` branch publish a pre-release channel:

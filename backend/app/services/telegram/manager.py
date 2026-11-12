@@ -55,6 +55,7 @@ class Manager:
         self.pending = {}
         self.chat_ids = set()
         self.entities = {}
+        self.pts = {}  # chat -> update counter at the last check; survives reconnects
         self.backlog = False
         self.last_reconcile = 0.0
         self.last_prune = 0.0
@@ -109,6 +110,7 @@ class Manager:
             self.reconcile.clear()
             self.chat_ids.clear()
             self.entities.clear()
+            self.pts.clear()
             while not self.queue.empty():
                 self.queue.get_nowait()
             self.retry_at = None
@@ -245,6 +247,7 @@ class Manager:
             await threaded(self.vault.remove)
         self.account = None
         self.pending.clear()
+        self.pts.clear()
         self.reconcile.clear()
         while not self.queue.empty():
             self.queue.get_nowait()
@@ -346,6 +349,22 @@ class Manager:
         self.entities[chat_id] = (entity, time.monotonic() + ENTITY_TTL_SECONDS)
         return entity
 
+    async def _changed(self, chat_id: str, entity: Any, retained: set[int]) -> set[int]:
+        """Retained IDs to read again. A channel keeps an update counter, so only
+        what changed since the last check; otherwise the whole retained window."""
+        pts = self.pts.get(chat_id)
+        if pts is not None:
+            now, changed, too_long = await self.client.changes(entity, pts)
+            if not too_long:
+                self.pts[chat_id] = now
+                return changed & retained
+            if now is not None:
+                self.pts[chat_id] = now
+                return retained
+        # Take the counter before reading, so changes made meanwhile show next time.
+        self.pts[chat_id] = await self.client.channel_state(entity)
+        return retained
+
     async def _read(self, source: TelegramSource, generation: int, entity: Any,
                     hints: list[tuple[str | None, int, bool]]) -> None:
         # Reconcile persisted observations on restart/overflow; chunked network
@@ -355,7 +374,7 @@ class Manager:
         pending.intersection_update(retained)
         pending.update(mid for chat, mid, _ in hints if chat == source.chat_id and mid in retained)
         if source.id in self.reconcile or '*' in self.reconcile:
-            pending.update(retained)
+            pending.update(await self._changed(source.chat_id, entity, retained))
             self.reconcile.discard(source.id)
         # At most 1000 retained IDs plus 512 event hints. Process ten per turn;
         # controls and other sources get the lock between these bounded batches.

@@ -245,6 +245,7 @@ class FakeTransport:
     async def after(self, entity, cursor, limit, topic_id=None):
         return [m for m in self.messages if m.id > cursor and self._in(m, topic_id)][:limit]
     async def by_ids(self, entity, ids): return [next((m for m in self.messages if m.id == mid), None) for mid in ids]
+    async def channel_state(self, entity): return None  # a basic group: no update counter of its own
 
 
 def raw(mid, text=SAMPLE):
@@ -550,9 +551,9 @@ class CountingTransport(FakeTransport):
         return await super().by_ids(entity, ids)
 
 
-async def _observed_source(count):
+async def _observed_source(count, transport=None):
     """A connected manager whose only source has ``count`` retained messages."""
-    manager = Manager(CountingTransport)
+    manager = Manager(transport or CountingTransport)
     await manager.login(TelegramLogin(api_id=12345, api_hash='a'*32, phone='+123456789'))
     await manager.authorize('12345')
     source = await manager.save_source(TelegramSourceCreate(name='Sports', chat_id='-100123'))
@@ -605,3 +606,99 @@ async def test_a_flood_wait_does_not_requeue_every_retained_message(alembic_back
         with pytest.raises(asyncio.CancelledError):
             await task
         await manager.stop()
+
+
+class ChannelTransport(CountingTransport):
+    """A channel with an update counter: every edit or deletion raises it."""
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.counter = 100
+        self.log = []
+        self.read_ids = []
+        self.too_long = False
+    async def channel_state(self, entity): return self.counter
+    async def changes(self, entity, pts):
+        if self.too_long:
+            return self.counter, set(), True
+        return self.counter, {mid for at, mid in self.log if at > pts}, False
+    def edit(self, mid, text):
+        self.counter += 1
+        self.log.append((self.counter, mid))
+        self.messages = [raw(mid, text) if m.id == mid else m for m in self.messages]
+    async def by_ids(self, entity, ids):
+        self.read_ids += list(ids)
+        return await super().by_ids(entity, ids)
+
+
+async def _reconcile(manager, source):
+    manager.reconcile.add(source.id)
+    for _ in range(20):
+        await manager.scan(source.id, [])
+        if not manager.pending.get(source.id):
+            return
+    raise AssertionError('reconciliation did not finish')
+
+
+def _channel_ids(runtime, source, mid):
+    from app.models.telegram import TelegramObservation
+    with runtime.SessionLocal() as db:
+        return db.get(TelegramObservation, (source.id, mid)).channel_ids
+
+
+@pytest.mark.asyncio
+async def test_a_channel_rereads_only_the_messages_changed_since_the_last_check(alembic_backend_runtime, private_settings):
+    manager, source = await _observed_source(25, ChannelTransport)
+    await _reconcile(manager, source)  # no counter yet: the whole window, once
+    manager.client.read_ids.clear()
+    manager.client.edit(3, 'Edited chatter')
+    await _reconcile(manager, source)
+    assert manager.client.read_ids == [3]
+    assert _channel_ids(alembic_backend_runtime, source, 3) == []
+    await manager.stop()
+
+
+@pytest.mark.asyncio
+async def test_too_many_changes_reread_the_whole_window(alembic_backend_runtime, private_settings):
+    manager, source = await _observed_source(25, ChannelTransport)
+    await _reconcile(manager, source)
+    manager.client.read_ids.clear()
+    manager.client.too_long = True
+    await _reconcile(manager, source)
+    assert sorted(manager.client.read_ids) == list(range(1, 26))
+    await manager.stop()
+
+
+@pytest.mark.asyncio
+async def test_edits_made_while_disconnected_are_read_after_reconnecting(alembic_backend_runtime, private_settings):
+    manager, source = await _observed_source(25, ChannelTransport)
+    await _reconcile(manager, source)
+    old = manager.client
+    await manager.disconnect()
+    old.edit(5, 'Edited chatter')
+    await manager.resume()
+    new = manager.client
+    new.messages, new.counter, new.log = old.messages, old.counter, old.log
+    for _ in range(20):  # resume() queues every source for reconciliation
+        await manager.scan(source.id, [])
+        if not manager.pending.get(source.id):
+            break
+    assert new.read_ids == [5]
+    assert _channel_ids(alembic_backend_runtime, source, 5) == []
+    await manager.stop()
+
+
+@pytest.mark.asyncio
+async def test_channel_changes_collect_new_edited_and_deleted_ids():
+    replies = [
+        types.updates.ChannelDifference(pts=5, new_messages=[raw(9)], other_updates=[
+            types.UpdateEditChannelMessage(message=raw(3), pts=4, pts_count=1),
+            types.UpdateDeleteChannelMessages(channel_id=1, messages=[7], pts=5, pts_count=1)],
+            chats=[], users=[], final=False),
+        types.updates.ChannelDifferenceEmpty(pts=5),  # Telegram may leave «final» unset here
+    ]
+    transport = Transport.__new__(Transport)
+    transport.client = AsyncMock(side_effect=replies)
+    assert await transport.changes('channel', 1) == (5, {3, 7, 9}, False)
+    transport.client = AsyncMock(return_value=types.updates.ChannelDifferenceTooLong(
+        dialog=SimpleNamespace(pts=42), messages=[], chats=[], users=[]))
+    assert await transport.changes('channel', 1) == (42, set(), True)

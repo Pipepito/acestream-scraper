@@ -62,7 +62,7 @@ Docker:
 
 Branching and release flow (adopted 2026-08-28):
 
-- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation / develop` or `PR Validation / main`, no force-push/deletion). PRs into `main` are accepted only from `develop` — the private PR pipeline fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
+- `develop` is the permanent pre-release branch; feature PRs target `develop`. `main` is the release branch. Both are protected (PRs only, required status `PR Validation / develop` or `PR Validation / main`, no force-push/deletion); only the owner may bypass the PR and status rules, and only on `develop`. PRs into `main` are accepted only from `develop` — the private PR pipeline fails any other head. Releases are cut with a `develop` -> `main` PR; hotfixes go through `develop` too.
 - All PRs use the administrator-managed private PR pipeline and pinned private infrastructure helpers. The complete backend/frontend suite runs automatically for every PR in a restricted container (no network, credentials or Docker socket) and reports tests and coverage on the PR. Installing proposed dependencies and building images run on the build host, so they stay in the separate authorized job for an exact head/base/target: automatic for verified owner PRs, owner-approved for anyone else, and requested only when the change reaches build or dependency inputs. The required status waits for whatever the change needs. See `docs/ops/jenkins-collaborator-safety.md`; editing repository files alone does not activate this boundary.
 - PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and new revisions never abort the lock holder. Approval waits hold no executor or Docker lock; each automatic/approved workload retains the lock through cleanup. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
 - Every push to `develop` runs the private develop pipeline. Its private selector compares the last successful build; known documentation-only changes do not publish images. Application changes run the full suite and Docker/runtime smokes. Only the current protected develop revision can publish floating `develop*` tags. Publication previews and policy tests live in the private infrastructure repository; public application checks remain available here.
@@ -606,10 +606,12 @@ separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
 ## Repository contribution governance
 
 `.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
-it. Baseline main/develop rules require PRs and resolved conversations, without
-bypass. Each branch has its own Jenkins-bound status ruleset (`PR Validation /
-develop`, `PR Validation / main`); the develop one lets Pipepito bypass it through
-a pull request, the main one has no bypass. A separate one-approval rule allows
+it. Baseline main/develop rules block deletion and force pushes, without bypass.
+Each branch has its own ruleset requiring PRs, resolved conversations and its
+Jenkins-bound status (`PR Validation / develop`, `PR Validation / main`). The main
+one has no bypass. The develop one lets Pipepito bypass it, including by direct
+update (owner-selected 2026-11-12 for Update branch on release PRs); never extend
+that to main or to another account. A separate one-approval rule allows
 automatic exemption for Pipepito as the merging user (not by PR author).
 Collaborators still need approval when merging.
 Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns

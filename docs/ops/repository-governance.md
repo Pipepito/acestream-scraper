@@ -14,9 +14,9 @@ Changes to live protection require explicit maintainer authorization.
 
 | Ruleset | Targets | Requirements |
 | --- | --- | --- |
-| Protected integration and release branches | `main`, `develop` | PR required, review conversations resolved; no deletion or force pushes; no bypass actors |
-| PR validation for develop | `develop` | Jenkins `PR Validation / develop` successful; `Pipepito` may bypass it when merging a pull request |
-| PR validation for main | `main` | Jenkins `PR Validation / main` successful; no bypass actors |
+| Protected integration and release branches | `main`, `develop` | No deletion or force pushes; no bypass actors |
+| PR validation for develop | `develop` | PR required, review conversations resolved, Jenkins `PR Validation / develop` successful; `Pipepito` may bypass these, including with a direct update |
+| PR validation for main | `main` | PR required, review conversations resolved, Jenkins `PR Validation / main` successful; no bypass actors |
 | Maintainer-controlled integration and release | `main`, `develop` | Only `Pipepito` may update these branches |
 | Pull request review | `main`, `develop` | One approval, dismissed when reviewable commits change; `Pipepito` is automatically exempt from this review-only ruleset |
 | Immutable version tags | `v*` tags | Existing tags cannot be updated or deleted; new tag creation remains manual and permitted |
@@ -27,9 +27,9 @@ account, so no approval or manual bypass is needed when Pipepito merges. This is
 an exemption for the merging user, not the PR author: Pipepito can also merge
 collaborator PRs without approval. Collaborators remain subject to the review
 requirement when they merge. This tradeoff was explicitly selected by the owner.
-The baseline PR/conversation rules still apply to everyone through the separate
-ruleset with no exemptions. Direct pushes remain blocked. The status rulesets keep
-the non-strict policy (no requirement to update branches after every merge).
+The PR/conversation rules live in the per-branch rulesets below: everyone on
+`main`, everyone but the owner on `develop`. The status rules keep the
+non-strict policy (no requirement to update branches after every merge).
 
 The required Jenkins status is separate for each target, so a result for
 `develop` can never satisfy `main`. Both contexts are bound to GitHub App ID
@@ -37,19 +37,26 @@ The required Jenkins status is separate for each target, so a result for
 native `PR Validation` context may still appear on commits as information. It is
 not a merge requirement.
 
-On `develop`, the status ruleset lists `Pipepito` with `bypass_mode:
-pull_request`: the owner can merge a pull request there without a green status,
-for example while the build host is down. `main` has no bypass, so a release
-always needs `PR Validation / main`. This records the live setting found on
-2026-11-10. Remove that bypass actor from the live ruleset and from
-`pr-validation-develop.json` together if the intent is that nothing reaches
-`develop` without Jenkins.
+On `develop`, the PR and status ruleset lists `Pipepito` with `bypass_mode:
+always`. The owner selected this on 2026-11-12 so that **Update branch** on the
+release pull request can merge `main` into `develop` without a second pull
+request. GitHub cannot limit a bypass to that button: the owner can also push
+any commit to `develop` directly, and can merge a pull request there without a
+green status (GitHub asks for confirmation). Nobody else can, because the update
+restriction lets only the owner update the branch. A direct update still starts
+the develop pipeline, which tests it after the fact.
+
+`main` has no bypass: every change needs a pull request and `PR Validation /
+main`. The same pull-request rule is recorded in both per-branch rulesets because
+a bypass applies to a whole ruleset. To withdraw the owner's direct access to
+`develop`, remove that bypass actor from the live ruleset and from
+`pr-validation-develop.json` together.
 
 Existing classic protections are retained; GitHub combines applicable
 protections. Linear history is not required because release PRs merge `develop`
 into `main`. Signed commits and merge queues are not required.
 
-Live settings verified on 2026-11-10 with the API command above:
+Live settings verified on 2026-11-12 with the API command above:
 [baseline](https://github.com/Pipepito/acestream-scraper/rules/25541845),
 [develop status](https://github.com/Pipepito/acestream-scraper/rules/25727775),
 [main status](https://github.com/Pipepito/acestream-scraper/rules/25727778),

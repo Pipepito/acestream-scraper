@@ -583,10 +583,12 @@ separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
 ## Repository contribution governance
 
 `.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
-it. Baseline main/develop rules require PRs and resolved conversations, without
-bypass. Each branch has its own Jenkins-bound status ruleset (`PR Validation /
-develop`, `PR Validation / main`); the develop one lets Pipepito bypass it through
-a pull request, the main one has no bypass. A separate one-approval rule allows
+it. Baseline main/develop rules block deletion and force pushes, without bypass.
+Each branch has its own ruleset requiring PRs, resolved conversations and its
+Jenkins-bound status (`PR Validation / develop`, `PR Validation / main`). The main
+one has no bypass. The develop one lets Pipepito bypass it, including by direct
+update (owner-selected 2026-11-12 for Update branch on release PRs); never extend
+that to main or to another account. A separate one-approval rule allows
 automatic exemption for Pipepito as the merging user (not by PR author).
 Collaborators still need approval when merging.
 Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns

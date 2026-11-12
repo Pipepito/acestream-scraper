@@ -6,7 +6,7 @@
     {
       "actor_id": 1348529,
       "actor_type": "User",
-      "bypass_mode": "pull_request"
+      "bypass_mode": "always"
     }
   ],
   "conditions": {
@@ -29,6 +29,16 @@
             "integration_id": 3430282
           }
         ]
+      }
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0,
+        "required_review_thread_resolution": true
       }
     }
   ]

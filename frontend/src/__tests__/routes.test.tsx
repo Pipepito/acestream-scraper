@@ -8,6 +8,11 @@ import { mockResponsiveShellQueries } from '../testUtils/mockResponsiveShell';
 import { useMediaQuery } from '@mui/material';
 import { getNavTitle, navItems } from '../components/layout/navItems';
 
+// Pages are loaded lazily. A busy build host has taken longer than the default
+// one-second wait to load one, so these waits allow the same five seconds as
+// the other lazy-content tests.
+const LAZY_PAGE = { timeout: 5000 };
+
 jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
   return { ...actual, useMediaQuery: jest.fn() };
@@ -67,7 +72,7 @@ describe('routes', () => {
   ])('redirects %s to the page that holds that information', async (from, heading) => {
     expect(LEGACY_REDIRECTS.some((r) => r.from === from.replace(/\/abc$/, '/:id'))).toBe(true);
     renderAt(from);
-    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: heading }, LAZY_PAGE)).toBeInTheDocument();
   });
 
   it('keeps playback and network editors discoverable from Settings', () => {
@@ -87,7 +92,7 @@ describe('routes', () => {
     ['tv-casting', 'TV casting'], ['remote-players', 'Remote players'], ['media-servers', 'Media servers'], ['telegram', 'Telegram'],
   ])('opens and selects /integrations/%s directly', async (path, title) => {
     renderAt(`/integrations/${path}`);
-    expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible();
+    expect(await screen.findByRole('heading', { level: 1, name: title }, LAZY_PAGE)).toBeVisible();
     const destination = path === 'telegram' ? 'Channels' : 'Connections';
     expect(screen.getByRole('link', { name: destination })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('list', { name: 'Main navigation' })).toContainElement(screen.getByRole('link', { name: destination }));

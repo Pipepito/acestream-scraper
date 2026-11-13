@@ -73,7 +73,7 @@ const ChannelCardList: React.FC<ChannelCardListProps> = ({
                 size="small"
                 checked={selectedIds.includes(channel.id)}
                 onChange={(event) => toggleSelected(channel.id, event.target.checked)}
-                inputProps={{ 'aria-label': `Select ${channel.name}` }}
+                inputProps={{ 'aria-label': tUi('Select {{name}}', { name: channel.name }) }}
                 sx={{ mt: -0.5, ml: -1 }}
               />
               <Box sx={{ minWidth: 0, flex: 1 }}>

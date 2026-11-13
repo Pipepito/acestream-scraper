@@ -250,7 +250,7 @@ const TVChannels: React.FC = () => {
           { label: favoritesOnly ? uiText("Favorites") : uiText("Channels"), value: String(inventoryTotal) },
           ...(favoritesOnly ? [] : [{ label: uiText("Favorites"), value: favoriteCount == null ? '—' : String(favoriteCount) }]),
           { label: uiText("With streams"), value: withStreamsCount == null ? '—' : String(withStreamsCount), tone: withStreamsCount === 0 && inventoryTotal > 0 ? 'warning' as const : 'default' as const },
-          { label: uiText("Matching filters"), value: hasFilters ? String(totalChannels) : 'all' },
+          { label: uiText("Matching filters"), value: hasFilters ? String(totalChannels) : uiText('all') },
         ]}
       />
 

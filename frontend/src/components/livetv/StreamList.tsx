@@ -18,7 +18,7 @@ interface StreamListProps {
 
 const statusText = (stream: AcestreamChannel) => {
   const state = stream.is_online === true ? uiText("Online") : stream.is_online === false ? uiText("Offline") : uiText("Unknown");
-  return stream.last_checked ? `${state} · ${formatRelativeTime(stream.last_checked)}` : `${state} · not checked yet`;
+  return stream.last_checked ? `${state} · ${formatRelativeTime(stream.last_checked)}` : uiText('{{state}} · not checked yet', { state });
 };
 
 /** Every stream, 50 at a time: a Show more button plus automatic loading near the end of the list. */

@@ -1,4 +1,4 @@
-import { uiText } from '../../i18n/text';
+import { translateKnown, uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import {
@@ -98,7 +98,7 @@ const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, on
                             <span>
                               {hit.host}:{hit.port}
                             </span>
-                            <Chip size="small" label={KIND_LABEL[hit.kind]} />
+                            <Chip size="small" label={translateKnown(KIND_LABEL[hit.kind])} />
                           </Stack>
                         }
                         secondary={hit.hint}

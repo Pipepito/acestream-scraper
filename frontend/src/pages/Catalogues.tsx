@@ -275,7 +275,7 @@ const Catalogues: React.FC<CataloguesProps> = ({ embedded = false }) => {
         <List disablePadding aria-label={tUi("Catalogue entries")}>
           {filtered.slice((page - 1) * 50, page * 50).map((entry) => <ListItem key={entry.id} disableGutters divider sx={{ alignItems: 'flex-start' }}
             secondaryAction={!preview && view.id && entry.kind === 'folder' ? <RowActionsMenu label={tUi("More actions for {{value0}}", { value0: entry.name })} actions={[{ label: uiText("Assign streams to TV channel…"), onClick: () => setAssignFolderEntry(entry) }]} /> : undefined}>
-            {preview && entry.kind === 'folder' ? <Checkbox inputProps={{ 'aria-label': `Include ${entry.name}` }} disabled={branches.includes('root')}
+            {preview && entry.kind === 'folder' ? <Checkbox inputProps={{ 'aria-label': uiText('Include {{name}}', { name: entry.name }) }} disabled={branches.includes('root')}
               checked={branches.includes(entry.id) || branches.includes('root')} onChange={(_, checked) => setBranches(checked ? [...branches, entry.id] : branches.filter((id) => id !== entry.id))} /> : null}
             <ListItemButton selected={details === entry.id} onClick={() => entry.kind === 'folder' ? navigateFolder(entry.id) : inspect(entry)} sx={{ gap: 1.5, minWidth: 0 }}>
               {showArtwork && entry.image ? <Avatar src={entry.image} alt="" imgProps={{ loading: 'lazy', referrerPolicy: 'no-referrer' }} variant="rounded" /> : entry.kind === 'folder' ? <FolderOutlined /> : null}

@@ -38,7 +38,7 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
       if (!source.last_updated || source.last_error) void refresh.handleRefreshSourceClick(source.id);
       return source;
     },
-    onError: error => showNotice(`Could not add this guide. ${getErrorMessage(error)}`, 'error'),
+    onError: error => showNotice(() => tUi('Could not add this guide. {{error}}', { error: getErrorMessage(error) }), 'error'),
     onSettled: () => { void client.invalidateQueries({ queryKey: ['epg-sources'] }); },
   });
   // A background download can continue after leaving setup. Writes and reviewed
@@ -57,7 +57,7 @@ export default function SetupGuide({ active, onBusyChange }: { active: boolean; 
     {!selected ? <>
       {epgProviders.map(provider => <Box key={provider.id}>
         <Typography component="h3" variant="subtitle1">{provider.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{provider.description}</Typography>
+        <Typography variant="body2" color="text.secondary">{tUi(provider.description)}</Typography>
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1 }}>
           <Button variant="contained" disabled={busy || downloading || !sources.isSuccess} onClick={() => add.mutate({ name: provider.name, url: provider.url, enabled: true })}>{tUi("Use")}{' '}{provider.name}</Button>
           <Link href={provider.website} target="_blank" rel="noopener noreferrer">{tUi("About this guide")}</Link>

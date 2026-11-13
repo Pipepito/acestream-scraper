@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CommonLabel } from '../../i18n/resources';
 import i18n from '../../i18n';
+import { translateKnown } from '../../i18n/text';
 import { matchPath } from 'react-router-dom';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import LiveTvRoundedIcon from '@mui/icons-material/LiveTvRounded';
@@ -64,5 +65,5 @@ export function getNavTitle(pathname: string): string {
   const matched = navItems.find((item) => isNavItemSelected(item, pathname));
   if (matched) return i18n.t(matched.label);
   const hidden = hiddenRouteTitles.find((item) => matchesSegmentPath(pathname, item.path, true));
-  return hidden?.title ?? 'Not Found';
+  return translateKnown(hidden?.title ?? 'Not Found');
 }

@@ -101,7 +101,7 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
       const message = getErrorMessage(reason);
       setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'error', message })));
       setSummary({ success: 0, error: selectedChannels.length });
-      setError(`${selectedChannels.length} operation(s) failed, 0 succeeded.`);
+      setError(tUi('{{failed}} operation(s) failed, 0 succeeded.', { failed: selectedChannels.length }));
     } finally {
       submitting.current = false;
       setLoading(false);

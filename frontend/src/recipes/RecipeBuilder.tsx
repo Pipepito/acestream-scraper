@@ -134,7 +134,7 @@ export default function RecipeBuilder({ initialRecipe, sourceIdentity, preview, 
           <Stack spacing={2} sx={{ flex: 1, minWidth: 0, width: '100%' }}>
             <Tabs value={view} onChange={(_, value) => setView(value)} aria-label={tUi("Sample view")}><Tab value="source" label={tUi("Raw source")} /><Tab value="visual" label={recipe.mode === 'json' ? tUi("JSON fields") : tUi("Visual picker")} disabled={recipe.mode === 'regex'} /></Tabs>
             <TextField select label={tUi("Assign selection to")} value={target} onChange={e => setTarget(e.target.value as FieldName | 'records')} fullWidth>
-              <MenuItem value="records">{tUi("Repeating record")}</MenuItem>{Object.entries(fieldLabels).map(([key, label]) => <MenuItem key={key} value={key}>{label}</MenuItem>)}
+              <MenuItem value="records">{tUi("Repeating record")}</MenuItem>{Object.entries(fieldLabels).map(([key, label]) => <MenuItem key={key} value={key}>{translateKnown(label)}</MenuItem>)}
             </TextField>
             {view === 'source' || recipe.mode === 'regex' ? <>
               <TextField inputRef={source} label={tUi("HTML, text or JSON sample")} value={sample} onChange={e => { try { changeSample(e.target.value); } catch (cause) { setError((cause as Error).message); } }} multiline minRows={12} maxRows={24} fullWidth inputProps={{ spellCheck: false, style: { fontFamily: 'monospace', fontSize: 13 } }} onSelect={() => { const node = source.current; if (node) setSelection({ start: node.selectionStart, end: node.selectionEnd, text: sample.slice(node.selectionStart, node.selectionEnd) }); }} />

@@ -13,6 +13,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useBatchAssignAcestreams } from '../hooks/useTVChannels';
+import { getErrorDetail } from '../utils/errorUtils';
 
 interface BatchAcestreamAssignmentProps {
   open: boolean;
@@ -57,7 +58,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
         assignments: ids.map((id) => ({ tv_channel_id: tvChannelId, acestream_channel_id: id })),
       });
       
-      setSuccess(`Successfully associated ${result.success_count} acestreams. Failed to associate ${result.failure_count} acestreams.`);
+      setSuccess(`${tUi('Successfully associated {{count}} acestreams.', { count: result.success_count })} ${tUi('Failed to associate {{count}} acestreams.', { count: result.failure_count })}`);
       setAceStreamIds('');
       
       // Auto-close dialog after successful operation
@@ -67,8 +68,8 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
           setSuccess(null);
         }, 2000);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to associate acestreams');
+    } catch (err) {
+      setError(getErrorDetail(err) || tUi('Failed to associate acestreams'));
     }
   };
   
@@ -119,7 +120,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
           {batchAssignMutation.isPending ? (
             <CircularProgress size={24} color="inherit" />
           ) : (
-            'Associate'
+            tUi('Associate')
           )}
         </Button>
       </DialogActions>

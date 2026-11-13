@@ -13,7 +13,7 @@ interface OrphanedSourcesDialogProps {
   onDone: (message: string) => void;
 }
 
-const describe = (row: OrphanedSource) => `${row.count} stream${row.count === 1 ? '' : 's'} · ${row.assigned_count} linked to TV channels`;
+const describe = (row: OrphanedSource) => uiText('{{count}} streams · {{assigned}} linked to TV channels', { count: row.count, assigned: row.assigned_count });
 
 /** Streams left behind by sources that were removed; the user ticks which to delete. */
 const OrphanedSourcesDialog: React.FC<OrphanedSourcesDialogProps> = ({ open, onClose, onDone }) => {
@@ -32,7 +32,7 @@ const OrphanedSourcesDialog: React.FC<OrphanedSourcesDialogProps> = ({ open, onC
       void cache.invalidateQueries({ queryKey: ['acestream-channels'] });
       void cache.invalidateQueries({ queryKey: ['channel-sources'] });
       void cache.invalidateQueries({ queryKey: ['scrapers', 'orphaned-sources'] });
-      onDone(`Removed ${removed} stream${removed === 1 ? '' : 's'} from ${sources} source${sources === 1 ? '' : 's'}.`);
+      onDone(uiText('Removed {{count}} streams from {{sources}}.', { count: removed, sources: uiText('sourceCount', { count: sources }) }));
       onClose();
     },
   });

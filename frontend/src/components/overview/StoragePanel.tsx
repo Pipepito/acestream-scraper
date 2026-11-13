@@ -1,4 +1,5 @@
 import { getLocale } from '../../i18n/locale';
+import { uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Alert, Box, Button, Chip, Divider, Stack, Typography } from '@mui/material';
@@ -8,7 +9,7 @@ import ContentSection from '../layout/ContentSection';
 import { formatRelativeTime } from '../../utils/format';
 
 const bytes = (value: number | null | undefined) => {
-  if (value == null) return 'Unavailable';
+  if (value == null) return uiText('Unavailable');
   const index = value > 0 ? Math.min(Math.floor(Math.log(value) / Math.log(1024)), 4) : 0;
   return `${(value / 1024 ** index).toLocaleString(getLocale(), { maximumFractionDigits: 1 })} ${['B', 'KiB', 'MiB', 'GiB', 'TiB'][index]}`;
 };
@@ -36,9 +37,9 @@ export default function StoragePanel() {
           <Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
               {[
-                ['Directory size', tUi("{{value0}}{{value1}}", { value0: directory.directory_bytes != null && !directory.size_complete ? 'At least ' : '', value1: bytes(directory.directory_bytes) })],
-                ['Free space', bytes(directory.filesystem_free_bytes)],
-                ['Filesystem total', bytes(directory.filesystem_total_bytes)],
+                [tUi('Directory size'), directory.directory_bytes != null && !directory.size_complete ? tUi('At least {{size}}', { size: bytes(directory.directory_bytes) }) : bytes(directory.directory_bytes)],
+                [tUi('Free space'), bytes(directory.filesystem_free_bytes)],
+                [tUi('Filesystem total'), bytes(directory.filesystem_total_bytes)],
               ].map(([label, value]) => <Box key={label}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{value}</Typography></Box>)}
             </Box>
             {directory.message && <Typography variant="caption" color="text.secondary">{directory.message}</Typography>}

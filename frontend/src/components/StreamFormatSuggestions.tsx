@@ -13,10 +13,10 @@ const StreamFormatSuggestions: React.FC<StreamFormatSuggestionsProps> = ({ onSel
   const tUi = useUiText();
   const { data: publicUrl } = usePublicUrl();
   const { data, isError } = useSystemServices();
-  const formats = [{ name: 'AceStream app', pattern: 'acestream://{channel_id}' }];
+  const formats = [{ name: uiText('AceStream app'), pattern: 'acestream://{channel_id}' }];
   if (publicUrl?.url) {
-    formats.push({ name: 'TV channel relay (automatic failover)', pattern: `${publicUrl.url.replace(/\/$/, '')}/tuner/channel/{tv_channel_id}.ts` });
-    formats.push({ name: 'Server relay', pattern: `${publicUrl.url.replace(/\/$/, '')}/tuner/stream/{channel_id}.ts` });
+    formats.push({ name: uiText('TV channel relay (automatic failover)'), pattern: `${publicUrl.url.replace(/\/$/, '')}/tuner/channel/{tv_channel_id}.ts` });
+    formats.push({ name: uiText('Server relay'), pattern: `${publicUrl.url.replace(/\/$/, '')}/tuner/stream/{channel_id}.ts` });
     for (const service of data?.services ?? []) {
       if (!service.enabled || !['acestream', 'acexy'].includes(service.name)) continue;
       const url = new URL(publicUrl.url);

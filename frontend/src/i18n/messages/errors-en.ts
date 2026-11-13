@@ -76,6 +76,8 @@ export const errorEnglish = {
   "CAST_ORIGIN_REQUIRED": "Open casting from the application itself",
   "ACCESS_RESOURCE_ORIGIN_REQUIRED": "Open account resources from the application itself",
   "ACCESS_ADMIN_LOGIN_REQUIRED": "Sign in as an administrator to access this resource",
+  "CAST_BROWSER_UNSUPPORTED": "This browser does not support Google Cast.",
+  "CAST_NO_TV_SELECTED": "No TV was selected.",
   "CAST_TV_REQUIRED": "Select a TV",
   "CAST_START_FAILED": "Could not start playback on the TV. Check receiver connectivity and stream compatibility.",
   "CAST_COMMAND_FAILED": "The TV did not accept the command",

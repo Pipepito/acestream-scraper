@@ -4,6 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, MenuItem, FormControl, InputLabel, Select, Box, Alert, useMediaQuery
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { getErrorDetail } from '../utils/errorUtils';
 
 interface BatchAssignDialogProps {
   open: boolean;
@@ -49,8 +50,8 @@ const BatchAssignDialog: React.FC<BatchAssignDialogProps> = ({ open, onClose, se
     try {
       await onAssign(group);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Batch assign failed');
+    } catch (err) {
+      setError(getErrorDetail(err) || tUi('Batch assign failed'));
     } finally {
       setLoading(false);
     }

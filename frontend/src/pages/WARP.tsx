@@ -25,6 +25,7 @@ import PageHeader from '../components/layout/PageHeader';
 import ContentSection from '../components/layout/ContentSection';
 import WarpExclusionsSection from '../components/WarpExclusionsSection';
 import WarpStartupSection from '../components/WarpStartupSection';
+import { getErrorDetail } from '../utils/errorUtils';
 
 const SUBTITLE = 'Cloudflare WARP tunnel for the scraper’s outbound traffic.';
 
@@ -32,10 +33,11 @@ const SUBTITLE = 'Cloudflare WARP tunnel for the scraper’s outbound traffic.';
 export const describeWarpStatus = (status: WarpStatus | undefined): string => {
   if (!status?.running) return uiText("Not running");
   const parts: string[] = [status.connected ? uiText("Connected") : uiText("Disconnected")];
-  if (status.mode) parts.push(`mode ${status.mode}`);
-  if (status.account_type) parts.push(`${status.account_type} account`);
+  if (status.mode) parts.push(uiText('mode {{mode}}', { mode: status.mode }));
+  if (status.account_type) parts.push(uiText('{{type}} account', { type: status.account_type }));
   if (status.connected && (status.location || status.colo)) {
-    parts.push(`exit ${[status.location, status.colo ? `via ${status.colo}` : null].filter(Boolean).join(' ')}`);
+    parts.push(status.location && status.colo ? uiText('exit {{location}} via {{colo}}', { location: status.location, colo: status.colo })
+      : status.colo ? uiText('exit via {{colo}}', { colo: status.colo }) : uiText('exit {{location}}', { location: status.location }));
   }
   return parts.join(' · ');
 };
@@ -64,7 +66,7 @@ const WarpPage: React.FC = () => {
     try {
       await reconnectMutation.mutateAsync();
     } catch (err) {
-      setActionError(`Could not reconnect WARP: ${err instanceof Error ? err.message : 'unknown error'}. Check the connection status and use Connect to retry.`);
+      setActionError(uiText('Could not reconnect WARP: {{error}}. Check the connection status and use Connect to retry.', { error: getErrorDetail(err) ?? uiText('unknown error') }));
     }
   };
 
@@ -75,7 +77,7 @@ const WarpPage: React.FC = () => {
     try {
       await setModeMutation.mutateAsync(selectedMode);
     } catch (err) {
-      setActionError(`Failed to set the WARP mode: ${err instanceof Error ? err.message : 'unknown error'}`);
+      setActionError(uiText('Failed to set the WARP mode: {{error}}', { error: getErrorDetail(err) ?? uiText('unknown error') }));
     }
   };
 
@@ -86,7 +88,7 @@ const WarpPage: React.FC = () => {
       await registerLicenseMutation.mutateAsync(licenseKey);
       setLicenseKey('');
     } catch (err) {
-      setActionError(`Failed to register the license: ${err instanceof Error ? err.message : 'unknown error'}`);
+      setActionError(uiText('Failed to register the license: {{error}}', { error: getErrorDetail(err) ?? uiText('unknown error') }));
     }
   };
 
@@ -101,8 +103,8 @@ const WarpPage: React.FC = () => {
   if (error) {
     return (
       <Box>
-        <PageHeader title={tUi("WARP")} subtitle={SUBTITLE} />
-        <Alert severity="error">{tUi("Error loading WARP status:")}{' '}{(error as Error).message}</Alert>
+        <PageHeader title={tUi("WARP")} subtitle={tUi(SUBTITLE)} />
+        <Alert severity="error">{tUi("Error loading WARP status:")}{' '}{getErrorDetail(error)}</Alert>
       </Box>
     );
   }
@@ -118,7 +120,7 @@ const WarpPage: React.FC = () => {
     <Box>
       <PageHeader
         title={tUi("WARP")}
-        subtitle={SUBTITLE}
+        subtitle={tUi(SUBTITLE)}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             <Button variant="contained" color="primary" onClick={() => connectMutation.mutate()} disabled={!running || connected || connectMutation.isPending || reconnecting}>

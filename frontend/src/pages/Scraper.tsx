@@ -33,10 +33,11 @@ import OrphanedSourcesDialog from '../components/scraper/OrphanedSourcesDialog';
 import SourceEditor from '../components/scraper/SourceEditor';
 import StatusLine from '../components/StatusLine';
 import { useDeleteURL,usePatchURL,useScrapeAllURLs,useURLs } from '../hooks/useScrapers';
-import { uiText } from '../i18n/text';
+import { translateKnown,uiText } from '../i18n/text';
 import { useUiText } from '../i18n/useUiText';
 import { ScrapedURL,scraperService } from '../services/scraperService';
 import { responsiveTableSx } from '../styles/responsiveTable';
+import { getErrorDetail } from '../utils/errorUtils';
 import { formatRelativeTime } from '../utils/format';
 import { formatDateTime } from '../utils/formatters';
 
@@ -68,7 +69,7 @@ const renderScrapeResult = (url: { status?: string | null }) => {
       size="small"
       variant={result.color === 'default' ? 'outlined' : 'filled'}
       title={result.detail}
-      aria-label={result.detail ? `Last scrape failed: ${result.detail}` : undefined}
+      aria-label={result.detail ? uiText('Last scrape failed: {{detail}}', { detail: result.detail }) : undefined}
     />
   );
 };
@@ -121,13 +122,13 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
       setDeletingSource(null);
       setSnackbar({
         open: true,
-        message: deleteStreams ? `Source deleted with ${result.deleted_streams} stream${result.deleted_streams === 1 ? '' : 's'}.` : uiText("Source deleted. Its streams stay in the inventory."),
+        message: deleteStreams ? uiText('Source deleted with {{count}} streams.', { count: result.deleted_streams }) : uiText("Source deleted. Its streams stay in the inventory."),
         severity: 'success'
       });
     } catch (error) {
       setSnackbar({
         open: true,
-        message: `Error: ${(error as Error).message}`,
+        message: uiText('Error: {{error}}', { error: getErrorDetail(error) ?? uiText("Unknown error") }),
         severity: 'error'
       });
     }
@@ -149,7 +150,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
     } catch (error) {
       setSnackbar({
         open: true,
-        message: `Error: ${(error as Error).message}`,
+        message: uiText('Error: {{error}}', { error: getErrorDetail(error) ?? uiText("Unknown error") }),
         severity: 'error'
       });
     } finally {
@@ -164,7 +165,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
       await patchURL.mutateAsync({ id: url.id, data: { enabled: checked } });
       setSnackbar({ open: true, message: checked ? uiText("Source enabled") : uiText("Source disabled; it is skipped by scheduled scrapes"), severity: 'success' });
     } catch (error) {
-      setSnackbar({ open: true, message: `Error: ${error instanceof Error ? error.message : uiText("Unknown error")}`, severity: 'error' });
+      setSnackbar({ open: true, message: uiText('Error: {{error}}', { error: getErrorDetail(error) ?? uiText("Unknown error") }), severity: 'error' });
     } finally {
       setEnabledUpdatingId(null);
     }
@@ -190,7 +191,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
     } catch (error) {
       setSnackbar({
         open: true,
-        message: `Error: ${(error as Error).message}`,
+        message: uiText('Error: {{error}}', { error: getErrorDetail(error) ?? uiText("Unknown error") }),
         severity: 'error'
       });
     } finally {
@@ -210,7 +211,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
       } catch (error) {
         setSnackbar({
         open: true,
-        message: `Error: ${(error as Error).message}`,
+        message: uiText('Error: {{error}}', { error: getErrorDetail(error) ?? uiText("Unknown error") }),
         severity: 'error'
         });
       }
@@ -247,7 +248,7 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
       <StatusLine
         aria-label={tUi("Source status")}
         items={[
-          { label: uiText("Sources"), value: `${enabledSourceCount} of ${totalSourceCount} enabled` },
+          { label: uiText("Sources"), value: uiText('{{enabled}} of {{total}} enabled', { enabled: enabledSourceCount, total: totalSourceCount }) },
           { label: uiText("Last scrape"), value: formatRelativeTime(latestProcessedAt), tone: latestProcessedAt ? 'default' : 'warning' },
           { label: uiText("Channels found"), value: String(totalExtractedChannels) },
           ...(failingSourceCount > 0 ? [{ label: uiText("Failing"), value: String(failingSourceCount), tone: 'error' as const }] : []),
@@ -274,14 +275,14 @@ const ScraperSources: React.FC<{ navigation: React.ReactNode }> = ({ navigation 
                 urls.map((url) => (
                   <TableRow key={url.id} hover>
                     <TableCell data-label="URL" sx={{ overflowWrap: 'anywhere' }}>{url.name ? <Typography variant="body2" fontWeight={600}>{url.name}</Typography> : null}{url.url}</TableCell>
-                    <TableCell data-label={uiText("Type")} sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ?? url.url_type}{url.extraction_recipe && <Chip size="small" label={tUi("Custom recipe")} sx={{ ml: 1 }} />}</TableCell>
+                    <TableCell data-label={uiText("Type")} sx={{ whiteSpace: 'nowrap' }}>{URL_TYPE_LABELS[url.url_type] ? translateKnown(URL_TYPE_LABELS[url.url_type]) : url.url_type}{url.extraction_recipe && <Chip size="small" label={tUi("Custom recipe")} sx={{ ml: 1 }} />}</TableCell>
                     <TableCell data-label={uiText("Enabled")}>
                       <Switch
                         size="small"
                         checked={url.enabled}
                         onChange={(e) => handleToggleEnabled(url, e.target.checked)}
                         disabled={enabledUpdatingId === url.id}
-                        inputProps={{ 'aria-label': `Enable ${url.url}` }}
+                        inputProps={{ 'aria-label': tUi('Enable {{name}}', { name: url.url }) }}
                       />
                     </TableCell>
                     <TableCell data-label={uiText("Last result")}>{renderScrapeResult(url)}</TableCell>

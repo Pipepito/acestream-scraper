@@ -16,7 +16,7 @@ import {
   useTheme,
 } from '@mui/material';
 import type { AcestreamChannel } from '../services/channelService';
-import { getErrorMessage } from '../utils/errorUtils';
+import { getErrorDetail, getErrorMessage } from '../utils/errorUtils';
 import { ApiError } from '../services/apiErrors';
 import TVChannelLinkField from './TVChannelLinkField';
 import { formatRelativeTime } from '../utils/format';
@@ -81,7 +81,7 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
     try {
       await onSave({ ...values, id: values.id.trim(), name: values.name.trim() });
     } catch (err) {
-      setError(err instanceof ApiError ? getErrorMessage(err) : err instanceof Error && err.message ? err.message : getErrorMessage(err));
+      setError(err instanceof ApiError ? getErrorMessage(err) : getErrorDetail(err) || getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -89,9 +89,9 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
 
   const summary = !creating && channel
     ? [
-        `Last checked ${formatRelativeTime(channel.last_checked)}`,
-        `Last scraped ${formatRelativeTime(channel.last_seen)}`,
-        ...(channel.check_error ? [`Last error: ${channel.check_error}`] : []),
+        tUi('Last checked {{when}}', { when: formatRelativeTime(channel.last_checked) }),
+        tUi('Last scraped {{when}}', { when: formatRelativeTime(channel.last_seen) }),
+        ...(channel.check_error ? [tUi('Last error: {{error}}', { error: channel.check_error })] : []),
       ].join(' · ')
     : null;
 

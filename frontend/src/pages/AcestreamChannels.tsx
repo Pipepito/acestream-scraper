@@ -130,7 +130,7 @@ const AcestreamChannels: React.FC = () => {
       acestreamChannelService
         .checkAcestreamChannelStatus(channel.id)
         .then(() => refetch())
-        .catch((err) => setError(`Failed to check status: ${getErrorMessage(err)}`))
+        .catch((err) => setError(uiText('Failed to check status: {{error}}', { error: getErrorMessage(err) })))
         .finally(() => setCheckingStatus((prev) => ({ ...prev, [channel.id]: false })));
     },
     [refetch]
@@ -167,12 +167,12 @@ const AcestreamChannels: React.FC = () => {
       if (values.tv_channel_id) {
         for (const key of ['tvChannels', 'tvChannel', 'tvChannelAcestreams']) void queryClient.invalidateQueries({ queryKey: [key] });
       }
-      setNotice({ message: `Added ${values.name}.` });
+      setNotice({ message: () => uiText('Added {{name}}.', { name: values.name }) });
     } else if (editorChannel?.id) {
       const { id, ...updates } = values;
       void id;
       await acestreamChannelService.updateAcestreamChannel(editorChannel.id, updates);
-      setNotice({ message: `Saved ${values.name}.` });
+      setNotice({ message: () => uiText('Saved {{name}}.', { name: values.name }) });
     }
     closeEditor();
     refetch();
@@ -183,10 +183,10 @@ const AcestreamChannels: React.FC = () => {
       const hide = channel.is_active !== false;
       try {
         await acestreamChannelService.updateAcestreamChannel(channel.id, { is_active: !hide });
-        setNotice({ message: hide ? `${channel.name} is now hidden from the playlist.` : `${channel.name} is back in the playlist.` });
+        setNotice({ message: () => hide ? uiText('{{name}} is now hidden from the playlist.', { name: channel.name }) : uiText('{{name}} is back in the playlist.', { name: channel.name }) });
         refetch();
       } catch (err) {
-        setError(`Failed to update ${channel.name}: ${getErrorMessage(err)}`);
+        setError(uiText('Failed to update {{name}}: {{error}}', { name: channel.name, error: getErrorMessage(err) }));
       }
     },
     [refetch]
@@ -202,8 +202,8 @@ const AcestreamChannels: React.FC = () => {
       }));
       if (!ok) return;
       deleteChannel.mutate(channel.id, {
-        onSuccess: () => setNotice({ message: `Deleted ${channel.name}.` }),
-        onError: (err) => setError(`Failed to delete channel: ${getErrorMessage(err)}`),
+        onSuccess: () => setNotice({ message: () => uiText('Deleted {{name}}.', { name: channel.name }) }),
+        onError: (err) => setError(uiText('Failed to delete channel: {{error}}', { error: getErrorMessage(err) })),
       });
     },
     [confirm, deleteChannel]
@@ -241,7 +241,8 @@ const AcestreamChannels: React.FC = () => {
         );
       }
       handleCloseAssignDialog();
-      setNotice({ message: `Linked ${assignTargetIds.length} channel${assignTargetIds.length === 1 ? '' : 's'} to ${assigned?.name ?? 'the TV channel'}.` });
+      const linkedCount = assignTargetIds.length;
+      setNotice({ message: () => assigned ? uiText('Linked {{count}} channels to {{name}}.', { count: linkedCount, name: assigned.name }) : uiText('Linked {{count}} channels to the TV channel.', { count: linkedCount }) });
       refetch();
     } catch (err) {
       setAssignError(getErrorMessage(err));
@@ -264,7 +265,7 @@ const AcestreamChannels: React.FC = () => {
         await tvChannelService.update(channel.tv_channel_id, { is_favorite: !channel.tv_channel_is_favorite });
         refetch();
       } catch (err) {
-        setError(`Failed to update linked TV favorite: ${getErrorMessage(err)}`);
+        setError(uiText('Failed to update linked TV favorite: {{error}}', { error: getErrorMessage(err) }));
       }
     },
     [refetch]
@@ -303,7 +304,7 @@ const AcestreamChannels: React.FC = () => {
       anchor.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError(`Failed to export CSV: ${getErrorMessage(err)}`);
+      setError(uiText('Failed to export CSV: {{error}}', { error: getErrorMessage(err) }));
     }
   };
 
@@ -359,7 +360,7 @@ const AcestreamChannels: React.FC = () => {
             value: onlineTotal === undefined ? '…' : String(onlineTotal),
             tone: onlineTotal === 0 && (allTotal ?? 0) > 0 ? 'warning' : 'default',
           },
-          { label: uiText("Matching filters"), value: filtered ? String(totalCount) : 'all' },
+          { label: uiText("Matching filters"), value: filtered ? String(totalCount) : uiText('all') },
           { label: uiText("Selected"), value: String(selectedIds.length) },
         ]}
       />

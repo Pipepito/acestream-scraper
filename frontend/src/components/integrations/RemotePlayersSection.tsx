@@ -1,4 +1,4 @@
-import { uiText } from '../../i18n/text';
+import { translateKnown, uiText } from '../../i18n/text';
 import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Box, Button, Chip, Grid, IconButton, Paper, Slider, Stack, Tooltip, Typography, useTheme } from '@mui/material';
@@ -119,7 +119,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
             {player.host}:{player.port}
           </Typography>
         </Box>
-        <Chip size="small" label={KIND_LABEL[player.kind]} />
+        <Chip size="small" label={translateKnown(KIND_LABEL[player.kind])} />
       </Stack>
       <Typography
         variant="body2"

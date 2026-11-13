@@ -63,7 +63,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
     () => [
       {
         field: 'name',
-        headerName: 'Channel',
+        headerName: tUi('Channel'),
         flex: 1,
         minWidth: 220,
         editable: true,
@@ -74,7 +74,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
                 {params.row.name}
               </Typography>
               <Typography component="span" variant="body2" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {params.row.group || 'No group'}
+                {params.row.group || tUi('No group')}
                 {params.row.tv_channel_name ? tUi(" · TV: {{value0}}", { value0: params.row.tv_channel_name }) : ''}
               </Typography>
             </Box>
@@ -84,7 +84,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       },
       {
         field: 'id',
-        headerName: 'ID',
+        headerName: tUi('ID'),
         minWidth: 300,
         flex: 1,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
@@ -93,20 +93,20 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       },
       {
         field: 'is_online',
-        headerName: 'Signal',
+        headerName: tUi('Signal'),
         width: 180,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <OnlineChip isOnline={params.row.is_online} />,
       },
       {
         field: 'stream_stats',
-        headerName: 'Stream statistics',
+        headerName: tUi('Stream statistics'),
         width: 280,
         sortable: false,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <StreamStatistics channel={params.row} />,
       },
       {
         field: 'last_checked',
-        headerName: 'Last checked',
+        headerName: tUi('Last checked'),
         width: 130,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
           <Tooltip title={params.row.last_checked ? formatDateTime(params.row.last_checked) : tUi("Never checked")}>
@@ -116,7 +116,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       },
       {
         field: 'actions',
-        headerName: 'Actions',
+        headerName: tUi('Actions'),
         width: 140,
         sortable: false,
         filterable: false,
@@ -153,7 +153,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       {error ? (
         <Snackbar open autoHideDuration={5000} onClose={() => setError(null)}>
           <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
-            {error}
+            {tUi(INLINE_SAVE_FAILURE_MESSAGE)}
           </Alert>
         </Snackbar>
       ) : null}

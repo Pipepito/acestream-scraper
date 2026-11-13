@@ -94,7 +94,7 @@ const StartupGate: React.FC<React.PropsWithChildren> = ({ children }) => {
         {query.isError ? <Alert severity="warning" action={<Button onClick={() => void query.refetch()}>{tUi("Check again")}</Button>}>
           {tUi("Connection lost. Retrying automatically; the last known progress is shown below.")}</Alert> : null}
         <Box role="status" aria-live="polite">
-          <Typography fontWeight={600}>{data?.phase ?? 'Connecting to the app…'}</Typography>
+          <Typography fontWeight={600}>{data?.phase ?? tUi('Connecting to the app…')}</Typography>
           {data?.status === 'starting' || !data ? <LinearProgress aria-label={tUi("Startup in progress")} sx={{ mt: 2,
             '@media (prefers-reduced-motion: reduce)': { '& .MuiLinearProgress-bar': { animation: 'none' } } }} /> : null}
         </Box>
@@ -136,7 +136,7 @@ const StartupGate: React.FC<React.PropsWithChildren> = ({ children }) => {
           <Box component="ol" aria-label={tUi("Startup activity")} sx={{ m: 0, pl: 3, maxHeight: 360, overflow: 'auto' }}>
             {data?.events.map((event, index) => <Box component="li" key={`${event.time}-${index}`} sx={{ py: 0.75, overflowWrap: 'anywhere' }}>
               <Typography component="time" variant="caption" dateTime={event.time} color="text.secondary" sx={{ mr: 1 }}>{new Date(event.time).toLocaleTimeString(getLocale())}</Typography>
-              {event.level !== 'info' ? tUi("{{value0}}: ", { value0: event.level === 'error' ? 'Error' : 'Warning' }) : ''}{event.message}
+              {event.level !== 'info' ? tUi("{{value0}}: ", { value0: event.level === 'error' ? tUi('Error') : tUi('Warning') }) : ''}{event.message}
             </Box>)}
           </Box>
         </Box>

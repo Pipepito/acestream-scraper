@@ -62,7 +62,7 @@ const EPGChannelInventoryTable: React.FC<EPGChannelInventoryTableProps> = ({
                   <Checkbox
                     checked={selectedChannelIds.includes(channel.id)}
                     onChange={() => onSelectChannel(channel.id)}
-                    inputProps={{ 'aria-label': `select EPG channel ${channel.name}` }}
+                    inputProps={{ 'aria-label': uiText('select EPG channel {{name}}', { name: channel.name }) }}
                     disabled={!isTVChannelCatalogReady || mapped}
                   />
                 </TableCell>

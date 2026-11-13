@@ -237,7 +237,9 @@ const Search: React.FC = () => {
           <StatusLine
             aria-label={tUi("Search summary")}
             items={[
-              { label: uiText("Results"), value: `${totalResults} ${activeSearch.query ? `for ‘${activeSearch.query}’` : 'in all channels'}${activeSearch.category ? ` in ${activeSearch.category}` : ''}` },
+              { label: uiText("Results"), value: activeSearch.query
+                ? activeSearch.category ? uiText('{{total}} for ‘{{query}}’ in {{category}}', { total: totalResults, query: activeSearch.query, category: activeSearch.category }) : uiText('{{total}} for ‘{{query}}’', { total: totalResults, query: activeSearch.query })
+                : activeSearch.category ? uiText('{{total}} in all channels in {{category}}', { total: totalResults, category: activeSearch.category }) : uiText('{{total}} in all channels', { total: totalResults }) },
               { label: uiText("Selected"), value: String(selectedChannels.length) },
               ...(addedIds.size > 0 ? [{ label: uiText("Added this session"), value: String(addedIds.size), tone: 'success' as const }] : []),
             ]}
@@ -281,7 +283,7 @@ const Search: React.FC = () => {
                               checked={isChannelSelected(channel)}
                               disabled={added}
                               onChange={(event) => handleChannelSelection(channel, event.target.checked)}
-                              inputProps={{ 'aria-label': `select search result ${channel.name}` }}
+                              inputProps={{ 'aria-label': uiText('select search result {{name}}', { name: channel.name }) }}
                             />
                           </TableCell>
                           <TableCell>

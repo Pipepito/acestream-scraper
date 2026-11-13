@@ -22,3 +22,13 @@ export const getErrorMessage = (error: unknown): string => {
 
   return i18next.t(normalizedError.kind, { ns: 'errors' });
 };
+
+/**
+ * For call sites that have always shown a failure's own text. English keeps that
+ * text verbatim; other languages get translated guidance, never an English
+ * sentence. Undefined when the failure is not an Error.
+ */
+export const getErrorDetail = (error: unknown): string | undefined => {
+  if (!(error instanceof Error)) return undefined;
+  return getLocale() === 'en-US' ? error.message : getErrorMessage(error);
+};

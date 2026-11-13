@@ -23,6 +23,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useAllEPGStringMappings, useDeleteGlobalEPGStringMapping } from '../../hooks/useEPG';
 import { useConfirm } from '../ConfirmDialog';
 import type { EPGStringMapping } from '../../services/epgService';
+import { getErrorDetail } from '../../utils/errorUtils';
 
 /** Global include/exclude patterns that decide which scraped names match each guide channel. */
 const RulesTab: React.FC = () => {
@@ -46,11 +47,11 @@ const RulesTab: React.FC = () => {
     if (!ok) return;
     try {
       await deleteMapping(mapping.id);
-      setSnackbar({ open: true, message: `Deleted rule ${mapping.search_pattern}`, severity: 'success' });
+      setSnackbar({ open: true, message: uiText('Deleted rule {{pattern}}', { pattern: mapping.search_pattern }), severity: 'success' });
     } catch (deleteError) {
       setSnackbar({
         open: true,
-        message: `Failed to delete rule ${mapping.search_pattern}: ${deleteError instanceof Error ? deleteError.message : uiText("Unknown error")}`,
+        message: uiText('Failed to delete rule {{pattern}}: {{error}}', { pattern: mapping.search_pattern, error: getErrorDetail(deleteError) ?? uiText("Unknown error") }),
         severity: 'error',
       });
     }

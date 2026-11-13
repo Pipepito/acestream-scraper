@@ -21,7 +21,7 @@ export default function SelectableStreamId({ id, networkStatus, onCopyId }: Prop
         inputRef={input}
         readOnly
         fullWidth
-        inputProps={{ 'aria-label': `Acestream ID ${id}`, spellCheck: false }}
+        inputProps={{ 'aria-label': tUi('Acestream ID {{id}}', { id }), spellCheck: false }}
         onFocus={(event) => event.target.select()}
         onClick={() => input.current?.select()}
         sx={{ fontFamily: 'monospace', fontSize: 12, '& input': { py: 0.5, userSelect: 'text' }, '&:focus-within': { outline: '2px solid', outlineColor: 'primary.main', borderRadius: 0.5 } }}

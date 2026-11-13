@@ -14,7 +14,7 @@ import RowActionsMenu from '../RowActionsMenu';
 import StatusLine from '../StatusLine';
 import SavedSearchDialog from './SavedSearchDialog';
 
-export const searchCounts = (r: SavedSearchResult) => `${r.added} added · ${r.existing} existing · ${r.excluded_candidates} excluded · ${r.unresolved_candidates} unresolved · ${r.deferred_candidates} deferred`;
+export const searchCounts = (r: SavedSearchResult) => uiText('{{added}} added · {{existing}} existing · {{excluded}} excluded · {{unresolved}} unresolved · {{deferred}} deferred', { added: r.added, existing: r.existing, excluded: r.excluded_candidates, unresolved: r.unresolved_candidates, deferred: r.deferred_candidates });
 export default function SavedSearches() {
   const tUi = useUiText();
   const cache = useQueryClient();
@@ -40,13 +40,13 @@ export default function SavedSearches() {
       {list.isLoading || inspect.isPending ? <LinearProgress aria-label={inspect.isPending ? tUi("Previewing search") : tUi("Loading saved searches")} /> : null}
       {list.data?.total === 0 ? <Typography color="text.secondary">{tUi("Create a query here or save your last submitted query from")}{' '}<Button component={RouterLink} to="/search">{tUi("Search")}</Button>{tUi(". Automatic refresh starts off.")}</Typography> : null}
       {list.data?.items.map(row => <Stack key={row.id} direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }} alignItems={{ md: 'center' }}>
-        <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}><Typography variant="subtitle1">{row.name}</Typography><Typography variant="body2">{row.query} · {row.category || 'All categories'}</Typography>
+        <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}><Typography variant="subtitle1">{row.name}</Typography><Typography variant="body2">{row.query} · {row.category || tUi('All categories')}</Typography>
           <Stack direction="row" spacing={1} sx={{ my: 1 }}><Chip size="small" label={statusLabel(row.run_state || row.last_outcome || 'never')} /><Chip size="small" variant="outlined" label={row.refresh_enabled ? tUi("Automatic refresh on") : tUi("Paused")} /></Stack>
           <Typography variant="body2" color="text.secondary">{row.last_result ? searchCounts(row.last_result) : tUi("No imports yet")} · {formatRelativeTime(row.last_finished_at)}</Typography>
           {row.last_result?.stop_reason ? <Typography variant="body2">{tUi("Stopped:")}{' '}{row.last_result.stop_reason.replace(/_/g, ' ')}</Typography> : null}
           {row.error_message ? <Alert severity="warning" sx={{ mt: 1 }}>{row.error_message}<Button component={RouterLink} to="/settings?tab=playback">{tUi("Engine settings")}</Button></Alert> : null}
         </Box>
-        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap"><Switch checked={row.refresh_enabled} inputProps={{ 'aria-label': `Refresh ${row.name} automatically` }} onChange={() => save.mutate(row)} disabled={save.isPending} />
+        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap"><Switch checked={row.refresh_enabled} inputProps={{ 'aria-label': tUi('Refresh {{name}} automatically', { name: row.name }) }} onChange={() => save.mutate(row)} disabled={save.isPending} />
           <Button variant="outlined" disabled={Boolean(row.run_state) || run.isPending} onClick={() => run.mutate({ row })}>{row.run_state === 'waiting' ? tUi("Waiting") : row.run_state === 'running' ? tUi("Running") : tUi("Run now")}</Button>
           <RowActionsMenu label={tUi("Actions for {{value0}}", { value0: row.name })} actions={[{ label: uiText("Edit"), onClick: () => setEditing(row) }, { label: uiText("Preview"), disabled: inspect.isPending, onClick: () => inspect.mutate(row) }, { label: uiText("Delete"), danger: true, onClick: async () => { if (await confirm(() => ({ title: uiText("Delete saved search?"), body: uiText("Imported channels remain. This removes the definition and its discovery memberships."), confirmLabel: uiText("Delete") }))) remove.mutate(row); } }]} />
         </Stack>

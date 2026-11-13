@@ -42,12 +42,12 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
   onDelete,
 }) => {
   const tUi = useUiText();
-  const linkedName = channel.tv_channel_name || 'linked TV channel';
+  const linkedName = channel.tv_channel_name || uiText('linked TV channel');
   const hidden = channel.is_active === false;
 
   const menuActions = [
     channel.tv_channel_id
-      ? { label: `Open TV channel: ${linkedName}`, icon: <TvIcon fontSize="small" />, onClick: () => onOpenTV(channel) }
+      ? { label: uiText('Open TV channel: {{name}}', { name: linkedName }), icon: <TvIcon fontSize="small" />, onClick: () => onOpenTV(channel) }
       : { label: uiText("Link to a TV channel"), icon: <LinkIcon fontSize="small" />, onClick: () => onAssignTV(channel) },
     { label: uiText("Play on…"), icon: <CastRoundedIcon fontSize="small" />, onClick: () => onPlayOn(channel) },
     { label: uiText("Edit"), icon: <Edit fontSize="small" />, onClick: () => onEdit(channel) },
@@ -59,7 +59,7 @@ const ChannelRowActions: React.FC<ChannelRowActionsProps> = ({
     ...(channel.tv_channel_id
       ? [
           {
-            label: channel.tv_channel_is_favorite ? `Remove ${linkedName} from favorites` : `Add ${linkedName} to favorites`,
+            label: channel.tv_channel_is_favorite ? uiText('Remove {{name}} from favorites', { name: linkedName }) : uiText('Add {{name}} to favorites', { name: linkedName }),
             icon: channel.tv_channel_is_favorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />,
             onClick: () => onToggleTVFavorite(channel),
           },

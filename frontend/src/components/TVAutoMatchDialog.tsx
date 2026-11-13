@@ -137,7 +137,7 @@ export default function TVAutoMatchDialog({ onClose }: TVAutoMatchDialogProps) {
                   </Collapse>
                 </Box>;
               })}
-              <TablePagination component="div" count={stations.length} page={page} rowsPerPage={10} rowsPerPageOptions={[10]} labelDisplayedRows={({ from, to, count }) => `${from}–${to} of ${count} TV channels`} onPageChange={(_, next) => setPage(next)} />
+              <TablePagination component="div" count={stations.length} page={page} rowsPerPage={10} rowsPerPageOptions={[10]} labelDisplayedRows={({ from, to, count }) => tUi('{{from}}–{{to}} of {{total}} TV channels', { from, to, total: count })} onPageChange={(_, next) => setPage(next)} />
             </>}
           </> : null}
         </Stack>

@@ -77,6 +77,8 @@ export const errorSpanish: Record<keyof typeof errorEnglish, string> = {
   "CAST_ORIGIN_REQUIRED": "Abre el envío a TV desde la propia aplicación.",
   "ACCESS_RESOURCE_ORIGIN_REQUIRED": "Abre los recursos de cuenta desde la propia aplicación.",
   "ACCESS_ADMIN_LOGIN_REQUIRED": "Inicia sesión como administrador para acceder a este recurso.",
+  "CAST_BROWSER_UNSUPPORTED": "Este navegador no es compatible con Google Cast.",
+  "CAST_NO_TV_SELECTED": "No se ha seleccionado ningún televisor.",
   "CAST_TV_REQUIRED": "Selecciona un televisor.",
   "CAST_START_FAILED": "No se ha podido iniciar la reproducción en el televisor. Comprueba la conexión del receptor y la compatibilidad de la emisión.",
   "CAST_COMMAND_FAILED": "El televisor no ha aceptado la orden.",

@@ -31,12 +31,12 @@ const formatMatchLabel = (value?: string | null) => {
   if (!value) return uiText("Unmatched");
 
   const specialCases: Record<string, string> = {
-    xml_id_exact: 'XML ID exact',
-    name_exact: 'Name exact',
-    name_similarity: 'Name similarity',
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
+    xml_id_exact: uiText('XML ID exact'),
+    name_exact: uiText('Name exact'),
+    name_similarity: uiText('Name similarity'),
+    high: uiText('High'),
+    medium: uiText('Medium'),
+    low: uiText('Low'),
   };
 
   if (specialCases[value]) {
@@ -120,7 +120,7 @@ const EPGMatchAnalysisPanel: React.FC<EPGMatchAnalysisPanelProps> = ({
                       checked={isSelected}
                       disabled={isDisabled}
                       onChange={() => onToggleRow(row)}
-                      inputProps={{ 'aria-label': `select match row ${row.epg_channel_name}` }}
+                      inputProps={{ 'aria-label': uiText('select match row {{name}}', { name: row.epg_channel_name }) }}
                     />
                   </TableCell>
                   <TableCell data-label={uiText("Guide channel")}><Typography variant="body2">{row.epg_channel_name}</Typography><Typography variant="caption" color="text.secondary">{row.epg_source_name} · {row.epg_channel_xml_id}</Typography></TableCell>

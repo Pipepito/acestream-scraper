@@ -29,7 +29,7 @@ export default function UpdateAvailableNotice() {
   }, [data]);
   if (!visibleVersion || !data?.update_available || visibleVersion !== data.latest_version) return null;
   return (
-    <Alert severity="info" onClose={() => setVisibleVersion(null)} closeText="Dismiss new version notice" sx={{ mb: 2 }}>
+    <Alert severity="info" onClose={() => setVisibleVersion(null)} closeText={tUi("Dismiss new version notice")} sx={{ mb: 2 }}>
       <AlertTitle>{visibleVersion} {' '}{tUi("is available")}</AlertTitle>
       {data.deployment === 'docker'
         ? tUi("To update, pull the new Docker image and recreate your container with your existing configuration and volumes.")

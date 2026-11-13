@@ -180,7 +180,7 @@ export const useEPGSourceManagement = (
 
   const handleRefreshSourceClick = async (id: number) => {
     setRefreshingSourceId(id);
-    let name = `source ${id}`;
+    let name = uiText('source {{id}}', { id });
     try {
       const before = await epgService.getSource(id);
       name = before.name || name;

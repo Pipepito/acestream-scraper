@@ -119,8 +119,8 @@ const PlaylistOptionsForm: React.FC<PlaylistOptionsFormProps> = ({ link, formats
           {tUi("Group filters")}</Button>
         <Collapse in={showGroups} mountOnEnter unmountOnExit>
           <Stack spacing={2} sx={{ mt: 1.5 }}>
-            {renderGroupSelect('Include groups', 'include_groups')}
-            {renderGroupSelect('Exclude groups', 'exclude_groups')}
+            {renderGroupSelect(tUi('Include groups'), 'include_groups')}
+            {renderGroupSelect(tUi('Exclude groups'), 'exclude_groups')}
           </Stack>
         </Collapse>
       </Box>

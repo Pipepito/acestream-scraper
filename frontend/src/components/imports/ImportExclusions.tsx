@@ -12,7 +12,7 @@ import ContentSection from '../layout/ContentSection';
 import RowActionsMenu from '../RowActionsMenu';
 import StatusLine from '../StatusLine';
 
-const labels = { name_contains: 'Name contains', name_equals: 'Name equals', stream_id_equals: 'Stream ID equals' };
+const labels = { name_contains: 'Name contains', name_equals: 'Name equals', stream_id_equals: 'Stream ID equals' } as const;
 const initial: ExclusionInput = { kind: 'name_contains', value: '', enabled: true, note: '' };
 export default function ImportExclusions() {
   const tUi = useUiText();
@@ -41,8 +41,8 @@ export default function ImportExclusions() {
       {list.isLoading ? <LinearProgress aria-label={tUi("Loading exclusions")} /> : null}
       {list.data?.total === 0 ? <Typography color="text.secondary">{ruleId ? tUi("This exclusion no longer exists.") : tUi("Add a name or stream ID rule to skip unwanted discoveries across your import sources.")}</Typography> : null}
       {list.data?.items.map(row => <Stack key={row.id} id={`rule-${row.id}`} direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ py: 2, borderBottom: 1, borderColor: 'divider' }} alignItems={{ sm: 'center' }}>
-        <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}><Typography variant="subtitle2">#{row.id} · {labels[row.kind]} · {row.value}</Typography><Typography variant="body2" color="text.secondary">{row.note} {' '}{tUi("· Edited")}{' '}{formatRelativeTime(row.updated_at)}</Typography></Box>
-        <Stack direction="row" alignItems="center"><Chip size="small" label={row.enabled ? tUi("Enabled") : tUi("Disabled")} /><Switch checked={row.enabled} disabled={save.isPending} inputProps={{ 'aria-label': `Enable ${row.value}` }} onChange={(_, enabled) => save.mutate({ data: { ...row, enabled }, row })} />
+        <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}><Typography variant="subtitle2">#{row.id} · {tUi(labels[row.kind])} · {row.value}</Typography><Typography variant="body2" color="text.secondary">{row.note} {' '}{tUi("· Edited")}{' '}{formatRelativeTime(row.updated_at)}</Typography></Box>
+        <Stack direction="row" alignItems="center"><Chip size="small" label={row.enabled ? tUi("Enabled") : tUi("Disabled")} /><Switch checked={row.enabled} disabled={save.isPending} inputProps={{ 'aria-label': tUi('Enable {{name}}', { name: row.value }) }} onChange={(_, enabled) => save.mutate({ data: { ...row, enabled }, row })} />
           <RowActionsMenu label={tUi("Actions for {{value0}}", { value0: row.value })} actions={[{ label: uiText("Edit"), onClick: () => edit(row) }, { label: uiText("Delete"), danger: true, onClick: async () => { if (await confirm(() => ({ title: uiText("Delete exclusion?"), body: uiText("Future imports may discover matching streams again. Existing channels stay."), confirmLabel: uiText("Delete") }))) remove.mutate(row); } }]} />
         </Stack>
       </Stack>)}
@@ -51,7 +51,7 @@ export default function ImportExclusions() {
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" aria-labelledby="exclusion-dialog-title">
       <DialogTitle id="exclusion-dialog-title">{editing ? tUi("Edit exclusion") : tUi("Add exclusion")}</DialogTitle>
       <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-        <TextField select label={tUi("Rule type")} value={form.kind} onChange={e => { setForm({ ...form, kind: e.target.value as ExclusionInput['kind'] }); setPreview(undefined); }}>{Object.entries(labels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField>
+        <TextField select label={tUi("Rule type")} value={form.kind} onChange={e => { setForm({ ...form, kind: e.target.value as ExclusionInput['kind'] }); setPreview(undefined); }}>{Object.entries(labels).map(([value, label]) => <MenuItem key={value} value={value}>{tUi(label)}</MenuItem>)}</TextField>
         <TextField label={tUi("Value")} value={form.value} inputProps={{ maxLength: 256 }} onChange={e => { setForm({ ...form, value: e.target.value }); setPreview(undefined); }} helperText={tUi("Literal matching, ignoring name case and repeated spaces. No wildcards.")} />
         <TextField label={tUi("Note (optional)")} value={form.note ?? ''} inputProps={{ maxLength: 500 }} onChange={e => setForm({ ...form, note: e.target.value })} />
         <FormControlLabel control={<Switch checked={form.enabled} onChange={(_, enabled) => setForm({ ...form, enabled })} />} label={tUi("Enabled")} />

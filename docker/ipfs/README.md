@@ -7,8 +7,12 @@ contains vulnerable Go libraries, so this build uses Go 1.27.3 and the reviewed
 `go.mod`/`go.sum` here. It identifies itself as a security rebuild, not an
 unmodified upstream binary.
 
-The module changes update go-jose to 4.1.6, x/net to 0.62.0 and gRPC to 1.83.2,
-including the versions selected for their transitive dependencies. Image builds
+The module changes update go-jose to 4.1.6, x/net to 0.62.0, gRPC to 1.83.2 and
+x/crypto to 0.59.0, including the versions selected for their transitive
+dependencies. x/crypto 0.59.0 is the first tagged release without the
+unmaintained `openpgp` package (GO-2026-5932); Kubo never imported it, and the
+bump also moves x/sys, x/term, x/text, x/mod, x/sync, x/tools and x/telemetry
+to the versions it requires. Image builds
 verify module checksums and compile with `-mod=readonly` and `GOTOOLCHAIN=local`.
 They do not resolve `latest` or rewrite these locks. AMD64 and ARM64 use the same
 source and locks; ARMv7 keeps its documented external-gateway requirement.

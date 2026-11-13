@@ -18,4 +18,17 @@ if (typeof window !== 'undefined') {
   window.HTMLMediaElement.prototype.play = function play(): Promise<void> {
     return Promise.resolve();
   };
+
+  // From version 27, jsdom answers `:focus-visible` itself, and answers false for
+  // focus that a test moved with the Tab key, where every browser answers true.
+  // The component library falls back to its own keyboard tracking when the
+  // selector is not supported, which is how earlier jsdom versions behaved. Keep
+  // that behaviour, so keyboard focus still opens tooltips in tests.
+  const nativeMatches = Element.prototype.matches;
+  Element.prototype.matches = function matches(this: Element, selectors: string): boolean {
+    if (selectors === ':focus-visible') {
+      throw new SyntaxError("':focus-visible' is decided by the component library in tests");
+    }
+    return nativeMatches.call(this, selectors);
+  };
 }

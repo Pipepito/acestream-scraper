@@ -39,7 +39,7 @@ export default function VisualPicker({ sample, records, onPick, pickingRecord }:
     if (element.tagName === 'HTML' || element.tagName === 'BODY') return;
     selected.current = element;
     setDescription(selectorPart(element));
-    let row: Element | null = null;
+    let row: Element | null;
     try { row = !pickingRecord && records ? element.closest(records) : null; }
     catch { setError(tUi("The repeating row selector is invalid. Correct it before selecting a field.")); return; }
     if (!pickingRecord && !row) { setError(tUi("Select a repeating row first, then choose a field inside one of its rows.")); return; }

@@ -244,3 +244,94 @@ def test_a_box_left_off_for_weeks_hides_only_what_the_last_reading_had_already_l
     db_session.commit()
     body = _playlist(db_session, hide_unusable=True)
     assert 'Live Channel' in body and 'Stale Channel' not in body
+
+
+def test_a_source_that_kept_jumping_back_ranks_below_one_that_played_cleanly():
+    scores = score_sources([Row('a'), Row('b')],
+                           [attempt('a', 'jumpy', seconds=600), attempt('b', 'ok', seconds=600)], {}, NOW)
+    assert scores['b' * 40].score > 0.5 > scores['a' * 40].score
+
+
+def test_a_long_jumpy_viewing_counts_more_against_the_source_than_a_short_one():
+    long = score_sources([Row('a')], [attempt('a', 'jumpy', seconds=3600)], {}, NOW)
+    short = score_sources([Row('a')], [attempt('a', 'jumpy', seconds=10)], {}, NOW)
+    assert long['a' * 40].score < short['a' * 40].score
+
+
+def test_the_relay_turns_a_viewing_with_jumps_back_into_jumpy():
+    from app.services.tuner_playback_service import _with_clock
+    from app.services.ts_clock import ClockWatch
+    watch = ClockWatch('a' * 40)
+    assert _with_clock('ok', watch) == 'ok'
+    watch.back_jumps = 2
+    assert [_with_clock(o, watch) for o in ('ok', 'ended', 'stall', 'no_data', 'early_death')] == \
+        ['jumpy', 'jumpy', 'jumpy', 'no_data', 'early_death']
+
+
+def _recorder_on(db_session):
+    from sqlalchemy.orm import Session
+    return StreamHistoryRecorder(lambda: Session(bind=db_session.get_bind()), clock=lambda: NOW)
+
+
+def test_a_viewing_is_written_while_it_plays_and_its_end_rewrites_the_same_row(db_session):
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    db_session.commit()
+    recorder = _recorder_on(db_session)
+    viewing = object()
+    recorder.record('a' * 40, tv.id, 'ok', seconds=30, attempt=viewing, final=False)
+    recorder.flush()
+    db_session.expire_all()
+    assert [(r.outcome, r.seconds) for r in db_session.query(StreamAttempt)] == [('ok', 30)]
+    recorder.record('a' * 40, tv.id, 'ok', seconds=60, attempt=viewing, final=False)
+    recorder.record('a' * 40, tv.id, 'stall', seconds=75, attempt=viewing)
+    recorder.flush()
+    db_session.expire_all()
+    assert [(r.outcome, r.seconds) for r in db_session.query(StreamAttempt)] == [('stall', 75)]
+
+
+def test_rewriting_a_viewing_whose_row_is_gone_changes_nothing(db_session):
+    # History is pruned and sources are deleted while a channel plays.
+    from app.repositories.stream_attempt_repository import StreamAttemptRepository
+    assert StreamAttemptRepository(db_session).update(999, 'stall', seconds=75) is None
+    assert db_session.query(StreamAttempt).count() == 0
+
+
+def test_a_viewing_cut_short_by_a_power_off_keeps_what_was_watched(db_session):
+    """No final outcome ever comes: the last checkpoint is the viewing."""
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    db_session.commit()
+    recorder = _recorder_on(db_session)
+    viewing = object()
+    for seconds in (30, 60, 90):
+        recorder.record('a' * 40, tv.id, 'ok', seconds=seconds, attempt=viewing, final=False)
+    recorder.flush()
+    db_session.expire_all()
+    assert [(r.outcome, r.seconds) for r in db_session.query(StreamAttempt)] == [('ok', 90)]
+
+
+def test_two_viewings_of_one_source_are_two_rows(db_session):
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    db_session.commit()
+    recorder = _recorder_on(db_session)
+    first, second = object(), object()
+    recorder.record('a' * 40, tv.id, 'ok', seconds=30, attempt=first, final=False)
+    recorder.record('a' * 40, tv.id, 'ok', seconds=40, attempt=first)
+    recorder.record('a' * 40, tv.id, 'ok', seconds=30, attempt=second, final=False)
+    recorder.flush()
+    db_session.expire_all()
+    assert sorted(r.seconds for r in db_session.query(StreamAttempt)) == [30, 40]
+
+
+def test_the_checkpoint_writes_nothing_before_30_s_and_then_every_30_s(monkeypatch):
+    from app.services.tuner_playback_service import ViewingCheckpoint
+    calls = []
+    monkeypatch.setattr(tuner_playback_service, '_outcome_recorder',
+                        lambda cid, tv, outcome, **kw: calls.append((outcome, kw['seconds'], kw['final'])))
+    checkpoint = ViewingCheckpoint('a' * 40, 1)
+    for played in (0.5, 10, 29.9, 30, 31, 59, 60.5, 61):
+        checkpoint.tick(played)
+    checkpoint.finish('ended', 70)
+    assert calls == [('ok', 30, False), ('ok', 60.5, False), ('ended', 70, True)]

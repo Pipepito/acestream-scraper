@@ -31,6 +31,16 @@ class StreamAttemptRepository:
         self.db.commit()
         return row
 
+    def update(self, row_id: int, outcome: str, *, seconds: float) -> StreamAttempt | None:
+        """Rewrite the outcome and seconds of an attempt written while it played."""
+        row = self.db.get(StreamAttempt, row_id)
+        if row is None:
+            return None
+        row.outcome = outcome
+        row.seconds = max(0.0, float(seconds or 0.0))
+        self.db.commit()
+        return row
+
     def prune(self, before: datetime) -> int:
         deleted = self.db.query(StreamAttempt).filter(StreamAttempt.created_at < before).delete(synchronize_session=False)
         self.db.commit()

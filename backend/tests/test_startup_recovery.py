@@ -1,6 +1,5 @@
 """Recovery must preserve source files and fail closed before installation."""
 from contextlib import closing
-import json
 import sqlite3
 import threading
 import time

@@ -245,6 +245,18 @@ class EventProviderOptions(StrictModel):
     interests: EventInterests = Field(default_factory=EventInterests)
 
 
+class EventProviderInterestsRequest(StrictModel):
+    """Which names a built-in provider currently publishes; saved interests are ignored."""
+    provider_options: EventProviderOptions
+    timezone: str = Field(default='UTC', max_length=100)
+    timeout_seconds: int | None = Field(default=None, ge=5, le=300)
+
+    @field_validator('timezone')
+    @classmethod
+    def valid_zone(cls, value):
+        return EventFields.valid_zone(value)
+
+
 class EventProviderChoice(StrictModel):
     id: str
     name: str

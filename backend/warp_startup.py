@@ -17,6 +17,8 @@ import sys
 import tempfile
 import time
 
+import warp_guard
+
 WINDOW_SECONDS = 600
 PHASES = {'starting', 'configuring', 'backoff', 'failed', 'configured'}
 
@@ -97,7 +99,7 @@ class Store:
     def initialize(self):
         self.root.mkdir(parents=True, exist_ok=True)
         # Old state cannot release this boot, even with a persisted run directory.
-        for name in ('released', 'command', 'daemon', 'attempt'):
+        for name in ('released', 'command', 'daemon', 'attempt', 'reconnect'):
             self.path(name).unlink(missing_ok=True)
         self.write('json', phase='starting', window=secrets.token_hex(16),
                    attempt=0, generation=None, heartbeat=time.monotonic())
@@ -141,6 +143,15 @@ class Store:
             raise StateError('WARP changed before startup release.')
         self.write('released', released=True)
 
+    def reconnect(self) -> str:
+        """Ask the coordinator to reconnect; it alone holds the guard meanwhile."""
+        state = self.state()
+        if not self.released() or not self.configured():
+            raise StateError('WARP is not connected under this boot.')
+        request = secrets.token_hex(16)
+        self.write('reconnect', generation=state['generation'], request=request)
+        return request
+
     def retry(self) -> str:
         state = self.state()
         if self.released() or state['phase'] != 'failed':
@@ -152,20 +163,34 @@ class Store:
         return request
 
 
-def terminate(process: subprocess.Popen) -> None:
-    """Reap the whole attempt group, including descendants after shell exit."""
+def signal_group(pid: int, signum: int) -> None:
     try:
-        os.killpg(process.pid, signal.SIGTERM)
+        os.killpg(pid, signum)
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # macOS answers EPERM, not ESRCH, for a group left with only unreaped
+        # members. Linux, the deployment target, keeps the real error.
+        if sys.platform != 'darwin':
+            raise
+
+
+def disconnect_warp() -> None:
+    """Best effort: configuration reconnects whatever this leaves behind."""
+    try:
+        subprocess.run(['warp-cli', '--accept-tos', 'disconnect'], capture_output=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
+def terminate(process: subprocess.Popen) -> None:
+    """Reap the whole attempt group, including descendants after shell exit."""
+    signal_group(process.pid, signal.SIGTERM)
     try:
         process.wait(timeout=2)
     except subprocess.TimeoutExpired:
         pass
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
+    signal_group(process.pid, signal.SIGKILL)
     process.wait()
 
 
@@ -183,8 +208,11 @@ def cleanup_attempt(store: Store):
 
 class Coordinator:
     def __init__(self, store: Store, script: Path, *, clock=time.monotonic,
-                 window_seconds=WINDOW_SECONDS):
+                 window_seconds=WINDOW_SECONDS, guard=None, disconnect=disconnect_warp):
         self.store, self.script, self.clock = store, script, clock
+        self.disconnect = disconnect
+        # None: the traffic guard does not apply to this WARP mode.
+        self.guard, self.blocking, self.guard_refresh = guard, None, 0.0
         self.window_seconds = window_seconds
         self.stopping = False
         self.process = None
@@ -206,11 +234,56 @@ class Coordinator:
             self.process = None
             self.store.path('attempt').unlink(missing_ok=True)
 
+    def block(self, now: float, *, force=False):
+        """Hold the guard; it expires by itself unless this keeps running."""
+        if self.guard is None or not (force or self.blocking is not True or now >= self.guard_refresh):
+            return
+        try:
+            self.guard.arm()
+        except warp_guard.GuardError as exc:
+            raise StateError('WARP traffic guard is unavailable.') from exc
+        self.blocking, self.guard_refresh = True, now + warp_guard.REFRESH_SECONDS
+
+    def sync_guard(self):
+        if self.guard is None:
+            return
+        # WARP's own firewall takes over only for a configured, living daemon.
+        if (self.state['phase'] == 'configured' and self.generation is not None
+                and self.generation == self.store.daemon()):
+            if self.blocking is not False:
+                try:
+                    self.guard.standby()
+                except warp_guard.GuardError as exc:
+                    raise StateError('WARP traffic guard is unavailable.') from exc
+                self.blocking = False
+        else:
+            self.block(self.clock())
+
+    def reconnect_requested(self, generation) -> bool:
+        try:
+            request = self.store.read('reconnect')
+        except StateError:
+            return False
+        self.store.path('reconnect').unlink(missing_ok=True)
+        # A request for an earlier daemon is discarded, never replayed.
+        return self.guard is not None and request.get('generation') == generation
+
     def tick(self, lock_fd: int):
+        try:
+            self.step(lock_fd)
+        except StateError:
+            # The entrypoint ends the container next: start a full hold for it.
+            self.block(self.clock(), force=True)
+            raise
+        self.sync_guard()
+
+    def step(self, lock_fd: int):
         now = self.clock()
         released = self.store.released()
         generation = self.store.daemon()
         if generation != self.generation:
+            # Before anything slower: the previous daemon's firewall may be gone.
+            self.block(now, force=True)
             self.stop_attempt()
             self.generation = generation
             # Before initial release, daemon restarts never extend the budget.
@@ -235,8 +308,16 @@ class Coordinator:
                 return
 
         if self.state['phase'] == 'configured':
-            self.publish()
-            return
+            if not (released and generation and self.reconnect_requested(generation)):
+                self.publish()
+                return
+            # Block before disconnecting, and keep blocking until this daemon
+            # is configured again: a reconnect never becomes a disconnect.
+            self.block(now, force=True)
+            self.disconnect()
+            self.deadline = now + self.window_seconds
+            self.next_attempt, self.failures = now, 0
+            self.publish('starting', generation=generation)
         if now >= self.deadline:
             self.stop_attempt()
             self.publish('failed')
@@ -249,8 +330,9 @@ class Coordinator:
                 self.stop_attempt()
                 if result == 0 and generation and generation == self.store.daemon():
                     self.publish('configured', generation=generation)
-                elif released:
-                    # Preserve the previous post-start relaunch failure policy.
+                elif released and self.guard is None:
+                    # Without the traffic guard, only ending the container
+                    # stops network services from using a direct connection.
                     raise StateError('WARP relaunch configuration failed.')
                 else:
                     delay = (5, 10, 20, 30)[min(self.failures, 3)]
@@ -296,7 +378,8 @@ def main():
         pid = int(sys.argv[2])
         store.write('daemon', pid=pid, identity=process_identity(pid), generation=secrets.token_hex(16))
     elif action == 'run':
-        Coordinator(store, Path(sys.argv[2])).run()
+        rules = os.environ.get('SCRAPER_WARP_GUARD')
+        Coordinator(store, Path(sys.argv[2]), guard=warp_guard.Guard(Path(rules)) if rules else None).run()
     elif action == 'configured':
         sys.exit(0 if store.configured() else 1)
     elif action == 'release':

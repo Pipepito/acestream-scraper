@@ -42,6 +42,10 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
   submits a private recovery request, never launches daemons from the API. Keep
   WARP waiting cancellable, database work protected on shutdown, and clock hints
   advisory. See `docs/ops/startup-recovery.md`.
+- The entrypoint's coordinator owns the WARP kill switch (`warp_guard.py`). The
+  app only reads its state (from nftables, never inferred) and holds the block
+  before restarting the daemon. Reconnect is a request the coordinator carries
+  out; the app never disconnects for it and never stands the guard down.
 
 - Production schema ownership belongs to Alembic. Add a revision for model changes,
   and test both a fresh upgrade and an upgrade from the relevant prior revision.
@@ -105,6 +109,11 @@ PYTHONPATH=backend alembic -c backend/migrations/alembic.ini upgrade head
   enables recovery within the connection through FFmpeg with new table
   versions and discontinuity signalling; never concatenate raw source bytes. Keep
   one tuner slot, bounded retries, and deterministic process/source cleanup.
+- `GET /api/v1/player/streams` gives each relay a `source_state`: `probing` from
+  the moment the relay books a source (`RelayRegistry.select_stream`) until that
+  source delivers its first bytes, `playing` after (`source_playing`), and
+  `probing` again on every automatic switch. Bytes the route sends of its
+  own never count. Browser sessions give null.
 - Bitrate/audio probes must stay bounded and restrict every HTTP redirect to the
   engine host before issuing it. ffprobe consumes a byte sample through stdin,
   never an upstream URL. Missing metadata is unknown, not zero bitrate.

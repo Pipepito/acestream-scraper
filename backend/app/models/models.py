@@ -2,9 +2,10 @@
 SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
+from importlib import import_module
 from uuid import uuid4
 
-from sqlalchemy import text, JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
+from sqlalchemy import text, JSON, Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -528,8 +529,6 @@ class TelegramObservation(Base):
     observed_at = Column(UtcDateTime(), nullable=False)
 
 
-from sqlalchemy import CheckConstraint
-
 class ImportPolicyState(Base):
     __tablename__ = 'import_policy_state'
     __table_args__ = (CheckConstraint('id = 1', name='ck_import_policy_singleton'),)
@@ -585,5 +584,6 @@ class SavedSearchChannel(Base):
     last_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
 
 # Register operational models for both Alembic and metadata-created test databases.
-from app.models import recordings as _recording_models  # noqa: E402,F401
-from app.models import stream_attempts as _stream_attempt_models  # noqa: E402,F401
+# They import this module's Base and columns, so they load after everything above.
+import_module('app.models.recordings')
+import_module('app.models.stream_attempts')

@@ -38,6 +38,8 @@ export const runtimeSpanish: Record<keyof typeof runtimeEnglish, string> = {
   "WARP_DNS_ONLY.help": "Cifra las consultas DNS con Cloudflare. El vídeo y el resto del tráfico mantienen tu conexión normal. Requiere NET_ADMIN, pero no SYS_ADMIN ni dispositivo TUN. Reinicia para aplicar.",
   "WARP_ENABLE_NAT.label": "Conectar WARP antes de iniciar los motores",
   "WARP_ENABLE_NAT.help": "Espera a que conecte el modo de WARP elegido antes de iniciar servicios de red. El túnel completo requiere NET_ADMIN y /dev/net/tun en Docker; no necesita SYS_ADMIN.",
+  "WARP_KILL_SWITCH.label": "Bloquear el tráfico directo mientras WARP no esté activo",
+  "WARP_KILL_SWITCH.help": "Se aplica cuando WARP se conecta antes de iniciar los motores en modo de túnel completo. Nada sale por tu conexión normal mientras el servicio WARP se inicia, se reinicia o está detenido. Requiere compatibilidad con nftables en el servidor.",
   "WARP_FORCE_IPV4.label": "Preferir IPv4 mediante WARP",
   "WARP_FORCE_IPV4.help": "Da preferencia a IPv4 en las conexiones WARP. Esta opción no activa WARP por sí sola.",
   "ZERONET_URL.label": "Pasarela de ZeroNet",

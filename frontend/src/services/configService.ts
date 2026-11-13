@@ -135,8 +135,17 @@ export const configService = {
   },
 
   /**
-   * Get the stream status check interval in minutes
+   * Get the seconds a stream check waits for a stream to start
    */
+  getAcestreamCheckTimeout: async (): Promise<number> => {
+    const response = await apiClient.get<Setting>(`${BASE_URL}/acestream_check_timeout`);
+    return Number(response.data.value);
+  },
+
+  updateAcestreamCheckTimeout: async (seconds: number): Promise<void> => {
+    await apiClient.put(`${BASE_URL}/acestream_check_timeout`, { value: String(seconds) });
+  },
+
   getChannelStatusInterval: async (): Promise<number> => {
     const response = await apiClient.get<Setting>(`${BASE_URL}/channel_status_interval`);
     return Number(response.data.value);

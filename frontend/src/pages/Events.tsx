@@ -94,7 +94,7 @@ export default function Events() {
         <Button aria-expanded={advanced} aria-controls="event-filters" onClick={() => setAdvanced(!advanced)}>{tUi("Filter events")}{interestCount ? tUi(" ({{value0}})", { value0: interestCount }) : ''}</Button>
       </Stack>
       {advanced ? <Stack id="event-filters" spacing={2} sx={{ mb: 3 }}>
-        <EventInterestFields value={interests} choices={choices.data} onChange={(value) => { setInterests(value); setOffset(0); }} />
+        <EventInterestFields value={interests} choices={choices.data} loading={choices.isFetching} onChange={(value) => { setInterests(value); setOffset(0); }} />
         <Stack direction="row" gap={1} flexWrap="wrap">
           <FormControlLabel control={<Checkbox checked={followed} onChange={(_, value) => { setFollowed(value); setOffset(0); }} />} label={tUi("Following")} />
           {interestCount ? <Button onClick={() => { setInterests(emptyInterests); setSport(''); setCompetition(''); setSource(''); setFollowed(false); setOffset(0); }}>{tUi("Clear filters")}</Button> : null}

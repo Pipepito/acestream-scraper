@@ -8,15 +8,12 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-if str(BACKEND_DIR) not in sys.path:
-    sys.path.insert(0, str(BACKEND_DIR))
+# Alembic may be started without PYTHONPATH=backend; a repeated entry is harmless.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-
-from app.config.database import Base
 from app.config.settings import settings
-import app.models.models  # noqa: F401
-
+# Base comes through the model hub: importing it registers every table on Base.metadata.
+from app.models.models import Base
 
 config = context.config
 database_url = config.attributes.get("database_url", settings.DATABASE_URL)

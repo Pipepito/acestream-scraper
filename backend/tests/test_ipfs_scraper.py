@@ -177,6 +177,40 @@ class TestIpfsScraper:
         by_id = {channel_id: (name, meta) for channel_id, name, meta in channels}
         assert by_id["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"][0] == "Sports One"
 
+    def test_scrape_detects_m3u_content_with_byte_order_mark(self, db_session, monkeypatch):
+        # Some playlist editors save a byte order mark before #EXTM3U.
+        scraper = self._scraper(f"ipfs://{CID}")
+        scraper.db = db_session
+
+        async def fake_fetch(url):
+            return "\ufeff" + M3U_CONTENT
+
+        monkeypatch.setattr(scraper, "fetch_content", fake_fetch)
+        channels, status = asyncio.run(scraper.scrape())
+
+        assert status == "OK"
+        assert {channel_id for channel_id, _name, _meta in channels} == {
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        }
+
+    def test_scrape_reads_a_list_with_a_stray_stream_tag(self, db_session, monkeypatch):
+        # One HLS tag line does not turn a channel list into a stream manifest.
+        scraper = self._scraper(f"ipfs://{CID}")
+        scraper.db = db_session
+
+        async def fake_fetch(url):
+            return M3U_CONTENT + "#EXT-X-TARGETDURATION:6\n"
+
+        monkeypatch.setattr(scraper, "fetch_content", fake_fetch)
+        channels, status = asyncio.run(scraper.scrape())
+
+        assert status == "OK"
+        assert {channel_id for channel_id, _name, _meta in channels} == {
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        }
+
     def test_scrape_extracts_acestream_links_from_html(self, db_session, monkeypatch):
         scraper = self._scraper(f"ipfs://{CID}/index.html")
         scraper.db = db_session

@@ -227,18 +227,17 @@ RUN --mount=type=bind,source=docker/vendor,target=/tmp/acexy-vendor,readonly \
       elif [ -n "${ACEXY_REPO:-}" ]; then \
         echo "acexy: cloning ${ACEXY_REPO} at ${ACEXY_REF}"; \
         git clone --depth 1 "$ACEXY_REPO" /src; \
-        cd /src; \
-        git fetch --depth 1 origin "$ACEXY_REF"; \
-        git checkout FETCH_HEAD; \
+        git -C /src fetch --depth 1 origin "$ACEXY_REF"; \
+        git -C /src checkout FETCH_HEAD; \
       else \
         cp -R /tmp/acexy-fixture/. /src/; \
       fi \
-    && cd /src \
     # Upstream acexy keeps its Go module in the acexy/ subdirectory; the
     # build fixture (and any flat fork) keeps go.mod at the root.
-    && if [ ! -f go.mod ] && [ -f acexy/go.mod ]; then cd acexy; fi \
+    && module_dir=/src \
+    && if [ ! -f /src/go.mod ] && [ -f /src/acexy/go.mod ]; then module_dir=/src/acexy; fi \
     && CGO_ENABLED=0 GOOS="${TARGETOS:-linux}" GOARCH="${TARGETARCH:-amd64}" GOARM="${TARGETVARIANT#v}" \
-       go build -ldflags "-s -w" -o "/out/$ACEXY_BINARY_NAME" .
+       go build -C "$module_dir" -ldflags "-s -w" -o "/out/$ACEXY_BINARY_NAME" .
 
 
 # Minimal static ffmpeg for the web player (spec 4.5): cross-compiled on the
@@ -389,6 +388,9 @@ COPY --link backend/capture_logs.py /usr/local/bin/capture_logs.py
 COPY --link backend/engine_cache_cleanup.py /usr/local/bin/engine_cache_cleanup.py
 COPY --link backend/gluetun_port.py /usr/local/bin/gluetun_port.py
 COPY --link --chmod=755 warp-setup.sh /usr/local/bin/warp-setup.sh
+# Optional helpers the entrypoint starts beside itself (WARP_SOCKS_PORT,
+# TOR_SOCKS_PORT, WARP_ALLOW_INBOUND).
+COPY --link --chmod=755 docker/scripts/warp-socks.py docker/scripts/tcp-forward.py docker/scripts/warp-inbound.sh /usr/local/bin/
 COPY --link --chmod=755 healthcheck.sh /usr/local/bin/healthcheck.sh
 
 # Linked copies keep each payload reusable when a preceding layer changes.

@@ -37,7 +37,7 @@ class EPGExportOperations:
             tv_channels_query = tv_channels_query.filter(TVChannel.name.ilike(f"%{search_term}%"))
 
         if favorites_only:
-            tv_channels_query = tv_channels_query.filter(TVChannel.is_favorite == True)
+            tv_channels_query = tv_channels_query.filter(TVChannel.is_favorite.is_(True))
 
         if tv_channel_ids is not None:
             tv_channels_query = tv_channels_query.filter(TVChannel.id.in_(list(tv_channel_ids)))

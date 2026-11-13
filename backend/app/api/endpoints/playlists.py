@@ -2,7 +2,7 @@
 API endpoints for playlist management and generation
 """
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
-from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 

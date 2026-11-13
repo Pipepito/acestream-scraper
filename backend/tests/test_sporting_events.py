@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import inspect, create_engine, text
 
-from app.schemas.events import EventImport, EventFields
+from app.schemas.events import EventFields
 from migration_test_utils import database_url_for, upgrade_to_revision, downgrade_to_revision
 
 FIXTURE = Path(__file__).parent / 'fixtures/events/schedule.json'

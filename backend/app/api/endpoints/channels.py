@@ -11,8 +11,7 @@ import csv
 from io import StringIO
 
 from app.config.database import get_db
-from app.api.error_handlers import APIError
-from app.models.models import AcestreamChannel, TVChannel
+from app.models.models import AcestreamChannel
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.channel_status_service import ChannelStatusService
 from app.schemas.channel import (
@@ -23,7 +22,6 @@ from app.schemas.channel import (
     AcestreamChannelUpdate,
     BulkChannelActivateRequest,
     BulkChannelEditRequest,
-    TVChannelResponse,
 )
 from app.schemas.channel_status import ChannelStatusResponse, ChannelStatusSummary
 

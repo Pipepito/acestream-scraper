@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from app.models.url_types import IpfsURL
 from app.scrapers.base import BaseScraper
 from app.scrapers.http import HTTPScraper
+from app.services.m3u_service import is_m3u_source
 from app.config.settings import settings
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
@@ -88,8 +89,7 @@ class IpfsScraper(BaseScraper):
             await self.update_url_status(url_to_scrape, status)
             return [], status
 
-        is_m3u = (url_to_scrape.lower().endswith(('.m3u', '.m3u8'))
-                  or content.lstrip().startswith('#EXTM3U'))
+        is_m3u = is_m3u_source(url_to_scrape, content)
         named_channels = self.extract_named_text_list(content)
         if named_channels:
             channels.extend(named_channels)

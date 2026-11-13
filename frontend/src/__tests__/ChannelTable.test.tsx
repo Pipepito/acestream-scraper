@@ -16,7 +16,6 @@ jest.mock('../services/apiClient', () => ({
 }));
 
 jest.mock('@mui/x-data-grid', () => {
-  const React = require('react');
   type MockRow = Record<string, unknown> & { id: React.Key };
   type MockColumn = { field: string; renderCell?: (params: { row: MockRow; value: unknown }) => React.ReactNode };
   type MockDataGridProps = {

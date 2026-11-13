@@ -27,16 +27,6 @@ def upgrade():
     # Get connection
     connection = op.get_bind()
 
-    # First, check if the table has foreign keys (for SQLite compatibility)
-    foreign_keys = get_foreign_keys(connection, 'acestream_channels')
-
-    # Find if there's a foreign key on source_url
-    source_url_fk = None
-    for fk in foreign_keys:
-        if 'source_url' in fk['constrained_columns']:
-            source_url_fk = fk
-            break
-
     # SQLite doesn't support dropping constraints directly - we need to recreate the table
     # Use batch_alter_table which handles the table reconstruction for SQLite
     # This will implicitly drop all foreign keys when recreating the table
@@ -75,9 +65,6 @@ def upgrade():
 
 
 def downgrade():
-    # Get connection
-    connection = op.get_bind()
-
     # SQLite doesn't support dropping constraints directly
     # Use batch_alter_table which handles the table reconstruction
     with op.batch_alter_table('acestream_channels', recreate='always') as batch_op:

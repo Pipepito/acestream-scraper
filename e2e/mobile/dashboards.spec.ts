@@ -74,8 +74,8 @@ for (const mode of ['light', 'dark']) {
     await page.getByLabel('Events to show').click();
     await page.getByRole('option', { name: 'My interests', exact: true }).click();
     await page.getByRole('button', { name: 'Choose interests' }).click();
-    await page.getByRole('combobox', { name: 'Sports', exact: true }).fill('Motorsport');
-    await page.getByRole('combobox', { name: 'Sports', exact: true }).press('Enter');
+    await page.getByRole('combobox', { name: 'Sports', exact: true }).fill('motor');
+    await page.getByRole('option', { name: 'Motorsport', exact: true }).click();
     await expect(upNext.getByRole('button', { name: `View broadcasts for ${event.title}` })).toBeVisible();
     await page.getByRole('textbox', { name: 'Display timezone' }).fill('Europe/Madrid');
     await page.getByRole('textbox', { name: 'Display timezone' }).press('Tab');

@@ -3,7 +3,6 @@
 Script to update all channel name references in tests to use the new naming scheme.
 """
 
-import re
 import glob
 
 # Mapping from old names to new names

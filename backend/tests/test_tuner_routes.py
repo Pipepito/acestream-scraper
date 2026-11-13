@@ -10,16 +10,20 @@ IH = "a" * 40
 @pytest.fixture
 def open_gate(monkeypatch):
     monkeypatch.setenv("TUNER_ALLOWED_NETWORKS", "*")
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
     yield
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
 
 
 def _seed(db):
     from app.models.models import AcestreamChannel, TVChannel
     tv = TVChannel(name="DAZN 1", channel_number=12, epg_id="DAZN LaLiga HD", category="Sports", is_active=True, logo_url="http://logo")
-    db.add(tv); db.flush()
-    db.add(AcestreamChannel(id=IH, name="feed", is_online=True, is_active=True, tv_channel_id=tv.id)); db.commit()
+    db.add(tv)
+    db.flush()
+    db.add(AcestreamChannel(id=IH, name="feed", is_online=True, is_active=True, tv_channel_id=tv.id))
+    db.commit()
     return tv
 
 
@@ -69,7 +73,8 @@ def test_settings_and_status_are_token_gated_and_reflect_the_gate(client, db_ses
 
 def test_status_reports_docker_gateway_warning_and_denials(client, db_session, monkeypatch):
     monkeypatch.setenv("TUNER_ALLOWED_NETWORKS", "10.0.0.0/8")
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
     try:
         assert client.get("/tuner/lineup.json").status_code == 403
         body = client.get("/api/v1/tuner/status").json()
@@ -78,7 +83,8 @@ def test_status_reports_docker_gateway_warning_and_denials(client, db_session, m
         gate = get_tuner_gate()
         assert gate.classify_source("172.17.0.1", False) == "docker-gateway"
     finally:
-        get_settings.cache_clear(); get_tuner_gate.cache_clear()
+        get_settings.cache_clear()
+        get_tuner_gate.cache_clear()
 
 
 def test_stream_relays_are_capped_by_tuner_count(alembic_client, alembic_db_session, open_gate):
@@ -160,7 +166,8 @@ def test_status_warns_when_the_allowlist_cannot_see_clients_apart_and_when_cappe
     from app.models.models import AcestreamChannel, TVChannel
     _seed(db_session)
     second = TVChannel(name="DAZN 2", channel_number=13, is_active=True)
-    db_session.add(second); db_session.flush()
+    db_session.add(second)
+    db_session.flush()
     db_session.add(AcestreamChannel(id="b" * 40, name="feed 2", is_online=True, is_active=True, tv_channel_id=second.id))
     db_session.commit()
     from app.services.tuner_service import TunerService
@@ -250,3 +257,123 @@ async def test_cancelled_individual_start_closes_engine_pool(monkeypatch):
         release.set()
         await asyncio.gather(opening, return_exceptions=True)
         engine.close()
+
+
+@pytest.mark.asyncio
+async def test_individual_source_going_silent_ends_the_stream_as_a_stall(monkeypatch):
+    from types import SimpleNamespace
+    import httpx
+    from starlette.requests import Request
+    from app.api.endpoints import tuner
+    from app.services import tuner_playback_service
+    from app.services.stream_relay import EngineStreamError, RelayRegistry
+
+    class Engine:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    async def relay(*args, **kwargs):
+        yield b'\x47' + b'\xff' * 187
+        raise EngineStreamError('Engine stream failed') from httpx.ReadTimeout('silent')
+
+    engine, recorded = Engine(), []
+    registry = RelayRegistry()
+    monkeypatch.setattr(tuner, '_engine', lambda: engine)
+    monkeypatch.setattr(tuner, '_tuner_count', lambda: 1)
+    monkeypatch.setattr(tuner, '_relay_settings', lambda: SimpleNamespace(source_start_seconds=5, startup_budget_seconds=5))
+    monkeypatch.setattr(tuner, 'relay_registry', registry)
+    monkeypatch.setattr(tuner, 'relay_engine_stream', relay)
+    monkeypatch.setattr(tuner_playback_service, 'record_outcome',
+                        lambda content_id, tv_channel_id, outcome, **kw: recorded.append((content_id, outcome)))
+
+    response = await tuner.tuner_stream(IH, Request({'type': 'http', 'method': 'GET', 'headers': []}))
+    chunks = [chunk async for chunk in response.body_iterator]
+
+    assert len(chunks) == 1
+    assert recorded == [(IH, 'stall')]
+    assert engine.closed
+
+
+def _individual_route(monkeypatch, relay, clock=None):
+    """The per-source route with a fake engine and relay; returns what it recorded."""
+    from types import SimpleNamespace
+    from app.api.endpoints import tuner
+    from app.services import tuner_playback_service
+    from app.services.stream_relay import RelayRegistry
+
+    class Engine:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    engine, recorded = Engine(), []
+    monkeypatch.setattr(tuner, '_engine', lambda: engine)
+    monkeypatch.setattr(tuner, '_tuner_count', lambda: 1)
+    monkeypatch.setattr(tuner, '_relay_settings', lambda: SimpleNamespace(source_start_seconds=5, startup_budget_seconds=5))
+    monkeypatch.setattr(tuner, 'relay_registry', RelayRegistry())
+    monkeypatch.setattr(tuner, 'relay_engine_stream', relay)
+    if clock is not None:
+        # Only this module's clock: the event loop keeps the real one.
+        monkeypatch.setattr(tuner, 'time', SimpleNamespace(monotonic=clock))
+    monkeypatch.setattr(tuner_playback_service, 'record_outcome',
+                        lambda content_id, tv_channel_id, outcome, **kw: recorded.append(
+                            (outcome, round(kw['seconds']), kw.get('final', True))))
+    return tuner, engine, recorded
+
+
+@pytest.mark.asyncio
+async def test_individual_source_viewing_is_written_while_it_plays_and_when_it_ends(monkeypatch):
+    from starlette.requests import Request
+    packet = b'\x47' + b'\xff' * 187
+
+    async def relay(*args, **kwargs):
+        for _ in range(4):
+            yield packet
+
+    # 20 s pass between chunks: nothing is written before 30 s of play.
+    ticks = iter(range(0, 2000, 20))
+    tuner, engine, recorded = _individual_route(monkeypatch, relay, clock=lambda: float(next(ticks)))
+
+    response = await tuner.tuner_stream(IH, Request({'type': 'http', 'method': 'GET', 'headers': []}))
+    chunks = [chunk async for chunk in response.body_iterator]
+
+    assert chunks == [packet] * 4
+    assert recorded == [('ok', 40, False), ('ok', 60, True)]
+    assert engine.closed
+
+
+@pytest.mark.asyncio
+async def test_individual_source_viewing_shorter_than_a_checkpoint_is_not_written(monkeypatch):
+    # Kodi's first GET of a pair lasts a moment: it says nothing about the source.
+    from starlette.requests import Request
+
+    async def relay(*args, **kwargs):
+        yield b'\x47' + b'\xff' * 187
+
+    tuner, engine, recorded = _individual_route(monkeypatch, relay)
+
+    response = await tuner.tuner_stream(IH, Request({'type': 'http', 'method': 'GET', 'headers': []}))
+    assert len([chunk async for chunk in response.body_iterator]) == 1
+    assert recorded == []
+    assert engine.closed
+
+
+@pytest.mark.asyncio
+async def test_individual_source_whose_clock_goes_back_is_recorded_as_jumpy(monkeypatch):
+    from starlette.requests import Request
+    from tests.test_ts_clock import _chunk
+
+    async def relay(*args, **kwargs):
+        # The picture loops: the source's own clock goes back 40 s right away.
+        for seconds in (100.0, 100.5, 60.0, 60.5):
+            yield _chunk(seconds)
+
+    tuner, engine, recorded = _individual_route(monkeypatch, relay)
+
+    response = await tuner.tuner_stream(IH, Request({'type': 'http', 'method': 'GET', 'headers': []}))
+    assert len([chunk async for chunk in response.body_iterator]) == 4
+    assert [(outcome, final) for outcome, _seconds, final in recorded] == [('jumpy', True)]
+    assert engine.closed

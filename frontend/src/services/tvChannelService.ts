@@ -100,7 +100,7 @@ export const tvChannelService = {
   getCatalog: async (pageSize = 500, filters?: TVChannelListFilters): Promise<TVChannel[]> => {
     const items: TVChannel[] = [];
     let skip = 0;
-    let total = 0;
+    let total: number;
 
     do {
       const response = await tvChannelService.getAll(skip, pageSize, filters);

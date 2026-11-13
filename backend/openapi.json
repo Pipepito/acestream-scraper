@@ -1325,6 +1325,21 @@
             ],
             "title": "Peers"
           },
+          "source_state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "probing",
+                  "playing"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source State"
+          },
           "started_at": {
             "anyOf": [
               {
@@ -3606,7 +3621,7 @@
                 "type": "null"
               }
             ],
-            "description": "Setting value; channel_status_interval uses whole minutes (1\u201310080, default 60)",
+            "description": "Setting value; channel_status_interval uses whole minutes (1\u201310080, default 60); acestream_check_timeout whole seconds (5\u2013120, default 10)",
             "title": "Value"
           }
         },
@@ -5603,6 +5618,39 @@
           "name"
         ],
         "title": "EventProviderChoice",
+        "type": "object"
+      },
+      "EventProviderInterestsRequest": {
+        "additionalProperties": false,
+        "description": "Which names a built-in provider currently publishes; saved interests are ignored.",
+        "properties": {
+          "provider_options": {
+            "$ref": "#/components/schemas/EventProviderOptions"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          },
+          "timezone": {
+            "default": "UTC",
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider_options"
+        ],
+        "title": "EventProviderInterestsRequest",
         "type": "object"
       },
       "EventProviderOptions": {
@@ -23611,6 +23659,61 @@
         "x-access-class": "management"
       }
     },
+    "/api/v1/events/providers/interests": {
+      "post": {
+        "description": "Names to choose from before a preview. Fetches the provider; saves nothing.",
+        "operationId": "event_provider_interests_api_v1_events_providers_interests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventProviderInterestsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventInterestChoices"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventValidationProblem"
+                }
+              }
+            },
+            "description": "Invalid event request; private input and context are omitted."
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Event Provider Interests",
+        "tags": [
+          "events"
+        ],
+        "x-access-class": "management"
+      }
+    },
     "/api/v1/events/retention": {
       "get": {
         "operationId": "event_retention_api_v1_events_retention_get",
@@ -36022,6 +36125,38 @@
           }
         },
         "summary": "Set WARP mode",
+        "tags": [
+          "warp"
+        ],
+        "x-access-class": "management"
+      }
+    },
+    "/api/v1/warp/reconnect": {
+      "post": {
+        "operationId": "reconnect_warp_api_v1_warp_reconnect_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApplicationProblem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApplicationProblem403"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApplicationProblem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApplicationProblem503"
+          }
+        },
+        "summary": "Reconnect WARP",
         "tags": [
           "warp"
         ],

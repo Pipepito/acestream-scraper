@@ -36,6 +36,7 @@ jest.mock('../components/player/ChannelPlayerDialog', () => ({
 }));
 jest.mock('../hooks/useEPG', () => ({
   useResolveEPGChannel: (...args: unknown[]) => mockUseResolveEPGChannel(...args),
+  useEPGSources: () => ({ data: [{ id: 4, name: 'Guide A', url: 'https://guide-a.example/a.xml.gz' }, { id: 9, name: 'Guide B', url: 'https://guide-b.example/b.xml' }] }),
 }));
 jest.mock('../hooks/useTVChannels', () => ({
   useTVChannel: (...args: unknown[]) => mockUseTVChannel(...args),
@@ -220,6 +221,66 @@ describe('TVChannelDetail', () => {
       id: 7,
       updates: expect.objectContaining({ name: 'Arena TV', epg_id: 'arena-tv', channel_number: 7, is_active: true, is_favorite: true }),
     });
+    expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
+  });
+
+  it('changes the guide source, so the same channel can take another guide', async () => {
+    // Alpha.TV in one guide is Alpha in another: the id alone cannot say
+    // which guide is meant, and the form had no way to choose it.
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.mouseDown(screen.getByLabelText(/^Guide source/));
+    fireEvent.click(await screen.findByRole('option', { name: 'Guide B' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(mutateAsync).toHaveBeenCalledWith({ id: 7, updates: expect.objectContaining({ epg_source_id: 9 }) });
+    expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
+  });
+
+  it('keeps the guide source when other fields change, and Not set removes it', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(mutateAsync).toHaveBeenLastCalledWith({ id: 7, updates: expect.objectContaining({ epg_source_id: 4 }) });
+    await screen.findByText(/updated successfully/i);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.mouseDown(screen.getByLabelText(/^Guide source/));
+    fireEvent.click(await screen.findByRole('option', { name: 'Not set' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(mutateAsync).toHaveBeenLastCalledWith({ id: 7, updates: expect.objectContaining({ epg_source_id: null }) });
+  });
+
+  it('removes the channel number when the field is emptied', async () => {
+    // Skipping an empty number leaves the old one in place, with no way to
+    // clear it from this form.
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.change(screen.getByLabelText(/^Channel number/), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(mutateAsync).toHaveBeenCalledWith({ id: 7, updates: expect.objectContaining({ channel_number: null }) });
+    expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
+  });
+
+  it('keeps channel number 0 when editing other fields', async () => {
+    // 0 was loaded as an empty field and then dropped on save.
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync });
+    mockUseTVChannel.mockReturnValue({ data: { ...baseChannel, channel_number: 0 }, isLoading: false, isError: false });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByLabelText(/^Channel number/)).toHaveValue(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(mutateAsync).toHaveBeenCalledWith({ id: 7, updates: expect.objectContaining({ channel_number: 0 }) });
     expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
   });
 

@@ -44,11 +44,11 @@ from app.config.version import get_app_version
 from app.middleware.forwarded import ForwardedHeadersMiddleware, parse_trusted
 from app.middleware.access import AccessMiddleware
 from app.middleware.media_cors import ApplicationCORSMiddleware
+from app.middleware.recipe_limits import RecipeRequestLimits
 from app.services.startup_service import startup_service
 from app.repositories.startup_recovery import database_path, legacy_disabled, recover_database
 from app.services.epg_service import EPGService
 from app.services.player_service import player_service
-from app.services.playlist_service import PlaylistService
 from app.services.stream_relay import relay_registry
 from app.services.task_service import task_service
 from app.tasks.activity_log_cleanup import run_activity_log_cleanup
@@ -359,7 +359,6 @@ async def correlation_id_middleware(request: Request, call_next):
     response.headers["X-Correlation-ID"] = correlation_id
     return response
 
-from app.middleware.recipe_limits import RecipeRequestLimits
 app.add_middleware(RecipeRequestLimits)
 app.add_middleware(AccessMiddleware)
 

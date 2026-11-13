@@ -76,7 +76,7 @@ class TestTVChannelsPlaylist:
         response = client.get("/api/v1/playlists/tv-channels/m3u")
         assert response.status_code == status.HTTP_200_OK
         lines = response.text.strip().split("\n")
-        extinf = [l for l in lines if l.startswith("#EXTINF:")]
+        extinf = [line for line in lines if line.startswith("#EXTINF:")]
         assert len(extinf) == 1
         # Single stream: plain name, plain channel number, un-suffixed EPG id
         assert f",{tv.name}" in extinf[0]
@@ -94,8 +94,8 @@ class TestTVChannelsPlaylist:
 
         response = client.get("/api/v1/playlists/tv-channels/m3u")
         lines = response.text.strip().split("\n")
-        extinf = [l for l in lines if l.startswith("#EXTINF:")]
-        links = [l for l in lines if not l.startswith("#")]
+        extinf = [line for line in lines if line.startswith("#EXTINF:")]
+        links = [line for line in lines if not line.startswith("#")]
         assert len(extinf) == 2
 
         # Quality-ranked: the online/metadata-rich stream comes first
@@ -113,8 +113,8 @@ class TestTVChannelsPlaylist:
             _make_stream(db_session, f"Stream for {tv.id}", tv_channel_id=tv.id)
         response = client.get("/api/v1/playlists/tv-channels/m3u")
         lines = response.text.strip().split("\n")
-        numbers = [l.split('tvg-chno="')[1].split('"')[0]
-                   for l in lines if "tvg-chno=" in l]
+        numbers = [line.split('tvg-chno="')[1].split('"')[0]
+                   for line in lines if "tvg-chno=" in line]
         assert numbers == sorted(numbers, key=float)
 
     def test_favorites_only(self, client, seed_tv_channels, db_session):
@@ -125,7 +125,7 @@ class TestTVChannelsPlaylist:
 
         response = client.get("/api/v1/playlists/tv-channels/m3u?favorites_only=true")
         lines = response.text.strip().split("\n")
-        extinf = [l for l in lines if l.startswith("#EXTINF:")]
+        extinf = [line for line in lines if line.startswith("#EXTINF:")]
         assert len(extinf) == 1
         assert seed_tv_channels[1].name in extinf[0]
 
@@ -136,7 +136,7 @@ class TestTVChannelsPlaylist:
 
         response = client.get(f"/api/v1/playlists/tv-channels/m3u?search={needle}")
         lines = response.text.strip().split("\n")
-        extinf = [l for l in lines if l.startswith("#EXTINF:")]
+        extinf = [line for line in lines if line.startswith("#EXTINF:")]
         assert len(extinf) == 1
         assert needle in extinf[0]
 
@@ -167,8 +167,8 @@ class TestAllStreamsPlaylist:
 
         response = client.get("/api/v1/playlists/all-streams/m3u")
         lines = response.text.strip().split("\n")
-        numbers = [l.split('tvg-chno="')[1].split('"')[0]
-                   for l in lines if "tvg-chno=" in l]
+        numbers = [line.split('tvg-chno="')[1].split('"')[0]
+                   for line in lines if "tvg-chno=" in line]
         assert "9000" in numbers
         assert "9001" in numbers
 
@@ -216,8 +216,8 @@ class TestDisplayNameCollisions:
         _make_stream(db_session, "DAZN")
 
         response = client.get("/api/v1/playlists/all-streams/m3u")
-        names = [l.split('tvg-name="')[1].split('"')[0]
-                 for l in response.text.split("\n") if "tvg-name=" in l]
+        names = [line.split('tvg-name="')[1].split('"')[0]
+                 for line in response.text.split("\n") if "tvg-name=" in line]
         assert len(names) == 4
         assert len(set(names)) == 4, f"duplicate display names: {names}"
 
@@ -226,7 +226,7 @@ class TestDisplayNameCollisions:
         _make_stream(db_session, 'Canal 24" Ultra', group='The "Best" Group')
 
         response = client.get("/api/v1/playlists/all-streams/m3u")
-        extinf = [l for l in response.text.split("\n") if l.startswith("#EXTINF:")]
+        extinf = [line for line in response.text.split("\n") if line.startswith("#EXTINF:")]
         assert len(extinf) == 1
         attrs_part = extinf[0].split(",", 1)[0]
         # Attribute values must contain no embedded double quotes: the
@@ -347,3 +347,36 @@ def test_per_source_lists_each_source_under_its_relayed_channel(client, seed_tv_
     assert first.id not in client.get(path, params={**params, 'per_source': 'false'}).text
     own = client.get(path, params={**params, 'base_url': 'acestream://{channel_id}'}).text
     assert own.count(f'acestream://{first.id}') == 1
+
+
+@pytest.mark.parametrize('path', ['/playlists/m3u', '/api/v1/playlists/m3u'])
+def test_relay_channel_goes_through_the_relay_even_when_an_http_source_ranks_first(client, seed_tv_channels, db_session, path):
+    """The relay opens HTTP sources too (app.services.tuner_http_source, #264). Before, a channel whose
+    first source had a stream_url was handed that source's /live/ link:
+    Antena 3, laSexta, Neox, Nova and Mega skipped the relay and its
+    fallback to their acestreams. Its per-source entry still opens /live/."""
+    from app.models.models import AcestreamChannel
+    tv = seed_tv_channels[0]
+    ace = _make_stream(db_session, 'Acestream', tv_channel_id=tv.id, is_online=False)
+    web = AcestreamChannel(id='url:' + 'b' * 40, name='Oficial', is_active=True, is_online=True,
+                           source_url='http://lista.example/y', stream_url='https://cdn.example.com/canal/master.m3u8',
+                           tv_channel_id=tv.id)
+    db_session.add(web)
+    db_session.commit()
+    params = {'base_url': 'http://scraper.test/tuner/channel/{tv_channel_id}.ts', 'only_online': 'false',
+              'include_unassigned': 'false'}
+    plain = client.get(path, params=params).text.splitlines()
+    links = [line for line in plain if line and not line.startswith('#')]
+    assert links == [f'http://scraper.test/tuner/channel/{tv.id}.ts']
+    # The relay answers MPEG-TS: the HLS mimetype of /live/ would make Kodi
+    # read the .ts as a playlist and fail.
+    at = plain.index(links[0])
+    assert plain[at - 1] == '#KODIPROP:mimetype=video/mp2t'
+    assert 'application/vnd.apple.mpegurl' not in '\n'.join(plain)
+    # Outside the relay, a link format still hands out the source's own URL.
+    own = client.get(path, params={**params, 'base_url': 'acestream://{channel_id}'}).text
+    assert 'https://cdn.example.com/canal/master.m3u8' in own or '/live/url%3A' + 'b' * 40 in own
+    lines = client.get(path, params={**params, 'per_source': 'true'}).text.splitlines()
+    assert f'http://scraper.test/tuner/channel/{tv.id}.ts' in lines
+    assert 'https://cdn.example.com/canal/master.m3u8' in lines or any('/live/url%3A' + 'b' * 40 in line for line in lines)
+    assert f'http://scraper.test/tuner/stream/{ace.id}.ts' in lines

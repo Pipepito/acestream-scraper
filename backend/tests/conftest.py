@@ -21,7 +21,6 @@ recreating ORM classes. ``main`` and the model modules are imported exactly
 once at conftest import time and reused by every fixture.
 """
 
-import asyncio
 import json
 import os
 import sys

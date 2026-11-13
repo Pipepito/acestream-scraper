@@ -29,7 +29,8 @@ def test_source_names_upgrade_preserves_old_rows(tmp_path):
 def test_provider_definitions_and_optional_name_lifecycle(client, db_session):
     from app.models.models import AcestreamChannel
     providers = client.get('/api/v1/scrapers/providers').json()
-    assert {p['id'] for p in providers} == {'atresplayer', 'mediaset', '7riojaplay', 'telemadrid'}
+    assert {p['id'] for p in providers} == {'atresplayer', 'mediaset', '7riojaplay', 'telemadrid',
+                                           'apunt', 'pluto', 'plex', 'samsung'}
     source = providers[0]
     response = client.post('/api/v1/scrapers/urls', json={'url': source['url'], 'name': '  Living room  '})
     assert response.status_code == 201
@@ -42,6 +43,25 @@ def test_provider_definitions_and_optional_name_lifecycle(client, db_session):
     assert client.patch(f"/api/v1/scrapers/urls/{row['id']}", json={'name': ' '}).json()['name'] is None
     assert client.post('/api/v1/scrapers/urls', json={'url': 'https://example.test', 'url_type': 'broadcaster'}).status_code == 422
     assert client.patch(f"/api/v1/scrapers/urls/{row['id']}", json={'name': 'x' * 256}).status_code == 422
+
+
+def test_apunt_is_advertised_and_saved_as_a_broadcaster_without_importing(client, db_session):
+    from app.models.models import AcestreamChannel
+    providers = {p['id']: p for p in client.get('/api/v1/scrapers/providers').json()}
+    assert providers['apunt'] == {'id': 'apunt', 'name': 'À Punt', 'url': 'https://www.apuntmedia.es'}
+    response = client.post('/api/v1/scrapers/urls', json={'url': providers['apunt']['url'], 'name': 'Valencia'})
+    assert response.status_code == 201
+    row = response.json()
+    assert (row['name'], row['url_type']) == ('Valencia', 'broadcaster')
+    # Saving a source never imports: channels arrive with the Scrape action.
+    assert db_session.query(AcestreamChannel).count() == 0
+    # Its live page is the same broadcaster, not a page to extract links from.
+    page = client.post('/api/v1/scrapers/urls', json={
+        'url': 'https://www.apuntmedia.es/directe/directe-tv_136_1392524.html', 'url_type': 'broadcaster'})
+    assert page.status_code == 201
+    assert page.json()['url_type'] == 'broadcaster'
+    assert db_session.query(AcestreamChannel).count() == 0
+    assert client.patch(f"/api/v1/scrapers/urls/{row['id']}", json={'enabled': False}).json()['url_type'] == 'broadcaster'
 
 
 def test_source_filter_before_pagination_includes_shared_catalogue_entries(client, db_session):

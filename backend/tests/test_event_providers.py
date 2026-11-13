@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 from pydantic import ValidationError
@@ -396,3 +397,157 @@ def test_tv_automatch_preview_keeps_strict_country_rule(client, db_session):
     db_session.add(AcestreamChannel(id='c' * 40, name='ES: Eurosport 1', is_active=True))
     db_session.commit()
     assert client.post('/api/v1/tv-channels/automatch/preview').json()['candidates'] == []
+
+
+def _marca_page(rows, day='9 de Noviembre de 2026'):
+    """A MARCA agenda with one day; rows are (sport, time, competition, title, channels)."""
+    events = ''.join(
+        f'<li class="dailyevent"><div class="dailytime"><span class="dailyday">{sport}</span>'
+        f'<strong class="dailyhour">{clock}</strong></div><span class="dailycompetition">{competition}</span>'
+        f'<h4 class="dailyteams">{title}</h4>'
+        + ''.join(f'<span class="dailychannel">{channel}</span>' for channel in channels) + '</li>'
+        for sport, clock, competition, title, channels in rows)
+    return ('<div class="schedule"><ol class="daylist"><li class="content-item">'
+            f'<span class="title-section-widget">{day}</span><ol>{events}</ol></li></ol></div>')
+
+
+def test_marca_merges_a_fixture_listed_once_per_broadcaster():
+    from app.services.event_marca import parse_marca
+    rows = parse_marca(_marca_page([
+        ('Fútbol', '19:00', 'COPA', 'East - West', ['TV Uno']),
+        ('Fútbol', '19:00', 'COPA', 'East - West', ['TV Dos', 'TV Uno']),
+    ]))
+    assert len(rows) == 1
+    assert [b.label for b in rows[0].broadcasts] == ['TV Uno', 'TV Dos']
+
+
+def test_marca_refuses_one_fixture_listed_at_two_times():
+    # Same day, competition and teams: which kickoff is right cannot be told.
+    from app.services.event_marca import parse_marca
+    with pytest.raises(ValueError, match='Ambiguous MARCA daily occurrence'):
+        parse_marca(_marca_page([
+            ('Fútbol', '19:00', 'COPA', 'East - West', ['TV Uno']),
+            ('Fútbol', '21:00', 'COPA', 'East - West', ['TV Dos']),
+        ]))
+
+
+def test_marca_agenda_is_bounded():
+    from app.services.event_marca import parse_marca
+    page = _marca_page([('Fútbol', '19:00', 'COPA', f'Home {n} - Away {n}', ['TV Uno']) for n in range(2001)])
+    with pytest.raises(ValueError, match='exceeds event limit'):
+        parse_marca(page)
+
+
+def test_marca_is_fetched_through_the_guarded_session_and_parsed_as_bytes(monkeypatch):
+    # The publisher's page declares ISO-8859-1: it is handed over undecoded.
+    import asyncio
+    from app.services import event_providers
+    payload = (Path(__file__).parent / 'fixtures/events/providers/marca.html').read_text().replace(
+        'utf-8', 'iso-8859-1').encode('iso-8859-1')
+    calls = []
+
+    class Response:
+        def __init__(self):
+            self.content = self
+
+        def raise_for_status(self):
+            pass
+
+        async def iter_chunked(self, size):
+            yield payload
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+    class Session(Response):
+        def get(self, url, **kwargs):
+            calls.append((url, kwargs))
+            return Response()
+
+    monkeypatch.setattr(event_providers, 'source_session', lambda **kw: Session())
+    result = asyncio.run(event_providers.fetch_provider(
+        {'provider': 'marca_es', 'window_days': 2}, zone='UTC', now=datetime(2026, 11, 9, tzinfo=timezone.utc)))
+    assert calls == [('https://www.marca.com/programacion-tv.html', {'max_redirects': 5})]
+    assert [o.sport for o in result.observations] == ['Basketball', 'Football', 'American football']
+    assert result.observations[1].title == 'East - West'
+
+
+def _provider_page(monkeypatch, payload):
+    """Serve one provider page through the guarded session; returns the requests made."""
+    from app.services import event_providers
+    calls = []
+
+    class Response:
+        def __init__(self):
+            self.content = self
+
+        def raise_for_status(self):
+            pass
+
+        async def iter_chunked(self, size):
+            yield payload
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+    class Session(Response):
+        def get(self, url, **kwargs):
+            calls.append(url)
+            return Response()
+
+    monkeypatch.setattr(event_providers, 'source_session', lambda **kw: Session())
+    return calls
+
+
+def test_provider_names_are_offered_before_any_preview_and_nothing_is_saved(client, db_session, monkeypatch):
+    from app.models.models import EventScheduleSource, SportingEvent
+    soon = datetime.now(timezone.utc).astimezone(ZoneInfo('Europe/Madrid')).date()
+    months = ('Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre',
+              'Octubre', 'Noviembre', 'Diciembre')
+    page = _marca_page([
+        ('Fútbol', '19:00', 'COPA', 'East - West', ['TV Uno']),
+        ('Tenis', '12:00', 'ATP FINALS', 'First vs Second', ['TV Dos']),
+        ('NBA', '02:00', 'LIGA REGULAR', 'North @ South', ['TV Tres']),
+    ], day=f'{soon.day} de {months[soon.month - 1]} de {soon.year}')
+    calls = _provider_page(monkeypatch, page.encode())
+
+    # Interests already chosen must not hide the other names from the list.
+    response = client.post('/api/v1/events/providers/interests', json={'provider_options': {
+        'provider': 'marca_es', 'window_days': 7, 'interests': {'sports': ['Tennis']}}})
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        'sports': ['Basketball', 'Football', 'Tennis'],
+        'competitions': ['ATP FINALS', 'COPA', 'NBA'],
+        'teams': ['East', 'First', 'North', 'Second', 'South', 'West'],
+    }
+    assert calls == ['https://www.marca.com/programacion-tv.html']
+    assert db_session.query(EventScheduleSource).count() == 0
+    assert db_session.query(SportingEvent).count() == 0
+
+
+def test_provider_names_report_an_unavailable_provider_without_its_details(client, monkeypatch):
+    from app.services import event_providers
+
+    def refuse(**kwargs):
+        raise OSError('connect to 203.0.113.9:443 refused')
+
+    monkeypatch.setattr(event_providers, 'source_session', refuse)
+    response = client.post('/api/v1/events/providers/interests', json={'provider_options': {'provider': 'marca_es'}})
+    assert response.status_code == 409
+    assert 'Could not load this provider schedule' in response.text
+    assert '203.0.113.9' not in response.text
+
+
+def test_provider_names_validate_the_provider_and_timezone(client):
+    path = '/api/v1/events/providers/interests'
+    assert client.post(path, json={}).status_code == 422
+    assert client.post(path, json={'provider_options': {'provider': 'elsewhere'}}).status_code == 422
+    assert client.post(path, json={'provider_options': {'provider': 'openfootball'}, 'timezone': 'Mars/Olympus'}).status_code == 422
+    assert client.post(path, json={'provider_options': {'provider': 'marca_es'}, 'timeout_seconds': 1}).status_code == 422

@@ -53,48 +53,70 @@ def validate_values(values: dict, *, bootstrap: bool = False) -> dict:
         kind = option['kind']
         try:
             if name == 'CORS_ORIGINS':
-                if bootstrap and isinstance(value, list): value = ','.join(value)
-                if isinstance(value, str) and value.lstrip().startswith('['): value = ','.join(json.loads(value))
+                if bootstrap and isinstance(value, list):
+                    value = ','.join(value)
+                if isinstance(value, str) and value.lstrip().startswith('['):
+                    value = ','.join(json.loads(value))
             if bootstrap and isinstance(value, str):
                 if kind == 'boolean':
                     if value.lower() not in ('true', 'false', '1', '0', 'yes', 'no', 'on', 'off'):
                         raise ValueError
                     value = value.lower() in ('true', '1', 'yes', 'on')
-                elif kind == 'integer': value = int(value)
-                elif kind == 'number': value = float(value)
+                elif kind == 'integer':
+                    value = int(value)
+                elif kind == 'number':
+                    value = float(value)
             if kind == 'boolean':
-                if type(value) is not bool: raise ValueError
+                if type(value) is not bool:
+                    raise ValueError
             elif kind in ('integer', 'number'):
-                if type(value) not in (int, float) or not math.isfinite(value): raise ValueError
-                if kind == 'integer' and type(value) is not int: raise ValueError
-                if 'minimum' in option and value < option['minimum']: raise ValueError
-                if 'maximum' in option and value > option['maximum']: raise ValueError
+                if type(value) not in (int, float) or not math.isfinite(value):
+                    raise ValueError
+                if kind == 'integer' and type(value) is not int:
+                    raise ValueError
+                if 'minimum' in option and value < option['minimum']:
+                    raise ValueError
+                if 'maximum' in option and value > option['maximum']:
+                    raise ValueError
             else:
-                if not isinstance(value, str) or len(value) > 4096 or any(ord(c) < 32 for c in value): raise ValueError
+                if not isinstance(value, str) or len(value) > 4096 or any(ord(c) < 32 for c in value):
+                    raise ValueError
                 if kind == 'url' and value:
                     parsed = urlsplit(value)
-                    if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password or parsed.fragment: raise ValueError
+                    if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
+                        raise ValueError
                     _ = parsed.port
                 if kind == 'networks':
-                    if not value.strip(): raise ValueError
+                    if not value.strip():
+                        raise ValueError
                     for item in value.split(','):
                         if item.strip() != '*':
-                            if name == 'FORWARDED_ALLOW_IPS' and re.fullmatch(r'[a-zA-Z][a-zA-Z0-9_.-]*', item.strip()): continue
+                            if name == 'FORWARDED_ALLOW_IPS' and re.fullmatch(r'[a-zA-Z][a-zA-Z0-9_.-]*', item.strip()):
+                                continue
                             ipaddress.ip_network(item.strip(), strict=False)
                 if name == 'CORS_ORIGINS':
                     for origin in filter(None, map(str.strip, value.split(','))):
-                        if origin != '*' and (urlsplit(origin).scheme not in ('http', 'https') or not urlsplit(origin).hostname): raise ValueError
-                if kind == 'host' and not valid_host(value): raise ValueError
-                if kind == 'hosts' and any(not valid_host(host, port=True) for host in value.split()): raise ValueError
-                if kind == 'ipv4': ipaddress.IPv4Address(value)
+                        if origin != '*' and (urlsplit(origin).scheme not in ('http', 'https') or not urlsplit(origin).hostname):
+                            raise ValueError
+                if kind == 'host' and not valid_host(value):
+                    raise ValueError
+                if kind == 'hosts' and any(not valid_host(host, port=True) for host in value.split()):
+                    raise ValueError
+                if kind == 'ipv4':
+                    ipaddress.IPv4Address(value)
                 if kind == 'listen':
                     host, port = value.rsplit(':', 1)
-                    if (host and not valid_host(host)) or not port.isdigit() or not 1 <= int(port) <= 65535: raise ValueError
-                if kind == 'duration' and not re.fullmatch(r'(?:[0-9]+(?:\.[0-9]+)?(?:ms|s|m|h))+', value): raise ValueError
-                if kind == 'bytes' and not re.fullmatch(r'[1-9][0-9]*(?:B|KiB|MiB|GiB|KB|MB|GB)', value): raise ValueError
+                    if (host and not valid_host(host)) or not port.isdigit() or not 1 <= int(port) <= 65535:
+                        raise ValueError
+                if kind == 'duration' and not re.fullmatch(r'(?:[0-9]+(?:\.[0-9]+)?(?:ms|s|m|h))+', value):
+                    raise ValueError
+                if kind == 'bytes' and not re.fullmatch(r'[1-9][0-9]*(?:B|KiB|MiB|GiB|KB|MB|GB)', value):
+                    raise ValueError
                 if kind == 'timezone':
-                    try: ZoneInfo(value)
-                    except (ZoneInfoNotFoundError, ValueError): raise ValueError from None
+                    try:
+                        ZoneInfo(value)
+                    except (ZoneInfoNotFoundError, ValueError):
+                        raise ValueError from None
             result[name] = value
         except (ValueError, TypeError, KeyError):
             raise ConfigError(f'Invalid value for {name}.') from None
@@ -103,14 +125,19 @@ def validate_values(values: dict, *, bootstrap: bool = False) -> dict:
 
 def valid_host(value: str, *, port: bool = False) -> bool:
     """Data-only hosts; also safe in the legacy ZeroNet argument builder."""
-    if not value or value.startswith('-'): return False
+    if not value or value.startswith('-'):
+        return False
     host = value
     if port and ':' in value and not value.startswith('['):
         host, number = value.rsplit(':', 1)
-        if not number.isdigit() or not 1 <= int(number) <= 65535: return False
+        if not number.isdigit() or not 1 <= int(number) <= 65535:
+            return False
     if host.startswith('[') and host.endswith(']'):
-        try: ipaddress.IPv6Address(host[1:-1]); return True
-        except ValueError: return False
+        try:
+            ipaddress.IPv6Address(host[1:-1])
+            return True
+        except ValueError:
+            return False
     return bool(re.fullmatch(r'[a-zA-Z0-9_][a-zA-Z0-9_.-]*', host))
 
 
@@ -154,7 +181,8 @@ def locked(path: Path):
 
 
 def write_config(path: Path, data: dict):
-    if path.is_symlink(): raise ConfigError('Runtime configuration must not be a symbolic link.')
+    if path.is_symlink():
+        raise ConfigError('Runtime configuration must not be a symbolic link.')
     fd, temporary = tempfile.mkstemp(prefix='.runtime-', dir=path.parent)
     try:
         with os.fdopen(fd, 'w') as stream:
@@ -164,7 +192,8 @@ def write_config(path: Path, data: dict):
             os.fsync(stream.fileno())
         os.replace(temporary, path)
     finally:
-        if os.path.exists(temporary): os.unlink(temporary)
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def bootstrap_values(environment: dict, saved: dict | None = None) -> dict:
@@ -172,7 +201,8 @@ def bootstrap_values(environment: dict, saved: dict | None = None) -> dict:
     # Never parse a superseded environment value (even if it is now invalid).
     selected = {key: value for key, value in environment.items() if key in OPTION_MAP and key not in saved}
     for old, new in ALIASES.items():
-        if new not in saved and environment.get(old) and not selected.get(new): selected[new] = environment[old]
+        if new not in saved and environment.get(old) and not selected.get(new):
+            selected[new] = environment[old]
     values = {**defaults(), **validate_values(selected, bootstrap=True), **saved}
     for name, port in [('IPFS_GATEWAY_URL', 'IPFS_GATEWAY_PORT'), ('ZERONET_URL', 'ZERONET_UI_PORT')]:
         if name not in saved and name not in selected:
@@ -181,7 +211,8 @@ def bootstrap_values(environment: dict, saved: dict | None = None) -> dict:
         values['ACEXY_LISTEN_ADDR'] = ':' + str(environment.get('ACEXY_STATUS_PORT') or 8080)
     if values['ENABLE_ACESTREAM_ENGINE']:
         for name, source in [('ACEXY_HOST', 'ACESTREAM_HTTP_HOST'), ('ACEXY_PORT', 'ACESTREAM_HTTP_PORT')]:
-            if name not in saved and name not in selected: values[name] = values[source]
+            if name not in saved and name not in selected:
+                values[name] = values[source]
     return validate_values(values)
 
 
@@ -266,14 +297,16 @@ def active_value(name: str, default: str = '') -> str:
 def main():
     # No shell serialization or eval. Values are passed as an exec environment.
     mode, *command = sys.argv[1:]
-    if mode not in ('run', 'health') or not command: raise ConfigError('Expected run|health followed by a command.')
+    if mode not in ('run', 'health') or not command:
+        raise ConfigError('Expected run|health followed by a command.')
     path = config_path()
     snapshot = Path(os.environ.get('SUPERVISOR_RUN_DIR', '/run/acestream-scraper')) / 'runtime-applied.json'
     if mode == 'health':
         data = read_config(snapshot)
         if data is None:
             data = read_config(Path(tempfile.gettempdir()) / 'acestream-scraper-run/runtime-applied.json')
-        if data is None: raise ConfigError('Runtime configuration has not been initialized.')
+        if data is None:
+            raise ConfigError('Runtime configuration has not been initialized.')
     else:
         data = ensure_config(path, dict(os.environ))
         try:

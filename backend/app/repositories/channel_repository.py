@@ -102,7 +102,7 @@ class ChannelRepository:
         if search:
             query = query.filter(TVChannel.name.ilike(f"%{search}%"))
         if favorites_only:
-            query = query.filter(TVChannel.is_favorite == True)
+            query = query.filter(TVChannel.is_favorite.is_(True))
         total = query.count()
         items = query.options(selectinload(TVChannel.acestream_channels)).order_by(*self._tv_channel_ordering(), TVChannel.id).offset(skip).limit(limit).all()
         return items, total
@@ -211,12 +211,12 @@ class ChannelRepository:
         query = (
             self.db.query(TVChannel)
             .options(selectinload(TVChannel.acestream_channels))
-            .filter(TVChannel.is_active == True)
+            .filter(TVChannel.is_active.is_(True))
         )
         if search:
             query = query.filter(TVChannel.name.ilike(f"%{search}%"))
         if favorites_only:
-            query = query.filter(TVChannel.is_favorite == True)
+            query = query.filter(TVChannel.is_favorite.is_(True))
         return query.order_by(*self._tv_channel_ordering()).all()
 
     def get_unassigned_channels(self, search: Optional[str] = None) -> List[AcestreamChannel]:
@@ -344,7 +344,7 @@ class ChannelRepository:
         query = self.db.query(AcestreamChannel)
 
         if active_only:
-            query = query.filter(AcestreamChannel.is_active == True)
+            query = query.filter(AcestreamChannel.is_active.is_(True))
 
         if search:
             query = query.filter(
@@ -378,7 +378,7 @@ class ChannelRepository:
         query = self.db.query(AcestreamChannel)
 
         if favorites_only:
-            query = query.join(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id).filter(TVChannel.is_favorite == True)
+            query = query.join(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id).filter(TVChannel.is_favorite.is_(True))
 
         # Apply filters
         if search:
@@ -398,7 +398,7 @@ class ChannelRepository:
             # responsive, which is not true of an acestream id waiting on the
             # engine. Checked-dead ones are left out.
             query = query.filter(or_(
-                AcestreamChannel.is_online == True,
+                AcestreamChannel.is_online.is_(True),
                 and_(AcestreamChannel.stream_url.isnot(None), AcestreamChannel.is_online.is_(None)),
             ))
 
@@ -689,7 +689,7 @@ class ChannelRepository:
         """Check status for all active channels"""
         updated_count = (
             self.db.query(AcestreamChannel)
-            .filter(AcestreamChannel.is_active == True)
+            .filter(AcestreamChannel.is_active.is_(True))
             .update({"last_checked": datetime.now(timezone.utc)}, synchronize_session=False)
         )
         self.db.commit()
@@ -831,7 +831,7 @@ class ChannelRepository:
         """
         query = self.db.query(AcestreamChannel)
         if active_only:
-            query = query.filter(AcestreamChannel.is_active == True)
+            query = query.filter(AcestreamChannel.is_active.is_(True))
         if search:
             query = query.filter(
                 AcestreamChannel.name.ilike(f"%{search}%") |
@@ -865,7 +865,7 @@ class ChannelRepository:
         """
         query = self.db.query(AcestreamChannel)
         if active_only:
-            query = query.filter(AcestreamChannel.is_active == True)
+            query = query.filter(AcestreamChannel.is_active.is_(True))
         if search:
             query = query.filter(
                 AcestreamChannel.name.ilike(f"%{search}%") |

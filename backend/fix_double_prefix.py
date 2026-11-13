@@ -3,8 +3,6 @@
 Script to fix double-prefixed API URLs in test files
 """
 
-import os
-import re
 from pathlib import Path
 
 def fix_double_prefix():

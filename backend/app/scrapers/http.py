@@ -1,16 +1,15 @@
 """
 HTTP scraper implementation
 """
-import aiohttp
 from app.utils.outbound_http import source_session
 import certifi
 import logging
 import ssl
-from typing import Optional
 from urllib.parse import urljoin
 
 from app.models.url_types import RegularURL
 from app.scrapers.base import BaseScraper
+from app.services.m3u_service import has_m3u_extension, looks_like_m3u, url_ends_with_m3u
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
 MAX_REDIRECTS = 5
@@ -33,7 +32,7 @@ class HTTPScraper(BaseScraper):
         validate_outbound_url(url)
 
         # Check if URL is directly pointing to an M3U file
-        is_m3u_file = url.lower().endswith(('.m3u', '.m3u8'))
+        is_m3u_file = has_m3u_extension(url) or url_ends_with_m3u(url)
         if is_m3u_file:
             logger.info(f"Detected direct M3U file URL: {url}")
         else:
@@ -63,7 +62,7 @@ class HTTPScraper(BaseScraper):
 
                         # If it's an M3U file, validate and log appropriately
                         if is_m3u_file:
-                            if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
+                            if looks_like_m3u(content):
                                 logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
                             else:
                                 logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")

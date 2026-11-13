@@ -6,6 +6,7 @@ import {
   getWarpStatus,
   connectWarp,
   disconnectWarp,
+  reconnectWarp,
   setWarpMode,
   registerWarpLicense
 } from '../services/warpService';
@@ -52,6 +53,20 @@ export function useWarpDisconnect(): UseMutationResult<WarpResponse, Error, void
   return useMutation({
     mutationFn: disconnectWarp,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: WARP_KEYS.all });
+    }
+  });
+}
+
+/**
+ * Hook for reconnecting WARP
+ */
+export function useWarpReconnect(): UseMutationResult<WarpResponse, Error, void> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: reconnectWarp,
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: WARP_KEYS.all });
     }
   });

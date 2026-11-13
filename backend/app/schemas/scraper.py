@@ -1,7 +1,7 @@
 """
 Pydantic schemas for scraper data
 """
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from app.schemas.extraction import ExtractionRecipe

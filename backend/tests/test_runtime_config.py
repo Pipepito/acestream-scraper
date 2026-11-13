@@ -49,7 +49,8 @@ def test_saved_file_and_constructor_database_location(tmp_path):
 def test_invalid_existing_config_is_never_overwritten(tmp_path, value):
     path = tmp_path / 'runtime-config.json'
     path.write_text(value)
-    with pytest.raises(ConfigError): ensure_config(path, {})
+    with pytest.raises(ConfigError):
+        ensure_config(path, {})
     assert path.read_text() == value
 
 
@@ -58,7 +59,8 @@ def test_symlink_is_rejected(tmp_path):
     target.write_text('secret')
     path = tmp_path / 'runtime-config.json'
     path.symlink_to(target)
-    with pytest.raises(ConfigError): ensure_config(path, {})
+    with pytest.raises(ConfigError):
+        ensure_config(path, {})
     assert target.read_text() == 'secret'
 
 
@@ -66,9 +68,11 @@ def test_stale_edit_cannot_clobber_and_invalid_save_keeps_original(tmp_path):
     path = tmp_path / 'runtime-config.json'
     first = ensure_config(path, {})
     second = update_config(path, {'PLAYER_MAX_SESSIONS': 5}, revision(first), True)
-    with pytest.raises(ConfigConflict): update_config(path, {}, revision(first), True)
+    with pytest.raises(ConfigConflict):
+        update_config(path, {}, revision(first), True)
     for bad in [{'PLAYER_MAX_SESSIONS': -1}, {'APP_COMMAND': 'id'}, {'ENABLE_IPFS': 'yes'}, {'ACE_ENGINE_URL': 'http://user:secret@host'}]:
-        with pytest.raises(ConfigError): update_config(path, bad, revision(second), True)
+        with pytest.raises(ConfigError):
+            update_config(path, bad, revision(second), True)
     assert read_config(path) == second
 
 
@@ -143,7 +147,8 @@ def test_registry_defaults_match_settings():
     for name, option in OPTION_MAP.items():
         if name in Settings.model_fields:
             default = Settings.model_fields[name].default
-            if name == 'CORS_ORIGINS': default = ','.join(default)
+            if name == 'CORS_ORIGINS':
+                default = ','.join(default)
             assert option['default'] == default, name
 
 
@@ -222,7 +227,8 @@ def test_upgrade_imports_missing_keys_once_and_ignores_invalid_overridden_env(tm
 ])
 def test_service_options_are_validated_as_data(values):
     from runtime_config import validate_values
-    with pytest.raises(ConfigError): validate_values(values)
+    with pytest.raises(ConfigError):
+        validate_values(values)
 
 
 def test_checker_is_derived_not_saved_as_external(wizard_client):
@@ -265,3 +271,77 @@ def test_service_restart_environment_uses_saved_values(tmp_path):
     update_config(path, {'ACEXY_LISTEN_ADDR': ':8086', 'ACEXY_BUFFER_SIZE': '10MiB'}, revision(first), True)
     assert subprocess.check_output([*command, 'health', *probe], env=env, text=True).strip() == ':8084 10s 5MiB'
     assert subprocess.check_output([*command, 'run', *probe], env=env, text=True).strip() == ':8086 10s 10MiB'
+
+
+@pytest.mark.parametrize('values', [
+    {'ENABLE_ACEXY': 'yes'},                              # a saved switch is a real boolean
+    {'PLAYER_MAX_SESSIONS': 'three'},
+    {'PLAYER_MAX_SESSIONS': float('inf')},
+    {'PLAYER_MAX_SESSIONS': 2.5},                         # a whole number of sessions
+    {'PLAYER_MAX_SESSIONS': 0},
+    {'ACE_ENGINE_URL': 6878},                             # text options are text
+    {'ACE_ENGINE_URL': 'http://engine\x00:6878'},
+    {'ACE_ENGINE_URL': 'http://user:secret@engine:6878'},
+    {'TUNER_ALLOWED_NETWORKS': '   '},
+    {'TUNER_ALLOWED_NETWORKS': '192.168.1.0/24,not-a-network'},
+    {'CORS_ORIGINS': 'ftp://example.org'},
+    {'CORS_ORIGINS': 'https://ok.example,not-an-origin'},
+    {'ZERONET_UI_HOST': 'zeronet.lan:70000'},
+    {'ZERONET_UI_HOST': '[not-an-address]'},
+])
+def test_saved_values_of_the_wrong_shape_are_refused(values):
+    from runtime_config import validate_values
+    with pytest.raises(ConfigError, match='Invalid value for ' + next(iter(values))):
+        validate_values(values)
+
+
+def test_hosts_accept_names_ports_and_bracketed_ipv6():
+    from runtime_config import valid_host, validate_values
+    assert validate_values({'ZERONET_UI_HOST': 'zeronet.lan:43110 [::1] localhost'}) == {
+        'ZERONET_UI_HOST': 'zeronet.lan:43110 [::1] localhost'}
+    assert valid_host('[fd00::10]')
+    assert not valid_host('zeronet.lan:0', port=True)
+    assert not valid_host('')
+    # FORWARDED_ALLOW_IPS also takes the name of a proxy on the Docker network.
+    assert validate_values({'FORWARDED_ALLOW_IPS': 'traefik,10.0.0.0/8,*'}) == {'FORWARDED_ALLOW_IPS': 'traefik,10.0.0.0/8,*'}
+
+
+def test_write_never_follows_a_symlink_or_leaves_a_partial_file(tmp_path):
+    from runtime_config import write_config
+    target = tmp_path / 'elsewhere.json'
+    target.write_text('{"kept": true}\n')
+    link = tmp_path / 'runtime-config.json'
+    link.symlink_to(target)
+    with pytest.raises(ConfigError, match='symbolic link'):
+        write_config(link, {'version': 1})
+    assert target.read_text() == '{"kept": true}\n'
+
+    path = tmp_path / 'saved.json'
+    write_config(path, {'version': 1, 'runtime': {}})
+    before = path.read_text()
+    # NaN is not JSON: the write fails before the file is replaced.
+    with pytest.raises(ValueError):
+        write_config(path, {'version': 1, 'runtime': {'EPG_PROGRAM_RETENTION_HOURS': float('nan')}})
+    assert path.read_text() == before
+    assert sorted(p.name for p in tmp_path.iterdir()) == ['elsewhere.json', 'runtime-config.json', 'saved.json']
+
+
+def test_launcher_refuses_an_unknown_mode_and_a_health_check_before_any_start(tmp_path, monkeypatch):
+    import tempfile
+    import runtime_config
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:///' + str(tmp_path / 'db.sqlite'))
+    monkeypatch.setenv('SUPERVISOR_RUN_DIR', str(tmp_path / 'run'))
+    # The fallback snapshot lives in the system temporary directory.
+    monkeypatch.setattr(tempfile, 'tempdir', str(tmp_path / 'tmp'))
+    monkeypatch.setattr(runtime_config.os, 'execvpe', lambda *args: pytest.fail('nothing may be started'))
+
+    for arguments in (['restart', 'true'], ['run'], ['health']):
+        monkeypatch.setattr(sys, 'argv', ['runtime_config.py', *arguments])
+        with pytest.raises(ConfigError, match=r'Expected run\|health followed by a command'):
+            runtime_config.main()
+
+    # The health check reads what was applied at start; it never creates it.
+    monkeypatch.setattr(sys, 'argv', ['runtime_config.py', 'health', 'true'])
+    with pytest.raises(ConfigError, match='has not been initialized'):
+        runtime_config.main()
+    assert not (tmp_path / 'db.sqlite').parent.joinpath('runtime-config.json').exists()

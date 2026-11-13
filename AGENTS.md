@@ -63,7 +63,7 @@ loads the applicable file when working below those directories.
 - `e2e/`: Playwright/Firefox journeys against the built SPA and real sidecars.
 - `Dockerfile`, `docker/`, `entrypoint.sh`: multi-flavor, multi-architecture image.
 - the private PR pipeline: administrator-managed isolated PR validation.
-- the private owner-approval pipeline: fixed owner-approved revision/image validation.
+- the private authorized-validation pipeline: host image validation for an exact authorized revision.
 - the private develop pipeline: trusted `develop` validation and automatic channel image publish.
 - the private release pipeline: manual release job, allowed from `main` only.
 - `scripts/ci/`: required checks, Docker builds, publishing, and CI helpers.
@@ -108,8 +108,8 @@ Self-hosted quality reporting and optional local hooks are documented in
 to collect backend/frontend reports without repeating tests. Private infrastructure
 policy, not proposed application configuration, controls Jenkins gates.
 
-Use focused checks while iterating; the mandatory completion validation below
-always applies before reporting a task complete.
+Use focused checks while iterating; the completion validation tier below always
+applies before reporting a task complete.
 
 - Routine project-local tests and dependency setup in `backend/venv` or the
   project's `node_modules` are authorized without separate conversational
@@ -145,39 +145,51 @@ python3 scripts/ci/validate_docker_manifest_metadata.py
 bash scripts/ci/validate_command_builder.sh
 ```
 
-The full application gate, separate Docker packaging/smoke tests and browser/E2E
-suites are all required for task completion, even where the PR pipeline selects a
-smaller scope. See the completion requirement below and `e2e/AGENTS.md`.
+What task completion requires depends on what the change touches. See the
+completion validation tiers below and `e2e/AGENTS.md`.
 
-## Mandatory completion validation
+## Completion validation
 
-Before declaring a task complete, run the full local validation set against the
-final changes. This is an explicit maintainer requirement to catch failures before
-slow Jenkins runs and reduce the pipeline queue. Quick profiles, focused tests,
-docs-only CI classification and previously passing runs are useful during
-iteration, but do not replace this completion gate, regardless of change size.
+Before declaring a task complete, run the validation tier that matches what the
+final change touches. The tiers mirror what Jenkins runs before merge, so local
+effort goes where a failure can come from. `bash scripts/ci/local_gate.sh`
+picks the tier with the selector Jenkins uses (`scripts/ci/classify_changes.py`)
+and runs it; `--plan` only prints the commands. It compares against `develop`
+and counts committed, staged, unstaged and untracked files.
 
-- Inspect the current validation definitions in the private infrastructure
-  repository and `docs/ops/jenkins-ci.md`; reproduce every validation stage locally,
-  including the full backend/frontend gate, lint/typechecks, generated-artifact
-  drift, documentation/metadata/runtime contracts, all supported architecture and
-  image-flavor build checks, and Docker packaging/service/media smoke tests. The
-  public `run_v2_test_suite.sh --profile full` excludes Docker tests, so it is not
-  sufficient by itself. Run the complete automated browser/E2E suites too, following
-  `e2e/AGENTS.md` and using isolated test data and services.
-- Check Docker/buildx availability before starting. If Docker is stopped or
-  disabled, explicitly ask the user to start it, then resume and run the outstanding
-  checks. Distinguish a sandbox/socket permission failure from a stopped daemon;
-  request the required tool permission rather than assuming Docker is down.
-- Missing dependencies (including FFmpeg or browsers), unavailable infrastructure,
-  unsupported local architecture execution, skipped tests and failed checks are
-  outstanding validation, not passes. Fix the prerequisite or identify the exact
-  blocker and ask for what is needed. Never silently omit tests or claim the task
-  is complete while required validation remains unexecuted. Only an explicit user
-  waiver may narrow this requirement for a particular task.
-- Keep logs and report the commands, tested revision/worktree, pass/fail/skip counts,
-  warnings and any remaining blockers. After a fix, rerun failed checks and every
-  affected/dependent stage; completion evidence must cover the final changes.
+| The change touches | Tier | Run locally |
+| --- | --- | --- |
+| Only documentation or repository metadata: `docs/`, `wiki/`, the root and nested guides, issue forms, ruleset JSON | `docs` | Documentation, Docker-docs and command-builder validators, plus the metadata validator for `.github/` data |
+| Portable application sources: `backend/app`, migrations, backend tests, `frontend/`, `e2e/`, `scripts/` | `application` | The `docs` tier, the repository/Dockerfile/runtime contracts, the complete backend and frontend suite (`run_v2_test_suite.sh --profile full`) and the architecture plan dry run. A `frontend/` or `e2e/` change adds the mocked browser suite (`cd e2e && npm run test:mobile`) |
+| Build, runtime or dependency inputs: `Dockerfile`, `docker/`, `entrypoint.sh`, `healthcheck.sh`, `warp-setup.sh`, the runtime helpers in `backend/*.py`, dependency manifests, `version.txt`, CI selection scripts, or any path the selector does not recognize | `images` | The `application` tier, the Docker manifest validator, every image flavour built for this machine's native platform, and the Docker packaging tests in `backend/tests/docker` |
+
+- Other architectures are Jenkins' job. Do not emulate amd64 or ARM image builds
+  locally unless the change is specific to that architecture and you are
+  debugging it. Jenkins builds and starts every flavour on every platform
+  before `develop` publishes, and for every pull request that reaches build
+  inputs. Say in your report that cross-architecture builds were left to Jenkins.
+- The live journey (`cd e2e && npm test` with the stack, see `e2e/AGENTS.md`) is
+  required in the `images` tier and whenever the change alters playback,
+  engines, the tuner, recordings, casting or the journeys themselves. The
+  helper lists it and does not run it; the gate is not complete until it has.
+- Never lower a tier by hand. When unsure, or when the helper is unavailable,
+  use the higher tier. The maintainer may ask for a higher tier on any change.
+- Prerequisites of the tier you are in are outstanding validation when missing,
+  not passes: `backend/venv`, `frontend/node_modules`, FFmpeg for the media
+  tests, Playwright browsers for the browser suites, Docker for the `images`
+  tier and the live journey. Fix the prerequisite or name the exact blocker and
+  ask. For Docker, tell a stopped daemon from a sandbox or socket permission
+  failure, and ask the user to start it or grant access. Skipped and failed
+  checks are outstanding too. Only an explicit user waiver narrows a tier.
+- Quick profiles, focused tests and earlier passing runs are for iteration. They
+  do not replace the tier, and completion evidence must cover the final changes.
+- CI replaces `frontend/eslint.config.cjs`, `frontend/tsconfig.json` and
+  `frontend/jest.config.js` with reviewed private copies. A change to any of
+  them, or a new kind of imported asset, can pass locally and fail in Jenkins:
+  say so in the pull request so the private copy is reviewed with it.
+- Keep logs (the helper writes `.quality-reports/local-gate/`) and report the
+  tier, commands, tested revision, pass/fail/skip counts, warnings and any
+  remaining blockers. After a fix, rerun the failed check and every step after it.
 - This authorizes local validation, not publication or shared-infrastructure
   mutation. Do not trigger/cancel Jenkins jobs, publish images, promote tags, merge,
   change Jenkins policy or prune unrelated Docker resources without the separate
@@ -188,8 +200,8 @@ iteration, but do not replace this completion gate, regardless of change size.
 
 - Feature and hotfix PRs target `develop`.
 - Only `develop` may open a PR into `main`; the private PR pipeline enforces this.
-- Both protected branches require the `PR Validation` status and disallow direct
-  pushes, force-pushes, and deletion.
+- `develop` requires the `PR Validation / develop` status and `main` requires
+  `PR Validation / main`; both disallow direct pushes, force-pushes, and deletion.
 - A validated trusted `develop` job publishes only floating `:develop*` tags.
   It must never publish `:latest` or version tags.
 - Releases are manual through `acestream-scraper-release` on `main`. Publishing
@@ -218,12 +230,14 @@ iteration, but do not replace this completion gate, regardless of change size.
   `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. Although `dorat-nuc-ci`
   has four executors, only one of these Docker/BuildKit workloads may run at once;
   later builds wait and must not abort or prune resources from the lock holder.
-- The multibranch PR job and owner-approved image job must live outside the
+- The multibranch PR job and the authorized image job must live outside the
   trusted publication folder. Neither may inherit publication credentials. Both
   forks and internal branches use administrator-managed definitions; protected
-  target commits supply host helpers. Automatic contributor execution stays in
-  restricted offline containers with no Docker socket or credentials. Proposed
-  dependencies/images require owner approval of immutable head/base/target first.
+  target commits supply host helpers. Automatic contributor execution, including
+  the complete application suite, stays in restricted offline containers with no
+  Docker socket or credentials. Proposed dependencies and image builds require
+  authorization of an immutable head/base/target first: automatic for verified
+  owner PRs, owner approval for every other author.
   See `docs/ops/jenkins-collaborator-safety.md` for mandatory live activation.
 - When Jenkins and GitHub disagree, distinguish the Jenkins build result from the
   GitHub commit status and record the commit SHA each result belongs to.
@@ -516,9 +530,14 @@ permanent keep labels. See `docs/ops/jenkins-ci.md` for retention and rollout.
 
 The PR job uses an administrator-managed pipeline, never a branch's Jenkinsfile.
 Fork and origin PRs use the same pinned protected-target orchestration and isolated
-checks. Application PRs wait for a separate owner-approved job bound to exact head,
-base and target; it runs the full gate and every supported image combination without
-publication. Dependency changes wait for this approval before installation. The
+checks, which include the complete application suite whenever the dependency
+runner can be built from protected inputs. Host work (proposed dependencies, image
+builds) runs in a separate authorized job bound to exact head, base and target,
+without publication: verified owner PRs are authorized automatically, other
+authors need the owner's approval. Portable application changes build every
+flavour on amd64 only; build, runtime and dependency inputs and release PRs build
+every platform. For another author's portable-only change no host work runs
+before merge: develop builds and tests every image before publishing. The
 parent releases its Docker lock before waiting; each job holds the shared FIFO lock
 for its complete Docker workload and cleanup. Only owner-merged protected develop
 commits may publish floating tags; main releases remain manual. Pipeline definition,
@@ -568,10 +587,14 @@ separate from immediate deadline cleanup. See `wiki/Media-Servers.md` and
 ## Repository contribution governance
 
 `.github/rulesets/` records intended live GitHub rules; merging JSON does not apply
-it. Baseline main/develop rules require PRs, resolved conversations and the
-Jenkins-bound `PR Validation`, without bypass. A separate one-approval rule allows
-automatic exemption for Pipepito as the merging user (not by PR author); it
-cannot bypass baseline CI. Collaborators still need approval when merging.
+it. Baseline main/develop rules block deletion and force pushes, without bypass.
+Each branch has its own ruleset requiring PRs, resolved conversations and its
+Jenkins-bound status (`PR Validation / develop`, `PR Validation / main`). The main
+one has no bypass. The develop one lets Pipepito bypass it, including by direct
+update (owner-selected 2026-11-12 for Update branch on release PRs); never extend
+that to main or to another account. A separate one-approval rule allows
+automatic exemption for Pipepito as the merging user (not by PR author).
+Collaborators still need approval when merging.
 Version tags are immutable. `.github/workflows/assign-pull-requests.yml` assigns
 other authors' PRs to Pipepito using metadata only: never check out or execute
 contributor code in `pull_request_target`. Issue forms and assignment activate
@@ -669,6 +692,11 @@ reschedule merging. OpenFootball date-only fixtures keep kickoff unknown.
 Broadcaster links prefer unambiguous TV matches over EPG with conservative country
 checks; manual regional choices override them and survive refresh. Links are not
 media/signal evidence. New events require review unless the saved source explicitly enables automatic imports within its rolling window and interests. Preserve data outside filters.
+Interest filters are chosen from lists, never typed: provider forms read the names
+from `POST /api/v1/events/providers/interests` when a list is opened (a guarded
+provider fetch that saves nothing and ignores the interests already chosen), and
+agenda/dashboard filters use `GET /events/interests`. Only schedule URLs, whose
+names are unknown until fetched, accept typed names. Keep saved selections listed.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 
 
@@ -853,6 +881,23 @@ daemon generations, and let only the entrypoint release sidecars once. Block app
 startup until that release; WARP failures never enable database recovery. Clock
 warnings compare server/browser UTC as advisory only; never set host time or
 bypass TLS. See `docs/ops/startup-recovery.md`.
+
+The WARP kill switch (`WARP_KILL_SWITCH`, default on) applies to automatic full
+tunneling only. Cloudflare's own firewall blocks direct traffic while `warp-svc`
+runs; `backend/warp_guard.py` covers the periods without it (before the first
+launch, after any daemon exit, during shutdown) with the private nftables table
+`inet scraper_warp_guard`. The daemon is exempt by group ID, never by mark or by
+Cloudflare address: it does not mark its packets until the tunnel is up. Keep the
+block self-expiring and remove the table on shutdown, so a killed container cannot
+cut off a host or shared network namespace. Arm before stopping the daemon; only
+the coordinator stands the guard down, for a configured current daemon generation.
+The WARP supervisor relaunches after exit 0 as well (issue #329). Reconnect is a
+request the coordinator carries out behind the block; the app must not disconnect
+for it or hold the block on a timer. Report blocking from nftables, not from
+startup state. A host that cannot install the guard at startup runs WARP without
+it and says so on the WARP page; never turn that into a startup failure. Explicit
+Disconnect remains the operator's choice. Change the rules only with the
+real-kernel check in `backend/tests/docker/test_warp_guard_kernel.py`.
 
 WARP exclusions are app-managed through `GET/PUT /api/v1/warp/exclusions` and
 `backend/warp_exclusions.py`, shared with `warp-setup.sh`. Persist desired and

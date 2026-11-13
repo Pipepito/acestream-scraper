@@ -156,6 +156,14 @@
     "help": "Waits for the selected WARP mode to connect before starting network services. Full tunneling requires NET_ADMIN and /dev/net/tun in Docker; SYS_ADMIN is not needed."
   },
   {
+    "name": "WARP_KILL_SWITCH",
+    "group": "services",
+    "default": true,
+    "label": "Block direct traffic while WARP is down",
+    "kind": "boolean",
+    "help": "Applies when WARP connects before engines start in full tunnel mode. Nothing leaves on your normal connection while the WARP service is starting, restarting or stopped. Needs nftables support on the host."
+  },
+  {
     "name": "WARP_FORCE_IPV4",
     "group": "services",
     "default": true,

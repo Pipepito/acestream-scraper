@@ -24,6 +24,7 @@ import { TVChannelFormErrors } from '../hooks/useTVChannelForm';
 import { useQuery } from '@tanstack/react-query';
 import { tvChannelService } from '../services/tvChannelService';
 import { useTranslation } from 'react-i18next';
+import GuideSourceField from './GuideSourceField';
 
 interface TVChannelFormDialogProps {
   mode: 'create' | 'edit';
@@ -111,6 +112,7 @@ const TVChannelFormDialog: React.FC<TVChannelFormDialogProps> = ({
               renderInput={params => <TextField {...params} name="category" label={tUi('Channel category')} helperText={tUi('Choose a category or enter your own. This stays independent of current programmes.')} />} />
             <TextField name="country" label={tUi("Country")} fullWidth value={formData.country || ''} onChange={onChange} />
             <TextField name="language" label={tUi("Language")} fullWidth value={formData.language || ''} onChange={onChange} />
+            {mode === 'edit' ? <GuideSourceField value={'epg_source_id' in formData ? formData.epg_source_id : undefined} onChange={onChange} /> : null}
             {mode === 'edit' ? <TextField name="epg_id" label={tUi("EPG ID")} fullWidth value={formData.epg_id || ''} onChange={onChange} /> : null}
             <TextField name="channel_number" label={tUi("Channel Number")} type="number" fullWidth value={formData.channel_number ?? ''} onChange={onChange} />
           </Stack>

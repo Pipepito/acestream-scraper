@@ -16,12 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Import app services and models
 try:
-    from app.extensions import db
     from app.services.playlist_service import PlaylistService
-    from app.services.epg_service import EPGService
-    from app.models.tv_channel import TVChannel
-    from app.models.epg_program import EPGProgram
-    from app.repositories.epg_program_repository import EPGProgramRepository
     from app.repositories.epg_channel_repository import EPGChannelRepository
     
     logger.info("Successfully imported app modules")
@@ -57,7 +52,6 @@ def test_epg_xml_generation():
     
     # Check database counts for comparison
     epg_channel_repo = EPGChannelRepository()
-    epg_program_repo = EPGProgramRepository()
     
     db_channel_count = len(epg_channel_repo.get_all())
     

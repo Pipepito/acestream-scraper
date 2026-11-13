@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 import logging
-import os
 
 from app.models.models import Setting
 
@@ -97,7 +96,7 @@ class SettingsRepository:
             logger.info(f"Setting {key} not found, using default")
             # Use class default if available
             return self._get_class_default(key, default)
-        except Exception as e:
+        except Exception:
             return self._get_class_default(key, default)
 
     def _get_class_default(self, key: str, custom_default: Any = None) -> Any:
@@ -142,7 +141,7 @@ class SettingsRepository:
         try:
             settings = self.db.query(Setting).all()
             return {setting.key: setting.value for setting in settings}
-        except Exception as e:
+        except Exception:
             return {}
 
     def get_setup_overrides(self) -> Dict[str, str]:

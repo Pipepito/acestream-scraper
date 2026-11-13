@@ -34,7 +34,6 @@ jest.mock('../App', () => ({
 
 describe('index entrypoint', () => {
   beforeEach(() => {
-    // eslint-disable-next-line testing-library/no-node-access
     document.body.innerHTML = '<div id="root"></div>';
   });
 
@@ -72,7 +71,6 @@ describe('index entrypoint', () => {
     }>;
 
     expect(renderedTree.type).toBe(React.StrictMode);
-    // eslint-disable-next-line testing-library/no-node-access
     expect(renderedTree.props.children.type).toBe(AppBootstrap);
   });
 });

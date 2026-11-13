@@ -58,7 +58,7 @@ Use the source row's result and diagnostic logs. JavaScript rendered pages are n
 
 - **IPFS/IPNS:** enable bundled IPFS on amd64/arm64, or set a reachable `IPFS_GATEWAY_URL`. `inbrowser.link` Auto/IPFS sources are routed through that HTTP gateway; they cannot depend on a browser service worker. Cold content may take time to find providers.
 - **ZeroNet:** bundled on amd64 only, opt-in with `ENABLE_ZERONET=true`; on ARM use `ZERONET_URL` for an external node. The node and the requested site must both be reachable.
-- **WARP:** inspect System → WARP. Running and Connected are separate states. It requires amd64/arm64, `ENABLE_WARP=true`, `NET_ADMIN`, `SYS_ADMIN` and `/dev/net/tun`. `WARP_ENABLE_NAT=true` connects at startup; otherwise use Connect. WARP does not guarantee access to an unavailable source.
+- **WARP:** inspect System → WARP. Running and Connected are separate states. It requires amd64/arm64, `ENABLE_WARP=true`, `NET_ADMIN`, `SYS_ADMIN` and `/dev/net/tun`. `WARP_ENABLE_NAT=true` connects at startup; otherwise use Connect. WARP does not guarantee access to an unavailable source. With `WARP_ENABLE_NAT=true` in full tunnel mode, nothing reaches the internet while the WARP service is down: see the [kill switch](Docker.md#warp-kill-switch) if sources fail right after a WARP restart.
 - **Engine crashes:** the supervisor retries exits indefinitely. An intentional Overview Stop pauses recovery until Start/Restart or container restart. A separate checker has independent controls and logs; its outage does not make the entire container unhealthy.
 
 ## Startup or upgrade does not finish

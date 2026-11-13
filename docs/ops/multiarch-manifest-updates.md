@@ -213,9 +213,11 @@ Its pipeline definitions and host tooling live in the private infrastructure
 repository. Public Jenkinsfiles cannot select CI policy.
 
 PRs run application checks in network-disabled containers and architecture runtime
-contracts in amd64, arm64 and arm/v7 userlands. Both forks and origin branches
-require owner approval for proposed dependency installation and host image builds.
-Approved image validation covers every supported flavor/platform without publishing.
+contracts in amd64, arm64 and arm/v7 userlands. Proposed dependency installation
+and host image builds need authorization for the exact revision: automatic for
+the maintainer's own PRs, maintainer approval for everyone else. A change to
+manifests, the `Dockerfile` or `docker/` always validates every supported
+flavor/platform without publishing.
 Runtime tests and local build commands remain in this application repository.
 
 Trusted develop and manual main releases retain full application validation and

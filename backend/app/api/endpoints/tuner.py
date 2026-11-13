@@ -35,7 +35,10 @@ from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, E
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService, TunerSettings
 from app.services import tuner_playback_service
-from app.services.tuner_playback_service import relay_ranked_streams, prefer_recovered_sources
+from app.services.tuner_playback_service import (
+    CHECKPOINT_SECONDS, ViewingCheckpoint, prefer_recovered_sources, relay_ranked_streams,
+)
+from app.services.ts_clock import ClockWatch, watch_clock
 from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
 
@@ -275,8 +278,9 @@ async def tuner_stream(content_id: str, request: Request):
             engine = await run_in_threadpool(_engine)
         except EngineUnavailableError as exc:
             raise APIError(code="ENGINE_UNAVAILABLE", message=str(exc), status_code=502, context={"content_id": content_id}) from exc
-        iterator = relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory, claim=claim,
-            startup_deadline=deadline, read_seconds=relay_settings.source_start_seconds)
+        clock_watch = ClockWatch(content_id)
+        iterator = watch_clock(relay_engine_stream(engine, content_id, f"tuner:{peer}", client_factory=_relay_client_factory, claim=claim,
+            startup_deadline=deadline, read_seconds=relay_settings.source_start_seconds), content_id, clock_watch)
         # The first chunk is pulled here so an engine failure becomes a 502 body
         # instead of a truncated 200 stream. Every path that does not hand the
         # iterator to a response closes the engine's connection pool itself.
@@ -305,15 +309,49 @@ async def tuner_stream(content_id: str, request: Request):
         raise
 
     async def body():
+        # Kodi's double GET makes short responses here too, so only a viewing
+        # past CHECKPOINT_SECONDS is written; then it is kept up to date while
+        # it plays. A source whose clock kept going back is recorded against
+        # it, as the channel relay does.
+        checkpoint = ViewingCheckpoint(content_id, None)
+        started = time.monotonic()
+        played = 0.0
+        cut = False
         try:
             yield first
             async for chunk in iterator:
                 yield chunk
+                played = time.monotonic() - started
+                checkpoint.tick(played, 'jumpy' if clock_watch.jumpy else 'ok')
+        except EngineStreamError as exc:
+            # The engine went silent or dropped mid-stream. There is no other
+            # source to go on to here, so the stream just ends: a cut, not a
+            # good viewing, and not a server error either.
+            cut = True
+            logger.info("TV relay source ended content_id=%s reason=%s route=individual after %.1f s",
+                        content_id, type(exc.__cause__ or exc).__name__, played)
         finally:
             await iterator.aclose()
             engine.close()
+            if clock_watch.jumpy:
+                checkpoint.finish('jumpy', clock_watch.watched_seconds)
+            elif cut:
+                checkpoint.finish('stall', played)
+            elif played >= CHECKPOINT_SECONDS:
+                checkpoint.finish('ok', played)
 
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
+
+
+def _switch_on_failure() -> bool:
+    # When the playing source stops sending, go on with another one in the
+    # same response instead of ending it. Off unless the setting turns it on.
+    db = SessionLocal()
+    try:
+        value = SettingsRepository(db).get_setting("tuner_switch_on_failure") or "false"
+        return str(value).lower() not in ("false", "0", "no")
+    finally:
+        db.close()
 
 
 def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) -> List[str]:
@@ -389,6 +427,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
                                       plex_compatible_audio=relay_settings.plex_compatible_audio,
                                       attempt_seconds=relay_settings.source_start_seconds,
                                       startup_budget_seconds=relay_settings.startup_budget_seconds,
+                                      switch_midstream=await run_in_threadpool(_switch_on_failure),
                                       opening=shared, resume_deadline=resume_deadline, skip=skip,
                                       last_resort_provider=lambda: run_in_threadpool(
                                           _channel_candidates, tv_channel_id, include_offline=True),
@@ -399,6 +438,7 @@ async def tuner_channel(tv_channel_id: int, request: Request):
         tuner_playback_service.end_opening(key, shared)
         monitor.cancel()
         await asyncio.gather(monitor, return_exceptions=True)
+        tuner_probe_service.stop_channel(tv_channel_id)
         if iterator is not None:
             await iterator.aclose()
         if engine is not None:
@@ -417,10 +457,16 @@ async def tuner_channel(tv_channel_id: int, request: Request):
             yield first
             async for chunk in iterator:
                 yield chunk
+        except (EngineStreamError, EngineUnavailableError):
+            # No source left after playback had started (the midstream switch
+            # spent them all). Video already went out: end the response
+            # instead of breaking the transfer.
+            logger.info("TV relay ran out of sources after playback; ending tv_channel_id=%s", tv_channel_id)
         finally:
             tuner_playback_service.end_opening(key, shared)
             monitor.cancel()
             await asyncio.gather(monitor, return_exceptions=True)
+            tuner_probe_service.stop_channel(tv_channel_id)
             await iterator.aclose()
 
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)

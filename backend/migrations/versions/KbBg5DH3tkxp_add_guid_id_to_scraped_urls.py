@@ -60,7 +60,6 @@ def drop_previous_primary_key(batch_op):
 
 def upgrade():
     connection = op.get_bind()
-    dialect = get_dialect()
 
     # Check if the id column exists
     has_id = has_column('scraped_urls', 'id')
@@ -138,7 +137,6 @@ def upgrade():
 
 def downgrade():
     connection = op.get_bind()
-    dialect = get_dialect()
 
     # Check if the id column exists and is a string (UUID)
     if has_column('scraped_urls', 'id'):

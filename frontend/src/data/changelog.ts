@@ -41,27 +41,62 @@ export const releases: ReleaseNotes[] = [
   },
   {
     "version": "v2.2.1",
-    "summary": "Add MARCA event schedules, rolling automatic imports and shared EPG channels, while preserving readable exported guide identifiers.",
+    "summary": "Add MARCA event schedules, rolling automatic imports, shared EPG channels and free Pluto TV, Plex and Samsung TV Plus channels for Spain, with a WARP kill switch, steadier TV relay playback and stream checks that no longer trust a stalled source.",
     "sections": [
       {
         "title": "Added",
         "items": [
-          "Import Spain's sports TV agenda from MARCA, including dated fixtures, sports, competitions and broadcaster names. Imports use Europe/Madrid and include only dates already published by the provider. Same-day time and broadcaster changes update existing events; changed dates or titles create separate occurrences."
+          "Import Spain's sports TV agenda from MARCA, including dated fixtures, sports, competitions and broadcaster names. Imports use Europe/Madrid and include only dates already published by the provider. Same-day time and broadcaster changes update existing events; changed dates or titles create separate occurrences ([PR #330](https://github.com/Pipepito/acestream-scraper/pull/330)).",
+          "Add À Punt, the Valencian public channel, as a built-in broadcaster: choose À Punt under Built-in provider when adding a scraper source. The channel keeps working when the broadcaster replaces its live stream, without scraping again ([PR #336](https://github.com/Pipepito/acestream-scraper/pull/336)).",
+          "Add Pluto TV, Plex and Samsung TV Plus as built-in broadcasters, with several hundred free channels for Spain: choose one under Built-in provider when adding a scraper source. None needs an account. Pluto TV imports channels only when the server connects from Spain, and Samsung TV Plus channels with DRM are left out. Stream checks do not sweep these services, which refuse hundreds of requests in a row, so most of these channels show Not checked; opening a channel is unaffected ([PR #340](https://github.com/Pipepito/acestream-scraper/pull/340)).",
+          "Let other programs use the container's WARP tunnel or its embedded Tor. WARP_SOCKS_PORT opens a SOCKS5 port whose traffic leaves through WARP, and TOR_SOCKS_PORT publishes Tor's SOCKS port. Neither has a password: clients must come from TUNER_ALLOWED_NETWORKS, and the WARP port only connects to public addresses. Both are off until set ([PR #341](https://github.com/Pipepito/acestream-scraper/pull/341)).",
+          "Accept connections from public addresses again in WARP full tunnel mode with WARP_ALLOW_INBOUND=true, for example to the engine's P2P port or for remote access. Only the replies to those connections leave outside the tunnel, and the kill switch still blocks them while WARP is down ([PR #341](https://github.com/Pipepito/acestream-scraper/pull/341)).",
+          "Set how long a stream check waits for a stream to start under Settings → Automation, from 5 to 120 seconds. The default stays at 10; raise it on slower machines where streams that start late were marked offline ([PR #337](https://github.com/Pipepito/acestream-scraper/pull/337)).",
+          "Choose a TV channel's guide source on the channel page and in the edit dialog, so a channel can move from one programme guide to another. Not set removes it ([PR #337](https://github.com/Pipepito/acestream-scraper/pull/337))."
         ]
       },
       {
         "title": "Improved",
         "items": [
           "Enable automatic import on a saved event source to keep its rolling day window populated: scheduled refreshes update existing events and add new matches without duplicating previously imported occurrences. Manual corrections, followed events and broadcaster links are preserved. Existing saved sources keep their reviewed-events-only mode until automatic import is enabled.",
-          "Choose sport, competition and team interests before fetching an event schedule, including schedule URLs. Save an empty selection to start tracking future matching events, and see separate counts for newly imported and refreshed events."
+          "Choose sport, competition and team interests before fetching an event schedule, including schedule URLs. Save an empty selection to start tracking future matching events, and see separate counts for newly imported and refreshed events.",
+          "Pick sports, competitions and teams from lists instead of typing them. For MARCA, Fútbol en la TV and OpenFootball the lists show the names the provider publishes for the chosen window, loaded when you open a list; the Events filters and the TV dashboard's My interests list the names of imported events. Typing only narrows a list, so a filter can no longer be misspelled. Schedule URLs still take typed names, because theirs are unknown until fetched ([PR #343](https://github.com/Pipepito/acestream-scraper/pull/343)).",
+          "Link a stream added by a Telegram source to the TV channel with the same name, when exactly one active channel matches. A stream stays unassigned when several channels match or its guide ID disagrees with the channel's. No TV channel is created and streams imported earlier are not changed ([PR #345](https://github.com/Pipepito/acestream-scraper/pull/345)).",
+          "Send every TV channel of a relay-format playlist through the relay, including channels whose first source is an HTTP stream, so they can also fall back to the channel's other sources. Protected playlists keep their playback token ([PR #338](https://github.com/Pipepito/acestream-scraper/pull/338)).",
+          "Rank a source whose picture keeps jumping back below sources that play cleanly, and save viewing history every 30 seconds while a channel plays, so it survives a server switched off right after playback ([PR #338](https://github.com/Pipepito/acestream-scraper/pull/338)).",
+          "Check only the next three fallback sources while a channel plays, skip those checked in the last 10 minutes and stop when the viewer leaves. Opening a channel used to check all of its sources in a loop, which could stall the audio on small ARM machines ([PR #339](https://github.com/Pipepito/acestream-scraper/pull/339)).",
+          "Name a TV channel created during import after its stream when the guide only offers an ID as its display name. Names of existing channels are never changed ([PR #337](https://github.com/Pipepito/acestream-scraper/pull/337))."
         ]
       },
       {
         "title": "Fixed",
         "items": [
-          "Recover WARP startup automatically after temporary network or clock failures, with a ten-minute retry window and a working manual Retry afterward. Network services stay paused until configuration succeeds. Startup warns when server and browser clocks differ significantly and links to host time troubleshooting.",
-          "Show one EPG channel linked to all matching sources when their XMLTV channel ID and name agree. Name matching ignores case and repeated spaces. Existing programmes and TV assignments are preserved; choose a source on the channel's detail page to view its schedule.",
-          "Keep spaces in playlist and XMLTV channel IDs when duplicate guide sources require a source prefix. Refresh both the playlist and guide after updating so cached IDs match."
+          "Keep traffic off your normal connection when WARP stops. If the WARP service exits, it is restarted and reconnected without restarting the container, and direct internet traffic stays blocked until it is back. The same block covers startup, WARP restarts and container shutdown. It applies when WARP connects before engines start in full tunnel mode; Disconnect on the WARP page still uses your normal connection. Turn it off with Block direct traffic while WARP is down under WARP startup settings ([PR #335](https://github.com/Pipepito/acestream-scraper/pull/335)).",
+          "Reconnect WARP from its page without a moment of direct traffic.",
+          "Say during first-run account setup when startup needs attention, and name the SELinux option when a mapped TUN device is denied.",
+          "Recover WARP startup automatically after temporary network or clock failures, with a ten-minute retry window and a working manual Retry afterward. Network services stay paused until configuration succeeds. Startup warns when server and browser clocks differ significantly and links to host time troubleshooting ([PR #331](https://github.com/Pipepito/acestream-scraper/pull/331)).",
+          "Stop reporting a source as online after its broadcaster has stopped. Such a source still hands over its stored buffer, which used to pass the check; stream checks now keep watching and mark it offline when nothing new arrives. Checking one of these sources takes about 25 to 40 seconds instead of 3 ([PR #342](https://github.com/Pipepito/acestream-scraper/pull/342)).",
+          "End a single-source tuner stream cleanly when its source goes silent, and record it as a stall instead of a successful viewing ([PR #338](https://github.com/Pipepito/acestream-scraper/pull/338)).",
+          "Clear a TV channel number from the channel page and the edit dialog, and keep 0 as a valid number ([PR #337](https://github.com/Pipepito/acestream-scraper/pull/337)).",
+          "Show one EPG channel linked to all matching sources when their XMLTV channel ID and name agree. Name matching ignores case and repeated spaces. Existing programmes and TV assignments are preserved; choose a source on the channel's detail page to view its schedule ([PR #330](https://github.com/Pipepito/acestream-scraper/pull/330)).",
+          "Keep spaces in playlist and XMLTV channel IDs when duplicate guide sources require a source prefix. Refresh both the playlist and guide after updating so cached IDs match ([PR #326](https://github.com/Pipepito/acestream-scraper/pull/326)).",
+          "Read M3U playlists from addresses that do not end in .m3u, such as links with a query string or no file extension. These sources used to report OK with no channels ([PR #334](https://github.com/Pipepito/acestream-scraper/pull/334)).",
+          "Name a stream from a Telegram message that pastes M3U lines by its title, and keep its guide ID, logo and group. The whole line, such as tvg-name=\"Example\", used to become the name. Custom extraction recipes are unchanged ([PR #345](https://github.com/Pipepito/acestream-scraper/pull/345))."
+        ]
+      },
+      {
+        "title": "Thanks",
+        "items": [
+          "[@scarcraft1](https://github.com/scarcraft1) for Pluto TV, Plex and Samsung TV Plus ([PR #340](https://github.com/Pipepito/acestream-scraper/pull/340)), Telegram names and channel links ([PR #345](https://github.com/Pipepito/acestream-scraper/pull/345)), the WARP and Tor ports and inbound connections ([PR #341](https://github.com/Pipepito/acestream-scraper/pull/341)), channel forms and the stream check timeout ([PR #337](https://github.com/Pipepito/acestream-scraper/pull/337)), relay playlists, source history and bounded playback checks ([PR #338](https://github.com/Pipepito/acestream-scraper/pull/338), [PR #339](https://github.com/Pipepito/acestream-scraper/pull/339)) and stalled-source detection ([PR #342](https://github.com/Pipepito/acestream-scraper/pull/342)), and for reporting the WARP startup and M3U detection problems.",
+          "Thanks to [@claudia-asistentepersonal](https://github.com/claudia-asistentepersonal) for proposing À Punt and [@ParronS3](https://github.com/ParronS3) for the original report on remote connections with WARP."
+        ]
+      },
+      {
+        "title": "Before upgrading",
+        "items": [
+          "Back up persistent configuration and the database. Startup applies one schema migration for shared EPG channels (20261109_1200) using the existing backup and recovery process.",
+          "The WARP kill switch is on by default when WARP connects before engines start in full tunnel mode. It needs nftables support on the host and Docker's default SETGID capability; on a host without them WARP still starts, without the kill switch, and the WARP page says so.",
+          "Refresh the playlist and the guide in your players after updating. Channel IDs that contain spaces change when duplicate guide sources need a source prefix, and relay-format playlists now use relay links for channels whose first source is an HTTP stream."
         ]
       }
     ]

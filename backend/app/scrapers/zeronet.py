@@ -7,11 +7,16 @@ from app.utils.outbound_http import source_session
 import asyncio
 import json
 import re
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 
 from app.models.url_types import ZeronetURL
 from app.scrapers.base import BaseScraper
+from app.services.m3u_service import (
+    has_m3u_extension,
+    is_channel_playlist,
+    looks_like_m3u,
+    url_ends_with_m3u,
+)
 from app.config.settings import settings
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
@@ -160,7 +165,7 @@ class ZeronetScraper(BaseScraper):
         validate_outbound_url(internal_url)
 
         # Check if URL is directly pointing to an M3U file
-        is_m3u_file = internal_url.lower().endswith(('.m3u', '.m3u8'))
+        is_m3u_file = has_m3u_extension(internal_url) or url_ends_with_m3u(internal_url)
         if is_m3u_file:
             logger.info(f"Detected direct M3U file URL: {internal_url}")
         else:
@@ -192,7 +197,7 @@ class ZeronetScraper(BaseScraper):
 
                         # If it's an M3U file, just return the content without further processing
                         if is_m3u_file:
-                            if content.strip().startswith('#EXTM3U') or 'acestream://' in content:
+                            if looks_like_m3u(content):
                                 logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
                                 # Parse channels for logging/debugging, but do not return the list
                                 channels = await self.parse_m3u_content(content)
@@ -200,6 +205,11 @@ class ZeronetScraper(BaseScraper):
                                 return content  # Always return the raw content as string
                             else:
                                 logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")
+
+                        # A playlist is accepted by its header, whatever the
+                        # path ends with and whatever its entries point at.
+                        if is_channel_playlist(content):
+                            return content
 
                         # Check for new_era_iframe.html format by looking for specific HTML structure
                         if 'channel-item' in content or 'ACEStream NEW ERA' in content:
@@ -282,7 +292,11 @@ class ZeronetScraper(BaseScraper):
         Both early paths record the source's status like the base does (they
         used to leave it at "active" with no processing time)."""
         url_to_scrape = url if url else self.url_obj.get_normalized_url()
-        path = urlparse(url_to_scrape).path.lower()
+        try:
+            path = urlparse(url_to_scrape).path.lower()
+        except ValueError:
+            # A malformed address: the base scraper reports it as an error.
+            path = ''
         if path.endswith(('.m3u', '.m3u8')):
             try:
                 content = await self.fetch_content(url_to_scrape)

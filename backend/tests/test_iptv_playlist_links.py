@@ -62,10 +62,10 @@ class TestPlaylistOutput:
         r = client.get("/playlist.m3u", params={
             "base_url": base, "only_online": "false"})
         assert r.status_code == 200, r.text
-        lines = [l for l in r.text.splitlines() if l and not l.startswith("#")]
+        lines = [line for line in r.text.splitlines() if line and not line.startswith("#")]
         assert IPTV_URL in lines, lines
         assert base + ACE in lines, lines
-        assert not any("url:" in l for l in lines), lines
+        assert not any("url:" in line for line in lines), lines
 
     def test_tv_channels_playlist_too(
             self, client, db_session, seed_tv_channels):

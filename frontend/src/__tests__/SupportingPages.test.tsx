@@ -200,6 +200,7 @@ beforeEach(() => {
   });
   (warpHooks.useWarpConnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (warpHooks.useWarpDisconnect as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+  (warpHooks.useWarpReconnect as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   (warpHooks.useWarpSetMode as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
   (warpHooks.useWarpRegisterLicense as jest.Mock).mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
 

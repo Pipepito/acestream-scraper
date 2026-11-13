@@ -159,7 +159,7 @@ export default function EventImportPanel({ zone, onClose, source, catalogue }: P
         <TextField select label={tUi("Import window")} value={windowDays} disabled={busy} onChange={(e) => setWindowDays(Number(e.target.value))}>
           {Array.from(new Set([7, 14, 30, windowDays])).sort((a, b) => a - b).map((days) => <MenuItem key={days} value={days}>{tUi("Next")}{' '}{days}{' '}{tUi("days")}</MenuItem>)}
         </TextField>
-        <EventInterestFields prefix={tUi("Import: ")} value={sourceInterests} onChange={setSourceInterests} disabled={busy} />
+        <EventInterestFields prefix={tUi("Import: ")} value={sourceInterests} onChange={setSourceInterests} disabled={busy} allowCustom />
         <Typography variant="body2">{tUi("Structured guides need SportsEvent records with stable IDs and explicit dates. Pages without this metadata and Telegram messages need adapters. Open raw W3U lists in Scraper → W3U catalogues and use Add as event. Preview fetches the guide without saving it.")}</Typography>
       </> : <>
         <Typography variant="body2">{tUi("Use the version 1 event schedule format documented in the Sports events guide. Open raw W3U lists in Scraper → W3U catalogues and use Add as event. Telegram messages need an adapter.")}</Typography>

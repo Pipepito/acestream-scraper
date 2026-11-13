@@ -7,7 +7,6 @@
 # (ACESTREAM_HOME), statvfs/meminfo-backed disk and memory answers and a
 # persistent per-install device id.
 import collections
-import hashlib
 import json
 import os
 import platform

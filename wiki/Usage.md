@@ -19,8 +19,8 @@ Choose **Wiki** in the top bar for these guides and troubleshooting help. It sta
 ## Named sources and built-in broadcasters
 
 In **Scraper → Add URL**, choose **Built-in provider** for Atresmedia, Mediaset,
-Telemadrid or 7 Rioja. The form fills the supported URL and marks it **Built-in
-broadcaster**. These adapters import broadcaster channels directly; custom HTTP,
+Telemadrid, 7 Rioja, À Punt, Pluto TV, Plex or Samsung TV Plus. The form fills
+the supported URL and marks it **Built-in broadcaster**. These adapters import broadcaster channels directly; custom HTTP,
 ZeroNet and IPFS sources retain their extraction workflow. Saving the definition
 never starts an import: use the source's Scrape action when ready.
 
@@ -95,6 +95,14 @@ selection preserves direct HTTP fetching.
 Plain `.txt` lists with alternating channel-name and 40-character ID lines are
 recognized automatically, preserving their names. Malformed hashes are skipped.
 Unstructured bare hashes on other pages still require **Harvest bare content IDs**.
+
+M3U playlists are recognized by their `#EXTM3U` first line, whatever the address
+ends with: a link with a query string or without a file extension works. An
+address ending in `.m3u` or `.m3u8`, with or without a query string, is read as a
+playlist even without that line. On ZeroNet such a file must still contain
+that line, `#EXTINF` entries or `acestream://` links; anything else is treated as
+a site that has not finished downloading and is retried.
+
 Select **Add**, then use the row's **Scrape** action. **Scrape all** processes every enabled source.
 
 The table records the last result, last run, and number of channels found. If a source fails, its error remains visible there.

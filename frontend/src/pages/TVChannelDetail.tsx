@@ -45,6 +45,7 @@ import { useUnsavedChanges } from '../components/UnsavedChanges';
 import { useAcestreamChannels } from '../hooks/useChannels';
 import { useResolveEPGChannel } from '../hooks/useEPG';
 import { resolveSnackbarMessage,type SnackbarMessage } from '../hooks/useSnackbar';
+import GuideSourceField, { guideSourcePayload } from '../components/GuideSourceField';
 import {
 useAssociateAcestream,
 useRemoveAcestreamAssociation,
@@ -67,6 +68,7 @@ interface EditFormData {
   language: string;
   website: string;
   epg_id: string;
+  epg_source_id: number | '';
   channel_number: number | '';
   is_active: boolean;
   is_favorite: boolean;
@@ -162,6 +164,7 @@ const TVChannelDetail: React.FC = () => {
     language: '',
     website: '',
     epg_id: '',
+    epg_source_id: '',
     channel_number: '',
     is_active: true,
     is_favorite: false,
@@ -189,6 +192,7 @@ const TVChannelDetail: React.FC = () => {
       language: channel.language || '',
       website: channel.website || '',
       epg_id: channel.epg_id || '',
+      epg_source_id: channel.epg_source_id ?? '',
       channel_number: channel.channel_number ?? '',
       is_active: channel.is_active,
       is_favorite: channel.is_favorite,
@@ -230,6 +234,7 @@ const TVChannelDetail: React.FC = () => {
           language: editFormData.language,
           website: editFormData.website,
           epg_id: editFormData.epg_id,
+          epg_source_id: guideSourcePayload(editFormData.epg_source_id),
           channel_number: number,
           is_active: editFormData.is_active,
           is_favorite: editFormData.is_favorite,
@@ -362,6 +367,7 @@ const TVChannelDetail: React.FC = () => {
               <TextField name="category" label={tUi("Category")} value={editFormData.category} onChange={handleEditFormChange} fullWidth />
               <TextField name="channel_number" label={tUi("Channel number")} type="number" value={editFormData.channel_number} onChange={handleEditFormChange} sx={{ minWidth: 160 }} />
             </Stack>
+            <GuideSourceField value={editFormData.epg_source_id} onChange={handleEditFormChange} />
             <TextField
               name="epg_id"
               label={tUi("EPG ID")}

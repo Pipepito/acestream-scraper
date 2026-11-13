@@ -38,6 +38,8 @@ export const runtimeEnglish = {
   "WARP_DNS_ONLY.help": "Encrypts DNS lookups with Cloudflare. Video and other traffic keep your normal connection. Requires NET_ADMIN, but no SYS_ADMIN or TUN device. Restart to apply.",
   "WARP_ENABLE_NAT.label": "Connect WARP before starting engines",
   "WARP_ENABLE_NAT.help": "Waits for the selected WARP mode to connect before starting network services. Full tunneling requires NET_ADMIN and /dev/net/tun in Docker; SYS_ADMIN is not needed.",
+  "WARP_KILL_SWITCH.label": "Block direct traffic while WARP is down",
+  "WARP_KILL_SWITCH.help": "Applies when WARP connects before engines start in full tunnel mode. Nothing leaves on your normal connection while the WARP service is starting, restarting or stopped. Needs nftables support on the host.",
   "WARP_FORCE_IPV4.label": "Prefer IPv4 through WARP",
   "WARP_FORCE_IPV4.help": "Prefer IPv4 for WARP connections. This does not enable WARP by itself.",
   "ZERONET_URL.label": "ZeroNet gateway",

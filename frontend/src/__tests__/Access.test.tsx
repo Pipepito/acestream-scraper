@@ -15,11 +15,13 @@ import { castService } from '../services/castService';
 import { loadBrowserCast } from '../services/browserCast';
 import { TestMemoryRouter } from '../testUtils/router';
 import { ApiError } from '../services/apiErrors';
+import { startupService } from '../services/startupService';
 
 jest.mock('../services/accessService', () => ({ ...jest.requireActual('../services/accessService'), accessService: {
   users: jest.fn(), policy: jest.fn(), savePolicy: jest.fn(), credentials: jest.fn(), sessions: jest.fn(),
   disable: jest.fn(), createUser: jest.fn(), status: jest.fn(), bootstrap: jest.fn(), password: jest.fn(), login: jest.fn(), logout: jest.fn(),
 } }));
+jest.mock('../services/startupService', () => ({ startupService: { status: jest.fn() } }));
 jest.mock('../services/castService', () => ({ castService: { capabilities: jest.fn(), devices: jest.fn(), sessions: jest.fn(), start: jest.fn(), command: jest.fn() } }));
 jest.mock('../services/browserCast', () => ({ loadBrowserCast: jest.fn(), startBrowserCast: jest.fn(), stopBrowserCast: jest.fn() }));
 
@@ -30,7 +32,7 @@ function wrapper(child: React.ReactNode, status = pending) {
     <TestMemoryRouter><AccessContext.Provider value={{ status, refresh }}>{child}</AccessContext.Provider></TestMemoryRouter>
   </QueryClientProvider></ThemeProvider>);
 }
-beforeEach(() => { jest.clearAllMocks(); (accessService.bootstrap as jest.Mock).mockResolvedValue({}); });
+beforeEach(() => { jest.clearAllMocks(); (accessService.bootstrap as jest.Mock).mockResolvedValue({}); (startupService.status as jest.Mock).mockResolvedValue({ status: 'ready', phase: 'Application status', events: [], recovery_token: '' }); });
 
 test('first-run setup explains the choice and can continue without accounts', async () => {
   wrapper(<AccountSetup />);
@@ -70,6 +72,32 @@ test('pending setup prevents private views from mounting', async () => {
   wrapper(<AccessGate><Private /></AccessGate>);
   await screen.findByRole('checkbox', { name: 'Enable user management' });
   expect(privateMount).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['failed', 'Startup needs your attention. Make this choice to see what went wrong and how to fix it.'],
+  ['starting', 'The app is still starting. You can make this choice now.'],
+])('first-run setup says when startup is %s without disclosing details', async (status, message) => {
+  (accessService.status as jest.Mock).mockResolvedValue(pending);
+  // Anonymous callers only receive this minimal projection.
+  (startupService.status as jest.Mock).mockResolvedValue({ status, phase: 'Application status', events: [], recovery_token: '' });
+  wrapper(<AccessGate><div>Private settings</div></AccessGate>);
+  expect(await screen.findByText(message)).toBeInTheDocument();
+  expect(screen.getByRole('checkbox', { name: 'Enable user management' })).toBeInTheDocument();
+});
+
+test('first-run setup stays quiet when startup is ready or cannot be read', async () => {
+  (accessService.status as jest.Mock).mockResolvedValue(pending);
+  (startupService.status as jest.Mock).mockResolvedValue({ status: 'ready', phase: 'Application status', events: [], recovery_token: '' });
+  const view = wrapper(<AccessGate><div>Private settings</div></AccessGate>);
+  await screen.findByRole('checkbox', { name: 'Enable user management' });
+  await waitFor(() => expect(startupService.status).toHaveBeenCalled());
+  expect(screen.queryByText(/Startup needs your attention|still starting/)).not.toBeInTheDocument();
+  view.unmount();
+  (startupService.status as jest.Mock).mockRejectedValue(new Error('offline'));
+  wrapper(<AccessGate><div>Private settings</div></AccessGate>);
+  await screen.findByRole('checkbox', { name: 'Enable user management' });
+  expect(screen.queryByText(/Startup needs your attention|still starting/)).not.toBeInTheDocument();
 });
 
 test('password changes require the current password and refresh access after success', async () => {

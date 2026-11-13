@@ -2079,6 +2079,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/providers/interests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Event Provider Interests
+         * @description Names to choose from before a preview. Fetches the provider; saves nothing.
+         */
+        post: operations["event_provider_interests_api_v1_events_providers_interests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/retention": {
         parameters: {
             query?: never;
@@ -5002,6 +5022,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/warp/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconnect WARP */
+        post: operations["reconnect_warp_api_v1_warp_reconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/warp/status": {
         parameters: {
             query?: never;
@@ -5403,6 +5440,8 @@ export interface components {
             kind: "browser" | "relay";
             /** Peers */
             peers?: number | null;
+            /** Source State */
+            source_state?: ("probing" | "playing") | null;
             /** Started At */
             started_at?: string | null;
             /**
@@ -6365,7 +6404,7 @@ export interface components {
             hours?: number | null;
             /**
              * Value
-             * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60)
+             * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60); acestream_check_timeout whole seconds (5–120, default 10)
              */
             value?: string | null;
         };
@@ -7179,6 +7218,20 @@ export interface components {
             /**
              * Timezone
              * @default Europe/Madrid
+             */
+            timezone?: string;
+        };
+        /**
+         * EventProviderInterestsRequest
+         * @description Which names a built-in provider currently publishes; saved interests are ignored.
+         */
+        EventProviderInterestsRequest: {
+            provider_options: components["schemas"]["EventProviderOptions"];
+            /** Timeout Seconds */
+            timeout_seconds?: number | null;
+            /**
+             * Timezone
+             * @default UTC
              */
             timezone?: string;
         };
@@ -15747,6 +15800,43 @@ export interface operations {
             503: components["responses"]["ApplicationProblem503"];
         };
     };
+    event_provider_interests_api_v1_events_providers_interests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventProviderInterestsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventInterestChoices"];
+                };
+            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
     event_retention_api_v1_events_retention_get: {
         parameters: {
             query?: never;
@@ -22117,6 +22207,30 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    reconnect_warp_api_v1_warp_reconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             500: components["responses"]["ApplicationProblem500"];
             503: components["responses"]["ApplicationProblem503"];
         };

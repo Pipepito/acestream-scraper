@@ -8,9 +8,11 @@ TextField
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
+useAcestreamCheckTimeout,
 useChannelStatusInterval,
 useEpgRefreshInterval,
 useRescrapeInterval,
+useUpdateAcestreamCheckTimeout,
 useUpdateChannelStatusInterval,
 useUpdateEpgRefreshInterval,
 useUpdateRescrapeInterval
@@ -28,6 +30,7 @@ import { useSettingDraft } from '../../hooks/useSettingDraft';
 type FeedbackSeverity = 'success' | 'error';
 type Notify = (message: string | (() => string), severity: FeedbackSeverity) => void;
 interface IntervalFieldProps {
+  min?: number;
   max?: number;
   id: string;
   label: string;
@@ -39,7 +42,7 @@ interface IntervalFieldProps {
   onSave: () => void;
 }
 
-const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, helper, value, saved, pending, onChange, onSave }) => { const tUi = useUiText(); return (
+const IntervalField: React.FC<IntervalFieldProps> = ({ min = 1, max = 168, id, label, helper, value, saved, pending, onChange, onSave }) => { const tUi = useUiText(); return (
   <Stack
     component="form"
     aria-label={tUi("{{value0}} form", { value0: label })}
@@ -59,11 +62,11 @@ const IntervalField: React.FC<IntervalFieldProps> = ({ max = 168, id, label, hel
       value={value}
       disabled={pending}
       onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-      InputProps={{ inputProps: { min: 1, max, step: 1 } }}
+      InputProps={{ inputProps: { min, max, step: 1 } }}
       helperText={helper}
       sx={{ width: { xs: '100%', sm: 280 } }}
     />
-    <Button type="submit" variant="outlined" size="small" disabled={pending || value === '' || !Number.isInteger(value) || value < 1 || value > max || value === saved} sx={{ mt: 0.5 }}>
+    <Button type="submit" variant="outlined" size="small" disabled={pending || value === '' || !Number.isInteger(value) || value < min || value > max || value === saved} sx={{ mt: 0.5 }}>
       {pending ? <CircularProgress size={18} color="inherit" /> : tUi("Save")}
     </Button>
   </Stack>
@@ -81,6 +84,9 @@ export default function AutomationSettings({ notify }: { notify: Notify }) {
   const rescrape = useSettingDraft<number | ''>(rescrapeIntervalQuery.data, 24, updateRescrapeIntervalMutation.isPending);
   const guide = useSettingDraft<number | ''>(epgRefreshIntervalQuery.data, 1, updateEpgRefreshIntervalMutation.isPending);
   const checks = useSettingDraft<number | ''>(channelStatusIntervalQuery.data, 60, updateChannelStatusIntervalMutation.isPending);
+  const checkTimeoutQuery = useAcestreamCheckTimeout();
+  const updateCheckTimeoutMutation = useUpdateAcestreamCheckTimeout();
+  const timeout = useSettingDraft<number | ''>(checkTimeoutQuery.data, 10, updateCheckTimeoutMutation.isPending);
   const rescrapeInterval = rescrape.value, epgRefreshInterval = guide.value, channelStatusInterval = checks.value;
   const setRescrapeInterval = rescrape.change, setEpgRefreshInterval = guide.change, setChannelStatusInterval = checks.change;
   const handleRescrapeSave = () => {
@@ -105,6 +111,14 @@ export default function AutomationSettings({ notify }: { notify: Notify }) {
     updateChannelStatusIntervalMutation.mutate(value, {
       onSuccess: () => { checks.saved(value); notify(() => (tUi('Streams will be checked every {{count}} min', { count: value })), 'success'); },
       onError: error => notify(() => (tUi('Failed to save the stream check interval: {{error}}', { error: getErrorMessage(error) })), 'error'),
+    });
+  };
+  const handleCheckTimeoutSave = () => {
+    const value = timeout.value;
+    if (!timeout.dirty || value === '' || !Number.isInteger(value) || value < 5 || value > 120 || checkTimeoutQuery.isError || updateCheckTimeoutMutation.isPending) return;
+    updateCheckTimeoutMutation.mutate(value, {
+      onSuccess: () => { timeout.saved(value); notify(() => (tUi('Each stream check now waits up to {{count}} s', { count: value })), 'success'); },
+      onError: error => notify(() => (tUi('Failed to save the stream check timeout: {{error}}', { error: getErrorMessage(error) })), 'error'),
     });
   };
   if (rescrapeIntervalQuery.isLoading || epgRefreshIntervalQuery.isLoading || channelStatusIntervalQuery.isLoading) return <CircularProgress aria-label={tUi('Loading settings')} />;
@@ -151,6 +165,19 @@ export default function AutomationSettings({ notify }: { notify: Notify }) {
             onSave={handleChannelStatusSave}
           />
           <StreamCheckScopeField />
+          {checkTimeoutQuery.isError ? <Alert severity="error">{tUi("Could not load the stream check timeout. Reload to try again.")}</Alert> : null}
+          <IntervalField
+            id="acestream-check-timeout"
+            label={tUi("Stream check timeout (seconds)")}
+            helper={tUi('5 to 120 s. A slow engine may need 20-30 s to start a stream; checked sooner, it is marked offline.')}
+            min={5}
+            max={120}
+            value={timeout.value}
+            saved={timeout.dirty ? undefined : timeout.value || undefined}
+            pending={updateCheckTimeoutMutation.isPending || checkTimeoutQuery.isLoading || checkTimeoutQuery.isError}
+            onChange={timeout.change}
+            onSave={handleCheckTimeoutSave}
+          />
           <ScheduleAnchorFields />
 
         </Stack>

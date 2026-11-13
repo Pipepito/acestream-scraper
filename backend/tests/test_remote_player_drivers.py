@@ -66,7 +66,9 @@ def test_vlc_pause_resume_stop_commands():
         return httpx.Response(200, json=STATUS)
 
     driver = _vlc(handler)
-    driver.pause(); driver.resume(); driver.stop()
+    driver.pause()
+    driver.resume()
+    driver.stop()
     assert seen == ["pl_forcepause", "pl_forceresume", "pl_stop"]
 
 
@@ -122,7 +124,10 @@ def test_kodi_play_and_commands():
 
     driver = _kodi(handler)
     driver.play("http://x/stream.ts", "Arena TV")
-    driver.pause(); driver.resume(); driver.stop(); driver.set_volume(150)
+    driver.pause()
+    driver.resume()
+    driver.stop()
+    driver.set_volume(150)
     methods = [m for m, _ in calls]
     assert methods[0] == "Player.Open" and calls[0][1] == {"item": {"file": "http://x/stream.ts"}}
     assert ("Player.PlayPause", {"playerid": 1, "play": False}) in calls

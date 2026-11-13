@@ -1,4 +1,5 @@
 """Server Cast ownership; discovery itself sends no HTTP requests to advertisements."""
+from app.api.http_errors import coded_http_error
 import asyncio
 from contextlib import suppress
 from dataclasses import dataclass
@@ -7,7 +8,6 @@ import threading
 import time
 from uuid import UUID, uuid4
 
-from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
 from app.schemas.cast import CastDevice, CastStatus
 from app.services.viewer_service import viewer_service
@@ -106,7 +106,7 @@ class CastDiscovery:
         with self.lock:
             value = self.devices.get(identity)
         if not value or not receiver_address(value[0].host):
-            raise HTTPException(404, 'TV is no longer discoverable; refresh the device list')
+            raise coded_http_error(404, 'CAST_DEVICE_NOT_FOUND', 'TV is no longer discoverable; refresh the device list')
         return value[0]
 
     def close(self):
@@ -155,51 +155,51 @@ class CastService:
 
     async def prepare(self, payload, user, policy, permission):
         if not await run_in_threadpool(imported_stream, payload.content_id):
-            raise HTTPException(404, 'Channel is not available')
+            raise coded_http_error(404, 'CAST_CHANNEL_UNAVAILABLE', 'Channel is not available')
         if payload.compatibility and not policy.compatibility_conversion:
-            raise HTTPException(403, 'Compatibility conversion is disabled in Settings')
+            raise coded_http_error(403, 'CAST_CONVERSION_DISABLED', 'Compatibility conversion is disabled in Settings')
         if payload.compatibility:
             from app.services.recording_coordinator import recording_coordinator
             if recording_coordinator.activity():
-                raise HTTPException(409, 'Recording takes priority; try original video or wait for capture to finish')
+                raise coded_http_error(409, 'CAST_RECORDING_PRIORITY', 'Recording takes priority; try original video or wait for capture to finish')
         return await viewer_service.create(payload, user, detached=True, permission=permission, compatibility=payload.compatibility)
 
     async def start(self, payload, user, policy, *, controller=None):
         import pychromecast
         owner = controller or user
         if not policy.cast_media_url:
-            raise HTTPException(409, 'The TV has no address to fetch video from: set Application address for TVs in TV casting, or open the app from your home network.')
+            raise coded_http_error(409, 'CAST_MEDIA_ADDRESS_REQUIRED', 'The TV has no address to fetch video from: set Application address for TVs in TV casting, or open the app from your home network.')
         async with self.lock:
             info = self.discovery.get(payload.device_id)
             previous = next((cast for cast in self.active.values() if cast.device_id == payload.device_id), None)
             if previous and previous.owner_id != owner['id'] and not owner['administrator']:
-                raise HTTPException(403, 'This TV is controlled by another account or browser')
+                raise coded_http_error(403, 'CAST_OWNER_CONFLICT', 'This TV is controlled by another account or browser')
             if previous and not payload.replace:
-                raise HTTPException(409, 'Confirm replacement of the current TV playback')
+                raise coded_http_error(409, 'CAST_REPLACE_CONFIRMATION', 'Confirm replacement of the current TV playback')
             if previous:
                 await self._stop(previous)
             if len(self.active) >= 16:
-                raise HTTPException(409, 'Cast receiver limit reached')
+                raise coded_http_error(409, 'CAST_RECEIVER_LIMIT', 'Cast receiver limit reached')
             client = pychromecast.get_chromecast_from_cast_info(info, None, tries=1, retry_wait=1, timeout=5)
             lease = None
             cast = None
             try:
                 await settled_thread(client.wait, timeout=5)
                 if client.status and client.status.app_id not in (None, '', 'E8C28D3C') and not payload.replace:
-                    raise HTTPException(409, 'The TV is already in use. Confirm replacement to cast this stream.')
+                    raise coded_http_error(409, 'CAST_IN_USE', 'The TV is already in use. Confirm replacement to cast this stream.')
                 lease, _, media = await self.prepare(payload, user, policy, 'cast_server')
                 deadline = time.monotonic() + 60
                 while time.monotonic() < deadline:
                     session = viewer_service.player.get(lease.session_id)
                     if not session or session.state in ('error', 'stopped'):
-                        raise HTTPException(409, 'The stream could not start')
+                        raise coded_http_error(409, 'CAST_STREAM_START_FAILED', 'The stream could not start')
                     if viewer_service.hls_ready(lease):
                         break
                     lease.last_access = time.monotonic()
                     viewer_service.player.touch(lease.session_id)
                     await asyncio.sleep(.25)
                 else:
-                    raise HTTPException(504, 'Stream preparation timed out')
+                    raise coded_http_error(504, 'CAST_PREPARATION_TIMEOUT', 'Stream preparation timed out')
                 url = f'{policy.cast_media_url}/api/v1/viewers/{lease.id}/media/index.m3u8?cap={media}'
                 cast = OwnedCast(uuid4().hex, payload.device_id, info.friendly_name or 'TV', owner['id'], lease.id, client, url, time.monotonic())
                 # Native Android TV apps can advertise the media namespace but
@@ -215,7 +215,7 @@ class CastService:
                 while not self.owns_media(cast) and time.monotonic() < loaded_deadline:
                     await asyncio.sleep(.1)
                 if not self.owns_media(cast):
-                    raise HTTPException(502, 'The TV did not load this stream')
+                    raise coded_http_error(502, 'CAST_STREAM_LOAD_FAILED', 'The TV did not load this stream')
                 self.active[cast.id] = cast
                 return self.status(cast)
             except BaseException:
@@ -251,16 +251,16 @@ class CastService:
         async with self.lock:
             cast = self.active.get(cast_id)
             if not cast or (cast.owner_id != user['id'] and not user['administrator']):
-                raise HTTPException(404, 'Cast session not found')
+                raise coded_http_error(404, 'CAST_SESSION_NOT_FOUND', 'Cast session not found')
             if not self.owns_media(cast):
                 await self._stop(cast)
-                raise HTTPException(409, 'The receiver is now playing something else')
+                raise coded_http_error(409, 'CAST_OWNERSHIP_CHANGED', 'The receiver is now playing something else')
             if command.action == 'stop':
                 await self._stop(cast)
                 return
             if command.action == 'volume':
                 if command.volume is None:
-                    raise HTTPException(422, 'Supply a volume between 0 and 1')
+                    raise coded_http_error(422, 'CAST_VOLUME_INVALID', 'Supply a volume between 0 and 1')
                 await settled_thread(cast.client.set_volume, command.volume)
             else:
                 await settled_thread(getattr(cast.client.media_controller, command.action), timeout=5)

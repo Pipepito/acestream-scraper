@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import { normalizeApiError } from '../services/apiErrors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, useMediaQuery, useTheme } from '@mui/material';
@@ -27,7 +29,7 @@ import ChannelPlayerDialog from '../components/player/ChannelPlayerDialog';
 import PlayOnMenu from '../components/player/PlayOnMenu';
 
 type SnackbarNotice = {
-  message: string;
+  message: string | (() => string);
   error?: unknown;
   /** Set by callers that distinguish more than "worked"/"failed" (a warning). */
   severity?: 'success' | 'warning' | 'error';
@@ -37,6 +39,7 @@ const hasAnyFilter = (filters: AcestreamChannelFilters): boolean =>
   Boolean(filters.source_url || filters.search || filters.group || filters.is_online !== undefined || filters.is_active !== undefined || filters.assigned !== undefined);
 
 const AcestreamChannels: React.FC = () => {
+  const tUi = useUiText();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const theme = useTheme();
@@ -115,9 +118,9 @@ const AcestreamChannels: React.FC = () => {
   const handleCopyId = useCallback(async (id: string) => {
     try {
       await navigator.clipboard.writeText(id);
-      setNotice({ message: 'Acestream ID copied.' });
+      setNotice({ message: uiText("Acestream ID copied.") });
     } catch {
-      setNotice({ message: 'ID selected. Press Ctrl+C or ⌘C, or use your device’s Copy menu.', severity: 'warning' });
+      setNotice({ message: uiText("ID selected. Press Ctrl+C or ⌘C, or use your device’s Copy menu."), severity: 'warning' });
     }
   }, []);
 
@@ -127,7 +130,7 @@ const AcestreamChannels: React.FC = () => {
       acestreamChannelService
         .checkAcestreamChannelStatus(channel.id)
         .then(() => refetch())
-        .catch((err) => setError(`Failed to check status: ${getErrorMessage(err)}`))
+        .catch((err) => setError(uiText('Failed to check status: {{error}}', { error: getErrorMessage(err) })))
         .finally(() => setCheckingStatus((prev) => ({ ...prev, [channel.id]: false })));
     },
     [refetch]
@@ -157,19 +160,19 @@ const AcestreamChannels: React.FC = () => {
         if (detail.code !== 'IMPORT_EXCLUDED') throw error;
         const context = detail.context as { rule_ids?: number[] } | undefined;
         const ruleIds = context?.rule_ids ?? [];
-        const accepted = await confirm({ title: 'Add excluded stream?', body: <Stack spacing={1}><span>This stream matches import rule {ruleIds.join(', ')}. Add anyway applies only to this manual addition.</span><Button href={`/scraper?tab=exclusions#rule-${ruleIds[0] ?? ''}`}>Review import exclusions</Button></Stack>, confirmLabel: 'Add anyway' });
+        const accepted = await confirm(() => ({ title: uiText("Add excluded stream?"), body: <Stack spacing={1}><span>{tUi("This stream matches import rule")}{' '}{ruleIds.join(', ')}{tUi(". Add anyway applies only to this manual addition.")}</span><Button href={`/scraper?tab=exclusions#rule-${ruleIds[0] ?? ''}`}>{tUi("Review import exclusions")}</Button></Stack>, confirmLabel: uiText("Add anyway") }));
         if (!accepted) return;
         await acestreamChannelService.createAcestreamChannel({ ...values, allow_excluded: true });
       }
       if (values.tv_channel_id) {
         for (const key of ['tvChannels', 'tvChannel', 'tvChannelAcestreams']) void queryClient.invalidateQueries({ queryKey: [key] });
       }
-      setNotice({ message: `Added ${values.name}.` });
+      setNotice({ message: () => uiText('Added {{name}}.', { name: values.name }) });
     } else if (editorChannel?.id) {
       const { id, ...updates } = values;
       void id;
       await acestreamChannelService.updateAcestreamChannel(editorChannel.id, updates);
-      setNotice({ message: `Saved ${values.name}.` });
+      setNotice({ message: () => uiText('Saved {{name}}.', { name: values.name }) });
     }
     closeEditor();
     refetch();
@@ -180,10 +183,10 @@ const AcestreamChannels: React.FC = () => {
       const hide = channel.is_active !== false;
       try {
         await acestreamChannelService.updateAcestreamChannel(channel.id, { is_active: !hide });
-        setNotice({ message: hide ? `${channel.name} is now hidden from the playlist.` : `${channel.name} is back in the playlist.` });
+        setNotice({ message: () => hide ? uiText('{{name}} is now hidden from the playlist.', { name: channel.name }) : uiText('{{name}} is back in the playlist.', { name: channel.name }) });
         refetch();
       } catch (err) {
-        setError(`Failed to update ${channel.name}: ${getErrorMessage(err)}`);
+        setError(uiText('Failed to update {{name}}: {{error}}', { name: channel.name, error: getErrorMessage(err) }));
       }
     },
     [refetch]
@@ -191,16 +194,16 @@ const AcestreamChannels: React.FC = () => {
 
   const handleDelete = useCallback(
     async (channel: AcestreamChannel) => {
-      const ok = await confirm({
-        title: `Delete ${channel.name}?`,
-        body: 'The channel is removed from the inventory and the playlist. It comes back if a source still lists it.',
-        confirmLabel: 'Delete',
+      const ok = await confirm(() => ({
+        title: uiText("Delete {{name}}?", { name: channel.name }),
+        body: uiText("The channel is removed from the inventory and the playlist. It comes back if a source still lists it."),
+        confirmLabel: uiText("Delete"),
         danger: true,
-      });
+      }));
       if (!ok) return;
       deleteChannel.mutate(channel.id, {
-        onSuccess: () => setNotice({ message: `Deleted ${channel.name}.` }),
-        onError: (err) => setError(`Failed to delete channel: ${getErrorMessage(err)}`),
+        onSuccess: () => setNotice({ message: () => uiText('Deleted {{name}}.', { name: channel.name }) }),
+        onError: (err) => setError(uiText('Failed to delete channel: {{error}}', { error: getErrorMessage(err) })),
       });
     },
     [confirm, deleteChannel]
@@ -238,7 +241,8 @@ const AcestreamChannels: React.FC = () => {
         );
       }
       handleCloseAssignDialog();
-      setNotice({ message: `Linked ${assignTargetIds.length} channel${assignTargetIds.length === 1 ? '' : 's'} to ${assigned?.name ?? 'the TV channel'}.` });
+      const linkedCount = assignTargetIds.length;
+      setNotice({ message: () => assigned ? uiText('Linked {{count}} channels to {{name}}.', { count: linkedCount, name: assigned.name }) : uiText('Linked {{count}} channels to the TV channel.', { count: linkedCount }) });
       refetch();
     } catch (err) {
       setAssignError(getErrorMessage(err));
@@ -261,7 +265,7 @@ const AcestreamChannels: React.FC = () => {
         await tvChannelService.update(channel.tv_channel_id, { is_favorite: !channel.tv_channel_is_favorite });
         refetch();
       } catch (err) {
-        setError(`Failed to update linked TV favorite: ${getErrorMessage(err)}`);
+        setError(uiText('Failed to update linked TV favorite: {{error}}', { error: getErrorMessage(err) }));
       }
     },
     [refetch]
@@ -300,7 +304,7 @@ const AcestreamChannels: React.FC = () => {
       anchor.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError(`Failed to export CSV: ${getErrorMessage(err)}`);
+      setError(uiText('Failed to export CSV: {{error}}', { error: getErrorMessage(err) }));
     }
   };
 
@@ -334,31 +338,30 @@ const AcestreamChannels: React.FC = () => {
   return (
     <Box sx={{ width: '100%' }}>
       <PageHeader
-        title="Acestream Channels"
-        subtitle="Streams found by the scraper. Hide the ones you don't want in the playlist and link the rest to TV channels."
+        title={tUi("Acestream Channels")}
+        subtitle={tUi("Streams found by the scraper. Hide the ones you don't want in the playlist and link the rest to TV channels.")}
         actions={
           <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
-            Add channel
-          </Button>
+            {tUi("Add channel")}</Button>
         }
         overflowActions={[
-          { label: 'Refresh', icon: <Refresh fontSize="small" />, onClick: () => void refetch() },
-          { label: checkingAll ? 'Requesting…' : 'Run status check now', onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
-          { label: 'Export CSV', icon: <FileDownload fontSize="small" />, onClick: () => void handleExportCSV() },
+          { label: uiText("Refresh"), icon: <Refresh fontSize="small" />, onClick: () => void refetch() },
+          { label: checkingAll ? uiText("Requesting…") : uiText("Run status check now"), onClick: () => void handleCheckAllStatuses(), disabled: checkingAll },
+          { label: uiText("Export CSV"), icon: <FileDownload fontSize="small" />, onClick: () => void handleExportCSV() },
         ]}
       />
 
       <StatusLine
-        aria-label="Channel summary"
+        aria-label={tUi("Channel summary")}
         items={[
-          { label: 'Channels', value: allTotal === undefined ? '…' : String(allTotal) },
+          { label: uiText("Channels"), value: allTotal === undefined ? '…' : String(allTotal) },
           {
-            label: 'Online',
+            label: uiText("Online"),
             value: onlineTotal === undefined ? '…' : String(onlineTotal),
             tone: onlineTotal === 0 && (allTotal ?? 0) > 0 ? 'warning' : 'default',
           },
-          { label: 'Matching filters', value: filtered ? String(totalCount) : 'all' },
-          { label: 'Selected', value: String(selectedIds.length) },
+          { label: uiText("Matching filters"), value: filtered ? String(totalCount) : uiText('all') },
+          { label: uiText("Selected"), value: String(selectedIds.length) },
         ]}
       />
 
@@ -372,12 +375,11 @@ const AcestreamChannels: React.FC = () => {
         <Box sx={{ mb: 2 }}>
           <InlineStatusNotice
             severity="error"
-            title="Unable to load channels"
+            title={tUi("Unable to load channels")}
             description={getErrorMessage(fetchError)}
             action={
               <Button variant="outlined" onClick={() => refetch()}>
-                Try again
-              </Button>
+                {tUi("Try again")}</Button>
             }
           />
         </Box>
@@ -385,29 +387,27 @@ const AcestreamChannels: React.FC = () => {
 
       {groupError ? (
         <Box sx={{ mb: 2 }}>
-          <InlineStatusNotice severity="error" title="Unable to load groups" description={groupError} />
+          <InlineStatusNotice severity="error" title={tUi("Unable to load groups")} description={groupError} />
         </Box>
       ) : null}
 
       <ContentSection
-        title="Channels"
+        title={tUi("Channels")}
         actions={
           selectedIds.length > 0 ? (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <Button variant="contained" color="secondary" onClick={() => setBulkOpen(true)}>
-                Bulk actions ({selectedIds.length})
+                {tUi("Bulk actions (")}{selectedIds.length})
               </Button>
               <Button variant="outlined" onClick={() => setBatchAssignOpen(true)}>
-                Set group
-              </Button>
+                {tUi("Set group")}</Button>
               <Button variant="outlined" onClick={() => handleOpenAssignDialog(selectedIds)}>
-                Link to TV channel
-              </Button>
+                {tUi("Link to TV channel")}</Button>
             </Stack>
           ) : undefined
         }
       >
-        {sources.isError ? <Alert severity="error" action={<Button onClick={() => void sources.refetch()}>Retry</Button>}>Unable to load source filters.</Alert> : null}
+        {sources.isError ? <Alert severity="error" action={<Button onClick={() => void sources.refetch()}>{tUi("Retry")}</Button>}>{tUi("Unable to load source filters.")}</Alert> : null}
         <ChannelFilterBar filters={filters} groups={groups} sources={sources.data ?? []} onChange={handleFilterChange} />
         {isCompact ? (
           <ChannelCardList
@@ -496,7 +496,7 @@ const AcestreamChannels: React.FC = () => {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id="acestream-play-on-title">Play on…</DialogTitle>
+        <DialogTitle id="acestream-play-on-title">{tUi("Play on…")}</DialogTitle>
         <DialogContent>
           {playOnTarget ? (
             <PlayOnMenu
@@ -508,7 +508,7 @@ const AcestreamChannels: React.FC = () => {
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPlayOnTarget(null)}>Close</Button>
+          <Button onClick={() => setPlayOnTarget(null)}>{tUi("Close")}</Button>
         </DialogActions>
       </Dialog>
 
@@ -525,7 +525,7 @@ const AcestreamChannels: React.FC = () => {
           severity={notice?.severity ?? (notice?.error ? 'error' : 'success')}
           sx={{ width: '100%' }}
         >
-          {notice?.message}
+          {typeof notice?.message === 'function' ? notice.message() : notice?.message}
         </Alert>
       </Snackbar>
     </Box>

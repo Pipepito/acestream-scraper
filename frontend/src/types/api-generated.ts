@@ -4311,6 +4311,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tv-channels/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse Tv Channels
+         * @description Combine catalogue-wide filters, then sort and return a bounded page.
+         */
+        get: operations["browse_tv_channels_api_v1_tv_channels_browse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tv-channels/bulk-update-epg": {
         parameters: {
             query?: never;
@@ -4335,6 +4355,91 @@ export interface paths {
          *     }
          */
         post: operations["bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category Inventory */
+        get: operations["category_inventory_api_v1_tv_channels_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category Coverage */
+        get: operations["category_coverage_api_v1_tv_channels_category_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-definitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category Definitions */
+        get: operations["category_definitions_api_v1_tv_channels_category_definitions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-suggestions/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Categories */
+        post: operations["apply_categories_api_v1_tv_channels_category_suggestions_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/category-suggestions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Categories */
+        post: operations["preview_categories_api_v1_tv_channels_category_suggestions_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4375,6 +4480,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tv-channels/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tv Channel Inventory
+         * @description Global filter choices/counts without loading the catalogue or its streams.
+         */
+        get: operations["tv_channel_inventory_api_v1_tv_channels_inventory_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tv-channels/now-next": {
         parameters: {
             query?: never;
@@ -4409,6 +4534,23 @@ export interface paths {
          * @description Save the complete channel order atomically using consecutive channel numbers.
          */
         post: operations["reorder_tv_channels_api_v1_tv_channels_reorder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tv-channels/{channel_id}/category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assign Category */
+        put: operations["assign_category_api_v1_tv_channels__channel_id__category_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5628,6 +5770,8 @@ export interface components {
         CastCapabilities: {
             /** Compatibility Conversion */
             compatibility_conversion: boolean;
+            /** Error Code */
+            error_code?: string | null;
             /**
              * Home Check
              * @default off
@@ -5996,6 +6140,137 @@ export interface components {
             /** Warnings */
             warnings?: string[];
         };
+        /** CategoryApplyItem */
+        CategoryApplyItem: {
+            /** Category Id */
+            category_id: string;
+            /** Channel Id */
+            channel_id: number;
+            /** Fingerprint */
+            fingerprint: string;
+        };
+        /** CategoryApplyRequest */
+        CategoryApplyRequest: {
+            /** Items */
+            items: components["schemas"]["CategoryApplyItem"][];
+        };
+        /** CategoryApplyResult */
+        CategoryApplyResult: {
+            /** Updated */
+            updated: number;
+        };
+        /** CategoryAssignment */
+        CategoryAssignment: {
+            /** Category */
+            category?: string | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Mode
+             * @default manual
+             * @enum {string}
+             */
+            mode?: "manual" | "automatic";
+        };
+        /** CategoryCoverage */
+        CategoryCoverage: {
+            /** Catalogue */
+            catalogue: components["schemas"]["CategoryView"][];
+            /** Items */
+            items: components["schemas"]["CategoryCoverageRow"][];
+            /** Taxonomy Version */
+            taxonomy_version: number;
+            /** Total Labels */
+            total_labels: number;
+        };
+        /** CategoryCoverageRow */
+        CategoryCoverageRow: {
+            /**
+             * Artwork Status
+             * @enum {string}
+             */
+            artwork_status: "specific" | "parent" | "neutral" | "unmapped";
+            /** Genre Ids */
+            genre_ids: string[];
+            /** Guide Channel Count */
+            guide_channel_count: number;
+            /** Label */
+            label: string;
+            /** Programme Count */
+            programme_count: number;
+            /** Source Id */
+            source_id: number;
+        };
+        /** CategoryInventory */
+        CategoryInventory: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "channel" | "now";
+            /** Items */
+            items: components["schemas"]["CategoryView"][];
+            /** Next Change At */
+            next_change_at?: string | null;
+            /** Taxonomy Version */
+            taxonomy_version: number;
+            /** Total */
+            total: number;
+        };
+        /** CategoryPreviewRequest */
+        CategoryPreviewRequest: {
+            /** Channel Ids */
+            channel_ids: number[];
+        };
+        /** CategorySuggestion */
+        CategorySuggestion: {
+            /** Category Origin */
+            category_origin: string;
+            /** Category Revision */
+            category_revision: number;
+            /** Channel Id */
+            channel_id: number;
+            /** Current Category */
+            current_category: string | null;
+            /** Evidence */
+            evidence: string[];
+            /** Fingerprint */
+            fingerprint: string;
+            /** Name */
+            name: string;
+            /** Reason */
+            reason: string;
+            /** Suggested Category */
+            suggested_category: string | null;
+        };
+        /** CategoryView */
+        CategoryView: {
+            /** Artwork */
+            artwork: string;
+            /**
+             * Artwork Status
+             * @enum {string}
+             */
+            artwork_status: "specific" | "parent" | "neutral";
+            /**
+             * Count
+             * @default 0
+             */
+            count?: number;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Label Es */
+            label_es: string;
+            /** Parent */
+            parent?: string | null;
+        };
         /**
          * ChannelResult
          * @description Schema for channel result from scraping
@@ -6231,6 +6506,13 @@ export interface components {
              */
             current_password: string;
         };
+        /** EPGCategoryObservation */
+        EPGCategoryObservation: {
+            /** Label */
+            label: string;
+            /** Language */
+            language?: string | null;
+        };
         /**
          * EPGChannelListResponse
          * @description Paginated EPG channel response.
@@ -6432,6 +6714,8 @@ export interface components {
          * @description Schema for EPG program response
          */
         EPGProgramResponse: {
+            /** Categories */
+            categories?: components["schemas"]["EPGCategoryObservation"][];
             /** Category */
             category?: string | null;
             /** Description */
@@ -6443,6 +6727,8 @@ export interface components {
             end_time: string;
             /** Epg Channel Id */
             epg_channel_id: number;
+            /** Genre Ids */
+            genre_ids?: string[];
             /** Id */
             id: number;
             /** Image Url */
@@ -6586,6 +6872,32 @@ export interface components {
             favorites_only?: boolean;
             /** Search Term */
             search_term?: string | null;
+        };
+        /**
+         * ErrorPayload
+         * @description Structured error payload for API responses.
+         */
+        ErrorPayload: {
+            /** Code */
+            code: string;
+            /**
+             * Context
+             * @default null
+             */
+            context?: {
+                [key: string]: unknown;
+            } | null;
+            /** Correlation Id */
+            correlation_id: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ErrorResponse
+         * @description Top-level API error envelope.
+         */
+        ErrorResponse: {
+            error: components["schemas"]["ErrorPayload"];
         };
         /** EventApply */
         EventApply: {
@@ -7089,6 +7401,23 @@ export interface components {
             /** Revision */
             revision: number;
         };
+        /** EventValidationIssue */
+        EventValidationIssue: {
+            /** Loc */
+            loc: (string | number)[];
+            /** Msg */
+            msg: string;
+            /**
+             * Type
+             * @description Stable Pydantic validation type or application EVENT_* reason code.
+             */
+            type: string;
+        };
+        /** EventValidationProblem */
+        EventValidationProblem: {
+            /** Detail */
+            detail: string | components["schemas"]["EventValidationIssue"][];
+        };
         /** EventView */
         EventView: {
             /** Archived */
@@ -7442,11 +7771,17 @@ export interface components {
         };
         /** GuideSlot */
         GuideSlot: {
+            /** Categories */
+            categories?: components["schemas"]["EPGCategoryObservation"][];
             /**
              * End
              * Format: date-time
              */
             end: string;
+            /** Genre Ids */
+            genre_ids?: string[];
+            /** Image Url */
+            image_url?: string | null;
             /**
              * Start
              * Format: date-time
@@ -7454,6 +7789,14 @@ export interface components {
             start: string;
             /** Title */
             title: string;
+        };
+        HTTPProblem: {
+            detail: string | {
+                [key: string]: unknown;
+            } | {
+                [key: string]: unknown;
+            }[];
+            status?: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -8277,6 +8620,8 @@ export interface components {
         };
         /** RecordingSnapshot */
         RecordingSnapshot: {
+            /** Categories */
+            categories?: components["schemas"]["EPGCategoryObservation"][];
             /** Category */
             category?: string | null;
             /** Channel Name */
@@ -8416,6 +8761,8 @@ export interface components {
             message: string;
             /** Reachable */
             reachable: boolean;
+            /** Reason */
+            reason?: ("unreachable" | "not_player" | "no_password" | "wrong_password" | "pairing_required") | null;
             tuner_access: components["schemas"]["TunerAccessResponse"];
             /** Version */
             version?: string | null;
@@ -9666,6 +10013,21 @@ export interface components {
             acestream_channels?: components["schemas"]["AcestreamChannelResponse"][];
             /** Category */
             category?: string | null;
+            /**
+             * Category Id
+             * @default uncategorized
+             */
+            category_id?: string;
+            /**
+             * Category Origin
+             * @default legacy
+             */
+            category_origin?: string;
+            /**
+             * Category Revision
+             * @default 0
+             */
+            category_revision?: number;
             /** Channel Number */
             channel_number?: number | null;
             /** Country */
@@ -9679,6 +10041,8 @@ export interface components {
             description?: string | null;
             /** Epg Id */
             epg_id?: string | null;
+            /** Epg Logo Url */
+            epg_logo_url?: string | null;
             /** Epg Source Id */
             epg_source_id?: number | null;
             /** Id */
@@ -9745,6 +10109,8 @@ export interface components {
             epg_id?: string | null;
             /** Epg Source Id */
             epg_source_id?: number | null;
+            /** Expected Category Revision */
+            expected_category_revision?: number | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Is Favorite */
@@ -9757,6 +10123,23 @@ export interface components {
             name?: string | null;
             /** Website */
             website?: string | null;
+        };
+        /** TVInventory */
+        TVInventory: {
+            /** Categories */
+            categories: string[];
+            /** Countries */
+            countries: string[];
+            /** Epg Sources */
+            epg_sources: number[];
+            /** Favorites */
+            favorites: number;
+            /** Languages */
+            languages: string[];
+            /** Total */
+            total: number;
+            /** With Streams */
+            with_streams: number;
         };
         /** TVMatchApplyRequest */
         TVMatchApplyRequest: {
@@ -9967,6 +10350,8 @@ export interface components {
             last_success?: string | null;
             /** Message */
             message: string;
+            /** Message Code */
+            message_code?: string | null;
             /** Name */
             name: string;
             recipe?: components["schemas"]["ExtractionRecipe"] | null;
@@ -10104,6 +10489,8 @@ export interface components {
              * @default
              */
             message?: string;
+            /** Message Code */
+            message_code?: string | null;
             /**
              * Queue Size
              * @default 0
@@ -10596,7 +10983,148 @@ export interface components {
             value?: string | null;
         };
     };
-    responses: never;
+    responses: {
+        /** @description Invalid operation or empty update */
+        ApplicationProblem400: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Missing or invalid credentials */
+        ApplicationProblem401: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Permission, origin, CSRF or transport denied */
+        ApplicationProblem403: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Resource not found */
+        ApplicationProblem404: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Bounded request timed out */
+        ApplicationProblem408: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Stale state, conflict or admission rejected */
+        ApplicationProblem409: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Request too large */
+        ApplicationProblem413: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Invalid request fields */
+        ApplicationProblem422: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Validation Error */
+        ApplicationProblem422Validation: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"] | components["schemas"]["HTTPValidationError"];
+            };
+        };
+        /** @description Telegram rate limit */
+        ApplicationProblem429: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Unexpected application failure */
+        ApplicationProblem500: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Receiver rejected the operation */
+        ApplicationProblem502: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Startup, access storage or required service unavailable */
+        ApplicationProblem503: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Receiver preparation timed out */
+        ApplicationProblem504: {
+            headers: {
+                "X-Error-Code"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HTTPProblem"] | components["schemas"]["ErrorResponse"];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -10649,6 +11177,8 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10658,6 +11188,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     legacy_epg_xml_api_playlists_epg_xml_get: {
@@ -10683,6 +11215,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10692,6 +11226,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     legacy_api_m3u_playlist_api_playlists_m3u_get: {
@@ -10725,6 +11261,8 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10734,6 +11272,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     legacy_tv_channels_playlist_api_playlists_tv_channels_m3u_get: {
@@ -10761,6 +11301,8 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -10770,6 +11312,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_acestream_channels_api_v1_acestream_channels__get: {
@@ -10802,15 +11346,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelListResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_acestream_channel_api_v1_acestream_channels__post: {
@@ -10835,15 +11378,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bulk_activate_acestream_channels_api_v1_acestream_channels_bulk_activate_post: {
@@ -10868,15 +11410,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bulk_delete_acestream_channels_api_v1_acestream_channels_bulk_delete_post: {
@@ -10899,15 +11440,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bulk_edit_acestream_channels_api_v1_acestream_channels_bulk_edit_put: {
@@ -10932,15 +11472,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     export_acestream_channels_csv_api_v1_acestream_channels_export_csv_get: {
@@ -10958,9 +11497,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/csv": unknown;
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_groups_api_v1_acestream_channels_groups_get: {
@@ -10981,6 +11528,14 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_sources_api_v1_acestream_channels_sources_get: {
@@ -11001,6 +11556,14 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelSourceFilter"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_status_summary_api_v1_acestream_channels_status_summary_get: {
@@ -11021,6 +11584,14 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelStatusSummary"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__get: {
@@ -11043,15 +11614,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__put: {
@@ -11078,15 +11648,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_acestream_channel_api_v1_acestream_channels__acestreamchannel_id__delete: {
@@ -11107,15 +11676,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     check_acestream_channel_status_api_v1_acestream_channels__acestreamchannel_id__check_status_post: {
@@ -11138,15 +11706,14 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelStatusResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_acestream_status_api_v1_acestream_status_get: {
@@ -11167,6 +11734,10 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamStatusResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_activity_log_api_v1_activity_channels__channel_id__activity_log_get: {
@@ -11198,6 +11769,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11207,6 +11780,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_recent_activity_api_v1_activity_recent_get: {
@@ -11236,6 +11811,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11245,6 +11822,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bootstrap_api_v1_auth_bootstrap_post: {
@@ -11269,15 +11848,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccountView"] | null;
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     credentials_api_v1_auth_credentials_get: {
@@ -11298,6 +11880,18 @@ export interface operations {
                     "application/json": components["schemas"]["CredentialView"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     issue_credential_api_v1_auth_credentials_post: {
@@ -11322,15 +11916,18 @@ export interface operations {
                     "application/json": components["schemas"]["CredentialIssued"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     revoke_credential_api_v1_auth_credentials__credential_id__delete: {
@@ -11351,15 +11948,18 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     disable_api_v1_auth_disable_post: {
@@ -11382,15 +11982,18 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     login_api_v1_auth_login_post: {
@@ -11415,15 +12018,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccountView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     logout_api_v1_auth_logout_post: {
@@ -11442,6 +12048,18 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     change_password_api_v1_auth_password_put: {
@@ -11464,15 +12082,18 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     policy_api_v1_auth_policy_get: {
@@ -11493,6 +12114,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccessPolicy"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     update_policy_api_v1_auth_policy_put: {
@@ -11517,15 +12150,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccessPolicy"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     sessions_api_v1_auth_sessions_get: {
@@ -11546,6 +12182,18 @@ export interface operations {
                     "application/json": components["schemas"]["SessionView"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     revoke_session_api_v1_auth_sessions__session_id__delete: {
@@ -11566,15 +12214,18 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     access_status_api_v1_auth_status_get: {
@@ -11595,6 +12246,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccessStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     users_api_v1_auth_users_get: {
@@ -11615,6 +12278,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccountView"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     create_user_api_v1_auth_users_post: {
@@ -11639,15 +12314,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccountView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     update_user_api_v1_auth_users__user_id__put: {
@@ -11674,15 +12352,18 @@ export interface operations {
                     "application/json": components["schemas"]["AccountView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     run_channel_status_job_api_v1_background_tasks_channel_status_run_post: {
@@ -11703,6 +12384,10 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelStatusJobRunResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_background_tasks_status_api_v1_background_tasks_status_get: {
@@ -11723,6 +12408,10 @@ export interface operations {
                     "application/json": components["schemas"]["BackgroundTaskStatus"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_base_urls_api_v1_base_urls_get: {
@@ -11743,6 +12432,10 @@ export interface operations {
                     "application/json": components["schemas"]["BaseUrlResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_base_url_api_v1_base_urls_post: {
@@ -11767,6 +12460,8 @@ export interface operations {
                     "application/json": components["schemas"]["BaseUrlResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11776,6 +12471,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_base_url_api_v1_base_urls__base_url_id__delete: {
@@ -11796,6 +12493,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11805,6 +12504,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_base_url_api_v1_base_urls__base_url_id__patch: {
@@ -11831,6 +12532,8 @@ export interface operations {
                     "application/json": components["schemas"]["BaseUrlResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -11840,6 +12543,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     browser_api_v1_cast_browser_post: {
@@ -11864,15 +12569,18 @@ export interface operations {
                     "application/json": components["schemas"]["ViewerStatus"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     capabilities_api_v1_cast_capabilities_get: {
@@ -11893,6 +12601,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastCapabilities"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     devices_api_v1_cast_devices_get: {
@@ -11913,6 +12633,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastDevice"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     discover_api_v1_cast_discover_post: {
@@ -11933,6 +12665,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastDevice"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     home_connection_api_v1_cast_home_connection_post: {
@@ -11953,6 +12697,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastSettings"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     sessions_api_v1_cast_sessions_get: {
@@ -11973,6 +12729,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastStatus"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     start_api_v1_cast_sessions_post: {
@@ -11997,15 +12765,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastStatus"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     command_api_v1_cast_sessions__cast_id__commands_post: {
@@ -12030,15 +12801,18 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     settings_api_v1_cast_settings_get: {
@@ -12059,6 +12833,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastSettings"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     save_settings_api_v1_cast_settings_put: {
@@ -12083,15 +12869,18 @@ export interface operations {
                     "application/json": components["schemas"]["CastSettings"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            502: components["responses"]["ApplicationProblem502"];
+            503: components["responses"]["ApplicationProblem503"];
+            504: components["responses"]["ApplicationProblem504"];
         };
     };
     list_catalogues_api_v1_catalogues_get: {
@@ -12112,6 +12901,10 @@ export interface operations {
                     "application/json": components["schemas"]["CatalogueSummary"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     save_catalogue_api_v1_catalogues_post: {
@@ -12136,6 +12929,8 @@ export interface operations {
                     "application/json": components["schemas"]["CatalogueView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12145,6 +12940,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_catalogue_api_v1_catalogues_preview_post: {
@@ -12169,6 +12966,8 @@ export interface operations {
                     "application/json": components["schemas"]["CatalogueView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12178,6 +12977,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_catalogue_api_v1_catalogues__catalogue_id__get: {
@@ -12200,6 +13001,8 @@ export interface operations {
                     "application/json": components["schemas"]["CatalogueView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12209,6 +13012,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_catalogue_api_v1_catalogues__catalogue_id__delete: {
@@ -12229,6 +13034,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12238,6 +13045,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_event_api_v1_catalogues__catalogue_id__events_preview_post: {
@@ -12264,6 +13073,8 @@ export interface operations {
                     "application/json": components["schemas"]["EventPreview"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12273,6 +13084,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     apply_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_apply_post: {
@@ -12299,6 +13112,8 @@ export interface operations {
                     "application/json": components["schemas"]["FolderMatchApplyResult"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12308,6 +13123,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_folder_matches_api_v1_catalogues__catalogue_id__folder_matches_preview_post: {
@@ -12330,6 +13147,8 @@ export interface operations {
                     "application/json": components["schemas"]["FolderMatchPreview"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12339,6 +13158,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     assign_folder_api_v1_catalogues__catalogue_id__folders__entry_id__tv_channel_post: {
@@ -12366,6 +13187,8 @@ export interface operations {
                     "application/json": components["schemas"]["FolderAssignResult"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12375,6 +13198,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_acestream_channels_api_v1_channels__get: {
@@ -12407,15 +13232,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelListResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_acestream_channel_api_v1_channels__post: {
@@ -12440,15 +13264,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bulk_activate_acestream_channels_api_v1_channels_bulk_activate_post: {
@@ -12473,15 +13296,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bulk_delete_acestream_channels_api_v1_channels_bulk_delete_post: {
@@ -12504,15 +13326,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bulk_edit_acestream_channels_api_v1_channels_bulk_edit_put: {
@@ -12537,15 +13358,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     export_acestream_channels_csv_api_v1_channels_export_csv_get: {
@@ -12563,9 +13383,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/csv": unknown;
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_groups_api_v1_channels_groups_get: {
@@ -12586,6 +13414,14 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_sources_api_v1_channels_sources_get: {
@@ -12606,6 +13442,14 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelSourceFilter"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_status_summary_api_v1_channels_status_summary_get: {
@@ -12626,6 +13470,14 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelStatusSummary"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_acestream_channel_api_v1_channels__acestreamchannel_id__get: {
@@ -12648,15 +13500,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_acestream_channel_api_v1_channels__acestreamchannel_id__put: {
@@ -12683,15 +13534,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_acestream_channel_api_v1_channels__acestreamchannel_id__delete: {
@@ -12712,15 +13562,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     check_acestream_channel_status_api_v1_channels__acestreamchannel_id__check_status_post: {
@@ -12743,15 +13592,14 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelStatusResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_ace_engine_url_api_v1_config_ace_engine_url_get: {
@@ -12772,6 +13620,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_ace_engine_url_api_v1_config_ace_engine_url_put: {
@@ -12796,6 +13648,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12805,6 +13659,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     check_acestream_status_api_v1_config_acestream_status_get: {
@@ -12825,6 +13681,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_addpid_api_v1_config_addpid_get: {
@@ -12845,6 +13705,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_addpid_api_v1_config_addpid_put: {
@@ -12869,6 +13733,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12878,6 +13744,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_all_settings_api_v1_config_all_get: {
@@ -12898,6 +13766,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingsResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_appid_api_v1_config_appid_get: {
@@ -12918,6 +13790,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_appid_api_v1_config_appid_put: {
@@ -12942,6 +13818,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -12951,6 +13829,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_base_url_api_v1_config_base_url_get: {
@@ -12971,6 +13851,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_base_url_api_v1_config_base_url_put: {
@@ -12995,6 +13879,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13004,6 +13890,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_check_engine_api_v1_config_check_engine_get: {
@@ -13024,6 +13912,10 @@ export interface operations {
                     "application/json": components["schemas"]["CheckEngineConfigResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_check_engine_api_v1_config_check_engine_put: {
@@ -13048,6 +13940,8 @@ export interface operations {
                     "application/json": components["schemas"]["CheckEngineConfigResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13057,6 +13951,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_dashboard_config_api_v1_config_dashboard_get: {
@@ -13077,6 +13973,10 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardConfigResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_dashboard_config_api_v1_config_dashboard_put: {
@@ -13101,6 +14001,8 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardConfigResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13110,6 +14012,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_matching_api_v1_config_epg_matching_get: {
@@ -13130,6 +14034,10 @@ export interface operations {
                     "application/json": components["schemas"]["EPGMatchingConfig"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_epg_matching_api_v1_config_epg_matching_put: {
@@ -13154,6 +14062,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGMatchingConfig"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13163,6 +14073,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     epg_matching_last_run_api_v1_config_epg_matching_last_run_get: {
@@ -13183,6 +14095,10 @@ export interface operations {
                     "application/json": components["schemas"]["EPGMatchingRun"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_refresh_interval_api_v1_config_epg_refresh_interval_get: {
@@ -13203,6 +14119,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_epg_refresh_interval_api_v1_config_epg_refresh_interval_put: {
@@ -13227,6 +14147,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13236,6 +14158,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_notification_webhook_url_api_v1_config_notification_webhook_url_get: {
@@ -13256,6 +14180,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_notification_webhook_url_api_v1_config_notification_webhook_url_put: {
@@ -13280,6 +14208,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13289,6 +14219,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     test_notification_webhook_api_v1_config_notification_webhook_url_test_post: {
@@ -13309,6 +14241,10 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_offline_cleanup_api_v1_config_offline_cleanup_get: {
@@ -13329,6 +14265,10 @@ export interface operations {
                     "application/json": components["schemas"]["OfflineCleanupConfig"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_offline_cleanup_api_v1_config_offline_cleanup_put: {
@@ -13353,6 +14293,8 @@ export interface operations {
                     "application/json": components["schemas"]["OfflineCleanupConfig"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13362,6 +14304,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_offline_cleanup_api_v1_config_offline_cleanup_preview_post: {
@@ -13386,6 +14330,8 @@ export interface operations {
                     "application/json": components["schemas"]["OfflineCleanupPreview"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13395,6 +14341,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_playback_routing_api_v1_config_playback_routing_get: {
@@ -13415,6 +14363,10 @@ export interface operations {
                     "application/json": components["schemas"]["PlaybackRouting"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_playback_routing_api_v1_config_playback_routing_put: {
@@ -13439,6 +14391,8 @@ export interface operations {
                     "application/json": components["schemas"]["PlaybackRouting"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13448,6 +14402,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_public_base_url_api_v1_config_public_base_url_get: {
@@ -13468,6 +14424,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_public_base_url_api_v1_config_public_base_url_put: {
@@ -13492,6 +14452,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13501,6 +14463,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     settings_api_v1_config_recordings_get: {
@@ -13521,6 +14485,10 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingSettings"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     configure_api_v1_config_recordings_put: {
@@ -13545,6 +14513,8 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingSettings"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13554,6 +14524,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_rescrape_interval_api_v1_config_rescrape_interval_get: {
@@ -13574,6 +14546,10 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_rescrape_interval_api_v1_config_rescrape_interval_put: {
@@ -13598,6 +14574,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13607,6 +14585,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_schedule_anchors_api_v1_config_schedule_anchors_get: {
@@ -13627,6 +14607,10 @@ export interface operations {
                     "application/json": components["schemas"]["ScheduleAnchors"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_schedule_anchors_api_v1_config_schedule_anchors_put: {
@@ -13651,6 +14635,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScheduleAnchors"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13660,6 +14646,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_stream_check_scope_api_v1_config_stream_check_scope_get: {
@@ -13680,6 +14668,10 @@ export interface operations {
                     "application/json": components["schemas"]["StreamCheckScope"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     set_stream_check_scope_api_v1_config_stream_check_scope_put: {
@@ -13704,6 +14696,8 @@ export interface operations {
                     "application/json": components["schemas"]["StreamCheckScope"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13713,6 +14707,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_config_key_api_v1_config__key__get: {
@@ -13735,6 +14731,8 @@ export interface operations {
                     "application/json": components["schemas"]["SettingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13744,6 +14742,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_config_key_api_v1_config__key__put: {
@@ -13770,6 +14770,8 @@ export interface operations {
                     "application/json": components["schemas"]["ConfigUpdateResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13779,6 +14781,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     auto_map_channels_api_v1_epg_auto_scan_post: {
@@ -13799,6 +14803,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_channels_api_v1_epg_channels_get: {
@@ -13823,6 +14831,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGChannelListResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13832,6 +14842,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     map_epg_channel_to_tv_api_v1_epg_channels_map_post: {
@@ -13854,6 +14866,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13863,6 +14877,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     resolve_epg_channel_api_v1_epg_channels_resolve_get: {
@@ -13886,6 +14902,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGChannelResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13895,6 +14913,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     unmap_epg_channel_from_tv_api_v1_epg_channels_unmap_post: {
@@ -13917,6 +14937,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13926,6 +14948,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_channel_api_v1_epg_channels__channel_id__get: {
@@ -13948,6 +14972,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGChannelResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13957,6 +14983,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_string_mappings_api_v1_epg_channels__channel_id__mappings_get: {
@@ -13979,6 +15007,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGStringMappingResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13988,6 +15018,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     add_epg_string_mapping_api_v1_epg_channels__channel_id__mappings_post: {
@@ -14014,6 +15046,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGStringMappingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14023,6 +15057,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_programs_api_v1_epg_channels__channel_id__programs_get: {
@@ -14050,6 +15086,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGProgramResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14059,6 +15097,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_all_epg_string_mappings_api_v1_epg_mappings_get: {
@@ -14079,6 +15119,10 @@ export interface operations {
                     "application/json": components["schemas"]["EPGStringMappingResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_epg_string_mapping_api_v1_epg_mappings__mapping_id__delete: {
@@ -14099,6 +15143,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14108,6 +15154,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_epg_string_mapping_api_v1_epg_mappings__mapping_id__patch: {
@@ -14134,6 +15182,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGStringMappingResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14143,6 +15193,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_sources_api_v1_epg_sources_get: {
@@ -14166,6 +15218,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGSourceResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14175,6 +15229,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_epg_source_api_v1_epg_sources_post: {
@@ -14199,6 +15255,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGSourceResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14208,6 +15266,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     refresh_all_epg_sources_api_v1_epg_sources_refresh_all_post: {
@@ -14228,6 +15288,10 @@ export interface operations {
                     "application/json": components["schemas"]["EPGRefreshResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_source_api_v1_epg_sources__source_id__get: {
@@ -14250,6 +15314,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGSourceResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14259,6 +15325,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_epg_source_api_v1_epg_sources__source_id__delete: {
@@ -14279,6 +15347,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14288,6 +15358,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_epg_source_api_v1_epg_sources__source_id__patch: {
@@ -14314,6 +15386,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGSourceResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14323,6 +15397,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     refresh_epg_source_api_v1_epg_sources__source_id__refresh_post: {
@@ -14345,6 +15421,8 @@ export interface operations {
                     "application/json": components["schemas"]["EPGRefreshResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14354,6 +15432,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_epg_xml_api_v1_epg_xml_get: {
@@ -14376,9 +15456,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/xml": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14388,6 +15470,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     generate_epg_xml_api_v1_epg_xml_post: {
@@ -14409,9 +15493,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/xml": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -14421,6 +15507,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_events_api_v1_events_get: {
@@ -14456,15 +15544,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventList"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     apply_events_api_v1_events_apply_post: {
@@ -14489,15 +15581,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventView"][];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_broadcast_targets_api_v1_events_broadcast_targets_get: {
@@ -14520,15 +15616,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventChannelTarget"][];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_broadcaster_links_api_v1_events_broadcaster_links_get: {
@@ -14549,6 +15649,19 @@ export interface operations {
                     "application/json": components["schemas"]["BroadcasterLinkView"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_event_broadcaster_link_api_v1_events_broadcaster_links__alias_id__delete: {
@@ -14569,15 +15682,19 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_interests_api_v1_events_interests_get: {
@@ -14598,6 +15715,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventInterestChoices"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_events_api_v1_events_preview_post: {
@@ -14622,15 +15752,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventPreview"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_providers_api_v1_events_providers_get: {
@@ -14651,6 +15785,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventProviderCatalog"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_provider_interests_api_v1_events_providers_interests_post: {
@@ -14675,15 +15822,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventInterestChoices"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_retention_api_v1_events_retention_get: {
@@ -14704,6 +15855,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventRetention"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     save_event_retention_api_v1_events_retention_patch: {
@@ -14728,15 +15892,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventRetention"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_sources_api_v1_events_sources_get: {
@@ -14757,6 +15925,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventSourceView"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_event_source_api_v1_events_sources_preview_post: {
@@ -14781,15 +15962,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventPreview"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     queue_event_refresh_api_v1_events_sources_refresh_post: {
@@ -14810,6 +15995,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventRefreshQueued"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventValidationProblem"];
+                };
+            };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_event_source_api_v1_events_sources__source_id__delete: {
@@ -14832,15 +16030,19 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_event_source_api_v1_events_sources__source_id__patch: {
@@ -14867,15 +16069,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventSourceView"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_event_api_v1_events__event_id__get: {
@@ -14898,15 +16104,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventView"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_event_api_v1_events__event_id__patch: {
@@ -14933,15 +16143,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventView"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     event_artwork_api_v1_events__event_id__artwork_get: {
@@ -14966,15 +16180,19 @@ export interface operations {
                     "image/webp": unknown;
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     map_event_broadcast_api_v1_events__event_id__broadcast_patch: {
@@ -15001,15 +16219,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventView"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_event_overlays_api_v1_events__event_id__guide_overlays_get: {
@@ -15032,15 +16254,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventOverlayView"][];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     apply_event_overlay_api_v1_events__event_id__guide_overlays_post: {
@@ -15067,15 +16293,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventOverlayView"][];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     remove_event_overlay_api_v1_events__event_id__guide_overlays_delete: {
@@ -15099,15 +16329,19 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_event_overlay_api_v1_events__event_id__guide_overlays_preview_post: {
@@ -15134,15 +16368,19 @@ export interface operations {
                     "application/json": components["schemas"]["EventOverlayPreview"];
                 };
             };
-            /** @description Validation Error */
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            /** @description Invalid event request; private input and context are omitted. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["EventValidationProblem"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     check_health_api_v1_health_get: {
@@ -15188,6 +16426,8 @@ export interface operations {
                     "application/json": components["schemas"]["ExclusionList"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15197,6 +16437,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_rule_api_v1_import_exclusions_post: {
@@ -15221,6 +16463,8 @@ export interface operations {
                     "application/json": components["schemas"]["ExclusionWrite"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15230,6 +16474,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_api_v1_import_exclusions_preview_post: {
@@ -15254,6 +16500,8 @@ export interface operations {
                     "application/json": components["schemas"]["ExclusionPreview"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15263,6 +16511,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_rule_api_v1_import_exclusions__rule_id__delete: {
@@ -15285,6 +16535,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15294,6 +16546,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_rule_api_v1_import_exclusions__rule_id__patch: {
@@ -15320,6 +16574,8 @@ export interface operations {
                     "application/json": components["schemas"]["ExclusionWrite"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15329,6 +16585,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_media_servers_api_v1_media_servers_get: {
@@ -15349,6 +16607,10 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_media_server_api_v1_media_servers_post: {
@@ -15373,6 +16635,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15382,6 +16646,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     test_media_server_api_v1_media_servers_test_post: {
@@ -15406,6 +16672,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerProbeResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15415,6 +16683,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_media_server_api_v1_media_servers__server_id__delete: {
@@ -15435,6 +16705,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15444,6 +16716,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_media_server_api_v1_media_servers__server_id__patch: {
@@ -15470,6 +16744,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15479,6 +16755,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     connect_media_server_api_v1_media_servers__server_id__connect_post: {
@@ -15501,6 +16779,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15510,6 +16790,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     disconnect_media_server_api_v1_media_servers__server_id__disconnect_post: {
@@ -15532,6 +16814,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15541,6 +16825,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     refresh_media_server_api_v1_media_servers__server_id__refresh_post: {
@@ -15563,6 +16849,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerRefreshResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15572,6 +16860,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     media_server_status_api_v1_media_servers__server_id__status_get: {
@@ -15594,6 +16884,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerStatusResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15603,6 +16895,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     test_saved_media_server_api_v1_media_servers__server_id__test_post: {
@@ -15625,6 +16919,8 @@ export interface operations {
                     "application/json": components["schemas"]["MediaServerProbeResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15634,6 +16930,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     capabilities_api_v1_player_capabilities_get: {
@@ -15654,6 +16952,10 @@ export interface operations {
                     "application/json": components["schemas"]["PlayerCapabilities"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_sessions_api_v1_player_sessions_get: {
@@ -15674,6 +16976,10 @@ export interface operations {
                     "application/json": components["schemas"]["PlayerSessionListResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_session_api_v1_player_sessions_post: {
@@ -15698,6 +17004,8 @@ export interface operations {
                     "application/json": components["schemas"]["PlayerSessionStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15707,6 +17015,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_session_api_v1_player_sessions__session_id__get: {
@@ -15729,6 +17039,8 @@ export interface operations {
                     "application/json": components["schemas"]["PlayerSessionStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15738,6 +17050,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     leave_session_api_v1_player_sessions__session_id__delete: {
@@ -15758,6 +17072,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15767,6 +17083,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     playlist_api_v1_player_sessions__session_id__index_m3u8_get: {
@@ -15787,6 +17105,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15796,6 +17116,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     subtitle_playlist_api_v1_player_sessions__session_id__subtitles_m3u8_get: {
@@ -15816,6 +17138,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15825,6 +17149,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     video_playlist_api_v1_player_sessions__session_id__video_m3u8_get: {
@@ -15845,6 +17171,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15854,6 +17182,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     segment_api_v1_player_sessions__session_id___segment__get: {
@@ -15875,6 +17205,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15884,6 +17216,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     active_streams_api_v1_player_streams_get: {
@@ -15904,6 +17238,10 @@ export interface operations {
                     "application/json": components["schemas"]["ActiveStreamListResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_all_streams_playlist_api_v1_playlists_all_streams_m3u_get: {
@@ -15931,6 +17269,8 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -15940,6 +17280,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_channel_groups_api_v1_playlists_groups_get: {
@@ -15960,6 +17302,10 @@ export interface operations {
                     "application/json": string[];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     guide_coverage_api_v1_playlists_guide_coverage_get: {
@@ -15980,6 +17326,10 @@ export interface operations {
                     "application/json": components["schemas"]["PlaylistGuideCoverage"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_m3u_playlist_api_v1_playlists_m3u_get: {
@@ -16017,6 +17367,8 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16026,6 +17378,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_m3u_playlist_compat_api_v1_playlists_playlists_m3u_get: {
@@ -16063,6 +17417,8 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16072,6 +17428,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_tv_channels_playlist_api_v1_playlists_tv_channels_m3u_get: {
@@ -16099,6 +17457,8 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16108,6 +17468,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     listing_api_v1_recordings_get: {
@@ -16115,6 +17477,7 @@ export interface operations {
             query?: {
                 offset?: number;
                 limit?: number;
+                collection?: "all" | "library" | "upcoming" | "history";
                 state?: ("scheduled" | "starting" | "recording" | "recovering" | "finalizing" | "completed" | "partial" | "failed" | "missed" | "cancelled" | "deleting" | "deleted") | null;
                 search?: string | null;
                 tv_channel_id?: number | null;
@@ -16134,15 +17497,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingList"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_api_v1_recordings_post: {
@@ -16167,15 +17529,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     capabilities_api_v1_recordings_capabilities_get: {
@@ -16196,6 +17557,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingCapabilities"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     current_programme_api_v1_recordings_current_programme_get: {
@@ -16218,15 +17587,14 @@ export interface operations {
                     "application/json": components["schemas"]["ProgrammeSelection"] | null;
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     upcoming_api_v1_recordings_upcoming_get: {
@@ -16247,6 +17615,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingList"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     detail_api_v1_recordings__rid__get: {
@@ -16269,15 +17645,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_api_v1_recordings__rid__delete: {
@@ -16300,15 +17675,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     edit_api_v1_recordings__rid__patch: {
@@ -16335,15 +17709,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     cancel_api_v1_recordings__rid__cancel_post: {
@@ -16366,15 +17739,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     convert_api_v1_recordings__rid__conversions_post: {
@@ -16401,15 +17773,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingFile"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     file_api_v1_recordings__rid__files__fid__get: {
@@ -16435,15 +17806,14 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     file_api_v1_recordings__rid__files__fid__head: {
@@ -16469,15 +17839,14 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     open_playback_api_v1_recordings__rid__playback_sessions_post: {
@@ -16504,15 +17873,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingPlaybackView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     playback_status_api_v1_recordings__rid__playback_sessions__sid__get: {
@@ -16536,15 +17904,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingPlaybackView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     close_playback_api_v1_recordings__rid__playback_sessions__sid__delete: {
@@ -16566,15 +17933,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     stop_api_v1_recordings__rid__stop_post: {
@@ -16597,15 +17963,14 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_players_api_v1_remote_players_get: {
@@ -16626,6 +17991,10 @@ export interface operations {
                     "application/json": components["schemas"]["RemotePlayerResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_player_api_v1_remote_players_post: {
@@ -16650,6 +18019,8 @@ export interface operations {
                     "application/json": components["schemas"]["RemotePlayerResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16659,6 +18030,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     android_pair_finish_api_v1_remote_players_android_pair_finish_post: {
@@ -16683,6 +18056,8 @@ export interface operations {
                     "application/json": components["schemas"]["AndroidPairFinishResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16692,6 +18067,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     android_pair_start_api_v1_remote_players_android_pair_start_post: {
@@ -16716,6 +18093,8 @@ export interface operations {
                     "application/json": components["schemas"]["AndroidPairStartResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16725,6 +18104,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     scan_api_v1_remote_players_scan_post: {
@@ -16749,6 +18130,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScanResultResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16758,6 +18141,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     scan_default_api_v1_remote_players_scan_default_get: {
@@ -16778,6 +18163,10 @@ export interface operations {
                     "application/json": components["schemas"]["ScanDefaultResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     test_player_api_v1_remote_players_test_post: {
@@ -16802,6 +18191,8 @@ export interface operations {
                     "application/json": components["schemas"]["RemotePlayerProbeResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16811,6 +18202,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_player_api_v1_remote_players__player_id__delete: {
@@ -16831,6 +18224,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16840,6 +18235,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_player_api_v1_remote_players__player_id__patch: {
@@ -16866,6 +18263,8 @@ export interface operations {
                     "application/json": components["schemas"]["RemotePlayerResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16875,6 +18274,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     player_command_api_v1_remote_players__player_id__command_post: {
@@ -16899,6 +18300,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16908,6 +18311,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     play_on_player_api_v1_remote_players__player_id__play_post: {
@@ -16934,6 +18339,8 @@ export interface operations {
                     "application/json": components["schemas"]["RemotePlayerPlayResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16943,6 +18350,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     player_status_api_v1_remote_players__player_id__status_get: {
@@ -16965,6 +18374,8 @@ export interface operations {
                     "application/json": components["schemas"]["RemotePlayerStatusResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -16974,6 +18385,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     test_saved_player_api_v1_remote_players__player_id__test_post: {
@@ -16996,6 +18409,8 @@ export interface operations {
                     "application/json": components["schemas"]["RemotePlayerProbeResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17005,6 +18420,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_searches_api_v1_saved_searches_get: {
@@ -17028,6 +18445,8 @@ export interface operations {
                     "application/json": components["schemas"]["SavedSearchList"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17037,6 +18456,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_search_api_v1_saved_searches_post: {
@@ -17061,6 +18482,8 @@ export interface operations {
                     "application/json": components["schemas"]["SavedSearchView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17070,6 +18493,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_api_v1_saved_searches_preview_post: {
@@ -17094,6 +18519,8 @@ export interface operations {
                     "application/json": components["schemas"]["SavedSearchPreview"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17103,6 +18530,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_search_api_v1_saved_searches__search_id__get: {
@@ -17125,6 +18554,8 @@ export interface operations {
                     "application/json": components["schemas"]["SavedSearchView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17134,6 +18565,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_search_api_v1_saved_searches__search_id__delete: {
@@ -17156,6 +18589,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17165,6 +18600,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_search_api_v1_saved_searches__search_id__patch: {
@@ -17191,6 +18628,8 @@ export interface operations {
                     "application/json": components["schemas"]["SavedSearchView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17200,6 +18639,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     run_search_api_v1_saved_searches__search_id__run_post: {
@@ -17226,6 +18667,8 @@ export interface operations {
                     "application/json": components["schemas"]["SavedSearchView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17235,6 +18678,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_orphaned_sources_api_v1_scrapers_orphaned_sources_get: {
@@ -17255,6 +18700,10 @@ export interface operations {
                     "application/json": components["schemas"]["OrphanedSource"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     cleanup_orphaned_sources_api_v1_scrapers_orphaned_sources_cleanup_post: {
@@ -17279,6 +18728,8 @@ export interface operations {
                     "application/json": components["schemas"]["OrphanCleanupResult"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17288,6 +18739,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     builtin_providers_api_v1_scrapers_providers_get: {
@@ -17308,6 +18761,10 @@ export interface operations {
                     "application/json": components["schemas"]["BuiltinProvider"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_extraction_api_v1_scrapers_recipes_preview_post: {
@@ -17332,6 +18789,8 @@ export interface operations {
                     "application/json": components["schemas"]["RecipePreview"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17341,6 +18800,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     fetch_extraction_sample_api_v1_scrapers_recipes_sample_post: {
@@ -17365,6 +18826,8 @@ export interface operations {
                     "application/json": components["schemas"]["RecipeSample"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17374,6 +18837,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     scrape_url_api_v1_scrapers_scrape_post: {
@@ -17398,6 +18863,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScraperResultExtended"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17407,6 +18874,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_scraped_urls_api_v1_scrapers_urls_get: {
@@ -17430,6 +18899,8 @@ export interface operations {
                     "application/json": components["schemas"]["URLResponse"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17439,6 +18910,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_scraped_url_api_v1_scrapers_urls_post: {
@@ -17463,6 +18936,8 @@ export interface operations {
                     "application/json": components["schemas"]["URLResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17472,6 +18947,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     scrape_all_urls_api_v1_scrapers_urls_scrape_all_post: {
@@ -17494,6 +18971,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScraperResultExtended"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17503,6 +18982,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_scraped_url_api_v1_scrapers_urls__url_id__get: {
@@ -17525,6 +19006,8 @@ export interface operations {
                     "application/json": components["schemas"]["URLResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17534,6 +19017,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_scraped_url_api_v1_scrapers_urls__url_id__delete: {
@@ -17559,6 +19044,8 @@ export interface operations {
                     "application/json": components["schemas"]["URLDeleteResult"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17568,6 +19055,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_scraped_url_api_v1_scrapers_urls__url_id__patch: {
@@ -17594,6 +19083,8 @@ export interface operations {
                     "application/json": components["schemas"]["URLResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17603,6 +19094,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     scrape_specific_url_api_v1_scrapers_urls__url_id__scrape_post: {
@@ -17625,6 +19118,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScraperResultExtended"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17634,6 +19129,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     search_channels_api_v1_search_get: {
@@ -17663,6 +19160,8 @@ export interface operations {
                     "application/json": components["schemas"]["SearchResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17672,6 +19171,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     add_channel_api_v1_search_add_post: {
@@ -17696,6 +19197,8 @@ export interface operations {
                     "application/json": components["schemas"]["SearchImportResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17705,6 +19208,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     add_multiple_channels_api_v1_search_add_multiple_post: {
@@ -17729,6 +19234,8 @@ export interface operations {
                     "application/json": components["schemas"]["SearchImportResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17738,6 +19245,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     import_search_results_api_v1_search_import_post: {
@@ -17762,6 +19271,8 @@ export interface operations {
                     "application/json": components["schemas"]["SearchImportResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17771,6 +19282,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     check_search_broadcast_api_v1_search__infohash__check_status_post: {
@@ -17793,6 +19306,8 @@ export interface operations {
                     "application/json": components["schemas"]["ChannelStatusResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17802,6 +19317,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     resolve_search_result_api_v1_search__infohash__resolve_post: {
@@ -17824,6 +19341,8 @@ export interface operations {
                     "application/json": components["schemas"]["ResolvedSearchResult"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17833,6 +19352,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_setup_api_v1_setup_get: {
@@ -17853,6 +19374,14 @@ export interface operations {
                     "application/json": components["schemas"]["SetupState"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     save_setup_api_v1_setup_put: {
@@ -17877,15 +19406,14 @@ export interface operations {
                     "application/json": components["schemas"]["SetupState"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     status_api_v1_startup_get: {
@@ -17906,6 +19434,10 @@ export interface operations {
                     "application/json": components["schemas"]["StartupStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     diagnostics_api_v1_startup_diagnostics_get: {
@@ -17926,6 +19458,10 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     recover_api_v1_startup_recover_post: {
@@ -17950,6 +19486,8 @@ export interface operations {
                     "application/json": components["schemas"]["StartupStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -17959,6 +19497,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_stats_api_v1_stats_get: {
@@ -17979,6 +19519,10 @@ export interface operations {
                     "application/json": components["schemas"]["HealthStatsResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_stats_api_v1_stats__get: {
@@ -17999,6 +19543,10 @@ export interface operations {
                     "application/json": components["schemas"]["StatsResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_tv_channel_stats_api_v1_stats_tv_channels__get: {
@@ -18019,6 +19567,10 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelStatsResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_active_streams_api_v1_streams_active_get: {
@@ -18039,6 +19591,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     download_diagnostics_api_v1_system_diagnostics_get: {
@@ -18056,9 +19612,13 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/zip": string;
+                    "application/zip": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_public_url_api_v1_system_public_url_get: {
@@ -18079,6 +19639,10 @@ export interface operations {
                     "application/json": components["schemas"]["PublicUrlResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     list_services_api_v1_system_services_get: {
@@ -18099,6 +19663,10 @@ export interface operations {
                     "application/json": components["schemas"]["ServicesStatusResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     start_check_engine_api_v1_system_services_acestream_check_start_post: {
@@ -18119,6 +19687,10 @@ export interface operations {
                     "application/json": components["schemas"]["ServiceRestartResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     stop_check_engine_api_v1_system_services_acestream_check_stop_post: {
@@ -18139,6 +19711,10 @@ export interface operations {
                     "application/json": components["schemas"]["ServiceRestartResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     start_engine_api_v1_system_services_acestream_start_post: {
@@ -18159,6 +19735,10 @@ export interface operations {
                     "application/json": components["schemas"]["ServiceRestartResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     stop_engine_api_v1_system_services_acestream_stop_post: {
@@ -18179,6 +19759,10 @@ export interface operations {
                     "application/json": components["schemas"]["ServiceRestartResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_service_api_v1_system_services__name__get: {
@@ -18201,6 +19785,8 @@ export interface operations {
                     "application/json": components["schemas"]["ServiceStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -18210,6 +19796,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     restart_service_api_v1_system_services__name__restart_post: {
@@ -18232,6 +19820,8 @@ export interface operations {
                     "application/json": components["schemas"]["ServiceRestartResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -18241,6 +19831,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_storage_api_v1_system_storage_get: {
@@ -18261,6 +19853,10 @@ export interface operations {
                     "application/json": components["schemas"]["StorageReport"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_updates_api_v1_system_updates_get: {
@@ -18281,6 +19877,10 @@ export interface operations {
                     "application/json": components["schemas"]["UpdateStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     logout_api_v1_telegram_account_delete: {
@@ -18301,6 +19901,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     chats_api_v1_telegram_chats_get: {
@@ -18321,6 +19931,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPeer"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     topics_api_v1_telegram_chats__chat_id__topics_get: {
@@ -18343,15 +19963,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPeer"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     code_api_v1_telegram_code_post: {
@@ -18376,15 +19997,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     disconnect_api_v1_telegram_disconnect_post: {
@@ -18405,6 +20027,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     login_api_v1_telegram_login_post: {
@@ -18429,15 +20061,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     password_api_v1_telegram_password_post: {
@@ -18462,15 +20095,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preset_api_v1_telegram_preset_get: {
@@ -18491,6 +20125,16 @@ export interface operations {
                     "application/json": components["schemas"]["ExtractionRecipe"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_api_v1_telegram_preview_post: {
@@ -18515,15 +20159,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPreview"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     reconnect_api_v1_telegram_reconnect_post: {
@@ -18544,6 +20189,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     resolve_api_v1_telegram_resolve_post: {
@@ -18568,15 +20223,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramPeer"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     sources_api_v1_telegram_sources_get: {
@@ -18597,6 +20253,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramSource"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_source_api_v1_telegram_sources_post: {
@@ -18621,15 +20287,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramSource"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_source_api_v1_telegram_sources__source_id__put: {
@@ -18656,15 +20323,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramSource"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_source_api_v1_telegram_sources__source_id__delete: {
@@ -18689,15 +20357,16 @@ export interface operations {
                     };
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     scan_api_v1_telegram_sources__source_id__scan_post: {
@@ -18722,15 +20391,16 @@ export interface operations {
                     };
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     status_api_v1_telegram_status_get: {
@@ -18751,6 +20421,16 @@ export interface operations {
                     "application/json": components["schemas"]["TelegramStatus"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            408: components["responses"]["ApplicationProblem408"];
+            409: components["responses"]["ApplicationProblem409"];
+            413: components["responses"]["ApplicationProblem413"];
+            422: components["responses"]["ApplicationProblem422"];
+            429: components["responses"]["ApplicationProblem429"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_tuner_settings_api_v1_tuner_settings_get: {
@@ -18771,6 +20451,10 @@ export interface operations {
                     "application/json": components["schemas"]["TunerSettingsResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_tuner_settings_api_v1_tuner_settings_put: {
@@ -18795,6 +20479,8 @@ export interface operations {
                     "application/json": components["schemas"]["TunerSettingsResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -18804,6 +20490,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     tuner_status_api_v1_tuner_status_get: {
@@ -18824,6 +20512,10 @@ export interface operations {
                     "application/json": components["schemas"]["TunerStatusResponse"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_tv_channels_api_v1_tv_channels__get: {
@@ -18851,15 +20543,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelListResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_tv_channel_api_v1_tv_channels__post: {
@@ -18884,15 +20575,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     analyze_epg_matches_api_v1_tv_channels_analyze_epg_matches_post: {
@@ -18917,15 +20607,14 @@ export interface operations {
                     "application/json": components["schemas"]["EPGMatchAnalysisResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     associate_by_epg_api_v1_tv_channels_associate_by_epg_post: {
@@ -18946,6 +20635,14 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     apply_tv_matches_api_v1_tv_channels_automatch_apply_post: {
@@ -18970,15 +20667,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVMatchApplyResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     preview_tv_matches_api_v1_tv_channels_automatch_preview_post: {
@@ -19003,15 +20699,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVMatchPreview"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     batch_assign_acestreams_api_v1_tv_channels_batch_assign_post: {
@@ -19036,15 +20731,70 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelBatchAssignResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    browse_tv_channels_api_v1_tv_channels_browse_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                search?: string;
+                category?: string;
+                country?: string;
+                language?: string;
+                is_active?: boolean | null;
+                is_favorite?: boolean | null;
+                epg?: ("yes" | "no") | null;
+                epg_source_id?: number | null;
+                streams?: ("any" | "none" | "multiple") | null;
+                signal?: ("verified" | "unverified" | "unknown") | null;
+                number?: ("yes" | "no") | null;
+                min_number?: number | null;
+                max_number?: number | null;
+                min_streams?: number | null;
+                max_streams?: number | null;
+                logo_url?: ("yes" | "no") | null;
+                website?: ("yes" | "no") | null;
+                description?: ("yes" | "no") | null;
+                watchable?: boolean;
+                online_only?: boolean;
+                sort?: "default" | "name" | "channel_number" | "is_favorite" | "category" | "language" | "country" | "acestream_channels" | "is_active" | "logo_url";
+                direction?: "asc" | "desc";
+                category_id?: string;
+                category_basis?: "channel" | "now";
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["TVChannelListResponse"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     bulk_update_epg_api_v1_tv_channels_bulk_update_epg_post: {
@@ -19069,15 +20819,194 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelBulkEPGUpdateResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    category_inventory_api_v1_tv_channels_categories_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                search?: string;
+                category?: string;
+                country?: string;
+                language?: string;
+                is_active?: boolean | null;
+                is_favorite?: boolean | null;
+                epg?: ("yes" | "no") | null;
+                epg_source_id?: number | null;
+                streams?: ("any" | "none" | "multiple") | null;
+                signal?: ("verified" | "unverified" | "unknown") | null;
+                number?: ("yes" | "no") | null;
+                min_number?: number | null;
+                max_number?: number | null;
+                min_streams?: number | null;
+                max_streams?: number | null;
+                logo_url?: ("yes" | "no") | null;
+                website?: ("yes" | "no") | null;
+                description?: ("yes" | "no") | null;
+                watchable?: boolean;
+                online_only?: boolean;
+                sort?: "default" | "name" | "channel_number" | "is_favorite" | "category" | "language" | "country" | "acestream_channels" | "is_active" | "logo_url";
+                direction?: "asc" | "desc";
+                category_id?: string;
+                category_basis?: "channel" | "now";
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["CategoryInventory"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    category_coverage_api_v1_tv_channels_category_coverage_get: {
+        parameters: {
+            query?: {
+                source_id?: number | null;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryCoverage"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    category_definitions_api_v1_tv_channels_category_definitions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryView"][];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    apply_categories_api_v1_tv_channels_category_suggestions_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryApplyResult"];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    preview_categories_api_v1_tv_channels_category_suggestions_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorySuggestion"][];
+                };
+            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_tv_channels_from_epg_analysis_api_v1_tv_channels_create_from_epg_analysis_post: {
@@ -19102,15 +21031,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelCreateFromEPGAnalysisResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_tv_channels_from_epg_api_v1_tv_channels_from_epg_post: {
@@ -19135,20 +21063,50 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelCreateFromEPGResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    tv_channel_inventory_api_v1_tv_channels_inventory_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["TVInventory"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     tv_channel_now_next_api_v1_tv_channels_now_next_get: {
         parameters: {
-            query?: never;
+            query?: {
+                channel_ids?: number[];
+                as_of?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -19164,6 +21122,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelNowNext"][];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     reorder_tv_channels_api_v1_tv_channels_reorder_post: {
@@ -19188,15 +21154,48 @@ export interface operations {
                     "application/json": components["schemas"]["MessageResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
+        };
+    };
+    assign_category_api_v1_tv_channels__channel_id__category_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryAssignment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["TVChannelResponse"];
                 };
             };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_tv_channel_api_v1_tv_channels__tv_channel_id__get: {
@@ -19219,15 +21218,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     update_tv_channel_api_v1_tv_channels__tv_channel_id__put: {
@@ -19254,15 +21252,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     delete_tv_channel_api_v1_tv_channels__tv_channel_id__delete: {
@@ -19283,15 +21280,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_tv_channel_acestream_matches_api_v1_tv_channels__tv_channel_id__acestream_matches_get: {
@@ -19314,15 +21310,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_get: {
@@ -19345,15 +21340,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     associate_acestream_api_v1_tv_channels__tv_channel_id__acestreams_post: {
@@ -19380,15 +21374,14 @@ export interface operations {
                     "application/json": components["schemas"]["MessageResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     reorder_tv_channel_acestreams_api_v1_tv_channels__tv_channel_id__acestreams_reorder_post: {
@@ -19415,15 +21408,14 @@ export interface operations {
                     "application/json": components["schemas"]["AcestreamChannelResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     remove_acestream_association_api_v1_tv_channels__tv_channel_id__acestreams__acestream_id__delete: {
@@ -19445,15 +21437,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     set_tv_channel_favorite_api_v1_tv_channels__tv_channel_id__favorite_post: {
@@ -19479,15 +21470,14 @@ export interface operations {
                     "application/json": components["schemas"]["TVChannelResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
+            400: components["responses"]["ApplicationProblem400"];
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            404: components["responses"]["ApplicationProblem404"];
+            409: components["responses"]["ApplicationProblem409"];
+            422: components["responses"]["ApplicationProblem422Validation"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     refresh_all_urls_api_v1_urls_refresh_all_post: {
@@ -19508,6 +21498,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     refresh_url_api_v1_urls__url_id__refresh_post: {
@@ -19530,6 +21524,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19539,6 +21535,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     channels_api_v1_view_channels_get: {
@@ -19562,6 +21560,8 @@ export interface operations {
                     "application/json": components["schemas"]["WatchChannels"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19571,6 +21571,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     events_api_v1_view_events_get: {
@@ -19593,6 +21595,8 @@ export interface operations {
                     "application/json": components["schemas"]["WatchEvent"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19602,6 +21606,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     guide_api_v1_view_guide_get: {
@@ -19624,6 +21630,8 @@ export interface operations {
                     "application/json": components["schemas"]["WatchProgramme"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19633,6 +21641,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     live_api_v1_view_live_get: {
@@ -19656,6 +21666,8 @@ export interface operations {
                     "application/json": components["schemas"]["WatchChannels"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19665,6 +21677,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     playlist_link_api_v1_view_playlists_post: {
@@ -19685,6 +21699,10 @@ export interface operations {
                     "application/json": components["schemas"]["PlaylistLink"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     recordings_api_v1_view_recordings_get: {
@@ -19707,6 +21725,8 @@ export interface operations {
                     "application/json": components["schemas"]["WatchRecording"][];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19716,6 +21736,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     recording_file_api_v1_view_recordings__rid__files__fid__get: {
@@ -19739,6 +21761,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19748,6 +21772,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     start_recording_api_v1_view_recordings__rid__playback_sessions_post: {
@@ -19774,6 +21800,8 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingPlaybackView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19783,6 +21811,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     recording_status_api_v1_view_recordings__rid__playback_sessions__sid__get: {
@@ -19806,6 +21836,8 @@ export interface operations {
                     "application/json": components["schemas"]["RecordingPlaybackView"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19815,6 +21847,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     stop_recording_api_v1_view_recordings__rid__playback_sessions__sid__delete: {
@@ -19836,6 +21870,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19845,6 +21881,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     create_api_v1_viewers_post: {
@@ -19869,6 +21907,8 @@ export interface operations {
                     "application/json": components["schemas"]["ViewerStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19878,6 +21918,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     status_api_v1_viewers__viewer_id__get: {
@@ -19900,6 +21942,8 @@ export interface operations {
                     "application/json": components["schemas"]["ViewerStatus"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19909,6 +21953,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     release_api_v1_viewers__viewer_id__delete: {
@@ -19929,6 +21975,8 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19938,6 +21986,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     media_api_v1_viewers__viewer_id__media__resource__get: {
@@ -19961,6 +22011,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -19970,6 +22022,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     connect_to_warp_api_v1_warp_connect_post: {
@@ -19990,6 +22044,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     disconnect_from_warp_api_v1_warp_disconnect_post: {
@@ -20010,6 +22068,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_exclusions_api_v1_warp_exclusions_get: {
@@ -20030,6 +22092,10 @@ export interface operations {
                     "application/json": components["schemas"]["WarpExclusionsState"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     save_exclusions_api_v1_warp_exclusions_put: {
@@ -20054,6 +22120,8 @@ export interface operations {
                     "application/json": components["schemas"]["WarpExclusionsState"];
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -20063,6 +22131,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     register_warp_license_api_v1_warp_license_post: {
@@ -20089,6 +22159,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -20098,6 +22170,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     set_warp_mode_api_v1_warp_mode_post: {
@@ -20122,6 +22196,8 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
             /** @description Validation Error */
             422: {
                 headers: {
@@ -20131,6 +22207,8 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     reconnect_warp_api_v1_warp_reconnect_post: {
@@ -20151,6 +22229,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     get_warp_status_api_v1_warp_status_get: {
@@ -20171,6 +22253,10 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            401: components["responses"]["ApplicationProblem401"];
+            403: components["responses"]["ApplicationProblem403"];
+            500: components["responses"]["ApplicationProblem500"];
+            503: components["responses"]["ApplicationProblem503"];
         };
     };
     legacy_m3u_playlist_playlist_m3u_get: {

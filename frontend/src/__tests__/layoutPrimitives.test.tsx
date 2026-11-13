@@ -374,13 +374,13 @@ describe('layout primitives', () => {
       mode
     );
 
-    const selectedItem = screen.getByRole('link', { name: 'TV dashboard' });
-    const selectedLabel = within(selectedItem).getByText('TV dashboard');
+    const selectedItem = screen.getByRole('link', { name: 'Watch' });
+    const selectedLabel = within(selectedItem).getByText('Watch');
     const appBar = screen.getByRole('banner');
 
-    expect(screen.getByRole('link', { name: 'TV dashboard' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'TV dashboard' })).not.toBeInTheDocument();
-    expect(appBar).toHaveTextContent('TV dashboard');
+    expect(screen.getByRole('link', { name: 'Watch' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Watch' })).not.toBeInTheDocument();
+    expect(appBar).toHaveTextContent('Watch');
     expect(selectedItem).toHaveAttribute('aria-current', 'page');
     expect(selectedItem).toHaveStyle({ backgroundColor: theme.appTokens.shell.activeNavBg });
     expect(selectedLabel).toHaveStyle({ color: theme.appTokens.shell.activeNavText });
@@ -403,7 +403,7 @@ describe('layout primitives', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Channels' })).not.toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('banner')).toHaveTextContent('Not Found');
 
     unmount();
@@ -416,7 +416,7 @@ describe('layout primitives', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole('link', { name: 'EPG' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Channels' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('banner')).not.toHaveTextContent('EPG Sources');
   });
 

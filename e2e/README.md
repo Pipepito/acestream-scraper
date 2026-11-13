@@ -124,7 +124,9 @@ live scenario remains supported below.
 - `stack/stack-up.sh` builds the image through `scripts/ci/build_multiarch_images.sh` when missing and waits
   for every service. Set `E2E_IMAGE`/`E2E_PLATFORM` to test another flavor/platform.
 - The backend runs from source (`stack/backend-start.sh`) so bugs found by the suite can be debugged and
-  fixed locally; its database and logs live under `e2e/.stack/`.
+  fixed locally; its database, recording storage, HLS output and logs live under `e2e/.stack/`.
+  Independently launched backends must each set a different `PLAYER_HLS_DIR` too:
+  startup cleanup intentionally reclaims orphaned FFmpeg processes in that directory.
 
 ## Mobile viewing regression suite
 
@@ -137,3 +139,23 @@ and different timezones. It verifies guide retry, filters, direct links, browser
 Back, stream selection and viewer release. Traces and screenshots stay under the
 ignored `test-results/` directory. It does not verify actual media decoding; use
 the live-stack journeys above for that.
+
+For concurrent completion checks, set `E2E_MOBILE_BASE_URL` to an owned server
+serving a frozen copy of the production SPA. This bypasses the mobile suite's
+build/preview process, preventing another build from replacing assets mid-run.
+Use a separate backend/database from the live-stack journeys. Individual mobile
+tests intercept their feature APIs, but some gate requests still reach the backend;
+concurrent account activation can replace a startup screen with the viewer gate.
+Complete setup and keep this dedicated instance in open mode. Prepare its recording
+directory and use its own `PLAYER_HLS_DIR`. Never use a personal installation.
+
+## Standalone extraction helper
+
+Prepare the shared payload with `bash scripts/ci/prepare_pages.sh` from the
+repository root. From `e2e/`, run
+`npx playwright test --config playwright.standalone.config.ts`. This serves the
+committed `docs/recipes/` payload on loopback port 3011 and exercises all three
+starter templates in Chromium, Firefox and WebKit, EN/ES, both themes and
+320/390/1440 px layouts. Each case compares the actual downloaded recipe with its
+source fixture, checks extracted names/IDs and rejects external or installation
+requests. It uses the same installed browser revisions as the other Node suites.

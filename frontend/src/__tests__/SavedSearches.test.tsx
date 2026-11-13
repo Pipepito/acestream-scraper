@@ -34,3 +34,31 @@ it('creates configuration only with refresh off by default', async () => {
   expect(api.run).not.toHaveBeenCalled();
   expect(api.preview).not.toHaveBeenCalled();
 });
+
+it('preserves the reviewed revision and draft across refresh, guards pending save, and confirms discard', async () => {
+  const { default: SavedSearchDialog } = await import('../components/imports/SavedSearchDialog');
+  const { act, within } = await import('@testing-library/react');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const onClose = jest.fn();
+  let fail!: (error: Error) => void;
+  api.save.mockImplementation(() => new Promise((_, reject) => { fail = reject; }));
+  const tree = (revision: number) => <ThemeProvider theme={createAppTheme('light')}><MemoryRouter><QueryClientProvider client={client}><SavedSearchDialog row={{ ...row, revision }} onClose={onClose} /></QueryClientProvider></MemoryRouter></ThemeProvider>;
+  const { rerender } = render(tree(1));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'My sports' } });
+  rerender(tree(2));
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('My sports');
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(api.save).toHaveBeenCalledTimes(1));
+  expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ name: 'My sports' }), expect.objectContaining({ revision: 1 }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled());
+  await act(async () => fail(new Error('unavailable')));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled());
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('My sports');
+  expect(onClose).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  const confirmation = await screen.findByRole('dialog', { name: 'Discard unsaved changes?' });
+  expect(onClose).not.toHaveBeenCalled();
+  fireEvent.click(within(confirmation).getByRole('button', { name: 'Discard changes' }));
+  await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+});

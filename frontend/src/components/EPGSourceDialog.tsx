@@ -1,16 +1,15 @@
-import React from 'react';
 import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  Switch,
-  TextField,
+Alert,Button,
+Dialog,
+DialogActions,
+DialogContent,
+DialogTitle
 } from '@mui/material';
-import { epgProviders } from '../services/epgProviders';
+import React from 'react';
 import { EPGSourceFormData } from '../hooks/useEPGSourceManagement';
+import { useUiText } from '../i18n/useUiText';
+import { epgProviders } from '../services/epgProviders';
+import GuideSourceFields from './GuideSourceFields';
 
 interface EPGSourceDialogProps {
   open: boolean;
@@ -20,6 +19,8 @@ interface EPGSourceDialogProps {
   onSelectProvider?: (provider: { name: string; url: string }) => void;
   onClose: () => void;
   onSubmit: () => void;
+  pending?: boolean;
+  error?: string;
 }
 
 const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
@@ -30,56 +31,30 @@ const EPGSourceDialog: React.FC<EPGSourceDialogProps> = ({
   onSelectProvider,
   onClose,
   onSubmit,
-}) => (
-  <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+  pending = false,
+  error,
+}) => { const tUi = useUiText(); return (
+  <Dialog open={open} onClose={pending ? undefined : onClose} maxWidth="md" fullWidth>
     <DialogTitle>
-      {isEdit ? 'Edit EPG Source' : 'Add EPG Source'}
+      {isEdit ? tUi("Edit EPG Source") : tUi("Add EPG Source")}
     </DialogTitle>
     <DialogContent>
-      {!isEdit && onSelectProvider ? epgProviders.map(provider => <Button key={provider.id} onClick={() => onSelectProvider(provider)}>Use {provider.name}</Button>) : null}
-      <TextField
-        margin="dense"
-        name="name"
-        label="Name"
-        fullWidth
-        value={formData.name}
-        onChange={onChange}
-        sx={{ mb: 2 }}
-      />
-      <TextField
-        margin="dense"
-        name="url"
-        label="URL"
-        fullWidth
-        value={formData.url}
-        onChange={onChange}
-        sx={{ mb: 2 }}
-        placeholder="https://example.com/epg.xml"
-        helperText="XMLTV, TV Rioja weekday schedule, or a Sincroguía /programacion/ channel page. Football schedules belong in Events."
-      />
-      <FormControlLabel
-        control={
-          <Switch
-            name="enabled"
-            checked={formData.enabled}
-            onChange={onChange}
-          />
-        }
-        label="Enabled"
-      />
+      {!isEdit && onSelectProvider ? epgProviders.map(provider => <Button key={provider.id} disabled={pending} onClick={() => onSelectProvider(provider)}>{tUi("Use")}{' '}{provider.name}</Button>) : null}
+      <GuideSourceFields value={formData} onChange={onChange} disabled={pending} />
+      {error ? <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert> : null}
     </DialogContent>
     <DialogActions>
-      <Button onClick={onClose}>Cancel</Button>
+      <Button onClick={onClose} disabled={pending}>{tUi("Cancel")}</Button>
       <Button
         onClick={onSubmit}
         variant="contained"
         color="primary"
-        disabled={!formData.url || !formData.name}
+        disabled={pending || !formData.url.trim() || !formData.name.trim()}
       >
-        {isEdit ? 'Update' : 'Add'}
+        {isEdit ? tUi("Update") : tUi("Add")}
       </Button>
     </DialogActions>
   </Dialog>
-);
+); };
 
 export default EPGSourceDialog;

@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -15,7 +16,7 @@ import {
   useTheme,
 } from '@mui/material';
 import type { AcestreamChannel } from '../services/channelService';
-import { getErrorMessage } from '../utils/errorUtils';
+import { getErrorDetail, getErrorMessage } from '../utils/errorUtils';
 import { ApiError } from '../services/apiErrors';
 import TVChannelLinkField from './TVChannelLinkField';
 import { formatRelativeTime } from '../utils/format';
@@ -56,6 +57,7 @@ const toValues = (channel: QuickEditChannel | null): QuickEditValues => ({
 });
 
 const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channel, onSave, mode, fullScreen }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const creating = mode ? mode === 'create' : !channel?.id;
@@ -79,7 +81,7 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
     try {
       await onSave({ ...values, id: values.id.trim(), name: values.name.trim() });
     } catch (err) {
-      setError(err instanceof ApiError ? getErrorMessage(err) : err instanceof Error && err.message ? err.message : getErrorMessage(err));
+      setError(err instanceof ApiError ? getErrorMessage(err) : getErrorDetail(err) || getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -87,40 +89,40 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
 
   const summary = !creating && channel
     ? [
-        `Last checked ${formatRelativeTime(channel.last_checked)}`,
-        `Last scraped ${formatRelativeTime(channel.last_seen)}`,
-        ...(channel.check_error ? [`Last error: ${channel.check_error}`] : []),
+        tUi('Last checked {{when}}', { when: formatRelativeTime(channel.last_checked) }),
+        tUi('Last scraped {{when}}', { when: formatRelativeTime(channel.last_seen) }),
+        ...(channel.check_error ? [tUi('Last error: {{error}}', { error: channel.check_error })] : []),
       ].join(' · ')
     : null;
 
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="xs" fullWidth fullScreen={fullScreen ?? isMobile} aria-labelledby="quick-edit-title">
-      <DialogTitle id="quick-edit-title">{creating ? 'Add channel' : 'Edit channel'}</DialogTitle>
+      <DialogTitle id="quick-edit-title">{creating ? tUi("Add channel") : tUi("Edit channel")}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           {error ? <Alert severity="error">{error}</Alert> : null}
-          <TextField label="Name" value={values.name} onChange={setField('name')} fullWidth required />
+          <TextField label={tUi("Name")} value={values.name} onChange={setField('name')} fullWidth required />
           <TextField
-            label="Acestream ID"
+            label={tUi("Acestream ID")}
             value={values.id}
             onChange={setField('id')}
             fullWidth
             required
             InputProps={{ readOnly: !creating, sx: { fontFamily: 'monospace' } }}
-            helperText={creating ? '40-character hash from the source or the engine search.' : 'The ID cannot be changed after creation.'}
+            helperText={creating ? tUi("40-character hash from the source or the engine search.") : tUi("The ID cannot be changed after creation.")}
           />
           {creating ? <TVChannelLinkField value={values.tv_channel_id ?? null} onChange={value => setValues(previous => ({ ...previous, tv_channel_id: value ?? undefined }))} disabled={saving} /> : null}
-          <TextField label="Group" value={values.group} onChange={setField('group')} fullWidth />
-          <TextField label="Logo URL" value={values.logo} onChange={setField('logo')} fullWidth />
-          <TextField label="TVG ID" value={values.tvg_id} onChange={setField('tvg_id')} fullWidth helperText="EPG channel id written to the playlist." />
-          <TextField label="TVG Name" value={values.tvg_name} onChange={setField('tvg_name')} fullWidth />
+          <TextField label={tUi("Group")} value={values.group} onChange={setField('group')} fullWidth />
+          <TextField label={tUi("Logo URL")} value={values.logo} onChange={setField('logo')} fullWidth />
+          <TextField label={tUi("TVG ID")} value={values.tvg_id} onChange={setField('tvg_id')} fullWidth helperText={tUi("EPG channel id written to the playlist.")} />
+          <TextField label={tUi("TVG Name")} value={values.tvg_name} onChange={setField('tvg_name')} fullWidth />
           <FormControlLabel
             control={<Checkbox checked={values.is_active} onChange={setField('is_active')} />}
-            label="Show in playlist"
+            label={tUi("Show in playlist")}
           />
           <FormControlLabel
             control={<Checkbox checked={values.epg_update_protected} onChange={setField('epg_update_protected')} />}
-            label="Keep my EPG fields (protect from EPG updates)"
+            label={tUi("Keep my EPG fields (protect from EPG updates)")}
             sx={{ mt: -1.5 }}
           />
           {summary ? (
@@ -132,10 +134,9 @@ const QuickEditDialog: React.FC<QuickEditDialogProps> = ({ open, onClose, channe
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={saving}>
-          Cancel
-        </Button>
+          {tUi("Cancel")}</Button>
         <Button onClick={handleSave} variant="contained" disabled={saving || !values.name.trim() || !values.id.trim()}>
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? tUi("Saving…") : tUi("Save")}
         </Button>
       </DialogActions>
     </Dialog>

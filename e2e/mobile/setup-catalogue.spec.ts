@@ -32,13 +32,14 @@ for (const mode of ['light', 'dark']) {
       if (path === '/epg/channels') data = { items: [], total: 1 };
       if (path === '/tv-channels/analyze-epg-matches') data = { summary: {}, rows: [{ epg_channel_id: 9, epg_channel_name: 'Example TV', epg_source_id: 2, candidate_count: 1, can_apply: true, is_creatable: true, review_token: 'reviewed', candidates: [{ name: 'Example TV HD', acestream_channel_id: '3', score: 1, match_stage: 'name' }] }] };
       if (path === '/tv-channels/create-from-epg-analysis') { expect(request.postDataJSON()).toEqual({ source_id: 2, strictness: 'strict', epg_channel_ids: [9], expected_previews: { '9': 'reviewed' } }); writes++; data = { created_count: 1, associated_count: 1, skipped_count: 0, failure_count: 0, row_outcomes: [] }; }
+      if (path === '/scrapers/providers') data = [];
       await route.fulfill({ json: data });
     });
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
     await page.goto('/setup');
     await page.getByRole('textbox', { name: 'Channel source link' }).fill('https://example.test/channels.m3u');
     await page.getByRole('button', { name: 'Add source and find channels' }).click();
-    await expect(page.getByText(/Found 1 channels/)).toBeVisible();
+    await expect(page.getByText(/Found 1 channel/)).toBeVisible();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('button', { name: 'Use EPG dobleM' }).click();
     await expect(page.getByText(/Downloading programme times/)).toBeVisible();
@@ -49,7 +50,7 @@ for (const mode of ['light', 'dark']) {
     await selection.check();
     await page.screenshot({ path: test.info().outputPath(`setup-matches-${mode}.png`), animations: 'disabled' });
     await page.getByRole('button', { name: 'Save selected matches (1)' }).click();
-    await expect(page.getByText(/Created 1 TV channels/)).toBeVisible(); expect(writes).toBe(1);
+    await expect(page.getByText(/Created 1 TV channel/)).toBeVisible(); expect(writes).toBe(1);
     await page.getByRole('button', { name: 'Finish setup' }).click();
     await expect(page.getByRole('heading', { name: 'Setup saved', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

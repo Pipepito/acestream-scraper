@@ -151,12 +151,12 @@ describe('createAppTheme', () => {
     });
 
     expect(theme.typography).toMatchObject({
-      pageTitle: expect.objectContaining({ fontFamily: expect.stringContaining('IBM Plex Sans') }),
-      sectionTitle: expect.objectContaining({ fontFamily: expect.stringContaining('IBM Plex Sans') }),
-      body1: expect.objectContaining({ fontFamily: expect.stringContaining('IBM Plex Sans') }),
-      helperText: expect.objectContaining({ fontFamily: expect.stringContaining('IBM Plex Sans') }),
-      statusMeta: expect.objectContaining({ fontFamily: expect.stringContaining('IBM Plex Sans') }),
-      denseData: expect.objectContaining({ fontFamily: expect.stringContaining('IBM Plex Sans') }),
+      pageTitle: expect.objectContaining({ fontFamily: expect.stringContaining('Inter') }),
+      sectionTitle: expect.objectContaining({ fontFamily: expect.stringContaining('Inter') }),
+      body1: expect.objectContaining({ fontFamily: expect.stringContaining('Inter') }),
+      helperText: expect.objectContaining({ fontFamily: expect.stringContaining('Inter') }),
+      statusMeta: expect.objectContaining({ fontFamily: expect.stringContaining('Inter') }),
+      denseData: expect.objectContaining({ fontFamily: expect.stringContaining('Inter') }),
     });
   });
 

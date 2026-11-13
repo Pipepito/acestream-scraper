@@ -3,7 +3,7 @@ import { AppShell } from './app-shell';
 
 export class SettingsPage extends AppShell {
   async open(): Promise<void> {
-    await this.goto('/settings');
+    await this.goto('/settings?tab=playback');
     await this.expectHeading('Settings');
   }
 

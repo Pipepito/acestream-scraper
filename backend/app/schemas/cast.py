@@ -14,6 +14,7 @@ class CastCapabilities(BaseModel):
     compatibility_conversion: bool
     media_url_configured: bool
     message: str = ''
+    error_code: str | None = Field(default=None, pattern=r'^[A-Z][A-Z0-9_]{0,99}$')
     home_connection: bool = False
     media_url: str = ''
     # off: open installation without the home gate; deployment: CAST_REQUIRE_HOME_NETWORK; accounts: accounts mode.

@@ -38,5 +38,7 @@ it('retains the draft on failure and can cancel', async () => {
   expect(await screen.findByRole('alert')).toBeVisible();
   expect(within(screen.getByRole('list')).getAllByRole('listitem')[1]).toHaveTextContent('News');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(cancel).toHaveBeenCalledTimes(1);
+  expect(cancel).not.toHaveBeenCalled();
+  fireEvent.click(await screen.findByRole('button', { name: 'Discard changes' }));
+  await waitFor(() => expect(cancel).toHaveBeenCalledTimes(1));
 });

@@ -1,4 +1,5 @@
-import React, { useCallback, useId, useRef, useState } from 'react';
+import { useUiText } from '../i18n/useUiText';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 
 export interface ConfirmDialogProps {
@@ -14,17 +15,19 @@ export interface ConfirmDialogProps {
 
 /** The app's one confirmation dialog: replaces window.confirm everywhere. */
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ open, title, body, confirmLabel, danger = false, busy = false, onConfirm, onClose }) => {
+  const tUi = useUiText();
   const titleId = useId();
+  const bodyId = useId();
+  const cancelButton = useRef<HTMLButtonElement>(null);
   return (
-    <Dialog open={open} onClose={busy ? undefined : onClose} aria-labelledby={titleId} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={busy ? undefined : onClose} aria-labelledby={titleId} aria-describedby={bodyId} maxWidth="xs" fullWidth TransitionProps={{ onEntered: () => cancelButton.current?.focus() }}>
       <DialogTitle id={titleId}>{title}</DialogTitle>
-      <DialogContent>
+      <DialogContent id={bodyId}>
         {typeof body === 'string' ? <DialogContentText>{body}</DialogContentText> : body}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={busy}>
-          Cancel
-        </Button>
+        <Button ref={cancelButton} onClick={onClose} disabled={busy}>
+          {tUi("Cancel")}</Button>
         <Button variant="contained" color={danger ? 'error' : 'primary'} onClick={onConfirm} disabled={busy} startIcon={busy ? <CircularProgress size={16} color="inherit" /> : undefined}>
           {confirmLabel}
         </Button>
@@ -34,11 +37,16 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ open, title, body, confir
 };
 
 export type ConfirmOptions = Omit<ConfirmDialogProps, 'open' | 'onConfirm' | 'onClose'>;
+type Confirmation = ConfirmOptions | (() => ConfirmOptions);
 
 /** `const { confirm, dialog } = useConfirm(); if (await confirm({...})) doIt();` — render `{dialog}` once. */
-export const useConfirm = (): { confirm: (opts: ConfirmOptions) => Promise<boolean>; dialog: React.ReactNode } => {
-  const [options, setOptions] = useState<ConfirmOptions | null>(null);
+export const useConfirm = (): { confirm: (opts: Confirmation) => Promise<boolean>; dialog: React.ReactNode } => {
+  useUiText();
+  const [source, setOptions] = useState<Confirmation | null>(null);
+  const options = typeof source === 'function' ? source() : source;
   const resolver = useRef<((value: boolean) => void) | null>(null);
+
+  useEffect(() => () => { resolver.current?.(false); resolver.current = null; }, []);
 
   const settle = useCallback((value: boolean) => {
     resolver.current?.(value);
@@ -46,9 +54,9 @@ export const useConfirm = (): { confirm: (opts: ConfirmOptions) => Promise<boole
     setOptions(null);
   }, []);
 
-  const confirm = useCallback((opts: ConfirmOptions) => {
+  const confirm = useCallback((opts: Confirmation) => {
     resolver.current?.(false);
-    setOptions(opts);
+    setOptions(() => opts);
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve;
     });

@@ -63,6 +63,7 @@ class RemotePlayerProbeResponse(BaseModel):
     version: Optional[str] = None
     message: str
     hint: Optional[str] = None
+    reason: Optional[Literal["unreachable", "not_player", "no_password", "wrong_password", "pairing_required"]] = None
     tuner_access: TunerAccessResponse
 
 

@@ -64,9 +64,12 @@ describe('ScheduleView', () => {
     const row = screen.getByRole('listitem', { name: 'Late Match' });
     const more = within(row).getByRole('button', { name: 'More' });
     expect(more).toHaveAttribute('aria-expanded', 'false');
+    expect(within(row).queryByAltText('')).not.toBeInTheDocument();
     fireEvent.click(more);
     expect(within(row).getByRole('button', { name: 'Less' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(row).getByText('Knockout match')).toBeVisible();
+    expect(within(row).getByText('Programme category illustration · Sports')).toBeVisible();
+    expect(within(row).getByAltText('')).toHaveAttribute('src', expect.stringContaining('sports-general'));
   });
 
   it('switches days, refetches around the chosen day and hides now/next', () => {

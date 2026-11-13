@@ -1,5 +1,5 @@
 """Short transactions; never hold a session across Telegram or regex work."""
-from app.services.telegram.errors import TelegramActionError
+from app.services.telegram.errors import TelegramActionError, message_code
 
 from datetime import datetime, timedelta, timezone
 from app.config.database import SessionLocal
@@ -11,7 +11,7 @@ from app.schemas.telegram import TelegramSource, TelegramSourceConfig
 def dto(row: TelegramSourceRow) -> TelegramSource:
     return TelegramSource(**row.config, id=row.id, chat_label=row.chat_label,
         sender_labels=row.sender_labels, cursor=row.cursor, state=row.state,
-        last_success=row.last_success, imported_count=row.imported_count, excluded_count=row.excluded_count, message=row.message)
+        last_success=row.last_success, imported_count=row.imported_count, excluded_count=row.excluded_count, message=row.message, message_code=message_code(row.message))
 
 
 def list_sources(account_id: str) -> list[TelegramSource]:

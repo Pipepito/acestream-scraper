@@ -23,3 +23,15 @@ it('rejects fractional numbers and exposes save failures without discarding the 
   await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
   expect(field).toHaveValue(12);
 });
+
+it('keeps the edited number across server refreshes and restores the latest value on Escape', () => {
+  const onSave = jest.fn();
+  const { rerender } = render(<ChannelNumberField channel={{ name: 'News', channel_number: 4 } as TVChannel} onSave={onSave} />);
+  const field = screen.getByRole('spinbutton');
+  fireEvent.change(field, { target: { value: '12' } });
+  rerender(<ChannelNumberField channel={{ name: 'News', channel_number: 7 } as TVChannel} onSave={onSave} />);
+  expect(field).toHaveValue(12);
+  fireEvent.keyDown(field, { key: 'Escape' });
+  expect(field).toHaveValue(7);
+  expect(onSave).not.toHaveBeenCalled();
+});

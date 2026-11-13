@@ -36,3 +36,11 @@ Implementation working tree based on `ab890e4056f9f75536dede22e8005c82683e4ad2`,
 - OpenAPI/generated TypeScript reproduced byte-for-byte; command-builder, Docker metadata, docs contract, strict legacy-path and Pages payload checks passed. The full gate's Git-diff check against committed types is not used as evidence for an uncommitted API change; regeneration stability was checked separately.
 
 These are local results, not CI or release status. Docker multi-architecture DVR qualification and actual Linux/ARM hardware interruption/storage-pressure runs remain outstanding; recordings stay disabled by default. No deployment, publication or private infrastructure mutation was performed.
+
+The recording list accepts optional `collection=all|library|upcoming|history`.
+The default remains `all` for API compatibility. Collection, status and title
+filters run before both count and pagination. Library requires a ready artifact
+and excludes active/deleting/deleted rows; a retained playable part of a failed
+capture can still appear there. History excludes pending/active states. One list
+page performs four SQL reads (count, rows, artifacts and attempts), preserving
+multipart order without per-row follow-up reads. No schema migration is needed.

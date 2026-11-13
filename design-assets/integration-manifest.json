@@ -1,0 +1,2692 @@
+{
+  "version": 1,
+  "integration_date": "2026-11-10",
+  "base_commit": "f31d7a7fd3c7beb935aa25e701322853160f9d78",
+  "collections": [
+    {
+      "path": "zztream/manual-v1",
+      "source_directory": "/srv/opencode-workspace/assets/zztream/manual-20261109",
+      "copy_policy": "Byte-identical files; internal relative paths preserved."
+    },
+    {
+      "path": "sportzz/visual-library-v1",
+      "source_directory": "/srv/opencode-workspace/assets/sportzz/visual-assets-collection-1-20261109",
+      "copy_policy": "Byte-identical files; internal relative paths preserved."
+    },
+    {
+      "path": "sportzz/brand-promo-10s",
+      "source_directory": "/srv/opencode-workspace/assets/sportzz/brand-promo-10s-20261109",
+      "copy_policy": "Byte-identical files; internal relative paths preserved."
+    }
+  ],
+  "files": [
+    {
+      "collection": "zztream/manual-v1",
+      "path": "LEEME.md",
+      "bytes": 1926,
+      "sha256": "e08f54046b42c8494d99deb90d7ad643a2101d456e90fa17265a8dd53d44f3ef",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "PROCEDENCIA.md",
+      "bytes": 5198,
+      "sha256": "ee3563fcc81cb319ba5b08cef51b7606b5c026313a773454ddeb07ca08ebcd84",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "build_identity.py",
+      "bytes": 2895,
+      "sha256": "5357698bcfe5958695943b3cd525d45464552ffc9ac00ecaf0d80aad590ac7c4",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "build_manual.py",
+      "bytes": 24789,
+      "sha256": "2fb7636f9a1350edb5b39697910d42221e31912a72fa6c2d20a351d2bbebb397",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/BarlowCondensed-Bold.ttf",
+      "bytes": 109912,
+      "sha256": "e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/BarlowCondensed-SemiBold.ttf",
+      "bytes": 109428,
+      "sha256": "7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9",
+      "role": "font-or-licence",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/barlow-condensed.ttf"
+      ]
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/Inter-Black.ttf",
+      "bytes": 494996,
+      "sha256": "1464290772b0149ba25deb16802f29c2a8104113cfb774948ad823559cd6fa38",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/Inter-Regular.ttf",
+      "bytes": 509312,
+      "sha256": "6377598d6d7b85b8d610ae378a1f1fa0e39eea7a20eb1974c6ddf12063dbdb96",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/Inter-SemiBold.ttf",
+      "bytes": 510620,
+      "sha256": "3e88e19a35ba27bec6d7252c873f15e5aa29516fc2e35ec546a40c0c408b4ec4",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/Inter-Variable.ttf",
+      "bytes": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "role": "font-or-licence",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/inter.ttf"
+      ]
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/licenses/OFL-Barlow.txt",
+      "bytes": 4377,
+      "sha256": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "fonts/licenses/OFL-Inter.txt",
+      "bytes": 4377,
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "images/zztream-cine-recorte.jpg",
+      "bytes": 142047,
+      "sha256": "61940b465f41f60b71d9104ff16136817516a6b19045487b1d54113939a5235d",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "images/zztream-documental-recorte.jpg",
+      "bytes": 156502,
+      "sha256": "a432a79f794a5539dc849008e604ed857a6c9b2cd42e1a5fdda0c149b2fa2705",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "images/zztream-editorial-original.png",
+      "bytes": 1803533,
+      "sha256": "488ea5f891399f65ad868399675698e6ff834fa6f3a3c6080dbd08200d14dddc",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "images/zztream-mockup-digital-original.png",
+      "bytes": 1394571,
+      "sha256": "eb7298a6425faf7012883d62ec4a8b751ce73ae6361210a11bc3d7200db038d7",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "images/zztream-mockup-fisico-original.png",
+      "bytes": 1667786,
+      "sha256": "f046446fdeb15fae2fc1ac68e2643fc765769e128fae6caed607d2fa194a3402",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "images/zztream-musica-recorte.jpg",
+      "bytes": 115901,
+      "sha256": "df82081ca0128f6271cbe966f947ed15eb497b7897c47d662a88ef75022c96d7",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-isotipo-blanco.png",
+      "bytes": 37361,
+      "sha256": "f6ec936632101575449b8b082f3a6e88e7177b258b856e63245f0116a33680c3",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-isotipo-blanco.svg",
+      "bytes": 864,
+      "sha256": "faba3446489fa9de2983aef2b30ea7d312853216a336a71ee73999157c8fa935",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-isotipo-negro.png",
+      "bytes": 36855,
+      "sha256": "7eca295fd19873cf1af09d9a7ebecec09c98b37b24da3e9c45047d1fcc6292ee",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-isotipo-negro.svg",
+      "bytes": 864,
+      "sha256": "4dc7f8467687bab037b5f700b09d496fc40598a05e196bc10f13bcf647643847",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/isotipo-negro.svg"
+      ]
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-isotipo-verde.png",
+      "bytes": 33483,
+      "sha256": "83fce83ed3b80dc0603aacd9e8305f1c1f425a504ef67f5b11203910aa51c01b",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-isotipo-verde.svg",
+      "bytes": 864,
+      "sha256": "c1a23d8347b0c7db6e79030cea121f863c1b2f195ef56d318909e3168e49febb",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/isotipo-verde.svg"
+      ]
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-logotipo-blanco.png",
+      "bytes": 50400,
+      "sha256": "c714ef0671f43d53943912d4d05358b803d583ad81bb7d77133212f6feb2783b",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-logotipo-blanco.svg",
+      "bytes": 2732,
+      "sha256": "266164e5fb8a05d6f9f12b28e2758a31b062fff953d325d2b196c620fb056a0a",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-logotipo-negro.png",
+      "bytes": 49354,
+      "sha256": "42cf7b18c2ec95146aef5affc5ba63f3eed2540e57d19cc352ed0fe89b3aad4e",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-logotipo-negro.svg",
+      "bytes": 2732,
+      "sha256": "f46ca9b458e44c8b1ffe2c966ea6a9590df084cdf8a43638887f54d7478ed392",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-logotipo-verde.png",
+      "bytes": 44670,
+      "sha256": "025acd86c32dadd69339ca9934b5af842e277d87390a9216e39069a33c840067",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-logotipo-verde.svg",
+      "bytes": 2732,
+      "sha256": "666ce2cae202697b41d71e3dac610204088b1a601a29414b77495f50e58a7af6",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "logos/zztream-reference.png",
+      "bytes": 47127,
+      "sha256": "c0070ab7d713dbbed153109a72cb4eb6df5152f2d99226a14ed761fc2dfbe870",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-01.png",
+      "bytes": 652699,
+      "sha256": "8d20ee8d9884bdd2884a1e23cc91947cb9f6786a72665f779beda346402be4f5",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-02.png",
+      "bytes": 508920,
+      "sha256": "d1f5f6fabf734f94fe54aec822c731bbaf5555cb0154c3f6ea756f137037e9a8",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-03.png",
+      "bytes": 64188,
+      "sha256": "206d8060f0054b3b869d77073e2899e405384878a03bca0b25d58823df273152",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-04.png",
+      "bytes": 70876,
+      "sha256": "313c919f917bda31dc4fbbc84669b62f9de21af836f8c7624be402428085f2fb",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-05.png",
+      "bytes": 65282,
+      "sha256": "841fd5df9df1e6385d235baf610173f062f823362b7047e4d5347e540749bb51",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-06.png",
+      "bytes": 85805,
+      "sha256": "a43aa587e3c0cb7304716f88b9b8095094251e0d4126908a0965e4a4e7f508bd",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-07.png",
+      "bytes": 54361,
+      "sha256": "01863ac1bd0aad0ae46639669d55c99145e1d5264cd350611a194ea97889fc4b",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-08.png",
+      "bytes": 63062,
+      "sha256": "dd3b75b3e092b083fcf46979f7b59aa4f15d2a41b16ab74cc211568a3d885a07",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-09.png",
+      "bytes": 81020,
+      "sha256": "ff1f9a2466ba2a78e155441f056667c2eee15e16daf2313be736ecbc375ac705",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-10.png",
+      "bytes": 63805,
+      "sha256": "61538d82846d0418573d900c7613773fe0324a656f51af8312a0dd3a5c4962ac",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-11.png",
+      "bytes": 81021,
+      "sha256": "001a185912de4a60ba4df3fb4161962271ac49f88f5e2f99d4dceb51bc44c8b7",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-12.png",
+      "bytes": 828883,
+      "sha256": "8ebbb08fb2a0f0423cb7c0127492b2de94316366f16de0adbecf0ece019a56c0",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-13.png",
+      "bytes": 69142,
+      "sha256": "577a1cc585511a72c9b7cd823adc1a81ef6a2bfe54af1374d6ee6cbc651556ed",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-14.png",
+      "bytes": 500702,
+      "sha256": "751c91339067587f3c9978e4d1cdb2291096d47c538e603255b9f6bf5f660e95",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-15.png",
+      "bytes": 68857,
+      "sha256": "3ef8fc491e2752fc5de3adeca1dd65cdc618baaff3a5bfbd7b0af6707ff82f40",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-16.png",
+      "bytes": 726778,
+      "sha256": "d45a091b517fc9b4bb620a6ee48cf55ffe696794f762700c1a47bd888500fd18",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-17.png",
+      "bytes": 204930,
+      "sha256": "45fb7274054b7d1e38b3076dee46e669f769acd7f9422d06358b1f4fb892d8a9",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-18.png",
+      "bytes": 724871,
+      "sha256": "a0b245fbfc760b9702c55b50a36200ccadbc4d1ed9580d367998d7be005072be",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-19.png",
+      "bytes": 566745,
+      "sha256": "915d583f2bc19c950ef99d264a5894a7d5a4f16fec95da81075e98a281e4c9e0",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/pagina-20.png",
+      "bytes": 84506,
+      "sha256": "60929a694752f40e39b13e977bf0caebcc0dbab330c1e95842d4263cd75fbea5",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "previews/zztream-manual-contacto.jpg",
+      "bytes": 437481,
+      "sha256": "8360a66d5b48f780905c38b43f8b92867b51037bd7f8fb4e64cab0e6596e7118",
+      "role": "review-preview"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "source/build_identity.py",
+      "bytes": 2895,
+      "sha256": "5357698bcfe5958695943b3cd525d45464552ffc9ac00ecaf0d80aad590ac7c4",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "source/build_manual.py",
+      "bytes": 24789,
+      "sha256": "2fb7636f9a1350edb5b39697910d42221e31912a72fa6c2d20a351d2bbebb397",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "validation.json",
+      "bytes": 143,
+      "sha256": "2481101f7cdedd5a7aca7bc6a051c03a5e588af06515c9b36db9b263341be1ed",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "zztream-manual-identidad-v1.pdf",
+      "bytes": 14444941,
+      "sha256": "ac9b2b39c11c8a6d1873ba79fc05171b1e2660f92e87f6218cd020317be0dc60",
+      "role": "asset"
+    },
+    {
+      "collection": "zztream/manual-v1",
+      "path": "zztream-tokens.css",
+      "bytes": 548,
+      "sha256": "35ca77de03d9c711d8cbbb7acf67e05b8a8a919724f4eef7f590b3d89074827e",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "ASSET-README.md",
+      "bytes": 10945,
+      "sha256": "662117b9a5894ee8cd4c6df8972b2fe8dce07f85f099f05c7a93e2710a622590",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/fonts/BarlowCondensed-Bold.ttf",
+      "bytes": 109912,
+      "sha256": "e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/fonts/BarlowCondensed-SemiBold.ttf",
+      "bytes": 109428,
+      "sha256": "7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9",
+      "role": "font-or-licence",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/barlow-condensed.ttf"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/fonts/Inter-Variable.ttf",
+      "bytes": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "role": "font-or-licence",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/inter.ttf"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/fonts/licenses/OFL-Barlow.txt",
+      "bytes": 4377,
+      "sha256": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/fonts/licenses/OFL-Inter.txt",
+      "bytes": 4377,
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "role": "font-or-licence"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/isotipo-blanco.svg",
+      "bytes": 864,
+      "sha256": "1bd20c7bfc8111d197f903dfa65de7c3cf4d845011ddb5b01c693d041fcaa41b",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/isotipo-blanco.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/isotipo-negro.svg",
+      "bytes": 864,
+      "sha256": "4dc7f8467687bab037b5f700b09d496fc40598a05e196bc10f13bcf647643847",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/isotipo-negro.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/isotipo-original.svg",
+      "bytes": 862,
+      "sha256": "080ad89aec2ae43cd75cbb15c9d21cef8fbfbb7596146ea973d2ee2f75777f65",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/isotipo-verde.svg",
+      "bytes": 864,
+      "sha256": "c1a23d8347b0c7db6e79030cea121f863c1b2f195ef56d318909e3168e49febb",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/isotipo-verde.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/logotipo-blanco.svg",
+      "bytes": 1722,
+      "sha256": "b89a030607fa37a4a595389e4f4d7323a23445452616dd30250c797ef55b88be",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/logotipo-blanco.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/logotipo-negro.svg",
+      "bytes": 1722,
+      "sha256": "33d6ae92bb3ceeb3df76b899d531f13df3b1d8232b3e591098b1e7a199c863fd",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/logotipo-negro.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/logotipo-original.svg",
+      "bytes": 1708,
+      "sha256": "71e0f235813f6d1415171920a42b044d52850691aea26c6f0e58a8cabbfeb914",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/brand/sportzz/logotipo-verde.svg",
+      "bytes": 1722,
+      "sha256": "992e5caa44188eac077695583be97e0d431b0bc85384d3f688e4e953b387a4eb",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/logotipo-verde.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-copy-24.svg",
+      "bytes": 309,
+      "sha256": "1c2b2f693b889cb10f956cc84860d888f36f6bfd48e3fab0a00cb25ac0836fe6",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-download-24.svg",
+      "bytes": 239,
+      "sha256": "2d7f4cb1938da0dd75dba3117b16595c81cec70d8171de727f842885c6cd3a91",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-edit-24.svg",
+      "bytes": 295,
+      "sha256": "f6b43330d3fb265bd571bc771b2bd58ae127ae5af6d6f5602ead572c0901d576",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-eye-24.svg",
+      "bytes": 271,
+      "sha256": "6d0adb324ab28c4d140df0769c8399342e42d65f53e4dae7ab85f6315af3b049",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-eye-off-24.svg",
+      "bytes": 319,
+      "sha256": "5188d5ae847454578eed7212d8aace330ca28719ccca7b046dbae48ecd458b61",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-filter-24.svg",
+      "bytes": 231,
+      "sha256": "47aab5234028c7c6d1017454e4c36c40f58f3a9634812c0d26aef97bff094e7a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-link-24.svg",
+      "bytes": 329,
+      "sha256": "97b36f3f5d65381abc637313a1979aa43c3a493f943fa5e1b8dddc9757cb1d7f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-minus-24.svg",
+      "bytes": 211,
+      "sha256": "7645d8626c5acd1f532ceae5a7958e661c522467531d9e9429289b0155909738",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-more-horizontal-24.svg",
+      "bytes": 307,
+      "sha256": "47fd2080e926e8aba4c5f00f1adee090c588a2792bb2b88740095c38fd9f6577",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-plus-24.svg",
+      "bytes": 219,
+      "sha256": "71384127f69a12d1eb3678bcd82edbb7595322a274ab9d5ecbf63236319502af",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-refresh-24.svg",
+      "bytes": 279,
+      "sha256": "8de1bc9cc360e05d9fddc2dbef0801fa616873cbf442fed51774547c74d3425e",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-save-24.svg",
+      "bytes": 307,
+      "sha256": "f62474d92eac913fdf84b80d645a08f7c8320593581b63d8bb6aede2ca5d29ed",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-search-24.svg",
+      "bytes": 265,
+      "sha256": "430c7cf649ce701a3583d57004c342b1b6316a9709aa02e4189b769841786a5f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-settings-24.svg",
+      "bytes": 870,
+      "sha256": "2a2a43844ac75906dfacfdd88ff19a9661446e9711e5c00c0530e51a37e27e75",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-share-24.svg",
+      "bytes": 370,
+      "sha256": "df64ff9500b28dee224c86c0443dd83468596af62a6899a1016c0278d40c70eb",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-sort-ascending-24.svg",
+      "bytes": 244,
+      "sha256": "a0bc5b88b9f64b832b211a76b3cb7153ff9452ef1af4a9971c7f85427e0d0a5f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-sort-descending-24.svg",
+      "bytes": 244,
+      "sha256": "15bdfc438053b8cbbb77873654180aded339c573bb4061f7b8ff8e44c132b822",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-trash-24.svg",
+      "bytes": 290,
+      "sha256": "48cf32f87d033155cf47b1966135ec1247fb2a16cce1a7a07a365f852c21427f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/actions/sportzz-icon-actions-upload-24.svg",
+      "bytes": 239,
+      "sha256": "3f424850c06c651c1d98e9016c6dbcb975ca9b995537be9a4ded9c8528c8bd1f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-activity-24.svg",
+      "bytes": 230,
+      "sha256": "6ca2480609b76a59c56804e1c84b7557a4fdc6f552c20dc27afb2b2e08e2a6e8",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-calendar-24.svg",
+      "bytes": 351,
+      "sha256": "78bdf04fc9438ff3c0c0b839e5306085dba26c699f207cc459702d8a36528ab7",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-chart-bar-24.svg",
+      "bytes": 241,
+      "sha256": "69cf4df925680a958fe196cfc85fecbf44a8e21ee8391a0056d58cdf2546af1e",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-chart-line-24.svg",
+      "bytes": 234,
+      "sha256": "64376bc46ab997753ed74603fdf6da72e99f9079921ae33908566f36856e6c91",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-code-24.svg",
+      "bytes": 248,
+      "sha256": "ed311c1b9687bbabdc884cfaa109d3236b4aabc4e521a9fa7a729da9d2112c8c",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-database-24.svg",
+      "bytes": 275,
+      "sha256": "153e99910b139eda4e88f8c940d7867f1bdf82bb1be776a1eb8712d282d494e0",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-file-24.svg",
+      "bytes": 232,
+      "sha256": "340db21b90cffb8e5a4e2d999cbda89e0f371c82b9d88ce31f9e86458936dad9",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-file-text-24.svg",
+      "bytes": 250,
+      "sha256": "ab75eae8184378e119c1bed7c23a77a170f42488b1f60b7b2c99e232de9498f0",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-grid-24.svg",
+      "bytes": 567,
+      "sha256": "aa826c1206d05100cd1df4e396769cf2991e9c958d3a36a2c6e302236d076216",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-history-24.svg",
+      "bytes": 253,
+      "sha256": "8513abf110e717345eb86f590637407ebe370842af589ff34d278aceb0312bbb",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-layers-24.svg",
+      "bytes": 265,
+      "sha256": "f34a4307eaf6bb6b3524227854e67990667bfbe46950991f3b2ffe3c3acdb764",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-list-24.svg",
+      "bytes": 255,
+      "sha256": "97f0939c3b8d1528192b093ec60e8ef9c101788a28a6816bdd94354f4cf8fd1a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-network-24.svg",
+      "bytes": 489,
+      "sha256": "c0c7c4a8fe5d5df847e862e2bf77a7f76a9a81595c064bdc88aca14b70454abd",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-server-24.svg",
+      "bytes": 435,
+      "sha256": "10d2041fa54b1874ada5d193578b8969197ceb8d4e79b64c76094dc272981ef1",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-table-24.svg",
+      "bytes": 308,
+      "sha256": "bbe7eec48a8caad20097aba2c8c24fb4f540b615eb14d9812c4b01fc0ca041e4",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/data/sportzz-icon-data-terminal-24.svg",
+      "bytes": 314,
+      "sha256": "eea4a349abbf18e706dcee5880ab4805487e6990f1dac5926e9f6fe8a76a3a5e",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/icon-manifest.json",
+      "bytes": 81281,
+      "sha256": "d4f57b5b2d52ff089e056f5931c74964bedd592103737d6e2f2432f2fbe1b64f",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-basketball-24.svg",
+      "bytes": 309,
+      "sha256": "9872e450ea720278d2719ca4bb5058c6ddc538d48f57013bbe5629d29cb97ff4",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-football-24.svg",
+      "bytes": 360,
+      "sha256": "57acf952e01e47af413bbfe8286a4b04b5ecbe76f40738506c2e19c85076c3d5",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-fullscreen-24.svg",
+      "bytes": 256,
+      "sha256": "5af76d303cea6d77b9d6f840b62149060e75f2eb2c21d08556290175e846c24f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-pause-24.svg",
+      "bytes": 222,
+      "sha256": "f5afc15490f43a7fa1633edee9c41da0e92f85b1d3f40ae342d1598dd220fd55",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-play-24.svg",
+      "bytes": 223,
+      "sha256": "be4d51e8f2f8838702baf4c5acf08d461dec0c5c2a09a544ee6aaa51aa443c5c",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-racing-flag-24.svg",
+      "bytes": 283,
+      "sha256": "c16264b2df9837d9ea2ba853ec4773c7e20e317b0b2d685fbfcc59f1f4cc0624",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-stop-24.svg",
+      "bytes": 302,
+      "sha256": "fab2799a73578aed8763a63804c69903520aa3f8f67d3858267cfa1d1fd7de02",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-tennis-24.svg",
+      "bytes": 305,
+      "sha256": "a348fb0bb106030265b3055d19f9d9686eb45ae5dde1b6b620181a9da41aa19b",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-trophy-24.svg",
+      "bytes": 294,
+      "sha256": "0fb108344225d1e69f2f10f8e0cb861fe5ae941351dc706b97a3fa6b9d83eb75",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-volume-24.svg",
+      "bytes": 273,
+      "sha256": "447a83cf180bb5d5855e8f289398c76b0875aae9c46161fc33d9587ef16fb96f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-volume-off-24.svg",
+      "bytes": 241,
+      "sha256": "103d1a0c80086a8b23b80aaf87512d40b032d0796c2140616a13fb398d4f5f59",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/media/sportzz-icon-media-whistle-24.svg",
+      "bytes": 305,
+      "sha256": "1142369cb0fb7decc976e71aa4e55a3819795393581fcde49748bdc085c9fa53",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-down-24.svg",
+      "bytes": 224,
+      "sha256": "df7f34af03c7c92069b843c0daa37ec20f6703645d133f2772f8af75e6c02ad1",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-left-24.svg",
+      "bytes": 223,
+      "sha256": "061511b5ccd9ab69e6dd5506bfc385ec777b4b24976add4c9a96cf7222ff1325",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-right-24.svg",
+      "bytes": 224,
+      "sha256": "91596de0e78741ad2b3c8f4ad22cbfb6bb624dec0524f10fce87052aabcee792",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-up-24.svg",
+      "bytes": 224,
+      "sha256": "2f417763abff35a5514530fc4e68202b86c51f033462f8c4699374ffde06e7df",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-breadcrumb-24.svg",
+      "bytes": 267,
+      "sha256": "941398cdb1b7c5e5a3f818cba8845e8f89920b7be3b9b16654cedf4c7e6e5c0c",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-down-24.svg",
+      "bytes": 224,
+      "sha256": "8315ae8948e3103ef670ff86424d2efff19624fe2f9f9d0e0a1a6046589bb12a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-left-24.svg",
+      "bytes": 225,
+      "sha256": "1c38f7719852ebf4a01ff5a25608cfb7a6c7277150a19689796171edb21bbbf8",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-right-24.svg",
+      "bytes": 224,
+      "sha256": "26fdaff0814b24477671f82153ebbaf3a411040976980d4a8d67c67502daf3b5",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-up-24.svg",
+      "bytes": 225,
+      "sha256": "03686615bb824dddbec9330a412eda03fbec89bf20cb188aef04810940fe1697",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-close-24.svg",
+      "bytes": 228,
+      "sha256": "d32e02298c302b21a0121959c23af1be06d700b866d4edf9380e4ce1fc5fa851",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-external-link-24.svg",
+      "bytes": 311,
+      "sha256": "a94ddddbe79c7d4b232a711dcb97182358d5285f651ed8588b77b8724996271f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-home-24.svg",
+      "bytes": 284,
+      "sha256": "48986c3715402460c8353f037fb03359156fe643b43a16092860bb81e0618a3f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-menu-24.svg",
+      "bytes": 230,
+      "sha256": "9c3913c3ce7d4363f249fd9cf6a4ec97d204bc0c2594b33a7b022975f3565cb3",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/sprite.svg",
+      "bytes": 17199,
+      "sha256": "a7a06be3a086c8b40e9f845e6e449346b5bcf9772cea6b282c630c74d92cdb2b",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-alert-circle-24.svg",
+      "bytes": 257,
+      "sha256": "a202a3aaa977686b2071c3d38d35f4812c878baed0b02681d6a219627be8d8ae",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-alert-triangle-24.svg",
+      "bytes": 308,
+      "sha256": "d352a376b95f645bef5a51ec42a95ded83283c4b5c25faa2890de8ab1d54f044",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-check-24.svg",
+      "bytes": 224,
+      "sha256": "3e051f65c65070a9db3fd581bc97c4487437189734ce702a4627139138355aca",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-check-circle-24.svg",
+      "bytes": 254,
+      "sha256": "045861d26589c740b60196c64af12b43c784cb555f4d58ce810a71ecae20c69a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-clock-24.svg",
+      "bytes": 252,
+      "sha256": "8b450e791308b3b57fa17664f6ba814c4aedae4d7263468f5f949e13035d4840",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-help-circle-24.svg",
+      "bytes": 299,
+      "sha256": "966ca1f3ccc83ee54005bf7fd19df667a7e212d8f34d17366579d31c94918876",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-info-24.svg",
+      "bytes": 264,
+      "sha256": "98311924707fd22ec575db5a7292c4915c1f732ef94c63150d4ba64ba6d67f9a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-loader-24.svg",
+      "bytes": 264,
+      "sha256": "1ef15b83ee43e0d6f2163e5da5ce9839be09284bbefbd2e4c02851073b0ada6f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-pause-circle-24.svg",
+      "bytes": 255,
+      "sha256": "c11677ad1ee3fe364b0635c8f66d909c9d34714f01ce4f2e5467f6a7c9210e28",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/icons/status/sportzz-icon-status-x-circle-24.svg",
+      "bytes": 259,
+      "sha256": "4a645902acd49d9814dba829aef227852aefa44effdac3772bd1d32f7699d301",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/backgrounds/sportzz-graphic-motion-background-16x9-master.png",
+      "bytes": 4149828,
+      "sha256": "0e6e66f84a335a8e4ab82aa77f64e821736b1f88f5cc218f5e71027300d534a4",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/backgrounds/sportzz-graphic-motion-background-16x9-reconstructed-master.png",
+      "bytes": 54666,
+      "sha256": "357fa7a49fd14371a9ac48951960b8051e9ece1e880bea91f2d9ab9c7c8a255c",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/backgrounds/sportzz-graphic-motion-background-16x9.webp",
+      "bytes": 11578,
+      "sha256": "926420f90be12224c5070b89476c6eb5cdc617a077f3dc71408a50158c9793d1",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/backgrounds/sportzz-graphic-motion-background-18deg.svg",
+      "bytes": 509,
+      "sha256": "622e45e2145aed54f10e52fabad79203a8c812fe572be096e16b2e3b17834767",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/backgrounds/sportzz-graphic-stadium-dark-background-16x9-master.png",
+      "bytes": 5772046,
+      "sha256": "f3beab720c72ea5f4070ca5132d2d5794e128cec83deb99acd763f0686896ec2",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/backgrounds/sportzz-graphic-stadium-dark-background-16x9.webp",
+      "bytes": 107400,
+      "sha256": "0eedd7025e9d0bc61a740d9eecefe85be7fa1898eb86346fc1eb1bf7868c4c9d",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/patterns/sportzz-graphic-diagonal-pattern-18deg.svg",
+      "bytes": 309,
+      "sha256": "5cfa27ea0327347f1682c03fecac6a688ed88cdf48aa44deca2b8939b6d84bdd",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/patterns/sportzz-graphic-signal-cut-band-18deg.svg",
+      "bytes": 138,
+      "sha256": "f3478eee9b71a0c4e9067f967063c9cc722e78d5e7f9b74af0a37b227bd06f5d",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/patterns/sportzz-graphic-signal-cut-corner-18deg.svg",
+      "bytes": 141,
+      "sha256": "e729fe11985a320812ddd3fece514ed7e8f2f06636bef29ed6094d1fbe4126c5",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/patterns/sportzz-graphic-signal-cut-divider-18deg.svg",
+      "bytes": 138,
+      "sha256": "cb149ead6b3721c2c749882abb6039ff4d9c7fe94d9b15f69933aa6d4b6c952d",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/patterns/sportzz-graphic-signal-cut-slim-18deg.svg",
+      "bytes": 137,
+      "sha256": "c3994a767a249424cd7cc5ca25da0377907791413e81484d4edc2e9d1e96c194",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/patterns/sportzz-graphic-signal-cuts.svg",
+      "bytes": 485,
+      "sha256": "6d53ac22dde6c214f8781b472f081d97fce54ced739dcc9a8887cf9c9bec55e7",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/textures/sportzz-graphic-carbon-texture-tile-master.png",
+      "bytes": 3246279,
+      "sha256": "8643028b2ea15e2151ec8fe8bc40a2801cc289755208fc36503f2838799b89d1",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/textures/sportzz-graphic-carbon-texture-tile-seamless-master.png",
+      "bytes": 3249617,
+      "sha256": "a9e84d1d597a00a3ad3445bc7a68e91a4d7a2d54a867d99f003062122405f1d2",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/graphics/textures/sportzz-graphic-carbon-texture-tile.webp",
+      "bytes": 1691254,
+      "sha256": "0a7e3ac488118f2dc0fdd7d3bbf3b961af610dd94d2239566286fbcd67767cd7",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/manifests/sportzz-file-index.json",
+      "bytes": 40572,
+      "sha256": "cab8eae0aea3b864ce80cf9299dd3397c8573bea64f3b1479650ba5687f0534c",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/manifests/sportzz-generation-log.json",
+      "bytes": 22798,
+      "sha256": "712c3851f88c8af7d84cede397e1ef3c8fc55d5aa0ad541b853e36954a3372df",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/manifests/sportzz-validation-report.json",
+      "bytes": 3445,
+      "sha256": "89472a96689a7f04334719e60de00f7379ab03ba2e579b517413294bd1faff8c",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/manifests/sportzz-visual-assets.json",
+      "bytes": 265626,
+      "sha256": "17ae58ee59496b9d8d25244e08a6621094535941be8987d865b00948b28f70fa",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/brand-applications/sportzz-mockup-physical-brand-kit-4x3-1280w.webp",
+      "bytes": 251512,
+      "sha256": "d2b21cf493a403d1dad4cd28902da9d8a8a50d484a0f92f9a8d1887e05d9ea93",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/brand-applications/sportzz-mockup-physical-brand-kit-4x3-640w.webp",
+      "bytes": 36902,
+      "sha256": "50d3484643d3c120886d0817be2cb8c1e0b4aacd9990af11b4a9412f1e93bef4",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/brand-applications/sportzz-mockup-physical-brand-kit-4x3-compositing-master.png",
+      "bytes": 8581999,
+      "sha256": "07abf95f1ffeb13c919d1a11183cd30c869a0b69c7974674e028e29c2535b98a",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/brand-applications/sportzz-mockup-physical-brand-kit-4x3-master.png",
+      "bytes": 8424583,
+      "sha256": "211377534031a2f23a64ffc536e0ec2833c2eefcd82c27b21cd5dd2d562d84f3",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/brand-applications/sportzz-mockup-physical-brand-kit-4x3.webp",
+      "bytes": 767744,
+      "sha256": "9acd1c08ea048edcb64f8aedc2a80dc08fc56764de6afb0830bba27f1c23e1d6",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/broadcast/sportzz-mockup-broadcast-studio-16x9-1280w.webp",
+      "bytes": 63238,
+      "sha256": "f12f579a70ef6417bbba56ddca1f631f9a239ea540b8d030bc5baa8cbdab92da",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/broadcast/sportzz-mockup-broadcast-studio-16x9-640w.webp",
+      "bytes": 22036,
+      "sha256": "32c37d13cd4f0dc2bd2c7a66bacb271ab532d38f0b2e03e42ff2d33ede3e3d44",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/broadcast/sportzz-mockup-broadcast-studio-16x9-master.png",
+      "bytes": 5265813,
+      "sha256": "188e93d5d01db86d25d91a3f4884f8e495660517c142ca91c80d88bfa6022c92",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/broadcast/sportzz-mockup-broadcast-studio-16x9.webp",
+      "bytes": 126856,
+      "sha256": "b4de46a1e70027247f460cf8e78ac5d260b307f5624df8740b9b35bf51c50b20",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-desktop-monitor-16x9-1280w.webp",
+      "bytes": 13878,
+      "sha256": "accf5fa2275ec17c55489f801845faddf42410932a30d0cefdff586d55e8c0eb",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-desktop-monitor-16x9-640w.webp",
+      "bytes": 5162,
+      "sha256": "ace479d4066b57b3b629eecc381a43b14eb4a1785cb059c5766ed2a062c966d5",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-desktop-monitor-16x9-master.png",
+      "bytes": 4439823,
+      "sha256": "bf1284b5275db955ee7210f83023138c4cc7ca4c2abbbc451f13ffdcf58159c5",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-desktop-monitor-16x9.webp",
+      "bytes": 30514,
+      "sha256": "bb3534f557907be9164089c83040ca1915ea93bde40dc46dc80029566b5591da",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-laptop-16x9-1280w.webp",
+      "bytes": 23830,
+      "sha256": "74c1bdd86fa8b4903d205a1feea1e3ac78d0cd0c190ebe6b514be96166ab0726",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-laptop-16x9-640w.webp",
+      "bytes": 7462,
+      "sha256": "6d89c05a95528f813cbe6b5581e58fc633067e9ed3d6e9b5ee85470aa5283897",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-laptop-16x9-master.png",
+      "bytes": 5744686,
+      "sha256": "1c715394c2dc34b44119ad8ea32ab997bd021992c09514ac045280ccbf414e26",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-laptop-16x9.webp",
+      "bytes": 93984,
+      "sha256": "9a75b5c3750a2f93b421ac5ca183a4c0871279d8f72caf85670427bcb1e10111",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-mobile-phone-4x5-1280w.webp",
+      "bytes": 33126,
+      "sha256": "2d13b74757f7df975a0ed0bde29293c9b4ca34edbfc16f79ca6d6cd43b3215f0",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-mobile-phone-4x5-640w.webp",
+      "bytes": 8850,
+      "sha256": "2de72c055bb4f2c0b4cebae61dd9c9f1f4c75842eefefa5c3ae1fee7cba40674",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-mobile-phone-4x5-master.png",
+      "bytes": 5189631,
+      "sha256": "64d2daf0a2b1b3251b6818b47ba6acf7d445f06dfd9467a11d9b7b83f943948a",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-mobile-phone-4x5.webp",
+      "bytes": 66048,
+      "sha256": "077e57af348084a962d0212bd6e672bce526418df8d029abfe5971f2770f9faa",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-multi-device-16x9-1280w.webp",
+      "bytes": 10610,
+      "sha256": "d91dc49913e2b9e175d5b422bfff3522eae2a928f2464bf43b294d4f96b3cfb2",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-multi-device-16x9-640w.webp",
+      "bytes": 4430,
+      "sha256": "9338ed1946360531e3b0925c734cd725e502dad056a8dec493dea0b502c7da85",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-multi-device-16x9-master.png",
+      "bytes": 4855273,
+      "sha256": "d6d10312efceafc4a00d94c3108ea83cd31398f2dddd1a9e846e28aed3bb93dc",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-multi-device-16x9.webp",
+      "bytes": 28116,
+      "sha256": "53c99e50bcb21e8cb25d5c993037648a53e53b2f7ceade83e6b064bf45f68767",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-smart-tv-livingroom-16x9-1280w.webp",
+      "bytes": 71778,
+      "sha256": "845df5d292e6e04594f28f8afca447c1a69a6978b5e53ba349605c4197795078",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-smart-tv-livingroom-16x9-640w.webp",
+      "bytes": 20538,
+      "sha256": "e8672fc2035ed127859b9dd7e88fec808b590f65131c1a471dff2fdbd15d7523",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-smart-tv-livingroom-16x9-master.png",
+      "bytes": 6192044,
+      "sha256": "34042c4f78acdf98c13a476878b25648d3c1496434f45ac053086d935a50b6f4",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-smart-tv-livingroom-16x9.webp",
+      "bytes": 207904,
+      "sha256": "4190bd32621d73942426ca3b19ab80e33989c6a2cb31d8e3bb716ef8741f6cd5",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-tablet-landscape-16x9-1280w.webp",
+      "bytes": 21770,
+      "sha256": "4cbeaa17d498bdbfae9ddee6500393fe45467ff08eb81bc50bf65a54d191cb52",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-tablet-landscape-16x9-640w.webp",
+      "bytes": 7714,
+      "sha256": "30e7a8b1ae4dfd2522e20836eb30faa7720f6ddba5eaf307917db77e84eec7bf",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-tablet-landscape-16x9-master.png",
+      "bytes": 5128677,
+      "sha256": "af7457b4aa914d5b4f24815ce2f02896a3cabf78458e0da46e327fcead70d6fd",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/mockups/devices/sportzz-mockup-tablet-landscape-16x9.webp",
+      "bytes": 69684,
+      "sha256": "44070fe8b6d7e205c5d0922a749147748605935dbba0716bca6ba44a2326f5f9",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/editorial/sportzz-photo-stadium-atmosphere-16x9-1280w.webp",
+      "bytes": 267772,
+      "sha256": "b5e4ec462d33ab75e1b1aec53f498f3d2cffefcc434149c6813b84fce41a3f38",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/editorial/sportzz-photo-stadium-atmosphere-16x9-640w.webp",
+      "bytes": 75052,
+      "sha256": "a7f9282734d4d67a4d3f4e9cbabad97d956a0caa6ebe1c8777480569f564ed0e",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/editorial/sportzz-photo-stadium-atmosphere-16x9-master.png",
+      "bytes": 8276802,
+      "sha256": "f1414ba240a62383d4e3b4ba484739b0ac6c280bb162b9da32050102df56da67",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/editorial/sportzz-photo-stadium-atmosphere-16x9.webp",
+      "bytes": 645418,
+      "sha256": "bc8cfbde7f361bd8cb03e852c8e6375f32a4026a0cf3c914cebd8a1c9696758c",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/hero/sportzz-photo-hero-athletics-16x9-1280w.webp",
+      "bytes": 102000,
+      "sha256": "ef8a4ea2d028e5ed288d82faaf84f4ebffe5855cd03514e00732204d522a08fa",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/hero/sportzz-photo-hero-athletics-16x9-640w.webp",
+      "bytes": 36906,
+      "sha256": "5ee8b025f8d597e8d6fce7137804c5a38fd72e13e2a27fa9aca21b6a391ccbee",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/hero/sportzz-photo-hero-athletics-16x9-master.png",
+      "bytes": 6909211,
+      "sha256": "8a57839112ddc4b16579946436cdabbc2816c7e91c03f0382f75b5e43710bdb9",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/hero/sportzz-photo-hero-athletics-16x9.webp",
+      "bytes": 434528,
+      "sha256": "bd4491120c18b227f025bf4d632ca3969a63e91aa7a1938528eaa3acb7fdccdc",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-basketball-action-16x9-1280w.webp",
+      "bytes": 137684,
+      "sha256": "3263bf09ce1a504259752bf2ec20b608f239f3ca1864f59bbde86e3898b8bf24",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-basketball-action-16x9-640w.webp",
+      "bytes": 55666,
+      "sha256": "3c19e31b4ae343b37143370deb5ba473ac542fec5ee7369f7d8682fbf28cba8f",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-basketball-action-16x9-master.png",
+      "bytes": 6935896,
+      "sha256": "36e7dc25406f5119c0ec6a6ef668a37e1c43837d43978312c07ab8dc8615a3eb",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-basketball-action-16x9.webp",
+      "bytes": 340326,
+      "sha256": "f3ecb77c413687da8fde16968eb4eb8bd88a7840690e49835d4d91c8fcad7f90",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-cycling-action-16x9-1280w.webp",
+      "bytes": 195318,
+      "sha256": "217c0a67a93a800adf5716fe3f6787e047ee8c6691f913620f49fb893ba9fec7",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-cycling-action-16x9-640w.webp",
+      "bytes": 70280,
+      "sha256": "78ef5898b8875bb569376c486219d29134efecc1ceab3c8a48de482552be9493",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-cycling-action-16x9-master.png",
+      "bytes": 7357846,
+      "sha256": "75d60c3dc5e936f341043c86936aa40c289fc9d2880be69b4d0cc41c95baadc1",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-cycling-action-16x9.webp",
+      "bytes": 455602,
+      "sha256": "2c5b8591a5c1a51bc1ebd7fa48ea727942530df5bf00023ea2f8b82d11d39bd2",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-football-action-16x9-1280w.webp",
+      "bytes": 163198,
+      "sha256": "ab46ce1c9c545adea7b3ac8d88b452391b66bac613dfd3b3ff88dcc74b61c8f0",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-football-action-16x9-640w.webp",
+      "bytes": 56946,
+      "sha256": "b3a3eab49846218fcc13671107cbc304f32a26864e22af46f59e0e78fe7ce047",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-football-action-16x9-master.png",
+      "bytes": 7754379,
+      "sha256": "ce26c828455736e25b71ff98d3bd830a8d8f9c7ace149f47540fb299e875bf1e",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-football-action-16x9.webp",
+      "bytes": 488924,
+      "sha256": "f92076cce1970e5e666c198b5d3ef958e34fda11da4d16c7450d136e7e6bc270",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-motorsport-action-16x9-1280w.webp",
+      "bytes": 120510,
+      "sha256": "45c3a2906c840c2fe3c96f8085494e507f85dbabbfedb9d4397ddc42c7fd63a8",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-motorsport-action-16x9-640w.webp",
+      "bytes": 47806,
+      "sha256": "a036b60dfecf6aad55853b4758c7ac08d00b586152e31d7c5140bcf0c5998a62",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-motorsport-action-16x9-master.png",
+      "bytes": 6420285,
+      "sha256": "9c23597cb862bddd2c768450598f56a54f1f6b5e677bbd997fb22897d52ccf6a",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-motorsport-action-16x9.webp",
+      "bytes": 240664,
+      "sha256": "c8667bfe295f4b8e6f8f4e9519e0b8b46c52529c526cdacc43f67faa70478fb1",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-swimming-action-16x9-1280w.webp",
+      "bytes": 169180,
+      "sha256": "0c09b4bcff62aaf2421e058d269a21a4532d273669a4bd25fe2fed6b41493230",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-swimming-action-16x9-640w.webp",
+      "bytes": 58596,
+      "sha256": "b155d52228bc7aa5b57f04abc425b8ebec12ee24564b0e57497fa07d947de5b1",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-swimming-action-16x9-master.png",
+      "bytes": 7609124,
+      "sha256": "0d9d5772cdf9330b276fd7ca84c7ade57070d303b87744a816215337e0d893c2",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-swimming-action-16x9.webp",
+      "bytes": 481278,
+      "sha256": "9140021e815f26f7b4859207d9c00adaf21c349418d77e3c0f1334c775cb8e79",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-tennis-action-16x9-1280w.webp",
+      "bytes": 50586,
+      "sha256": "19d48469fb29d34b25e1be9b4d20b1f8f9e5a28b84ca6dfbab02faf20106017d",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-tennis-action-16x9-640w.webp",
+      "bytes": 18208,
+      "sha256": "2cc2e73285310a91322a08cb0312bfcf010920ca3c38a1c84cb15fea82cc9e7a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-tennis-action-16x9-master.png",
+      "bytes": 6407865,
+      "sha256": "6df7572b8cd77223e3abfa2916c2090f7223678a77ba9a00b73db6bfdb0995bf",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/photography/sports/sportzz-photo-tennis-action-16x9.webp",
+      "bytes": 188454,
+      "sha256": "5c2d91fe9e1853ed66bc23f8125b490297d42c4b9a9fc37171a25084b0653837",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-catalog-desktop-1440x900.png",
+      "bytes": 1034761,
+      "sha256": "2a73e90fc8f8cf3a3fb602e730ff95712f131d3e987ccce35137de7ea4b68c88",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-catalog-icons-desktop.png",
+      "bytes": 55022,
+      "sha256": "d965839695b8fc03c5a82eeed6189e014fd573751507802f15e59288797d9d9f",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-catalog-mobile-390x844.png",
+      "bytes": 291817,
+      "sha256": "8d9252f6f7f4ae4bb35879efd4a184d942716713b6bdcfc8d6ad6a1f50bf843b",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-graphic-01.webp",
+      "bytes": 1858,
+      "sha256": "cba19709aa9cbddc40c17f6c503917e150a6d4faf843724650c2c5e0f437ac71",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-graphic-02.webp",
+      "bytes": 4064,
+      "sha256": "b6452d40fc0191125fe71dfbf8b611e152750ed6b436d3fdebaa0ea475ec4dd3",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-graphic-03.webp",
+      "bytes": 726,
+      "sha256": "c91c48811974c4867468644b597498dd2a2eb3dac179118aa5780010ce00aed7",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-graphic-04.webp",
+      "bytes": 16700,
+      "sha256": "2b527791c9d5a684a1292468169680b444f952fb482e0017c4be285e37e50c7d",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-graphic-05.webp",
+      "bytes": 3272,
+      "sha256": "71c65f30f71485505f9fdcc514aa2ce946aacdc44b6c8e6b4fc3f4e119bb413b",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-graphics-contact-sheet.webp",
+      "bytes": 46520,
+      "sha256": "e15cc0d386e78623289c8d09f89eeac846074484d4d675c9ae94ab441167401a",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-actions.webp",
+      "bytes": 14804,
+      "sha256": "a519aa7c3a2ececbc255d79a08722d368e0bf7fc06adfdb98594de95a817bfce",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-contact-sheet.webp",
+      "bytes": 63604,
+      "sha256": "1dd070811efb51523e2980366c8382fb331c073037de1703d9e1ec1b786a8fb9",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-data.webp",
+      "bytes": 13278,
+      "sha256": "2d05c1a73bdb0dbaf38b2e6a99700b5ba7260df21abd09b78be1ae121df5979b",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-media.webp",
+      "bytes": 11160,
+      "sha256": "c3cb79478ffa8a487315b53f40dbe9679a5de14a9f9e8b465c5a01b2b23473f5",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-navigation.webp",
+      "bytes": 10330,
+      "sha256": "5be3376f99171edd8156491cfdfc6fc0bcc917aa1163e80aae5c4516845c1e12",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-sample-5.webp",
+      "bytes": 4708,
+      "sha256": "b70078f74812980baafec6a720208583afa9fd7d75841e866b8ac515990f5cd7",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-size-review.webp",
+      "bytes": 173276,
+      "sha256": "1adc8ae73e5b259da6e0bcb93c74676bc70e94e8eaf9a936ce70da37edef1e8e",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-icons-status.webp",
+      "bytes": 9814,
+      "sha256": "a83396211011706add612e1f809a4fca8d809e9b5178d5cba83c00ea4d6ae197",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-mockups-contact-sheet.webp",
+      "bytes": 83398,
+      "sha256": "df2b50dd9984b38f695d70c79b2929def8fa9c25c36c65bfe103100b62a5b3fb",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-preview-photography-contact-sheet.webp",
+      "bytes": 353964,
+      "sha256": "1b669ed71a5c3e34211f6f003a7ff67194657046cac230fe36a06232d91434cd",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-review-mockups-initial.jpg",
+      "bytes": 211587,
+      "sha256": "0165cd57db3c3838fd2170a28a5c70e85a5c0bd893064379c05823d45ad7b8c3",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "assets/magnific/previews/sportzz-review-photography-initial.jpg",
+      "bytes": 468411,
+      "sha256": "5c45ff4e29c822abab525b8fd3d668fa181ed788fd36c958630977433ac394d2",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "index.html",
+      "bytes": 34589,
+      "sha256": "19f9662460c71212535324a5f2158f9fa9388582c34afbfbf75f9c830ee2fa8a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/magnific-references/sportzz-mask-physical-kit-cleanup.png",
+      "bytes": 6821,
+      "sha256": "4b103cc167662e6fc6cf2b272374d1a8397b9a802d6c626317de3b81141d3db5",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/magnific-references/sportzz-reference-graphic-directions.png",
+      "bytes": 21968,
+      "sha256": "61ef24c5c083d593adf219080952233a9e4c673e55895671df538baf50d6ff4e",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/magnific-references/sportzz-reference-graphic-directions.svg",
+      "bytes": 16783,
+      "sha256": "0a5f0d272afd6cd35b2dd9925b1398c1936d3b4ef54e2135b9faa3a43f712647",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/magnific-references/sportzz-reference-signal-icons-sample-5.png",
+      "bytes": 57000,
+      "sha256": "24362dd1902fd29d7998ffbcf5baf9c4d48144e42561d18b50fb50ea6c8d9380",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/magnific-references/sportzz-reference-signal-icons-sample-5.svg",
+      "bytes": 15827,
+      "sha256": "f9fafd2ff1bdf590bb69887e8f8f9e553a411831464aa6939bb5f1baff2169c3",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/rejected/sportzz-mockup-desktop-monitor-16x9-master.png",
+      "bytes": 5642765,
+      "sha256": "a5aa157648f3ddba6dcf7f0f835316388addeb11e061379baa77f0b4304420de",
+      "role": "rejected-reference-never-production"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/rejected/sportzz-photo-tennis-action-16x9-master.png",
+      "bytes": 6276508,
+      "sha256": "14dec6674d7aa7e33bb71c3cf2177869c1fb77722d9f15ddd9d1e4cd38c096e1",
+      "role": "rejected-reference-never-production"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/scripts/build_icons.py",
+      "bytes": 10527,
+      "sha256": "c43366e98f880c66a89241125a2e93ee3f281a5bc36b8e70b57957dbf7ee4fdf",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/scripts/build_library.py",
+      "bytes": 25132,
+      "sha256": "44ccc89f9df221fe223ff25a8a0a75eefb79897be1e5cd53c3a67781a6aadee5",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/scripts/package_library.py",
+      "bytes": 6480,
+      "sha256": "48d0a35b652fc3c7e8f98ed880c5590ef2b820845d46ad010fd149b52d829c3a",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/scripts/production_spec.py",
+      "bytes": 14730,
+      "sha256": "2b462ca8e32aacd229c0dd9bcdf8bc6a81db2eebf9aa268e911e8381c9bf0e43",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/scripts/requirements.txt",
+      "bytes": 96,
+      "sha256": "2f3753f7a3683402cfc1bb694f21c055891669bb6a09a1bb93d1a82909f3d08b",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/scripts/validate_library.py",
+      "bytes": 10178,
+      "sha256": "d67a919ec42e9bd5da18f312d8dd54595f1d1b3a6561480d5726736a6db4e98c",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "README.md",
+      "bytes": 7126,
+      "sha256": "cec8d5448d1936b1ea595775d50a02286b64946ff8856d37e2230b7ae9275915",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "file-manifest.json",
+      "bytes": 10170,
+      "sha256": "b06baa8cd0355b3fe22043f2d59ca8c592c70b48f6c80ed2ccd34abe16caf3e5",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "generation.json",
+      "bytes": 9867,
+      "sha256": "ced6618bd6f11106aeb630615efcc9acf71ca40d873bd8205fe2d8397c60e709",
+      "role": "documentation-or-provenance"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "index.html",
+      "bytes": 3260,
+      "sha256": "dfdb1687a1ac2a646b8ced203799e8b5906bb28c4abf33384a0b2e9becf34420",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-brand-promo-storyboard.webp",
+      "bytes": 140116,
+      "sha256": "2f72bf7787159669e5edc582ce854316f044cf727c8967e741cea0668e1a8985",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-000.jpg",
+      "bytes": 15028,
+      "sha256": "df1c9495765a25ab9fe429199855ecf8589bd892fd4f5e2bf831a0ad433be463",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-012.jpg",
+      "bytes": 175164,
+      "sha256": "f685b2c14bf5a976960750a9dcf638c860b6f9ccd81afcb4a5236d931af734d9",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-026.jpg",
+      "bytes": 138056,
+      "sha256": "03646f2063cbbc458556fa00c7cf88776adb24d4f4bfd96936b26a4ad7110b90",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-040.jpg",
+      "bytes": 90902,
+      "sha256": "d918554a325e2d41e665b57a856525f0d58d1518fb55d0fcd7846296bcb2e6df",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-055.jpg",
+      "bytes": 173332,
+      "sha256": "d18b4641c2c5097ad9276d2b18a02a6e64e632dd2dc95ef0394ef600563a8e17",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-070.jpg",
+      "bytes": 114463,
+      "sha256": "c0a4d90f563889a70e24e2b10b9cddc6a8cab1cbd077b0298f217f3cac854860",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-084.jpg",
+      "bytes": 142452,
+      "sha256": "96a30529ad7bdbd2019d41f3bef6e23dbc90d5ef5ab75fd13952b61ed64f8efb",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-102.jpg",
+      "bytes": 120304,
+      "sha256": "48f6b8bdca62570fc7ae2d5cc2760fa55cfcacd147988cb8d6a201917a50ab3b",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-119.jpg",
+      "bytes": 125507,
+      "sha256": "4bddc02b844b7cdde93afd0c9317985864f7e6de7c141bd7e638b87d8aa8e8e7",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-140.jpg",
+      "bytes": 126328,
+      "sha256": "18be212c45ee25bba647899cb8bf03c9009f0da49785096738a537aad4de75a7",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-160.jpg",
+      "bytes": 128173,
+      "sha256": "999383e3bdd995f07597b068401e03c769726d03db9e44e5667add77fb45b50b",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-174.jpg",
+      "bytes": 26275,
+      "sha256": "3c24e07af122b96de93af59ddb670f7d23fc756fe4e7b97250b62429f58c5a4f",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-190.jpg",
+      "bytes": 50038,
+      "sha256": "3e9400e1fd6fa4bb7f630257be14afc5745229b539843cab660526166a0b4cf1",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-211.jpg",
+      "bytes": 61207,
+      "sha256": "5b6ffb31c53145351df8ee05549615e8192977450a303af2cbf96f1bd6f29f44",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-228.jpg",
+      "bytes": 61143,
+      "sha256": "5971dec25318c3f9b50efa94475a196003a47248f8a6b5d81cab7dcaa05135eb",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-frame-239.jpg",
+      "bytes": 61096,
+      "sha256": "3edebf67656b44a0f8e3377e4de9cbc3233e7ec6f346fa9878ad347020423bc2",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-review-desktop-1440x900.png",
+      "bytes": 125470,
+      "sha256": "3339437221f4cc6d01c07b7231df450567cdb38b2fe012b80ead03d468535e81",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-promo-review-mobile-390x844.png",
+      "bytes": 61637,
+      "sha256": "2ba116c80b38b71cf3088013f42884ec3e1cd75febd81dddd5e778ef69ebe955",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-video-player-brand.png",
+      "bytes": 82960,
+      "sha256": "b8d4006fc29faf6fece3bd24b46e4801c07514629f6c6a0f62b75c695b820c08",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-video-player-experience.png",
+      "bytes": 238284,
+      "sha256": "d3e7cda7abf8bc91b62d05bfb945dc0fa9e1206d2e5b18c8f3e71e63ab4529a0",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-video-player-sports.png",
+      "bytes": 488994,
+      "sha256": "677efb1e52e409954263d580ac118ce42f685282bf00509317544890b2ada68b",
+      "role": "review-preview"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/audio/sportzz-audio-loudness-measurement.txt",
+      "bytes": 19450,
+      "sha256": "f4f0bf793f7f5155a4c847e088007b9f56204f781989b3ac9c1c0a7945fd9013",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/audio/sportzz-final-mix.wav",
+      "bytes": 1920078,
+      "sha256": "0da15fecc3054cd0020714cfbe5b0ba3bee285e0e848afdf5e49ae9efb8ff0ca",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/audio/sportzz-music-sfx-timeline.wav",
+      "bytes": 1920044,
+      "sha256": "e3102bf00cd0ec6594a25fd23507b06be99d6e69aa478f2cbb9bdd0534531ce2",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/audio/sportzz-voiceover-es-original.mp3",
+      "bytes": 122505,
+      "sha256": "be1fde62e6df2e8cadb1ab21973128e13aeff564ea3ff25dec09ae56c31eb20d",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/audio/sportzz-voiceover-es-timeline.wav",
+      "bytes": 1920044,
+      "sha256": "4347507d1519af0ae2f4e74d3fcdec8fc689a134ef18b8ddcb4bcec4027cf3b8",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/brand/isotipo-verde.svg",
+      "bytes": 864,
+      "sha256": "c1a23d8347b0c7db6e79030cea121f863c1b2f195ef56d318909e3168e49febb",
+      "role": "construction-source-or-reference",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/isotipo-verde.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/brand/logotipo-blanco.svg",
+      "bytes": 1722,
+      "sha256": "b89a030607fa37a4a595389e4f4d7323a23445452616dd30250c797ef55b88be",
+      "role": "construction-source-or-reference",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/logotipo-blanco.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/fonts/BarlowCondensed-Bold.ttf",
+      "bytes": 109912,
+      "sha256": "e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/fonts/Inter-Regular.ttf",
+      "bytes": 509312,
+      "sha256": "8631cb40bf562c0d2b91281b7310f93ec124cf1bf4da7434fde349e086d7942c",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/fonts/Inter-SemiBold.ttf",
+      "bytes": 510620,
+      "sha256": "c0c0230be9bb7df8cbc3c2d1004d2013a372e12451acf84f03f33fa35b0e9c2c",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/fonts/Inter-Variable.ttf",
+      "bytes": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "role": "construction-source-or-reference",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/inter.ttf"
+      ]
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/fonts/licenses/OFL-Barlow.txt",
+      "bytes": 4377,
+      "sha256": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/fonts/licenses/OFL-Inter.txt",
+      "bytes": 4377,
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/scripts/finish_delivery.py",
+      "bytes": 9500,
+      "sha256": "c01dc404b9764c5f60a77513e64da0c748f3bc9d6f285516a938bdbab20fca5b",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/scripts/generation_record.py",
+      "bytes": 5587,
+      "sha256": "d775791ac5c7320f1f10594d3470708ad179d7f15e67ca5f2b5b68ba25d870ff",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/scripts/render_promo.py",
+      "bytes": 14881,
+      "sha256": "2102a91def159d8540a083960e9adb04bda8a9e5c4c4bcf70aebf45874e64ab3",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/scripts/retouch_source.py",
+      "bytes": 4493,
+      "sha256": "fdfc618053274d92da1577068348725566abc3b1fc32c556bf549a622a2036ed",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/screen-tracking.json",
+      "bytes": 366,
+      "sha256": "30001537624268a59640ef58645191f657b21fa76a8411cf1081bc9811a2c5af",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-concept-ui-authored.png",
+      "bytes": 496483,
+      "sha256": "9ad908301ee5653eedbbff3f98a485326e0079fa9a142555e4c9df658fca3168",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-retouched-picture.mp4",
+      "bytes": 2678387,
+      "sha256": "a9f321bbe1fa66edf204e8980b18caed641339f261214e0882f0468819fbc7ad",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-shoe-retouch-log.json",
+      "bytes": 1536,
+      "sha256": "63c932f98967b3813e4f5c98b6267d0069d658943576cee5362303e7c5b0815d",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-shoe-retouch-reference-mask.png",
+      "bytes": 4201,
+      "sha256": "1cf900095638152c26f8a90ea82f5c9edff1c3b0cfe879b384890ca89a65709f",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-ui-category-basketball.webp",
+      "bytes": 340326,
+      "sha256": "f3ecb77c413687da8fde16968eb4eb8bd88a7840690e49835d4d91c8fcad7f90",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-ui-category-football.webp",
+      "bytes": 488924,
+      "sha256": "f92076cce1970e5e666c198b5d3ef958e34fda11da4d16c7450d136e7e6bc270",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-ui-category-tennis.webp",
+      "bytes": 188454,
+      "sha256": "5c2d91fe9e1853ed66bc23f8125b490297d42c4b9a9fc37171a25084b0653837",
+      "role": "construction-source-or-reference"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-10s-clean.mp4",
+      "bytes": 1824690,
+      "sha256": "3530751d3cb1d0fee940dc2b0cace529a6155670947e058908dc88ce0278bc54",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-10s-master.mp4",
+      "bytes": 3449042,
+      "sha256": "aaa6f8df24959b693de6b1dd74fea3bb7ee362e5150f56fcd7935c6c973067eb",
+      "role": "master"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-10s-silent.mp4",
+      "bytes": 1701193,
+      "sha256": "821aebf958e5b89aaa6724f7768b56014faeff3e8cfb9d0e2e56f264cadc43ce",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-10s-web.mp4",
+      "bytes": 1595004,
+      "sha256": "3e93d36b77f53da308ab9e94ae135f2a4f168e1e9ad3b31725132f5ce2cf97f4",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-10s-web.webm",
+      "bytes": 1311325,
+      "sha256": "e29e5d626cc0bc562cb14d2b4a015bc9f76b07da05f25ffb3a797592558b3f2a",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-poster.webp",
+      "bytes": 25350,
+      "sha256": "ba067c75029eeb9d688c00fac67301c27745dd688cca2d3ae30962c9421c50de",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-storyboard.webp",
+      "bytes": 140116,
+      "sha256": "2f72bf7787159669e5edc582ce854316f044cf727c8967e741cea0668e1a8985",
+      "role": "asset"
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-logotipo.svg",
+      "bytes": 1722,
+      "sha256": "b89a030607fa37a4a595389e4f4d7323a23445452616dd30250c797ef55b88be",
+      "role": "asset",
+      "identical_existing_paths": [
+        "docs/design/ux-review-314/assets/sportzz/logotipo-blanco.svg"
+      ]
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "validation.json",
+      "bytes": 2906,
+      "sha256": "f9350c3c36c85414dab6d53838ea099a5666274137650f8f28b85dddf464b0ed",
+      "role": "documentation-or-provenance"
+    }
+  ],
+  "excluded": [
+    {
+      "collection": "zztream/manual-v1",
+      "path": "zztream-kit-identidad-v1.zip",
+      "bytes": 20074185,
+      "sha256": "6f4013fe4c0f687322707c3f0c94028dbf230f73ed8a07ea4acfb7f94b0a651e",
+      "reason": "Duplicate archive; canonical contents included. Rebuild with tools/package.py."
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sources/scripts/__pycache__/production_spec.cpython-312.pyc",
+      "bytes": 14990,
+      "sha256": "581506eeb4b0f32f650f391e0e8a749a31ab20b1b84c52e31bcddf91c4089fa2",
+      "reason": "Intermediate/cache/runtime file; not a deliverable."
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sportzz-visual-assets-collection-1.0-complete.zip",
+      "bytes": 151511918,
+      "sha256": "556e92559b1cefd52015cccfb500480cf7bb653a62da8af5b967a0baa3e2e98f",
+      "reason": "Duplicate archive; canonical contents included. Rebuild with tools/package.py."
+    },
+    {
+      "collection": "sportzz/visual-library-v1",
+      "path": "sportzz-visual-assets-collection-1.0-web.zip",
+      "bytes": 11557532,
+      "sha256": "514b2928d7a4c629977ab6f32b21431c4c74bb436965fb34869dc444b692f5c9",
+      "reason": "Duplicate archive; canonical contents included. Rebuild with tools/package.py."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-003.jpg",
+      "bytes": 191267,
+      "sha256": "d194dae853cf523ca1f862f6edbcc1d63def29c7d35289719674c80742465532",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-005.jpg",
+      "bytes": 178582,
+      "sha256": "cc2d7e902a9a8e18ad82fe94a6f620588c045162e924f9dfcfc21fcea3b85b26",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-007.jpg",
+      "bytes": 175663,
+      "sha256": "f6902667e1203f1808a9caeac234e2135ce89a7a5cc5d97ce1dc8f74ef78acdc",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-009.jpg",
+      "bytes": 186969,
+      "sha256": "127ea2059d4aac7c8eae7396009a098914cf088c3f4cbbf5f5343357f0d356b6",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-011.jpg",
+      "bytes": 196671,
+      "sha256": "97b66c91fc45603166476c96139a9a09d8b119da679dff669778bb440f221810",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-013.jpg",
+      "bytes": 190314,
+      "sha256": "f7c0d81bae109743cc326a9348126469868b63ff4ded8f599b114e8ce1facf15",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-015.jpg",
+      "bytes": 183518,
+      "sha256": "1102ede7d99996ddfbb2b1883712041148a51b5a1f33c5cc6a36950fd5bc58eb",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-017.jpg",
+      "bytes": 120804,
+      "sha256": "73c2bef0f499424f418802cfc7190b8a21498fa5d413095e4acaaa1d1fdef4d8",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-019.jpg",
+      "bytes": 128606,
+      "sha256": "e56d93b93f3db75d41b09eac1a40e38634040536d662b108113ce4b931657d4f",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-096.jpg",
+      "bytes": 67833,
+      "sha256": "48d9744e7a6ecbde325661afff822009673528c43a8d3977a4d63f4473f45f83",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-108.jpg",
+      "bytes": 67921,
+      "sha256": "758f740bd27275efdd301c53257e429a532c30c33ffb4bb9b4f0c19c4aa79455",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-120.jpg",
+      "bytes": 66973,
+      "sha256": "0a1760c86677caa5d2527a445a77b561ad48bf5f24222ca38e6391353dd19385",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-132.jpg",
+      "bytes": 67124,
+      "sha256": "92be8ac36952b57fea66aa4253306e023ff609591b3ad49b726fa5e78e4786f2",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-144.jpg",
+      "bytes": 65393,
+      "sha256": "1193dbc7b2701dbda13ca0dbfcf77ff946bb821c5de774668f3d8db0983530bb",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-156.jpg",
+      "bytes": 67063,
+      "sha256": "698c09cd7eaf83d531afdf942fb02c74941f1f33b3363a8fb0ee2d4e80f917ef",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/calibration-167.jpg",
+      "bytes": 71146,
+      "sha256": "89767a5c87b176adb3f5d9a881272722c9d4d2a05616841908ddd24264b85014",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/shoe-source-grid.jpg",
+      "bytes": 227994,
+      "sha256": "f5dc0dd66e387e376afb4388e78b3e1987b43f70405da224b2764cfda33a2c2b",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-0.00.jpg",
+      "bytes": 16416,
+      "sha256": "d0b038bad2b5ebfcb8a59ebbd55083241e0021bf49e867ce7f858791fbfa7aa7",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-0.40.jpg",
+      "bytes": 174368,
+      "sha256": "7b281e4cf173d8f1488eb0795954de36045570b41c67077dab0348b361f25bd1",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-0.90.jpg",
+      "bytes": 119402,
+      "sha256": "f5a5dbf65c3dd7971b32a4926d2faf8082de2dda76aa38e38923bac15ac0d866",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-1.45.jpg",
+      "bytes": 71276,
+      "sha256": "9a56dbb8e21b0302076681fa16e3467185c56226ae936ce309b8f9406ece9ce4",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-2.15.jpg",
+      "bytes": 165611,
+      "sha256": "b35ae53a044528c921ae89d544243e848620107b090a810b5346dd6996026c40",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-2.65.jpg",
+      "bytes": 108050,
+      "sha256": "98d83b1843a4bdbeeab7f72dfdad1a30e17c9b3d9f3370d8f3ce744e0172f8c7",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-3.15.jpg",
+      "bytes": 124737,
+      "sha256": "70b866015e7189651d720eb6e413211fce4c2c64d7ab0996e93a850d2a7205d4",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-3.65.jpg",
+      "bytes": 133689,
+      "sha256": "254bb0dbd760d2333db5b6dc00cb947bf0059cb486e79cad7c8724a77baf21fb",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-4.15.jpg",
+      "bytes": 60235,
+      "sha256": "2a794e2aa699e3966772b4504ee1f1b32068977e5771966cd2de28d0da992a23",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-4.70.jpg",
+      "bytes": 60629,
+      "sha256": "6d98e387f854e7b8e4e505711628d29977e1bd0ec5ddd6e50617a2dd2c6bf0e6",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-5.30.jpg",
+      "bytes": 62068,
+      "sha256": "ff51a5988f521aed7d2cb85078ec9598ffa8b8ff722d69ed6513fb1f4dea7ff0",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-5.90.jpg",
+      "bytes": 60503,
+      "sha256": "2759a0f810981c86d5a7ba223ed1d56d5884861aafabd6a659d0e112e362de97",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-6.50.jpg",
+      "bytes": 60933,
+      "sha256": "7ea30e1e5128528a1affd1b0f34b395113e4c93319339373333e353069ab45e3",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-7.10.jpg",
+      "bytes": 62769,
+      "sha256": "e933ef3ee7ad869216c27ff4a1905c7ce1696026f40d7bc5761de1bd0eb3c4df",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-8.20.jpg",
+      "bytes": 16868,
+      "sha256": "b403312a5e7c9f5ccdc2a0cdaef3d480e6070a8afa53de4f5cb7931947291ca6",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/source-frame-9.40.jpg",
+      "bytes": 16874,
+      "sha256": "fcb0997d13bdfd459701fe4bbd0d954c5eb0a24d9b67d160d332d4056ef53738",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-retouched-shoe-005.jpg",
+      "bytes": 155188,
+      "sha256": "9ab7032afa0db57acc2c3e07398bc25847e152215d8ad8ef3940e89bd582c315",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-retouched-shoe-007.jpg",
+      "bytes": 153069,
+      "sha256": "2ba8a2162b6d98021fc673e1bc3a892d5aea2dd59493251022444cfa67ff545e",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-retouched-shoe-009.jpg",
+      "bytes": 162110,
+      "sha256": "f288e597216f1dbfcf23eebbd6d931c63f329986bc578d3f1819ecdc930d3054",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-retouched-shoe-011.jpg",
+      "bytes": 170228,
+      "sha256": "f76c9132d1848f9fe225a41f0eca2835d79b27fa7b9e2665d40a43fa0f5921ce",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-retouched-shoe-013.jpg",
+      "bytes": 165855,
+      "sha256": "a8258a32b259af50f958be581c2f48c9281da12636346e009dc34fe67f5ccbde",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-retouched-shoe-015.jpg",
+      "bytes": 162234,
+      "sha256": "2b2e880255a7e8040e9b6d6003b6d127dd80f3d6ad6900cf5c38436d6db543ad",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-retouched-shoe-review.jpg",
+      "bytes": 181571,
+      "sha256": "9ad6a808f3525d2280345d0154417919118a0758bed99889c1027316bebe1f07",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "previews/sportzz-source-review.jpg",
+      "bytes": 247292,
+      "sha256": "e6d90d567556c4f58891f218d3a9c75977a0227d030e8bdfc3063a64f761868c",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "source/video/sportzz-generated-source-preview.mp4",
+      "bytes": 1115823,
+      "sha256": "b3a174a8d294a2ddb0c6742004b0e5a1e93afdee35331f9b3460715031fc2c81",
+      "reason": "Unretouched source or editing/calibration preview excluded by the supplied final-delivery manifest."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "sportzz-brand-promo-10s-delivery.zip",
+      "bytes": 21327912,
+      "sha256": "7fcfad8955cdda8786d84cde51941a1e6ca7700bac5179035730c84273851ce0",
+      "reason": "Duplicate archive; canonical contents included. Rebuild with tools/package.py."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "work/mix-pre.wav",
+      "bytes": 1920044,
+      "sha256": "9e03fe5b9bb7a7eafb3d64bcd931e0846fd156f65b82431e6474ccba77aec475",
+      "reason": "Intermediate/cache/runtime file; not a deliverable."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "work/native.wav",
+      "bytes": 1920078,
+      "sha256": "c883ef6e5ab5cb1571ee283c0096bb5fc4a937911d40aaba331f5c64f332659a",
+      "reason": "Intermediate/cache/runtime file; not a deliverable."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "work/sportzz-brand-picture.mp4",
+      "bytes": 3124078,
+      "sha256": "16b99bc6d1c4c4971c51289868a1a57c9963e67c1e6a4408b2607eeb7e28f9be",
+      "reason": "Intermediate/cache/runtime file; not a deliverable."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "work/sportzz-normalized-24fps.mp4",
+      "bytes": 2677045,
+      "sha256": "c56afa4ebf8aa3da9cc740b6c066fdef8b043bef743975f7630f02737c24bbf9",
+      "reason": "Intermediate/cache/runtime file; not a deliverable."
+    },
+    {
+      "collection": "sportzz/brand-promo-10s",
+      "path": "work/voice.wav",
+      "bytes": 1459278,
+      "sha256": "bf02ca7f9b66b4e3e4f6422b65ff805db497641f1413df606979f4b096d86410",
+      "reason": "Intermediate/cache/runtime file; not a deliverable."
+    }
+  ]
+}

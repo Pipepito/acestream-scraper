@@ -121,7 +121,7 @@ describe('ServicesPanel', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Restart service' }));
 
     await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledWith('acestream'));
-    expect(await screen.findByText(/Restart requested; the supervisor relaunches acestream/)).toBeInTheDocument();
+    expect(await screen.findByText(/Restart requested for AceStream engine/)).toBeInTheDocument();
     expect(screen.getByText('Restarting…')).toBeInTheDocument();
   });
 

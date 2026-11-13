@@ -45,3 +45,19 @@ Optional retention removes unprotected terminal recordings older than the config
 All bundled flavours share the pinned minimal FFmpeg build for amd64, arm64 and arm/v7. Capture needs MPEG-TS muxing, packet parsing and pipe/HTTP protocols; MP4 preparation needs the MP4 muxer, and browser audio needs the AAC encoder. No libx264, Matroska muxer or concat demuxer is required. Capability checks inspect the selected runtime binary before enabling capture or conversion.
 
 Native fixture validation does not establish Linux multi-architecture runtime qualification. Run the Docker FFmpeg tests and bounded source-failure/restart/storage-pressure scenarios on each supported architecture before enabling production DVR. ARMv7 engine support remains experimental; keep its concurrency at one until measured on real hardware.
+
+### Finding saved and upcoming recordings
+
+Recordings opens the Library, which shows finished recordings with a ready file.
+Upcoming and active contains scheduled, starting, recording, recovering and
+finalizing captures, ordered by start time. History includes finished, failed,
+missed, cancelled and deleted entries. Deleted or deleting entries offer no media
+playback/download actions. Search and status filters apply to the whole selected
+collection before pagination; the view, query, status and page are shareable URL
+parameters and survive opening Recording settings.
+
+Original parts retain their numbering when MP4 copies are added. Preparing an MP4
+or AAC audio copy asks for confirmation, keeps the original, and waits behind
+active capture. Removing protection also asks for confirmation: it makes a
+recording eligible for manual deletion and configured automatic retention but
+does not delete files immediately.

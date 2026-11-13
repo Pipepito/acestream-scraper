@@ -1,4 +1,9 @@
-import React, { useEffect, useId, useState } from 'react';
+import { useConfirm } from '../ConfirmDialog';
+import { useUnsavedChanges } from '../UnsavedChanges';
+import { translateKnown } from '../../i18n/text';
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   Alert,
   Button,
@@ -21,7 +26,7 @@ import {
 } from '@mui/material';
 import { useCreateMediaServer, useTestMediaServer, useUpdateMediaServer } from '../../hooks/useMediaServers';
 import { ApiError } from '../../services/apiErrors';
-import type { MediaServer, MediaServerKind, MediaServerTunerMode } from '../../services/mediaServerService';
+import type { MediaServer, MediaServerKind, MediaServerTunerMode, MediaServerProbe } from '../../services/mediaServerService';
 import { describeMediaServerError, describeMediaServerProbe, KIND_LABEL, type MediaServerNotify } from './mediaServerCopy';
 
 export interface MediaServerDialogProps {
@@ -39,6 +44,7 @@ const KEY_HELPER: Record<MediaServerKind, string> = {
 
 /** Add or edit one Jellyfin/Plex server, with an inline "Test connection" probe. */
 const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onClose, notify }) => {
+  const tUi = useUiText();
   const tunerModeLabelId = useId();
   const [kind, setKind] = useState<MediaServerKind>('jellyfin');
   const [name, setName] = useState('');
@@ -46,14 +52,25 @@ const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onC
   const [apiKey, setApiKey] = useState('');
   const [tunerMode, setTunerMode] = useState<MediaServerTunerMode>('hdhomerun');
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [probe, setProbe] = useState<{ severity: 'success' | 'warning' | 'error'; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ result: MediaServerProbe; kind: MediaServerKind } | { error: unknown } | null>(null);
+  const probe = feedback ? 'result' in feedback ? describeMediaServerProbe(feedback.result, feedback.kind) : { severity: 'error' as const, text: describeMediaServerError(feedback.error) } : null;
+  const [saveError, setSaveError] = useState<unknown>(null);
+  const [initial, setInitial] = useState('');
+  const opened = useRef<string | null>(null);
+  const action = useRef(false);
+  const { confirm, dialog } = useConfirm();
   const create = useCreateMediaServer();
   const update = useUpdateMediaServer();
   const test = useTestMediaServer();
 
   useEffect(() => {
-    if (!open) return;
-    setProbe(null);
+    if (!open) { opened.current = null; return; }
+    const identity = server?.id.toString() ?? 'new';
+    if (opened.current === identity) return;
+    opened.current = identity;
+    setInitial(JSON.stringify([server?.kind ?? 'jellyfin', server?.name ?? '', server?.base_url ?? '', server?.tuner_mode ?? 'hdhomerun', server?.auto_refresh ?? true]));
+    setSaveError(null);
+    setFeedback(null);
     setApiKey('');
     if (server) {
       setKind(server.kind);
@@ -71,17 +88,22 @@ const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onC
   }, [open, server]);
 
   const runTest = async () => {
-    setProbe(null);
+    if (action.current) return;
+    action.current = true;
+    setFeedback(null);
     try {
       const result = await test.mutateAsync({ kind, base_url: baseUrl.trim(), api_key: apiKey || undefined, id: server?.id });
-      setProbe(describeMediaServerProbe(result, kind));
+      setFeedback({ result, kind });
     } catch (err) {
-      setProbe({ severity: 'error', text: describeMediaServerError(err) });
-    }
+      setFeedback({ error: err });
+    } finally { action.current = false; }
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (action.current) return;
+    action.current = true;
+    setSaveError(null);
     const body = {
       name: name.trim(),
       base_url: baseUrl.trim(),
@@ -92,68 +114,75 @@ const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onC
       if (server) {
         // An empty key keeps the stored one — the field never shows a secret.
         await update.mutateAsync({ id: server.id, data: apiKey ? { ...body, api_key: apiKey } : body });
-        notify(`Saved ${body.name}.`, 'success');
+        notify(() => (tUi('Saved {{name}}.', { name: body.name })), 'success');
       } else {
         await create.mutateAsync({ ...body, kind, api_key: apiKey || null });
-        notify(`Added ${body.name}.`, 'success');
+        notify(() => (tUi('Added {{name}}.', { name: body.name })), 'success');
       }
       onClose();
     } catch (err) {
-      notify(
-        err instanceof ApiError && err.status === 409 ? `A media server named "${body.name}" already exists.` : describeMediaServerError(err),
-        'error'
-      );
-    }
+      setSaveError(err);
+    } finally { action.current = false; }
+  };
+  const busy = create.isPending || update.isPending || test.isPending;
+  const dirty = JSON.stringify([kind, name, baseUrl, tunerMode, autoRefresh]) !== initial || Boolean(apiKey);
+  useUnsavedChanges(open && dirty, open && busy);
+  const close = async () => {
+    if (action.current) return;
+    if (dirty && !await confirm(() => ({ title: tUi('Discard unsaved changes?'), body: tUi('Your changes have not been saved. Stay to continue editing, or discard them and leave.'), confirmLabel: tUi('Discard changes'), danger: true }))) return;
+    onClose();
   };
 
   const valid = Boolean(name.trim() && baseUrl.trim());
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" aria-labelledby="media-server-dialog-title">
+  return (<>
+    {dialog}
+    <Dialog open={open} onClose={() => void close()} fullWidth maxWidth="sm" aria-labelledby="media-server-dialog-title">
       <form onSubmit={(event) => void submit(event)}>
-        <DialogTitle id="media-server-dialog-title">{server ? `Edit ${server.name}` : 'Add media server'}</DialogTitle>
+        <DialogTitle id="media-server-dialog-title">{server ? tUi("Edit {{value0}}", { value0: server.name }) : tUi("Add media server")}</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack component="fieldset" disabled={busy} spacing={2} sx={{ mt: 1, mx: 0, p: 0, border: 0, minWidth: 0 }}>
+            {saveError != null ? <Alert severity="error">{saveError instanceof ApiError && saveError.status === 409 ? tUi('A media server named "{{name}}" already exists.', { name: name.trim() }) : describeMediaServerError(saveError)}</Alert> : null}
             <FormControl fullWidth>
-              <InputLabel id="media-server-kind">Media server</InputLabel>
+              <InputLabel id="media-server-kind">{tUi("Media server")}</InputLabel>
               <Select
                 labelId="media-server-kind"
-                label="Media server"
+                label={tUi("Media server")}
                 value={kind}
                 disabled={server !== null}
                 onChange={(event) => setKind(event.target.value as MediaServerKind)}
               >
-                <MenuItem value="jellyfin">Jellyfin</MenuItem>
-                <MenuItem value="plex">Plex</MenuItem>
+                <MenuItem value="jellyfin">{tUi("Jellyfin")}</MenuItem>
+                <MenuItem value="plex">{tUi("Plex")}</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              label="Name"
+              label={tUi("Name")}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              inputProps={{ 'aria-label': 'Name' }}
+              inputProps={{ 'aria-label': uiText("Name") }}
               fullWidth
               required
             />
             <TextField
-              label="Address"
+              label={tUi("Address")}
               value={baseUrl}
               onChange={(event) => setBaseUrl(event.target.value)}
-              inputProps={{ 'aria-label': 'Address' }}
+              inputProps={{ 'aria-label': uiText("Address") }}
               fullWidth
               required
-              helperText={`Address of ${KIND_LABEL[kind]} as seen from this server, e.g. http://192.168.1.12:8096`}
+              helperText={tUi("Address of {{value0}} as seen from this server, e.g. http://192.168.1.12:8096", { value0: KIND_LABEL[kind] })}
             />
             <TextField
-              label={kind === 'jellyfin' ? 'API key' : 'Token'}
+              label={kind === 'jellyfin' ? tUi("API key") : tUi("Token")}
               type="password"
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
               fullWidth
-              helperText={server?.has_api_key ? `Leave empty to keep the saved one. ${KEY_HELPER[kind]}` : KEY_HELPER[kind]}
+              helperText={server?.has_api_key ? tUi("Leave empty to keep the saved one. {{value0}}", { value0: translateKnown(KEY_HELPER[kind]) }) : translateKnown(KEY_HELPER[kind])}
             />
             {kind === 'jellyfin' ? (
               <FormControl>
-                <FormLabel id={tunerModeLabelId}>Channels reach Jellyfin as</FormLabel>
+                <FormLabel id={tunerModeLabelId}>{tUi("Channels reach Jellyfin as")}</FormLabel>
                 <RadioGroup
                   aria-labelledby={tunerModeLabelId}
                   value={tunerMode}
@@ -162,37 +191,36 @@ const MediaServerDialog: React.FC<MediaServerDialogProps> = ({ open, server, onC
                   <FormControlLabel
                     value="hdhomerun"
                     control={<Radio />}
-                    label="HDHomeRun tuner (recommended) — stable channel identity, favorites survive changes"
+                    label={tUi("HDHomeRun tuner (recommended) — stable channel identity, favorites survive changes")}
                   />
                   <FormControlLabel
                     value="m3u"
                     control={<Radio />}
-                    label="M3U playlist + XMLTV — uses tvg-id matching; any change to the address or link format recreates every channel in Jellyfin and drops favorites"
+                    label={tUi("M3U playlist + XMLTV — uses tvg-id matching; any change to the address or link format recreates every channel in Jellyfin and drops favorites")}
                   />
                 </RadioGroup>
               </FormControl>
             ) : null}
             <FormControlLabel
               control={<Switch checked={autoRefresh} onChange={(event) => setAutoRefresh(event.target.checked)} />}
-              label="Refresh the guide automatically when channels change"
+              label={tUi("Refresh the guide automatically when channels change")}
             />
             {probe ? <Alert severity={probe.severity}>{probe.text}</Alert> : null}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => void runTest()} disabled={!baseUrl.trim() || test.isPending}>
-            {test.isPending ? <CircularProgress size={18} /> : 'Test connection'}
+          <Button onClick={() => void runTest()} disabled={!baseUrl.trim() || busy}>
+            {test.isPending ? <CircularProgress size={18} /> : tUi("Test connection")}
           </Button>
-          <Button onClick={onClose} color="inherit">
-            Cancel
-          </Button>
-          <Button type="submit" variant="contained" disabled={!valid || create.isPending || update.isPending}>
-            {server ? 'Save' : 'Add media server'}
+          <Button disabled={busy} onClick={() => void close()} color="inherit">
+            {tUi("Cancel")}</Button>
+          <Button type="submit" variant="contained" disabled={!valid || busy}>
+            {server ? tUi("Save") : tUi("Add media server")}
           </Button>
         </DialogActions>
       </form>
     </Dialog>
-  );
+  </>);
 };
 
 export default MediaServerDialog;

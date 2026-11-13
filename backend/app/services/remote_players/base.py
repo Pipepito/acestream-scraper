@@ -36,6 +36,7 @@ class PlayerProbe:
     version: Optional[str]
     message: str
     hint: Optional[str] = None
+    reason: Optional[AuthErrorKind] = None
 
 
 @dataclass

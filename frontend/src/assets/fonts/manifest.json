@@ -1,0 +1,21 @@
+{
+  "source_design_commit": "de69e644428abe5d0e4149b4e437d37996c4b769",
+  "tool": "fonttools 4.68.0 with brotli 1.2.1",
+  "subset": false,
+  "fonts": [
+    {
+      "family": "inter",
+      "source_bytes": 876576,
+      "source_sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "woff2_bytes": 350408,
+      "woff2_sha256": "ed1c9a5c417983a85bc8ea6165619050aea49fe2ef8089cb6406ae634c30b656"
+    },
+    {
+      "family": "barlow-condensed",
+      "source_bytes": 109428,
+      "source_sha256": "7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9",
+      "woff2_bytes": 39188,
+      "woff2_sha256": "2424836f3972f0193c36a2edf377d35394e4d530acbd45a038a9da199e644cf5"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ from typing import Literal
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from pydantic_core import PydanticCustomError
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 EventState = Literal['unknown', 'scheduled', 'live', 'finished', 'postponed', 'cancelled']
@@ -12,6 +13,16 @@ EventSelection = Literal['agenda', 'dashboard']
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+
+
+class EventValidationIssue(StrictModel):
+    loc: list[str | int]
+    msg: str
+    type: str = Field(description='Stable Pydantic validation type or application EVENT_* reason code.')
+
+
+class EventValidationProblem(StrictModel):
+    detail: str | list[EventValidationIssue]
 
 
 def event_time(value: datetime | None, zone: str) -> datetime | None:
@@ -25,7 +36,7 @@ def event_time(value: datetime | None, zone: str) -> datetime | None:
                   if value.replace(tzinfo=tz, fold=fold).astimezone(timezone.utc)
                   .astimezone(tz).replace(tzinfo=None) == value}
     if len(candidates) != 1:
-        raise ValueError('Local time is ambiguous or does not exist; supply an explicit UTC offset')
+        raise PydanticCustomError('EVENT_TIME_AMBIGUOUS', 'Local time is ambiguous or does not exist; supply an explicit UTC offset')
     return candidates.pop()
 
 
@@ -46,7 +57,7 @@ class EventFields(StrictModel):
     def explicit_date_and_time(cls, value):
         if value is not None and not isinstance(value, datetime):
             if not isinstance(value, str) or not any(separator in value for separator in ('T', 't', ' ')) or ':' not in value:
-                raise ValueError('Supply a full ISO date and time, or null when unknown')
+                raise PydanticCustomError('EVENT_DATETIME_REQUIRED', 'Supply a full ISO date and time, or null when unknown')
         return value
 
     @field_validator('timezone')
@@ -55,14 +66,14 @@ class EventFields(StrictModel):
         try:
             ZoneInfo(value)
         except (ZoneInfoNotFoundError, ValueError):
-            raise ValueError('Use an IANA timezone such as Europe/Madrid') from None
+            raise PydanticCustomError('EVENT_TIMEZONE_INVALID', 'Use an IANA timezone such as Europe/Madrid') from None
         return value
 
     @field_validator('participants')
     @classmethod
     def bounded_participants(cls, value):
         if any(not name or len(name) > 200 for name in value):
-            raise ValueError('Participants must contain 1–200 characters')
+            raise PydanticCustomError('EVENT_PARTICIPANTS_INVALID', 'Participants must contain 1–200 characters')
         return value
 
     @model_validator(mode='after')
@@ -70,7 +81,7 @@ class EventFields(StrictModel):
         self.starts_at = event_time(self.starts_at, self.timezone)
         self.ends_at = event_time(self.ends_at, self.timezone)
         if self.ends_at and (not self.starts_at or self.ends_at <= self.starts_at):
-            raise ValueError('A known end must follow a known start')
+            raise PydanticCustomError('EVENT_TIME_ORDER', 'A known end must follow a known start')
         return self
 
 
@@ -88,20 +99,20 @@ class EventBroadcast(StrictModel):
     @model_validator(mode='after')
     def safe_input(self):
         if self.url and self.channel_id:
-            raise ValueError('Choose a stream URL or an existing channel, not both')
+            raise PydanticCustomError('EVENT_STREAM_CHOICE', 'Choose a stream URL or an existing channel, not both')
         if self.url:
             p = urlsplit(self.url)
             if p.scheme == 'acestream':
                 import re
                 if not re.fullmatch(r'acestream://[0-9a-fA-F]{40}', self.url):
-                    raise ValueError('Invalid AceStream ID')
+                    raise PydanticCustomError('EVENT_ACESTREAM_ID_INVALID', 'Invalid AceStream ID')
             elif p.scheme not in ('http', 'https') or not p.hostname or p.username or p.password:
-                raise ValueError('Use HTTP(S) or an AceStream ID')
+                raise PydanticCustomError('EVENT_STREAM_SCHEME', 'Use HTTP(S) or an AceStream ID')
             if any(ord(c) < 32 for c in self.url):
-                raise ValueError('Invalid source URL')
+                raise PydanticCustomError('EVENT_SOURCE_URL_INVALID', 'Invalid source URL')
         if any(k.lower() not in ('user-agent', 'referer', 'origin') or len(v) > 2048
                or any(ord(c) < 32 for c in k + v) for k, v in self.headers.items()):
-            raise ValueError('Only bounded User-Agent, Referer and Origin headers are supported')
+            raise PydanticCustomError('EVENT_HEADERS_INVALID', 'Only bounded User-Agent, Referer and Origin headers are supported')
         self.headers = {k.lower(): v for k, v in self.headers.items()}
         return self
 
@@ -115,7 +126,7 @@ class EventObservation(EventFields):
         if value:
             p = urlsplit(value)
             if p.scheme not in ('http', 'https') or not p.hostname or p.username or p.password or any(ord(c) < 32 for c in value):
-                raise ValueError('Artwork needs an HTTP(S) URL without embedded credentials')
+                raise PydanticCustomError('EVENT_ARTWORK_URL_INVALID', 'Artwork needs an HTTP(S) URL without embedded credentials')
         return value
 
     source_id: str = Field(min_length=1, max_length=160, pattern=r'^[\w.:-]+$')
@@ -129,7 +140,7 @@ class EventObservation(EventFields):
     @model_validator(mode='after')
     def unique_broadcasts(self):
         if len({b.id for b in self.broadcasts}) != len(self.broadcasts):
-            raise ValueError('Broadcast IDs must be unique within an observation')
+            raise PydanticCustomError('EVENT_BROADCAST_IDS_DUPLICATE', 'Broadcast IDs must be unique within an observation')
         return self
 
 
@@ -140,7 +151,7 @@ class EventImport(StrictModel):
     @model_validator(mode='after')
     def unique_observations(self):
         if len({(o.source_id, o.external_id) for o in self.observations}) != len(self.observations):
-            raise ValueError('Each source/event identity must occur once per import')
+            raise PydanticCustomError('EVENT_IDENTITY_DUPLICATE', 'Each source/event identity must occur once per import')
         return self
 
 
@@ -208,7 +219,7 @@ class EventInterests(StrictModel):
     @classmethod
     def bounded_names(cls, value):
         if any(not name.strip() or len(name) > 200 for name in value):
-            raise ValueError('Interest names must contain 1–200 characters')
+            raise PydanticCustomError('EVENT_INTEREST_NAMES_INVALID', 'Interest names must contain 1–200 characters')
         return list(dict.fromkeys(name.strip() for name in value))
 
 
@@ -306,11 +317,11 @@ class EventSourcePreviewRequest(StrictModel):
     @model_validator(mode='after')
     def one_source(self):
         if bool(self.url) + bool(self.source_id) + bool(self.provider_options and not self.source_id) != 1:
-            raise ValueError('Choose a schedule URL or a saved source')
+            raise PydanticCustomError('EVENT_SCHEDULE_SOURCE_REQUIRED', 'Choose a schedule URL or a saved source')
         if self.url:
             parsed = urlsplit(self.url)
             if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password or any(ord(c) < 32 for c in self.url):
-                raise ValueError('Use an HTTP(S) schedule URL without embedded credentials')
+                raise PydanticCustomError('EVENT_SCHEDULE_URL_INVALID', 'Use an HTTP(S) schedule URL without embedded credentials')
         return self
 
 
@@ -373,7 +384,7 @@ class EventBroadcastMapping(StrictModel):
     @model_validator(mode='after')
     def one_target(self):
         if bool(self.target_kind) != bool(self.target_id) or (self.channel_id and self.target_kind):
-            raise ValueError('Choose one TV channel, EPG channel or stream')
+            raise PydanticCustomError('EVENT_CHANNEL_CHOICE', 'Choose one TV channel, EPG channel or stream')
         return self
 
 
@@ -391,7 +402,7 @@ class EventOverlayRequest(StrictModel):
     @classmethod
     def explicit_offset(cls, value):
         if value.tzinfo is None:
-            raise ValueError('Include a UTC offset in the overlay end time')
+            raise PydanticCustomError('EVENT_OVERLAY_OFFSET_REQUIRED', 'Include a UTC offset in the overlay end time')
         return value.astimezone(timezone.utc)
 
 

@@ -22,7 +22,7 @@ for (const mode of ['light', 'dark']) {
       await route.fulfill({ json: data });
     });
     await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/settings');
+    await page.goto('/settings?tab=playback');
     const toggle = page.getByRole('checkbox', { name: 'Route playback through Acexy' });
     await expect(toggle).not.toBeChecked();
     await toggle.check();
@@ -44,12 +44,15 @@ for (const mode of ['light', 'dark']) {
     await expect(page).toHaveURL(/tab=automation/);
     await page.reload();
     await expect(page.getByRole('tab', { name: 'Automation', exact: true })).toHaveAttribute('aria-selected', 'true');
+    // The selected tab appears before its editor finishes loading. Let that
+    // layout settle before WebKit scrolls the next tab into the narrow viewport.
+    await expect(page.getByRole('heading', { name: 'Automation', exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Stream links', exact: true }).click();
     await expect(page.getByRole('checkbox', { name: 'Append PID to stream links' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Public address', exact: true })).toHaveCount(0);
     await page.getByRole('tab', { name: 'Access', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'API token', exact: true })).toBeVisible();
-    if (await page.getByRole('button', { name: 'open drawer' }).isVisible()) await page.getByRole('button', { name: 'open drawer' }).click();
+    if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) await page.getByRole('button', { name: 'Open navigation' }).click();
     await expect(page.getByRole('link', { name: 'WARP', exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   });

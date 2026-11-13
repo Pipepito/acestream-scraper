@@ -5,7 +5,7 @@ import { guideSourcePayload } from '../components/GuideSourceField';
 
 export type TVChannelFormErrors = {
   name?: string;
-  submit?: string;
+  submit?: unknown;
 };
 
 const sanitizeTextInput = (value: string | undefined): string => value?.trim() ?? '';
@@ -57,6 +57,7 @@ export const useTVChannelForm = () => {
       is_favorite: channel.is_favorite,
       epg_id: channel.epg_id || '',
       channel_number: channel.channel_number,
+      expected_category_revision: channel.category_revision,
       epg_source_id: channel.epg_source_id ?? null,
     });
     setOpenEditDialog(true);
@@ -67,7 +68,7 @@ export const useTVChannelForm = () => {
     setFormErrors((prev) => ({ ...prev, [name]: undefined, submit: undefined }));
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : name === 'channel_number' ? (value === '' ? '' : Number(value)) : value,
+      [name]: type === 'checkbox' ? checked : name === 'channel_number' ? (value === '' ? null : Number(value)) : value,
     }));
   };
 
@@ -86,6 +87,7 @@ export const useTVChannelForm = () => {
 
   const validateForm = (): TVChannelCreate | TVChannelUpdate | null => {
     const payload = getSanitizedPayload();
+    if (openEditDialog && payload.category === (selectedChannel?.category ?? '')) delete payload.category;
 
     if (!payload.name) {
       setFormErrors({ name: 'Enter a channel name before saving.' });

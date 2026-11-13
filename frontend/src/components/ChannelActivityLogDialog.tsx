@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React from 'react';
 import ChannelActivityLog from './ChannelActivityLog';
 import { Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material';
@@ -9,12 +10,11 @@ interface ChannelActivityLogDialogProps {
   channelId: string;
 }
 
-const ChannelActivityLogDialog: React.FC<ChannelActivityLogDialogProps> = ({ open, onClose, channelId }) => (
+const ChannelActivityLogDialog: React.FC<ChannelActivityLogDialogProps> = ({ open, onClose, channelId }) => { const tUi = useUiText(); return (
   <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
     <DialogTitle>
-      Channel Activity Log
-      <IconButton
-        aria-label="close"
+      {tUi("Channel Activity Log")}<IconButton
+        aria-label={tUi("close")}
         onClick={onClose}
         sx={{ position: 'absolute', right: 8, top: 8 }}
       >
@@ -25,6 +25,6 @@ const ChannelActivityLogDialog: React.FC<ChannelActivityLogDialogProps> = ({ ope
       <ChannelActivityLog channelId={channelId} />
     </DialogContent>
   </Dialog>
-);
+); };
 
 export default ChannelActivityLogDialog;

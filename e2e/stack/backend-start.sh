@@ -24,6 +24,7 @@ fi
 
 export DATABASE_URL="sqlite:///$STACK_DIR/config/scraper.db"
 export RECORDINGS_DIR="$STACK_DIR/recordings"
+export PLAYER_HLS_DIR="$STACK_DIR/player-hls"
 export LEGACY_DATABASE_URL="sqlite:///$STACK_DIR/config/acestream.db"
 export ACE_ENGINE_URL="$E2E_ENGINE_URL"
 export ALLOW_PRIVATE_SCRAPE_TARGETS="true"

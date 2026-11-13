@@ -1,5 +1,6 @@
+import i18next from 'i18next';
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { ApiError } from '../services/apiClient';
@@ -102,4 +103,58 @@ test('revocation requires the concrete confirmation', async () => {
   expect(mockLogout).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Revoke and remove' }));
   await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
+});
+
+
+test('keeps an open source draft when the account refreshes and confirms cancellation', async () => {
+  mockStatus.mockResolvedValue({ state: 'connected', account_label: 'Test' });
+  const client = setup(); await unlock();
+  fireEvent.click(await screen.findByRole('button', { name: 'Add Telegram source' }));
+  fireEvent.change(screen.getByLabelText('Source name'), { target: { value: 'Unsaved sports source' } });
+  expect(screen.getByRole('button', { name: 'Lock settings' })).toBeDisabled();
+  await act(async () => { client.setQueryData(['telegram', 'status'], { state: 'disconnected' }); });
+  expect(screen.getByLabelText('Source name')).toHaveValue('Unsaved sports source');
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  const confirmation = await screen.findByRole('dialog', { name: 'Discard unsaved changes?' });
+  fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }));
+  expect(screen.getByLabelText('Source name')).toHaveValue('Unsaved sports source');
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Discard changes' }));
+  await waitFor(() => expect(screen.queryByLabelText('Source name')).not.toBeInTheDocument());
+  expect(mockSave).not.toHaveBeenCalled();
+});
+
+test('keeps source input and the pending request across language changes', async () => {
+  mockStatus.mockResolvedValue({ state: 'connected', account_label: 'Test' });
+  let finish: ((value: object) => void) | undefined;
+  mockSave.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  setup(); await unlock();
+  fireEvent.click(await screen.findByRole('button', { name: 'Add Telegram source' }));
+  fireEvent.change(screen.getByLabelText('Source name'), { target: { value: 'Sports draft' } });
+  fireEvent.mouseDown(screen.getByLabelText('Joined chat'));
+  fireEvent.click(await screen.findByRole('option', { name: 'Sports group (-100123)' }));
+  const save = screen.getByRole('button', { name: 'Save source' });
+  fireEvent.click(save); fireEvent.click(save);
+  expect(mockSave).toHaveBeenCalledTimes(1);
+  try {
+    await act(async () => { await i18next.changeLanguage('es'); });
+    expect(screen.getByDisplayValue('Sports draft')).toBeDisabled();
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    await act(async () => { finish?.({}); });
+    await waitFor(() => expect(screen.queryByDisplayValue('Sports draft')).not.toBeInTheDocument());
+  } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
+});
+
+test('account diagnostic and state change language while the code draft remains intact', async () => {
+  mockStatus.mockResolvedValue({ state: 'code_required', message: 'Enter the code sent by Telegram.', message_code: 'TELEGRAM_ENTER_CODE' });
+  setup(); await unlock();
+  const input = await screen.findByLabelText('Telegram login code');
+  fireEvent.change(input, { target: { value: '12345' } });
+  expect(screen.getByText('Enter the code sent by Telegram.')).toBeInTheDocument();
+  await act(async () => { await i18next.changeLanguage('es'); });
+  expect(screen.getByText('Introduce el código enviado por Telegram.')).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('Introduce el código de acceso');
+  expect(input).toHaveValue('12345');
+  expect(mockCode).not.toHaveBeenCalled();
+  await act(async () => { await i18next.changeLanguage('en'); });
 });

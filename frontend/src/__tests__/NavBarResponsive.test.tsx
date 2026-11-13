@@ -79,14 +79,14 @@ describe('NavBar responsive shell behavior', () => {
     renderWithResponsiveMode({ pathname: '/live-tv', ui: <AppShell><div>Player</div></AppShell> });
     expect(screen.getByTestId('app-shell-content')).toHaveStyle({ maxWidth: 'none' });
     await userEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
-    expect(screen.queryByRole('link', { name: 'TV Channels' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Channels' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Wiki (opens in a new tab)' })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({ width: '100%' });
     await userEvent.click(screen.getByRole('button', { name: 'Expand navigation' }));
-    expect(screen.getByRole('link', { name: 'TV Channels' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Channels' })).toBeVisible();
   });
 
-  it('keeps the menu button and current destination visible on phones', () => {
+  it('keeps the menu button and current destination visible on phones', async () => {
     renderWithResponsiveMode({
       pathname: '/scraper',
       isPhone: true,
@@ -98,15 +98,10 @@ describe('NavBar responsive shell behavior', () => {
       ),
     });
 
-    expect(screen.getByRole('button', { name: 'open drawer' })).toBeVisible();
-    expect(screen.getByRole('banner')).toHaveTextContent('Scraper');
+    expect(screen.getByRole('button', { name: 'Open navigation' })).toBeVisible();
+    expect(screen.getByRole('banner')).toHaveTextContent('Channels');
     expect(within(screen.getByRole('banner')).getByRole('link', { name: `What’s new in ${currentRelease.version}` })).toBeVisible();
     expect(within(screen.getByRole('main')).queryByRole('link', { name: /What’s new/ })).not.toBeInTheDocument();
-    const wikiLink = screen.getByRole('link', { name: 'Wiki (opens in a new tab)' });
-    expect(wikiLink).toBeVisible();
-    expect(wikiLink).toHaveAttribute('href', 'https://github.com/Pipepito/acestream-scraper/wiki');
-    expect(wikiLink).toHaveAttribute('target', '_blank');
-    expect(wikiLink).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({
       width: '100%',
@@ -130,8 +125,8 @@ describe('NavBar responsive shell behavior', () => {
       ),
     });
 
-    expect(screen.queryByRole('button', { name: 'open drawer' })).not.toBeInTheDocument();
-    expect(screen.getByRole('banner')).toHaveTextContent('TV Channels');
+    expect(screen.queryByRole('button', { name: 'Open navigation' })).not.toBeInTheDocument();
+    expect(screen.getByRole('banner')).toHaveTextContent('Channels');
     expect(screen.getAllByText('Acestream Scraper').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeVisible();
     expect(screen.getByRole('main')).toHaveStyle({ width: `calc(100% - ${layout.navWidth}px)` });
@@ -173,6 +168,8 @@ describe('NavBar responsive shell behavior', () => {
     });
 
     await tab();
+    expect(screen.getByRole('button', { name: 'Interface' })).toHaveFocus();
+    await tab();
     expect(screen.getByRole('link', { name: `What’s new in ${currentRelease.version}` })).toHaveFocus();
     await tab();
     expect(screen.getByRole('button', { name: 'Dismiss changelog notice' })).toHaveFocus();
@@ -181,14 +178,8 @@ describe('NavBar responsive shell behavior', () => {
     await tab();
     expect(screen.getByRole('button', { name: /switch to dark theme/i })).toHaveFocus();
 
-    const expectedNames = [
-      'TV dashboard', 'Live TV', 'Recordings', 'Scraper', 'Search', 'Acestream Channels', 'TV Channels',
-      'EPG', 'Events', 'Playlist', 'Public address', 'Web player', 'TV casting', 'Remote players', 'Media servers', 'Telegram', 'System status', 'WARP', 'Settings', 'Changelog',
-    ];
-    // Resolve the static menu once; repeated whole-page role queries dominate
-    // this keyboard journey under coverage instrumentation.
-    const links = ['Watch', 'Manage', 'Integrations', 'System'].flatMap(section =>
-      within(screen.getByRole('list', { name: section })).getAllByRole('link'));
+    const expectedNames = ['Watch', 'Recordings', 'Events', 'Channels', 'Connections', 'Settings', 'System'];
+    const links = within(screen.getByRole('list', { name: 'Main navigation' })).getAllByRole('link');
     expect(links).toHaveLength(expectedNames.length);
     for (let index = 0; index < expectedNames.length; index += 1) {
       await tab();
@@ -206,7 +197,7 @@ describe('NavBar responsive shell behavior', () => {
       ui: <NavBar />,
     });
 
-    expect(screen.getByRole('link', { name: 'EPG' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Channels' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('link', { name: 'EPG Mappings' })).not.toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@ import { createAppTheme } from '../theme';
 const mockCatalog = jest.fn();
 const mockChannels = jest.fn();
 const mockPlay = jest.fn();
-jest.mock('../hooks/useTVChannels', () => ({ useTVChannelCatalog: (...args: unknown[]) => mockCatalog(...args) }));
+jest.mock('../hooks/useTVChannels', () => ({ useTVChannelPage: (...args: unknown[]) => mockCatalog(...args) }));
 jest.mock('../hooks/useChannels', () => ({ useAcestreamChannels: (...args: unknown[]) => mockChannels(...args) }));
 jest.mock('../hooks/useRemotePlayers', () => ({ usePlayOnRemotePlayer: () => ({ mutateAsync: mockPlay, isPending: false }) }));
 
@@ -38,7 +38,7 @@ describe('ChannelPickerDialog', () => {
 
   it('picks a TV channel and sends its best stream', async () => {
     mockCatalog.mockReturnValue({
-      data: [
+      data: { total: 2, items: [
         {
           id: 7,
           name: 'Arena TV',
@@ -49,7 +49,7 @@ describe('ChannelPickerDialog', () => {
           ],
         },
         { id: 8, name: 'Empty', is_active: true, acestream_channels: [] },
-      ],
+      ] },
       isLoading: false,
     });
     mockChannels.mockReturnValue({ data: { items: [] }, isLoading: false });
@@ -64,12 +64,12 @@ describe('ChannelPickerDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send to Living room' }));
     await waitFor(() => expect(mockPlay).toHaveBeenCalledWith({ id: 1, contentId: 'best', title: 'Arena TV' }));
     expect(onClose).toHaveBeenCalled();
-    expect(notify).toHaveBeenCalledWith('Sent Arena TV to Living room.', 'success');
+    expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Sent Arena TV to Living room.', 'success']);
   });
 
   it('reports a link the player cannot fetch as a warning, not a confirmation', async () => {
     mockCatalog.mockReturnValue({
-      data: [{ id: 7, name: 'Arena TV', is_active: true, acestream_channels: [{ id: 'best', name: 'Feed 1', is_online: true }] }],
+      data: { items: [{ id: 7, name: 'Arena TV', is_active: true, acestream_channels: [{ id: 'best', name: 'Feed 1', is_online: true }] }], total: 1 },
       isLoading: false,
     });
     mockChannels.mockReturnValue({ data: { items: [] }, isLoading: false });
@@ -79,11 +79,11 @@ describe('ChannelPickerDialog', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Channel' }));
     fireEvent.click(screen.getByRole('option', { name: /Arena TV/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Send to Living room' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/It may not start/), 'warning'));
+    await waitFor(() => expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual([expect.stringMatching(/It may not start/), 'warning']));
   });
 
   it('switches to raw streams', () => {
-    mockCatalog.mockReturnValue({ data: [], isLoading: false });
+    mockCatalog.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false });
     mockChannels.mockReturnValue({
       data: { items: [{ id: 's1', name: 'Raw feed', group: 'Sports', is_online: true }] },
       isLoading: false,
@@ -93,4 +93,20 @@ describe('ChannelPickerDialog', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Channel' }));
     expect(screen.getByRole('option', { name: /Raw feed/ })).toBeInTheDocument();
   });
+});
+
+it('does not fetch a closed TV picker and pages/searches with a bounded request', async () => {
+  mockCatalog.mockReturnValue({ data: { items: [], total: 101 }, isLoading: false, isFetching: false });
+  mockChannels.mockReturnValue({ data: { items: [], total: 0 }, isLoading: false });
+  const tree = (open: boolean) => <ThemeProvider theme={createAppTheme('light')}><ChannelPickerDialog open={open} player={player} onClose={jest.fn()} notify={jest.fn()} /></ThemeProvider>;
+  const { rerender } = render(tree(false));
+  expect(mockCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ skip: 0, limit: 50, watchable: true }), false);
+  rerender(tree(true));
+  expect(mockCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ skip: 0, limit: 50 }), true);
+  fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+  expect(mockCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ skip: 50, limit: 50 }), true);
+  fireEvent.change(screen.getByRole('combobox', { name: 'Channel' }), { target: { value: 'News' } });
+  await waitFor(() => expect(mockCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'News', skip: 0, limit: 50 }), true));
+  fireEvent.click(screen.getByRole('button', { name: 'Streams' }));
+  expect(mockCatalog).toHaveBeenLastCalledWith(expect.anything(), false);
 });

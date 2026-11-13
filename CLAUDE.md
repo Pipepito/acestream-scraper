@@ -18,6 +18,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common Commands
 
+Channel categories are stable, owned assignments; On now uses complete current
+programme genres. Preserve ordered/language-tagged XMLTV categories, legacy scalar
+compatibility, source-qualified logos and explicit stale-checked category review.
+Manual clears remain protected; channel cards prefer saved/guide logos before
+illustrations. See `docs/dev/tv-categories.md` and `wiki/TV-Categories.md`.
+
 Backend (run from repo root unless noted):
 
 - Install: `python3 -m venv backend/venv && source backend/venv/bin/activate && pip install -r backend/requirements.txt`
@@ -66,7 +72,7 @@ Branching and release flow (adopted 2026-08-28):
 - All PRs use the administrator-managed private PR pipeline and pinned private infrastructure helpers. The complete backend/frontend suite runs automatically for every PR in a restricted container (no network, credentials or Docker socket) and reports tests and coverage on the PR. Installing proposed dependencies and building images run on the build host, so they stay in the separate authorized job for an exact head/base/target: automatic for verified owner PRs, owner-approved for anyone else, and requested only when the change reaches build or dependency inputs. The required status waits for whatever the change needs. See `docs/ops/jenkins-collaborator-safety.md`; editing repository files alone does not activate this boundary.
 - PR, trusted `develop`, and release pipelines share the FIFO `acestream-scraper-nuc-docker` lock for their full run. Acquire it in the enclosing stage options before allocating an agent, and keep workspace cleanup inside that stage. The NUC has four executors but only one safe Docker/BuildKit workload slot; later jobs wait instead of pruning images or caches from an in-flight job, and new revisions never abort the lock holder. Approval waits hold no executor or Docker lock; each automatic/approved workload retains the lock through cleanup. Shared cleanup retains two recently used dependency runners and warm build cache; below 8 GiB free it escalates to evict unneeded CI runners and recent cache. Current-job keeps, container images, unrelated images and volumes remain protected; reclamation failures are visible.
 - Every push to `develop` runs the private develop pipeline. Its private selector compares the last successful build; known documentation-only changes do not publish images. Application changes run the full suite and Docker/runtime smokes. Only the current protected develop revision can publish floating `develop*` tags. Publication previews and policy tests live in the private infrastructure repository; public application checks remain available here.
-- `version.txt` records the selected release version without a `-dev` suffix (`v2.2.0` for this cycle). Update it through a PR into `develop` when choosing the next release. Development publication uses only floating `develop*` tags; versioned tags and `latest` remain exclusive to manual release from `main`. The existing rejection of accidental `-dev` versions in release mode remains a defensive guard.
+- `version.txt` records the selected release version without a `-dev` suffix (`v2.3.0` for this cycle). Update it through a PR into `develop` when choosing the next release. Development publication uses only floating `develop*` tags; versioned tags and `latest` remain exclusive to manual release from `main`. The existing rejection of accidental `-dev` versions in release mode remains a defensive guard.
 - Releases stay manual: Jenkins job `acestream-scraper-release` (the private release pipeline, runs from `main`; params `CONFIRM_RELEASE`, `DRY_RUN`, `PUBLISH_LATEST`) pushes `:vX.Y.Z`, `:vX.Y.Z-<flavor>` and the flavor tags; `PUBLISH_LATEST=true` retags the canaried version manifest to `:latest` via the private promotion helper. Details: `docs/ops/jenkins-ci.md`.
 
 ## Frontend viewing and mobile checks
@@ -119,7 +125,7 @@ The fixtures never reload modules: `_bind_runtime_to(database_url)` re-points th
 ### Frontend
 
 - Routing is declared in `src/App.tsx` and wrapped in `components/layout/AppShell`. Pages under `src/pages/` are the route-level views; reusable components live under `src/components/`.
-- Navigation groups Watch (TV dashboard, Live TV, Recordings), Manage (Scraper, Search, Acestream Channels, TV Channels, EPG, Events, Playlist) Integrations (Public address, Web player, TV casting, Remote players, Media servers, Telegram) and System (System status, WARP, Settings, Changelog), declared in `components/layout/navItems.tsx`. Labels match page headings. WARP remains directly discoverable. W3U catalogues are a Scraper tab (`/scraper?tab=w3u`, tabs `sources|w3u|searches|exclusions`); the `Catalogues` page component renders `embedded` there without its own header. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`; `/catalogues` → `/scraper?tab=w3u`), and `redirectTarget()` carries the old query string (`catalogue`, `folder`) into the target. The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). The Integrations category opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
+- Navigation has seven destinations: Watch, Recordings, Events, Channels, Connections, Settings and System, declared in `components/layout/navItems.tsx`. WARP remains directly discoverable. One stable data router, query cache, access layer and media owner serve all three presentations and both languages. Settings mounts only its selected canonical editor; `UnsavedChangesProvider` guards registered dirty/pending editors through route/query/Back navigation and document unload. Modal close uses the shared confirmation. See `docs/dev/settings-editors.md` and `docs/dev/frontend-localization.md`. W3U catalogues are a Scraper tab (`/scraper?tab=w3u`, tabs `sources|w3u|searches|exclusions`); the `Catalogues` page component renders `embedded` there without its own header. Old routes redirect through `LEGACY_REDIRECTS` in `App.tsx` (`/dashboard`, `/stats` → `/`; `/health` → `/system`; `/channels` → `/tv-channels`; `/search-new` → `/search`; `/epg/mappings` → `/epg?tab=rules`; `/catalogues` → `/scraper?tab=w3u`), and `redirectTarget()` carries the old query string (`catalogue`, `folder`) into the target. The EPG page is five tabs bound to `?tab=` (`sources` default, `channels`, `matching`, `rules`, `export`). Connections opens dedicated lazy-loaded pages in `pages/integrations/`, reusing sections from `components/integrations/` and page-scoped feedback through `IntegrationPage`. Public address, Web player, Remote players, Media servers (including tuner settings), and Telegram mount independently. `/integrations` redirects to `/integrations/public-address`. Every card follows the same rule: two visible actions, everything else (Edit, Test connection, Delete) in a `RowActionsMenu` labelled "More actions for <name>", with `useConfirm()` on Delete and on Jellyfin Disconnect only.
 - Page skeleton: `PageHeader` (title, optional one-line subtitle, `actions`, `overflowActions` that collapse into a "More actions" menu on phones) → `StatusLine` (`role="status"`, measured facts only) → `ContentSection`s. Shared primitives: `components/StatusLine.tsx`, `components/ConfirmDialog.tsx` (`useConfirm()` replaces `window.confirm`), `components/RowActionsMenu.tsx` (row "More actions for X" menus), `components/epg/ScheduleView.tsx` (Now/Next + day tabs), `utils/format.ts` (`formatRelativeTime`, `formatBitrate`, `summarizeJobResult`). No hero blocks, no explanatory paragraphs: copy uses plain words, relative times ("12 min ago") and real units (Mbps/kbps).
 - API access goes through `src/services/*.ts`, all built on `apiClient.ts` (axios). `@tanstack/react-query` v5 is the data layer (see `frontend/package.json`).
 - Vite config (`frontend/vite.config.mts`) uses Rolldown dependency groups for React, MUI, data-grid, data, date utilities, HLS and TV Channels. Build configs use explicit ESM extensions. HLS builds pinned full-feature source modules so its code can split. Preserve dependency ownership to avoid initialization cycles; see `docs/dev/frontend-bundles.md` for upgrade and built-SPA verification.
@@ -230,13 +236,19 @@ This product is for single users with little or no technical knowledge who need 
 The brand should feel bold, powerful, and operational. The voice should be clear, direct, and supportive so users feel fast, confident, and slightly delighted rather than intimidated by a technical tool.
 
 ### Aesthetic Direction
-The current product already points toward a structured operational dashboard: Material UI, IBM Plex Sans, a left-nav app shell, light-mode defaults, teal and blue as primary accents, and compact cards and sections for dense information. Future design work should support both light and dark themes, keep the product feeling Linear-like in polish and clarity, introduce warmer accents where they add emphasis or friendliness, and avoid looking like a playful consumer app, a generic admin template, or an overly dark hacker interface.
+The approved UX #314 direction uses one Material UI application with exactly three
+presentations: Lime, Coral/navy and Immersive cyan (first-visit/unknown fallback).
+Inter is the body/control family; Lime adds Barlow Condensed headings. Local WOFF2
+fonts retain system fallbacks. Each preset supports independent light/dark and
+EN/ES choices. Keep administration calm, retain AceStream identity and use the
+shared semantic tokens, canonical editors and component catalogue in
+`docs/dev/frontend-component-catalogue.md`.
 
 ### Design Principles
 - Prefer guided, low-friction flows over expert-only controls so non-technical users can complete operational tasks with confidence.
 - Keep information dense but well-structured, using clear hierarchy, sectioning, and status signals to make the system feel fast and controllable.
 - Make operational state obvious: health, progress, errors, and next actions should be easy to scan and hard to misunderstand.
-- Build a polished dual-theme system that starts from the existing teal/blue foundation and uses warmer accents sparingly for emphasis, feedback, and approachability.
+- Implement features once in shared controllers/services/editors/messages; apply the three approved palettes, density and composition through presentation tokens. Preference changes never replace providers, drafts or media owners.
 - Meet WCAG AA expectations, respect reduced-motion preferences, and use more than color alone to communicate status or meaning.
 
 
@@ -358,10 +370,10 @@ changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
 Live TV embeds the existing HLS player alongside one scrollable browse list (TV
 channels, Streams or Events). Filtering or switching the list mode does not
 release playback; changing the channel or Stop watching releases the current
-viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
+viewer. Other pages retain the player dialog. Navigation uses Watch, Recordings, Events, Channels, Connections, Settings and
+System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
-Integrations. PID/AppID belong to Stream links, not Automation.
+Connections. PID/AppID belong to Stream links, not Automation.
 
 
 ## TV channel inventory and playlist formats
@@ -387,6 +399,9 @@ previews consecutive numbers. Save order uses `POST /api/v1/tv-channels/reorder`
 with the complete desired IDs and original order; the backend commits all numbers
 atomically and rejects stale/incomplete inventories. Cancel leaves stored numbers
 unchanged. Number edits remain available outside reorder mode.
+Above 100 channels, reorder renders a measured virtual window while retaining the
+complete draft and original order. Keep stable channel keys, focused/dragged rows,
+full names and list positions. Home/End/Page Up/Page Down move focus; arrows reorder.
 
 
 Engines are optional. Settings → Automation stores external checker selection via
@@ -784,7 +799,7 @@ remain unchanged; see `wiki/Usage.md#search-and-manual-additions` for recovery.
 
 ## TV and system dashboards
 
-The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+The default `/` route combines the Live TV catalogue and Watch overview: app-owned playback, channel/stream
 inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
 diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
 `/stats` redirect to `/`. Keep section failures independent and missing data unknown.
@@ -797,7 +812,7 @@ reads. See `docs/dev/dashboard-split.md`.
 
 ## Integration navigation
 
-Integrations is a sidebar category with independent pages at
+Connections groups the existing independent integration pages at
 `/integrations/public-address`, `/integrations/web-player`,
 `/integrations/remote-players`, `/integrations/media-servers` and
 `/integrations/telegram`. The old `/integrations` URL redirects to Public address.
@@ -862,7 +877,7 @@ leases, guarded HTTP input, control-pipe/process-group cleanup, journal recovery
 stop intent and immutable guide snapshots. Never replace originals during
 conversion or delete protected/active/reader-held media. File routes retain the
 optional API-token policy and descriptor-relative no-follow access. Recordings
-is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
+is a main navigation destination; scheduling is TV-channel-only. See `wiki/Recordings.md` and
 `docs/ops/recordings.md` for limits, qualification and rollback.
 
 Live TV exposes the seven-day guide inline without starting playback. Programme
@@ -904,7 +919,7 @@ First-run account setup and Settings → Access manage optional accounts without
 new Docker bootstrap credentials. Preserve the independently migrated access store
 and fail-closed marker across catalogue restore/recovery. Management is default-deny
 across aliases and ASGI prefixes; viewer-control, media, IPTV and administrative
-credentials have separate scopes. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page. Without accounts it follows app access unless `CAST_REQUIRE_HOME_NETWORK=true`, an environment-only flag kept out of `runtime-options.json` and never exposed in the UI; `cast/capabilities` reports the effective rule as `home_check`. When accounts are enabled, require casting permission and the home check. Remote control
+credentials have separate scopes. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own page under Connections. Without accounts it follows app access unless `CAST_REQUIRE_HOME_NETWORK=true`, an environment-only flag kept out of `runtime-options.json` and never exposed in the UI; `cast/capabilities` reports the effective rule as `home_check`. When accounts are enabled, require casting permission and the home check. Remote control
 always requires an account and explicit opt-in; preserve local-browser ownership,
 bounded discovery and scoped proxy trust. The `auto` proxy default recognizes
 Docker bridge peers while excluding gateways; preserve explicit saved overrides.

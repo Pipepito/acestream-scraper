@@ -25,6 +25,7 @@ beforeEach(() => {
   jest.mocked(setupService.get).mockResolvedValue(initial);
   jest.mocked(setupService.save).mockResolvedValue({ ...initial, setup_complete: true });
   jest.mocked(scraperService.getURLs).mockResolvedValue([]);
+  jest.mocked(scraperService.getProviders).mockResolvedValue([]);
   jest.mocked(epgService.getSources).mockResolvedValue([]);
 });
 it('adds and imports a source, then permits skipping the guide without changing runtime settings', async () => {
@@ -35,7 +36,7 @@ it('adds and imports a source, then permits skipping the guide without changing 
   await waitFor(() => expect(screen.getByRole('button', { name: 'Add source and find channels' })).toBeEnabled());
   fireEvent.click(screen.getByRole('button', { name: 'Add source and find channels' }));
   await screen.findByText(/Found 4 channels/);
-  expect(scraperService.createURL).toHaveBeenCalledWith({ url: source.url, url_type: 'auto', enabled: true });
+  expect(scraperService.createURL).toHaveBeenCalledWith({ url: source.url, url_type: 'auto', enabled: true, name: '', scrape_bare_ids: false });
   expect(scraperService.scrapeURL).toHaveBeenCalledWith(1);
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(await screen.findByRole('button', { name: 'Use EPG dobleM' })).toBeVisible();

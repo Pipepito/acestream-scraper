@@ -70,6 +70,7 @@ describe('BulkOperations', () => {
 
     await click(screen.getByRole('button', { name: 'Bulk Edit' }));
 
+    await click(screen.getByRole('checkbox', { name: 'Active Status' }));
     await click(await screen.findByRole('button', { name: 'Update' }));
 
     expect(await screen.findByText('1 operation(s) failed, 0 succeeded.')).toBeInTheDocument();

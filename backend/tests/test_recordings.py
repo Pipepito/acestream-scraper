@@ -248,3 +248,72 @@ def test_recording_subscriptions_are_owned_by_account(monkeypatch):
         assert recording_playback.status(service, 'r', first.id, owner='first').state == 'ready'
     finally:
         recording_playback.close('r', first.id, owner='first')
+
+
+def test_recording_collections_filter_before_pagination_and_preserve_legacy_all(dvr):
+    client, db, tv, programme = dvr
+    now = datetime.now(timezone.utc)
+    rows = []
+    for index in range(61):
+        rid = uuid4().hex
+        row = Recording(id=rid, tv_channel_id=tv.id, snapshot={'title': f'Evening {index:02}', 'channel_name': 'One'},
+            start_time=now, end_time=now + timedelta(hours=1), timezone='UTC', state='completed',
+            idempotency_key=rid, request_hash='fixture', created_at=now + timedelta(seconds=index))
+        db.add(row)
+        db.flush()
+        # Multiple ready parts must not duplicate a recording or its total.
+        for _ in range(2 if index == 60 else 1):
+            fid = uuid4().hex
+            db.add(RecordingArtifact(id=fid, recording_id=rid, root_id='fixture', filename=fid+'.ts', state='ready'))
+        rows.append(row)
+    for state in ('scheduled', 'recording', 'deleted', 'cancelled', 'failed'):
+        rid = uuid4().hex
+        db.add(Recording(id=rid, tv_channel_id=tv.id, snapshot={'title': state, 'channel_name': 'One'},
+            start_time=now, end_time=now+timedelta(hours=1), timezone='UTC', state=state,
+            idempotency_key=rid, request_hash='fixture', created_at=now+timedelta(days=1)))
+        db.flush()
+        if state == 'deleted':
+            fid = uuid4().hex
+            db.add(RecordingArtifact(id=fid, recording_id=rid, root_id='fixture', filename=fid+'.ts', state='ready'))
+    db.commit()
+    response = client.get('/api/v1/recordings?collection=library&offset=50&limit=50')
+    assert response.status_code == 200
+    body = response.json()
+    assert body['total'] == 61 and len(body['items']) == 11
+    assert all(row['state'] == 'completed' for row in body['items'])
+    assert client.get('/api/v1/recordings?collection=library&search=Evening%2060').json()['total'] == 1
+    assert client.get('/api/v1/recordings?collection=library&state=deleted').json()['total'] == 0
+    upcoming = client.get('/api/v1/recordings?collection=upcoming').json()
+    assert upcoming['total'] == 2
+    assert {row['state'] for row in upcoming['items']} == {'scheduled', 'recording'}
+    assert client.get('/api/v1/recordings?collection=history').json()['total'] == 64
+    assert client.get('/api/v1/recordings').json()['total'] == 66
+    assert client.get('/api/v1/recordings?collection=invalid').status_code == 422
+
+
+def test_recording_page_batches_files_and_attempts(dvr):
+    from sqlalchemy import event
+    client, db, tv, programme = dvr
+    now = datetime.now(timezone.utc)
+    for _ in range(12):
+        rid = uuid4().hex
+        db.add(Recording(id=rid, tv_channel_id=tv.id, snapshot={'title': 'Saved', 'channel_name': 'One'},
+            start_time=now, end_time=now+timedelta(hours=1), timezone='UTC', state='completed',
+            idempotency_key=rid, request_hash='fixture'))
+        db.flush()
+        fid = uuid4().hex
+        db.add(RecordingArtifact(id=fid, recording_id=rid, root_id='fixture', filename=fid+'.ts', state='ready'))
+    db.commit()
+    statements = []
+    def capture(_connection, _cursor, statement, _parameters, _context, _executemany):
+        if statement.lstrip().upper().startswith('SELECT'):
+            statements.append(statement)
+    event.listen(db.get_bind(), 'before_cursor_execute', capture)
+    try:
+        response = client.get('/api/v1/recordings?collection=library')
+    finally:
+        event.remove(db.get_bind(), 'before_cursor_execute', capture)
+    assert response.status_code == 200
+    body = response.json()
+    assert body['total'] == 12 and all(len(row['files']) == 1 for row in body['items'])
+    assert len(statements) == 4  # count, recording page, files, attempts

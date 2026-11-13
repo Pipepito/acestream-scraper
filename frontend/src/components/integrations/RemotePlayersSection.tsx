@@ -1,3 +1,5 @@
+import { translateKnown, uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Box, Button, Chip, Grid, IconButton, Paper, Slider, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
@@ -48,6 +50,7 @@ interface PlayerCardProps {
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSend, onTest, notify }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const { data: status, error, dataUpdatedAt } = useRemotePlayerStatus(player.id);
   const command = useRemotePlayerCommand();
@@ -68,7 +71,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
     try {
       await command.mutateAsync({ id: player.id, command: cmd, value });
     } catch (err) {
-      notify(err instanceof ApiError ? describeRemotePlayerError(err) : getErrorMessage(err), 'error');
+      notify(() => (err instanceof ApiError ? describeRemotePlayerError(err) : getErrorMessage(err)), 'error');
     }
   };
 
@@ -82,21 +85,21 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
   const statusText = error
     ? error instanceof ApiError
       ? describeRemotePlayerError(error)
-      : 'Unreachable'
+      : uiText("Unreachable")
     : status
       ? status.state === 'stopped'
-        ? 'Idle'
-        : `${status.state === 'playing' ? 'Playing' : 'Paused'}${status.title ? ` · ${status.title}` : ''}${
+        ? uiText("Idle")
+        : `${status.state === 'playing' ? uiText("Playing") : uiText("Paused")}${status.title ? ` · ${status.title}` : ''}${
             status.position_s !== null ? ` · ${formatClock(status.position_s)}` : ''
           }`
-      : 'Checking…';
+      : uiText("Checking…");
   const tone = error ? 'error' : status?.state === 'playing' ? 'success' : 'default';
 
   return (
     <Paper
       variant="outlined"
       role="group"
-      aria-label={`Player ${player.name}`}
+      aria-label={tUi("Player {{value0}}", { value0: player.name })}
       sx={{
         p: 2,
         height: '100%',
@@ -116,7 +119,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
             {player.host}:{player.port}
           </Typography>
         </Box>
-        <Chip size="small" label={KIND_LABEL[player.kind]} />
+        <Chip size="small" label={translateKnown(KIND_LABEL[player.kind])} />
       </Stack>
       <Typography
         variant="body2"
@@ -127,17 +130,17 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
       </Typography>
       <Stack direction="row" spacing={1} alignItems="center">
         {status?.state === 'playing' ? (
-          <Tooltip title="Pause">
-            <IconButton size="small" aria-label={`Pause ${player.name}`} onClick={() => void run('pause')}>
+          <Tooltip title={tUi("Pause")}>
+            <IconButton size="small" aria-label={tUi("Pause {{value0}}", { value0: player.name })} onClick={() => void run('pause')}>
               <PauseRoundedIcon />
             </IconButton>
           </Tooltip>
         ) : (
-          <Tooltip title="Resume">
+          <Tooltip title={tUi("Resume")}>
             <span>
               <IconButton
                 size="small"
-                aria-label={`Resume ${player.name}`}
+                aria-label={tUi("Resume {{value0}}", { value0: player.name })}
                 disabled={!status || status.state === 'stopped'}
                 onClick={() => void run('resume')}
               >
@@ -146,11 +149,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
             </span>
           </Tooltip>
         )}
-        {player.kind !== 'vlc_android' ? <Tooltip title="Stop">
+        {player.kind !== 'vlc_android' ? <Tooltip title={tUi("Stop")}>
           <span>
             <IconButton
               size="small"
-              aria-label={`Stop ${player.name}`}
+              aria-label={tUi("Stop {{value0}}", { value0: player.name })}
               disabled={!status || status.state === 'stopped'}
               onClick={() => void run('stop')}
             >
@@ -161,7 +164,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
         : null}
         <Slider
           size="small"
-          aria-label={`Volume ${player.name}`}
+          aria-label={tUi("Volume {{value0}}", { value0: player.name })}
           value={Math.min(volumePct, MAX_VOLUME_PCT[player.kind])}
           min={0}
           max={MAX_VOLUME_PCT[player.kind]}
@@ -171,12 +174,12 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
           onChangeCommitted={(_event, value) => void sendVolume(Array.isArray(value) ? value[0] : value)}
         />
         <RowActionsMenu
-          label={`More actions for ${player.name}`}
+          label={tUi("More actions for {{value0}}", { value0: player.name })}
           actions={[
-            { label: 'Send channel…', onClick: onSend },
-            { label: 'Edit', onClick: onEdit },
-            { label: 'Test connection', onClick: onTest },
-            { label: 'Delete', danger: true, onClick: onDelete },
+            { label: uiText("Send channel…"), onClick: onSend },
+            { label: uiText("Edit"), onClick: onEdit },
+            { label: uiText("Test connection"), onClick: onTest },
+            { label: uiText("Delete"), danger: true, onClick: onDelete },
           ]}
         />
       </Stack>
@@ -186,6 +189,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, onSen
 
 /** Saved VLC/Kodi players with live status and transport controls. */
 const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) => {
+  const tUi = useUiText();
   const { data: players = [], isLoading, isError, error, refetch } = useRemotePlayers();
   const remove = useDeleteRemotePlayer();
   const { confirm, dialog: confirmDialog } = useConfirm();
@@ -196,18 +200,18 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
   const [sending, setSending] = useState<RemotePlayer | null>(null);
 
   const handleDelete = async (player: RemotePlayer) => {
-    const ok = await confirm({
-      title: `Delete ${player.name}?`,
-      body: 'The player is removed from this list. Nothing changes on the player itself.',
-      confirmLabel: 'Delete',
+    const ok = await confirm(() => ({
+      title: uiText("Delete {{name}}?", { name: player.name }),
+      body: uiText("The player is removed from this list. Nothing changes on the player itself."),
+      confirmLabel: uiText("Delete"),
       danger: true,
-    });
+    }));
     if (!ok) return;
     try {
       await remove.mutateAsync(player.id);
-      notify(`Deleted ${player.name}.`, 'success');
+      notify(() => (uiText('Deleted {{name}}.', { name: player.name })), 'success');
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      notify(() => (getErrorMessage(err)), 'error');
     }
   };
 
@@ -216,21 +220,20 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
       // Same verdict the dialog's "Test connection" gives: one probe, one answer.
       const probe = await remotePlayerService.testSaved(player.id);
       const verdict = describeRemotePlayerProbe(probe);
-      notify(`${player.name}: ${verdict.text}`, verdict.severity);
+      notify(() => (`${player.name}: ${describeRemotePlayerProbe(probe).text}`), verdict.severity);
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      notify(() => (getErrorMessage(err)), 'error');
     }
   };
 
   return (
     <ContentSection
-      title="Remote players"
-      description="VLC or Kodi on your network. Send any channel there and control playback from here."
+      title={tUi("Remote players")}
+      description={tUi("VLC or Kodi on your network. Send any channel there and control playback from here.")}
       actions={
         <Stack direction="row" spacing={1}>
           <Button variant="outlined" size="small" onClick={() => setFinding(true)}>
-            Find players
-          </Button>
+            {tUi("Find players")}</Button>
           <Button
             variant="contained"
             size="small"
@@ -239,26 +242,24 @@ const RemotePlayersSection: React.FC<RemotePlayersSectionProps> = ({ notify }) =
               setAdding(true);
             }}
           >
-            Add player
-          </Button>
+            {tUi("Add player")}</Button>
         </Stack>
       }
     >
       {isError ? (
         <InlineStatusNotice
           severity="error"
-          title="Unable to load players"
+          title={tUi("Unable to load players")}
           description={getErrorMessage(error)}
           action={
             <Button variant="outlined" size="small" onClick={() => void refetch()}>
-              Try again
-            </Button>
+              {tUi("Try again")}</Button>
           }
         />
       ) : isLoading ? (
-        <Typography variant="body2">Loading players…</Typography>
+        <Typography variant="body2">{tUi("Loading players…")}</Typography>
       ) : players.length === 0 ? (
-        <EmptyState title="No players yet" description="Add VLC or Kodi from a device on this network, or scan for them." />
+        <EmptyState title={tUi("No players yet")} description={tUi("Add VLC or Kodi from a device on this network, or scan for them.")} />
       ) : (
         <Grid container spacing={2}>
           {players.map((player) => (

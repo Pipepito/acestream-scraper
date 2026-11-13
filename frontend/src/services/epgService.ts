@@ -2,6 +2,7 @@
  * EPG API service
  */
 import apiClient from './apiClient';
+import type { components } from '../types/api-generated';
 
 /**
  * EPG Source model interface
@@ -50,6 +51,8 @@ export interface EPGProgram {
   subtitle?: string;
   description?: string;
   category?: string;
+  categories?: components['schemas']['EPGCategoryObservation'][];
+  genre_ids?: string[];
   image_url?: string;
 }
 

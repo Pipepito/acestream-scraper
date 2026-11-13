@@ -3,6 +3,9 @@ from datetime import datetime
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
+from app.schemas.epg import EPGCategoryObservation
+
+RecordingCollection = Literal['all', 'library', 'upcoming', 'history']
 
 RecordingState = Literal['scheduled', 'starting', 'recording', 'recovering', 'finalizing',
                          'completed', 'partial', 'failed', 'missed', 'cancelled', 'deleting', 'deleted']
@@ -77,6 +80,7 @@ class RecordingSnapshot(BaseModel):
     subtitle: str | None = None
     description: str | None = None
     category: str | None = None
+    categories: list[EPGCategoryObservation] = Field(default_factory=list)
     guide_source_uuid: str | None = None
     guide_channel_id: str | None = None
     original_start: datetime | None = None

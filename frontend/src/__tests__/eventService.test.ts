@@ -30,3 +30,18 @@ describe('eventService.apply', () => {
     });
   });
 });
+
+describe('eventService.providerInterests', () => {
+  beforeEach(() => mockedClient.post.mockReset());
+
+  it('asks the server for the names a provider publishes and waits for its upstream fetch', async () => {
+    const names = { sports: ['Football'], competitions: ['COPA'], teams: [] };
+    mockedClient.post.mockResolvedValue({ data: names });
+    const input = { provider_options: { provider: 'marca_es' as const, window_days: 7 }, timezone: 'Europe/Madrid' };
+    await expect(eventService.providerInterests(input)).resolves.toBe(names);
+    // The server allows the provider 15 s by default: the browser must not give up first.
+    expect(mockedClient.post).toHaveBeenCalledWith('/v1/events/providers/interests', input, { timeout: 45000 });
+    await eventService.providerInterests({ ...input, timeout_seconds: 60 });
+    expect(mockedClient.post).toHaveBeenLastCalledWith('/v1/events/providers/interests', { ...input, timeout_seconds: 60 }, { timeout: 90000 });
+  });
+});

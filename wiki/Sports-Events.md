@@ -33,11 +33,11 @@ it for this page visit.
   this source does **not** include TV broadcasters. A date without kickoff time
   stays date-only; the app does not invent a midnight start.
 
-Choose an import window (7, **14** or 30 days) and any sports, competitions or teams before **Preview events**. The preview discovers available names; refine your selections there and use **Update preview with interests**. Selections combine with OR; empty selections include everything in the
+Choose an import window (7, **14** or 30 days) and any sports, competitions or teams before **Preview events**. Open a list to choose: the names come from the provider's own schedule for that window, and typing only narrows the list, so a filter cannot be misspelled. The names are fetched when you first open a list, and again after you change the provider's options. A name that is not listed is not in the published window yet; add it once the provider publishes it. Names you chose earlier stay selected. After a preview, refine your selections and use **Update preview with interests**. Selections combine with OR; empty selections include everything in the
 chosen feeds. Choose events individually or **Select all shown events**, then save.
-The available-interest list comes from the published window; an exact name can also
-be typed and accepted with Enter. At most 500 matching events appear per preview;
-narrow the interests if the provider publishes more.
+At most 500 matching events appear per preview; narrow the interests if the
+provider publishes more. For a **schedule URL**, whose names are not known until
+it is fetched, type each name exactly as the schedule spells it and press Enter.
 
 Each provider has one saved configuration (one per league/season for OpenFootball).
 The source remembers its feeds, interests and window. **Sources & retention →
@@ -237,7 +237,8 @@ report without an end expires from this summary 24 hours after its start; fully
 undated events remain in the full agenda. These labels do not verify playback.
 
 Choose **All upcoming**, **Following** or **My interests**. **Customize events**
-saves sports, competitions, teams and timezone in this browser. Interest matches
+saves sports, competitions, teams and timezone in this browser. Choose them from
+the lists, which hold the names of the events already imported. Interest matches
 use OR: any selected sport, competition or team qualifies. Choose at least one for
 My interests. Following uses the installation-wide follow state from event details.
 An empty view stays empty until you change it; it never silently switches filters.

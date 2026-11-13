@@ -68,6 +68,21 @@ async def fetch_schedule(url, *, timeout=None, adapter=None):
         raise ValueError('Could not load this guide. Check its format, stable event IDs, explicit dates and source timezone (including DST); limit 2 MiB. Check the configured request timeout. Existing events were preserved.') from None
 
 
+def provider_interest_choices(request):
+    """Sports, competitions and teams a built-in provider publishes in the window.
+
+    The form offers these names so nobody has to type one: a filter only
+    matches the provider's exact spelling. Nothing is read from or written to
+    the database, and the interests already chosen never narrow the answer."""
+    from app.schemas.events import EventInterests
+    from app.services.event_providers import provider_location
+    options = request.provider_options.model_copy(update={'interests': EventInterests()})
+    zone = 'Europe/Madrid' if options.provider in ('wosti_es', 'marca_es') else request.timezone
+    adapter = {'provider_options': options.model_dump(mode='json'), 'timezone': zone}
+    schedule = asyncio.run(fetch_schedule(provider_location(options)[0], timeout=request.timeout_seconds, adapter=adapter))
+    return schedule.available_interests
+
+
 def save_reviewed_source(db, context, selected, observations, enabled, import_new=False):
     """Called inside the same transaction as accepted event rows."""
     repo = EventSourceRepository(db)

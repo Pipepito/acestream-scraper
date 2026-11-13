@@ -717,6 +717,11 @@ older per-event entries; an event-only link wins over the alias, and the
 `{"kind": "none"}` marker keeps the source broadcast for one event. Aliases are
 managed under Events → Sources & retention → Broadcaster links. Links are not
 media/signal evidence. New events require review unless the saved source explicitly enables automatic imports within its rolling window and interests. Preserve data outside filters.
+Interest filters are chosen from lists, never typed: provider forms read the names
+from `POST /api/v1/events/providers/interests` when a list is opened (a guarded
+provider fetch that saves nothing and ignores the interests already chosen), and
+agenda/dashboard filters use `GET /events/interests`. Only schedule URLs, whose
+names are unknown until fetched, accept typed names. Keep saved selections listed.
 See `docs/dev/sporting-events.md` and `wiki/Sports-Events.md`.
 
 

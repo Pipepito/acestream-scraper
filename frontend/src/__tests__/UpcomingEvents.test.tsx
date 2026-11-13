@@ -55,7 +55,20 @@ it('remembers following without turning an empty result into all events', async 
   expect(await screen.findByText('No live or upcoming events in the next seven days.')).toBeVisible();
 });
 
-it('requires explicit interests, saves typed choices and validates timezone', async () => {
+it('says when the names to choose from cannot be loaded and loads them on retry', async () => {
+  const user = userEvent.setup();
+  service.interests.mockRejectedValueOnce(new Error('offline'));
+  mount();
+  await screen.findByText('Grand Prix');
+  await user.click(screen.getByRole('button', { name: 'Customize events' }));
+  expect(await screen.findByText('The sports, competitions and teams to choose from could not be loaded.')).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Retry choices' }));
+  await user.click(screen.getByRole('combobox', { name: 'Sports' }));
+  expect(await screen.findByRole('option', { name: 'Motorsport' })).toBeVisible();
+  expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
+});
+
+it('requires explicit interests, saves chosen names and validates timezone', async () => {
   const user = userEvent.setup();
   mount();
   await screen.findByText('Grand Prix');
@@ -64,7 +77,13 @@ it('requires explicit interests, saves typed choices and validates timezone', as
   expect(screen.getByText(/Choose a sport, competition or team/)).toBeVisible();
   expect(service.list).toHaveBeenCalledTimes(calls);
   await user.click(screen.getByRole('button', { name: 'Choose interests' }));
-  await user.type(screen.getByRole('combobox', { name: 'Sports' }), 'Motorsport{Enter}');
+  // A name nobody publishes is not a filter: typing only narrows the list.
+  await user.type(screen.getByRole('combobox', { name: 'Sports' }), 'Motosport{Enter}');
+  expect(screen.getByText('No matching name')).toBeVisible();
+  expect(readEventPreferences().interests.sports).toEqual([]);
+  await user.clear(screen.getByRole('combobox', { name: 'Sports' }));
+  await user.type(screen.getByRole('combobox', { name: 'Sports' }), 'motor');
+  await user.click(await screen.findByRole('option', { name: 'Motorsport' }));
   await waitFor(() => expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ interests: JSON.stringify({ sports: ['Motorsport'], competitions: [], teams: [] }) })));
   const zone = screen.getByRole('textbox', { name: 'Display timezone' });
   fireEvent.change(zone, { target: { value: 'No/Zone' } }); fireEvent.blur(zone);

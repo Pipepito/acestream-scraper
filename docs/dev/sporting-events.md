@@ -204,6 +204,13 @@ Broadcast changes keep the snapshot identity; doubleheaders remain distinct.
 with OR. The calendar window starts today in the source zone and ends exclusively
 at today + N days (default 14; 1–30 accepted by API). Choices are discovered before
 interest filtering; previews return at most 500 rows with a truncation notice.
+`POST /api/v1/events/providers/interests` returns those choices before any preview,
+for the form's lists: it fetches the provider through the same guarded adapter and
+admission limit as a preview, clears the request's own interests so they never
+narrow the answer, and reads and writes no database rows. The form calls it when a
+list is first opened and again only after the provider options change. Interest
+fields accept listed names only; `allowCustom` remains for schedule URLs, whose
+names are unknown before fetching, and selections saved earlier stay listed.
 Display filters use the same union rule independently from saved imports. A field
 for `scheduled_date` is retained when kickoff is absent. Neither the window nor
 interest changes perform deletion. Existing manual corrections stay authoritative.

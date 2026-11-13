@@ -189,7 +189,7 @@ and counts committed, staged, unstaged and untracked files.
   checks are outstanding too. Only an explicit user waiver narrows a tier.
 - Quick profiles, focused tests and earlier passing runs are for iteration. They
   do not replace the tier, and completion evidence must cover the final changes.
-- CI replaces `frontend/.eslintrc.cjs`, `frontend/tsconfig.json` and
+- CI replaces `frontend/eslint.config.cjs`, `frontend/tsconfig.json` and
   `frontend/jest.config.js` with reviewed private copies. A change to any of
   them, or a new kind of imported asset, can pass locally and fail in Jenkins:
   say so in the pull request so the private copy is reviewed with it.

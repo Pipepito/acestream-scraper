@@ -26,7 +26,8 @@ PORTABLE_ROOTS = ("backend/app/", "backend/migrations/", "backend/auth_migration
 PORTABLE_FILES = {"backend/main.py", "backend/pytest.ini", "backend/run_tests.py",
                   "backend/openapi.json", "frontend/index.html", "frontend/vite.config.mts",
                   "frontend/vite.recipes.config.mts", "frontend/vite-env.d.ts",
-                  "frontend/tsconfig.json", "frontend/jest.config.js", "frontend/.eslintrc.cjs"}
+                  "frontend/tsconfig.json", "frontend/jest.config.js", "frontend/.eslintrc.cjs",
+                  "frontend/eslint.config.cjs"}
 # Packaging tests describe the images themselves.
 IMAGE_TEST_ROOT = "backend/tests/docker/"
 

@@ -36,6 +36,7 @@
     "prestart": "npm run changelog:check"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@svta/cml-cmcd": "2.4.0",
     "@svta/cml-id3": "1.0.6",
     "@svta/cml-utils": "1.5.0",
@@ -44,16 +45,17 @@
     "@types/node": "^24.6.0",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
-    "@typescript-eslint/eslint-plugin": "^8.67.0",
-    "@typescript-eslint/parser": "^8.67.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.2",
+    "@typescript-eslint/parser": "^8.72.2",
     "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^8.57.1",
+    "eslint": "^10.14.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-testing-library": "^7.16.2",
     "eventemitter3": "5.0.4",
     "fs-extra": "^11.2.0",
+    "globals": "^17.14.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "openapi-typescript": "^7.13.0",
@@ -62,6 +64,18 @@
     "typescript": "^5.9.3",
     "url-toolkit": "2.2.5",
     "vite": "^8.0.3"
+  },
+  "overrides": {
+    "eslint-plugin-react": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-jsx-a11y": {
+      "eslint": "$eslint"
+    },
+    "jest-environment-jsdom": {
+      "jsdom": "^29.1.1"
+    },
+    "test-exclude": "^8.0.0"
   },
   "browserslist": {
     "production": [

@@ -18,6 +18,7 @@ from app.repositories.channel_repository import ChannelRepository
 from app.services.stream_bitrate_service import probe_media
 from app.services.stream_stats import stream_stats_sample
 from app.services.probe_queue import ProbePriority, probe_queue
+from app.services.source_health import is_real_check
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ def channels_in_check_order(db: Session, *, http_only: bool = False, now: Option
     Favorites and assigned channels win within a group; last check and ID give
     stable tie breaks. A just-checked favorite moves out of the overdue groups.
     A check dated in the future counts as never made. Discarded sources go
-    last, and only once a week (``stream_history.discarded``).
+    last, and only once a week (``source_health``).
     """
     from app.services.config_service import ConfigService
     from app.repositories.settings_repository import SettingsRepository
@@ -106,7 +107,7 @@ def channels_in_check_order(db: Session, *, http_only: bool = False, now: Option
     interval = config.get_channel_status_interval() * 60
     rows = ChannelRepository(db).status_check_inventory(config.get_stream_check_scope().scope, http_only=http_only)
 
-    from app.services.stream_history import DISCARDED_RECHECK_DAYS, discarded
+    from app.services.source_health import discarded, due_for_check
 
     def checked_at(row):
         checked = row.last_checked
@@ -122,15 +123,7 @@ def channels_in_check_order(db: Session, *, http_only: bool = False, now: Option
         return (discarded(row, now), checked is not None, -age_group, not row.is_favorite,
                 row.tv_channel_id is None, checked or datetime.min.replace(tzinfo=timezone.utc), row.id)
 
-    def due(row):
-        # A discarded source is still checked, so it can come back, but at most
-        # once every DISCARDED_RECHECK_DAYS and after every other source.
-        if not discarded(row, now):
-            return True
-        checked = checked_at(row)
-        return checked is None or now - checked >= timedelta(days=DISCARDED_RECHECK_DAYS)
-
-    return [row.id for row in sorted((row for row in rows if due(row)), key=priority)]
+    return [row.id for row in sorted((row for row in rows if due_for_check(row, row.last_checked, now)), key=priority)]
 
 
 class ChannelStatusService:
@@ -378,7 +371,7 @@ class ChannelStatusService:
             result.update(message=error, error=error)
             return result
         if persist:
-            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, verified=True)
+            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, verified=is_real_check(online, http=True))
         return {
             'channel_id': channel.id,
             'id_kind': channel.id_kind,
@@ -482,9 +475,7 @@ class ChannelStatusService:
             await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
                 audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status,
                 stream_stats=observation or None, id_kind=id_kind,
-                # A failure counts against the source only when the engine looked it
-                # up (found, or not found): a timeout says nothing about the source.
-                verified=online or network_status in ('found', 'not_found'))
+                verified=is_real_check(online, network_status))
         return {
             'channel_id': channel.id,
             'id_kind': id_kind or channel.id_kind,

@@ -64,7 +64,7 @@ can override the setting with `hide_unusable=true|false`.
 
 A source is the asset; a list is only where it was found. Which lists still
 publish a source does not count for hiding: a list that goes away or drops a
-source changes nothing. A source is discarded when both hold:
+source changes nothing. The rule lives in `app/services/source_health.py`. A source is discarded when both hold:
 
 - `failed_checks` is 5 or more: five status checks in a row found no media.
   Only real checks count (an HTTP check, or an engine check whose lookup

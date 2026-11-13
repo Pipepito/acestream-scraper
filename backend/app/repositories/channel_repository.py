@@ -10,10 +10,6 @@ from datetime import datetime, timezone
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
-def _as_utc(value: datetime) -> datetime:
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-
-
 class ChannelRepository:
     def source_filter_inventory(self):
         from app.models.models import ScrapedURL, W3UCatalogue
@@ -397,16 +393,8 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.group == group)
 
         if only_online:
-            # An HTTP stream not checked yet is unknown, and without this the
-            # default playlist (only_online=true) had NO HTTP channel at all
-            # until the next status pass. Unknown HTTP streams are published:
-            # a dead one fails in Kodi within seconds and leaves the remote
-            # responsive, which is not true of an acestream id waiting on the
-            # engine. Checked-dead ones are left out.
-            query = query.filter(or_(
-                AcestreamChannel.is_online.is_(True),
-                and_(AcestreamChannel.stream_url.isnot(None), AcestreamChannel.is_online.is_(None)),
-            ))
+            from app.services.source_health import published_when_only_online_clause
+            query = query.filter(published_when_only_online_clause())
 
         if include_groups and len(include_groups) > 0:
             query = query.filter(AcestreamChannel.group.in_(include_groups))
@@ -669,13 +657,8 @@ class ChannelRepository:
         if not channel:
             return None
         if verified:
-            now = datetime.now(timezone.utc)
-            if is_online:
-                self._worked(channel, now)
-            else:
-                channel.failed_checks = (channel.failed_checks or 0) + 1
-                if channel.failing_since is None:
-                    channel.failing_since = now
+            from app.services.source_health import apply_check
+            apply_check(channel, is_online, datetime.now(timezone.utc))
 
         channel.is_online = is_online
         channel.network_status = network_status
@@ -703,20 +686,14 @@ class ChannelRepository:
         self.db.refresh(channel)
         return channel
 
-    @staticmethod
-    def _worked(channel: AcestreamChannel, at: datetime) -> None:
-        if channel.last_worked_at is None or _as_utc(channel.last_worked_at) < at:
-            channel.last_worked_at = at
-        channel.failed_checks = 0
-        channel.failing_since = None
-
     def mark_worked(self, channel_id: str, at: Optional[datetime] = None) -> bool:
         """The relay played this source: it works, whatever the last check said."""
         channel = (self.db.query(AcestreamChannel)
                    .filter(func.lower(AcestreamChannel.id) == channel_id.lower()).first())
         if channel is None:
             return False
-        self._worked(channel, at or datetime.now(timezone.utc))
+        from app.services.source_health import apply_worked
+        apply_worked(channel, at or datetime.now(timezone.utc))
         self.db.commit()
         return True
 

@@ -249,6 +249,7 @@ class TunerService:
         channels: List[TVChannel] = ChannelRepository(self.db).get_playlist_tv_channels()
         candidates = []
         gone: Set[str] = set()
+        from app.services.source_health import published_when_only_online
         if settings.hide_unusable:
             from app.services.stream_history import unusable_ids
             gone = unusable_ids(self.db, [s for tv in channels for s in tv.acestream_channels])
@@ -257,7 +258,7 @@ class TunerService:
                        and s.id.lower() not in gone]
             if not streams:
                 continue
-            if settings.only_online and not any(s.is_online for s in streams):
+            if settings.only_online and not any(published_when_only_online(s) for s in streams):
                 continue
             candidates.append((tv, sort_streams_curated(streams)[0]))
 

@@ -21,10 +21,8 @@ Ranking is rule based and deliberately small:
   history is clearly bad, or when it has no history of its own and its list
   is almost entirely offline.
 
-Hiding (``unusable_ids``) does not look at lists: sources are the assets and
-lists only where they were found (13-11). A source is *discarded* when
-``DISCARD_FAILED_CHECKS`` checks in a row found no media and it has not worked
-for ``DISCARD_DAYS``; it comes back as soon as it works again.
+Hiding (``unusable_ids``) does not look at lists: a source is hidden when
+``source_health.discarded`` says so or its own history is clearly bad.
 """
 from __future__ import annotations
 
@@ -34,6 +32,8 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, Iterable, Optional
+
+from app.services.source_health import WORKED_OUTCOMES, discarded
 
 logger = logging.getLogger(__name__)
 
@@ -50,15 +50,6 @@ DEAD_LIST_SHARE = 0.2
 BAD_EVIDENCE = 2.0
 BAD_SCORE = 0.25
 PRUNE_EVERY = 500
-# Discarded: this many failed checks in a row AND this long without working
-# (or failing, if it never worked). Both: a box that is on now and then can
-# make 7 days one check, and 5 checks can fall in one afternoon.
-DISCARD_FAILED_CHECKS = 5
-DISCARD_DAYS = 7
-# A discarded source is still checked, at most this often and after the rest.
-DISCARDED_RECHECK_DAYS = 7
-# Relay outcomes that prove the source works.
-WORKED_OUTCOMES = frozenset({'ok', 'handover'})
 # A row written with a clock that ran ahead (a box switched on before its clock
 # synchronised) says nothing reliable about when it happened: it is ignored
 # instead of counting as the most recent attempt.
@@ -141,19 +132,6 @@ def scores_for(db, streams, now: Optional[datetime] = None) -> Dict[str, SourceS
     attempts = repo.attempts_since((s.id for s in streams), now - timedelta(days=HISTORY_DAYS))
     health = repo.list_health(getattr(s, 'source_url', None) for s in streams)
     return score_sources(streams, attempts, health, now)
-
-
-def discarded(stream, now: datetime) -> bool:
-    """Failed ``DISCARD_FAILED_CHECKS`` checks in a row and has not worked for
-    ``DISCARD_DAYS`` (counted from when it started failing if it never worked).
-
-    A time in the future counts as unknown, so it never discards."""
-    if (getattr(stream, 'failed_checks', 0) or 0) < DISCARD_FAILED_CHECKS:
-        return False
-    since = getattr(stream, 'last_worked_at', None) or getattr(stream, 'failing_since', None)
-    if since is None or _aware(since) > now + FUTURE_TOLERANCE:
-        return False
-    return now - _aware(since) >= timedelta(days=DISCARD_DAYS)
 
 
 def unusable_ids(db, streams, now: Optional[datetime] = None) -> set[str]:

@@ -252,7 +252,7 @@ def test_a_source_no_list_publishes_any_more_is_not_hidden(db_session):
     (5, 7, True),
 ])
 def test_discarding_needs_both_five_failed_checks_and_seven_days(failed, days, hidden):
-    from app.services.stream_history import discarded
+    from app.services.source_health import discarded
 
     class Source:
         failed_checks = failed
@@ -262,7 +262,7 @@ def test_discarding_needs_both_five_failed_checks_and_seven_days(failed, days, h
 
 
 def test_a_source_that_never_worked_counts_from_when_it_began_failing():
-    from app.services.stream_history import discarded
+    from app.services.source_health import discarded
 
     class Source:
         failed_checks = 5
@@ -276,7 +276,7 @@ def test_a_source_that_never_worked_counts_from_when_it_began_failing():
 
 
 def test_a_clock_that_starts_ahead_discards_nothing():
-    from app.services.stream_history import discarded
+    from app.services.source_health import discarded
 
     class Source:
         failed_checks = 5

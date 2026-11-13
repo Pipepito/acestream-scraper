@@ -8,15 +8,19 @@ from app.services.tuner_service import TunerService
 def _seed(db):
     from app.models.models import AcestreamChannel, EPGChannel, EPGProgram, EPGSource, TVChannel
     source = EPGSource(url="http://epg", name="epg", enabled=True)
-    db.add(source); db.flush()
+    db.add(source)
+    db.flush()
     epg_channel = EPGChannel(epg_source_id=source.id, channel_xml_id="DAZN LaLiga HD", name="DAZN", icon_url="http://icon")
-    db.add(epg_channel); db.flush()
+    db.add(epg_channel)
+    db.flush()
     now = datetime.now(timezone.utc)
     db.add(EPGProgram(epg_channel_id=epg_channel.id, start_time=now, end_time=now + timedelta(hours=1), title="Match & More", description="d"))
     tv = TVChannel(name="DAZN 1", channel_number=12, epg_id="DAZN LaLiga HD", epg_source_id=source.id, logo_url="http://logo", category="Sports", is_active=True)
-    db.add(tv); db.flush()
+    db.add(tv)
+    db.flush()
     stream = AcestreamChannel(id="a" * 40, name="DAZN feed", is_online=True, is_active=True, tv_channel_id=tv.id)
-    db.add(stream); db.commit()
+    db.add(stream)
+    db.commit()
     return tv
 
 

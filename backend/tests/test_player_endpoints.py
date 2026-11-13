@@ -61,7 +61,8 @@ def _wait_ready(client, session_id, tries=60):
         body = client.get(f"/api/v1/player/sessions/{session_id}").json()
         if body["hls_ready"]:
             return body
-        import time; time.sleep(0.05)
+        import time
+        time.sleep(0.05)
     raise AssertionError("session never became ready")
 
 
@@ -78,8 +79,8 @@ def test_create_status_playlist_segment_delete(client, player):
     assert playlist.status_code == 200
     assert playlist.headers["content-type"].startswith("application/vnd.apple.mpegurl")
     assert playlist.headers["cache-control"] == "no-store"
-    lines = [l for l in playlist.text.splitlines() if l and not l.startswith("#")]
-    assert lines and all(l.endswith(".ts") for l in lines)
+    lines = [line for line in playlist.text.splitlines() if line and not line.startswith("#")]
+    assert lines and all(line.endswith(".ts") for line in lines)
     segment = client.get(f"/api/v1/player/sessions/{body['id']}/{lines[0]}")
     assert segment.status_code == 200 and segment.headers["content-type"] == "video/mp2t"
 
@@ -126,9 +127,9 @@ def test_playlist_propagates_query_token_for_native_players(client, player, monk
     ready = _wait_ready_with_token(client, created["id"])
     by_query = client.get(f"{ready['playlist_url']}?token={TOKEN}")
     assert by_query.status_code == 200
-    uris = [l for l in by_query.text.splitlines() if l and not l.startswith("#")]
-    assert uris and all(l.endswith(f"?token={TOKEN}") for l in uris)
-    assert all(l.startswith("#") or l.endswith(f"?token={TOKEN}") for l in by_query.text.splitlines() if l)
+    uris = [line for line in by_query.text.splitlines() if line and not line.startswith("#")]
+    assert uris and all(line.endswith(f"?token={TOKEN}") for line in uris)
+    assert all(line.startswith("#") or line.endswith(f"?token={TOKEN}") for line in by_query.text.splitlines() if line)
     # Each rewritten URI resolves and is accepted; the same segment without a token is 401.
     seg = uris[0]
     assert client.get(f"/api/v1/player/sessions/{created['id']}/{seg}").status_code == 200
@@ -136,7 +137,7 @@ def test_playlist_propagates_query_token_for_native_players(client, player, monk
     # A header-authenticated request gets the playlist verbatim: no query is appended.
     by_header = client.get(ready["playlist_url"], headers={"X-Api-Token": TOKEN})
     assert "token=" not in by_header.text
-    assert all(re.fullmatch(r"seg\d{5}\.ts", l) for l in by_header.text.splitlines() if l and not l.startswith("#"))
+    assert all(re.fullmatch(r"seg\d{5}\.ts", line) for line in by_header.text.splitlines() if line and not line.startswith("#"))
     assert client.delete(f"/api/v1/player/sessions/{created['id']}?token={TOKEN}").status_code == 204
 
 
@@ -153,7 +154,8 @@ def _wait_ready_with_token(client, session_id, token=TOKEN, tries=60):
         body = client.get(f"/api/v1/player/sessions/{session_id}", headers={"X-Api-Token": token}).json()
         if body["hls_ready"]:
             return body
-        import time; time.sleep(0.05)
+        import time
+        time.sleep(0.05)
     raise AssertionError("session never became ready")
 
 
@@ -163,7 +165,7 @@ def test_segment_missing_is_404_and_served_response_carries_its_own_stat(client,
 
     created = client.post("/api/v1/player/sessions", json={"content_id": IH}).json()
     ready = _wait_ready(client, created["id"])
-    uris = [l for l in client.get(ready["playlist_url"]).text.splitlines() if l and not l.startswith("#")]
+    uris = [line for line in client.get(ready["playlist_url"]).text.splitlines() if line and not line.startswith("#")]
     newest = uris[-1]
 
     # Well-formed name, no such file: 404, never a 500.

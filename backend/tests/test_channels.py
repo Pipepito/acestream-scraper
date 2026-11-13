@@ -145,8 +145,8 @@ class TestChannelEndpoints:
         assert data["tvg_id"] == "updated.channel"
         assert data["tvg_name"] == "Updated Channel"
         assert data["source_url"] == "acestream://updated123456789"
-        assert data["is_active"] == False
-        assert data["is_online"] == False
+        assert data["is_active"] is False
+        assert data["is_online"] is False
 
     def test_update_channel_not_found(self, client):
         """Test updating a non-existent channel."""

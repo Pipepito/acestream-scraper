@@ -1,6 +1,6 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import logging
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 import httpx
 from fastapi import HTTPException
 from pydantic import AnyHttpUrl, TypeAdapter
@@ -325,7 +325,7 @@ class ConfigService:
         acestream_status = self.check_acestream_status()
         try:
             from sqlalchemy import text
-            result = self.settings_repo.db.execute(text("SELECT 1"))
+            self.settings_repo.db.execute(text("SELECT 1"))
             database_status = {
                 "status": "connected",
                 "connection_pool": {"active": 1, "idle": 0},

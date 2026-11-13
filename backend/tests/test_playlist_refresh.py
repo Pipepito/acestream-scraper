@@ -4,7 +4,6 @@ and TaskService.run_task_now.
 """
 
 import threading
-import time
 
 from fastapi import status
 

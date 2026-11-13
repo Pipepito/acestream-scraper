@@ -6,8 +6,7 @@ import re
 import logging
 import json
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Set, Dict, Union, Any
-from datetime import datetime
+from typing import List, Tuple, Set, Dict, Any
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 
@@ -15,7 +14,6 @@ from app.models.url_types import BaseURL
 from app.services.m3u_service import M3UService, is_m3u_source, url_ends_with_m3u
 from app.config.database import get_db
 from app.utils.url_guard import BlockedURLError
-from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -404,7 +402,7 @@ class BaseScraper(ABC):
                     if channels:
                         logger.info(f"Extracted {len(channels)} channels from direct M3U file")
                     else:
-                        logger.warning(f"No channels found in M3U file content")
+                        logger.warning("No channels found in M3U file content")
                     if forced_m3u or channels:
                         break
                     # A list recognised only from its download and holding

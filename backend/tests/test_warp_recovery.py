@@ -425,6 +425,24 @@ async def test_backend_retry_waits_for_new_window_and_preserves_database_retry(r
 
 
 @pytest.mark.asyncio
+async def test_backend_retry_gives_up_when_no_coordinator_takes_the_request(runtime, monkeypatch):
+    from app.services import warp_startup_service
+    store, coordinator, now, fd = runtime
+    now[0] += 600
+    coordinator.tick(fd)
+    assert store.state()['phase'] == 'failed'
+    # The coordinator is gone: nothing opens the requested window. Only this
+    # module's clock moves, the event loop keeps the real one.
+    ticks = iter(range(0, 600, 6))
+    monkeypatch.setattr(warp_startup_service, 'time', SimpleNamespace(monotonic=lambda: float(next(ticks))))
+    service = StartupService()
+    with pytest.raises(WarpStartupError):
+        await asyncio.wait_for(wait_for_warp(service, asyncio.Event(), retry=True), 5)
+    assert service.startup_dependency == 'warp'
+    assert store.path('command').exists()
+
+
+@pytest.mark.asyncio
 async def test_missing_or_stale_coordinator_never_releases_backend(runtime):
     store, _, _, _ = runtime
     store.path('json').unlink()

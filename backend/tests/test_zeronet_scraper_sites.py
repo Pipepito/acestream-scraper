@@ -208,7 +208,9 @@ def test_http_only_playlist_without_extension_is_returned(monkeypatch):
         async def __aenter__(self): return self
         async def __aexit__(self, *args): pass
     class Session:
-        def get(self, url, **kwargs): requested.append(url); return Response()
+        def get(self, url, **kwargs):
+            requested.append(url)
+            return Response()
         async def __aenter__(self): return self
         async def __aexit__(self, *args): pass
     monkeypatch.setattr(zeronet_module, 'source_session', lambda **kwargs: Session())
@@ -233,7 +235,9 @@ def _serve(monkeypatch, body):
         async def __aenter__(self): return self
         async def __aexit__(self, *args): pass
     class Session:
-        def get(self, url, **kwargs): requested.append(url); return Response()
+        def get(self, url, **kwargs):
+            requested.append(url)
+            return Response()
         async def __aenter__(self): return self
         async def __aexit__(self, *args): pass
     monkeypatch.setattr(zeronet_module, 'source_session', lambda **kwargs: Session())
@@ -287,7 +291,9 @@ def test_site_that_never_becomes_ready_has_bounded_retries_and_error_status(monk
         async def __aenter__(self): return self
         async def __aexit__(self, *args): pass
     class Session:
-        def get(self, url, **kwargs): requested.append(url); return Response()
+        def get(self, url, **kwargs):
+            requested.append(url)
+            return Response()
         async def __aenter__(self): return self
         async def __aexit__(self, *args): pass
     recorded = _record_status(monkeypatch)

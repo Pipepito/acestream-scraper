@@ -220,10 +220,14 @@ def test_sync_if_changed_debounces_and_records_manual(alembic_db_session, jellyf
         assert svc.sync_if_changed(server) is None  # nothing changed
         # Lineup changes but the debounce window has not elapsed
         from app.models.models import AcestreamChannel, TVChannel
-        tv = TVChannel(name="New", channel_number=3, is_active=True); alembic_db_session.add(tv); alembic_db_session.flush()
-        alembic_db_session.add(AcestreamChannel(id="b" * 40, name="f", is_online=True, is_active=True, tv_channel_id=tv.id)); alembic_db_session.commit()
+        tv = TVChannel(name="New", channel_number=3, is_active=True)
+        alembic_db_session.add(tv)
+        alembic_db_session.flush()
+        alembic_db_session.add(AcestreamChannel(id="b" * 40, name="f", is_online=True, is_active=True, tv_channel_id=tv.id))
+        alembic_db_session.commit()
         assert svc.sync_if_changed(server) is None and jellyfin.started == [1]
-        server.last_sync_at = datetime.now(timezone.utc) - timedelta(minutes=31); alembic_db_session.commit()
+        server.last_sync_at = datetime.now(timezone.utc) - timedelta(minutes=31)
+        alembic_db_session.commit()
         assert svc.sync_if_changed(server).status == "ok" and jellyfin.started == [1, 1]
         # Plex without token: manual status stored, last_sync_at untouched
         plex = svc.repo.create(kind="plex", name="Plex", base_url="http://plex.lan:32400", api_key=None, tuner_mode="hdhomerun")

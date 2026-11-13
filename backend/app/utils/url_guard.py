@@ -20,7 +20,6 @@ validation alone is not a connection boundary.
 
 import ipaddress
 import logging
-import os
 import socket
 from typing import Optional
 from urllib.parse import urlparse

@@ -262,7 +262,7 @@ class TestConfigAcestreamStatusEndpoint:
         data = response.json()
 
         # Should indicate engine is not accessible
-        assert data["accessible"] == False
+        assert data["accessible"] is False
         assert "error" in data["status"] or "unreachable" in data["status"].lower()
 
 

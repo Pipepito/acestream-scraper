@@ -104,7 +104,8 @@ async def test_custom_scrapes_keep_existing_channels_on_success_and_failure(db_s
     from app.services.scraper_service import ScraperService
     source = ScrapedURL(url='https://example.com/channels', extraction_recipe=CATALOGUE[1]['recipe'])
     tv = TVChannel(name='Curated', channel_number=1)
-    db_session.add_all([source, tv]); db_session.flush()
+    db_session.add_all([source, tv])
+    db_session.flush()
     db_session.add(AcestreamChannel(id='c' * 40, name='Existing', source_url=source.url, tv_channel_id=tv.id))
     db_session.commit()
     fetch = AsyncMock(return_value=CATALOGUE[1]['sample'])

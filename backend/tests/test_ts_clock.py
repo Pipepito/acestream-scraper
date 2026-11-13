@@ -167,3 +167,29 @@ def test_the_summary_is_written_even_without_jumps_so_a_zero_can_be_read(caplog)
     lines = [r.getMessage() for r in caplog.records]
     assert any("content_id=abc back_jumps=0" in m and "pcr_samples=3" in m for m in lines)
     assert any("content_id=def back_jumps=0" in m and "pcr_samples=0" in m for m in lines)
+
+
+def test_a_chunk_that_loses_packet_alignment_is_left_alone():
+    # Two aligned packets, then bytes that are not a packet: the watch stops
+    # reading there instead of taking a PCR out of the middle of the payload.
+    watch = ClockWatch("abc", clock=_Clock())
+    watch.feed(_packet(0x100, 100.0) + _packet(0x100) + bytes(188) + _packet(0x100, 50.0))
+    assert watch.pcr_samples == 1
+    assert watch.back_jumps == 0
+
+
+def test_a_failing_watch_never_breaks_playback(caplog):
+    class Broken(ClockWatch):
+        def feed(self, chunk):
+            raise RuntimeError('unexpected packet')
+
+    async def source():
+        yield b'one'
+        yield b'two'
+
+    async def collect():
+        return [chunk async for chunk in watch_clock(source(), "abc", Broken("abc"))]
+
+    with caplog.at_level(logging.DEBUG, logger=ts_clock.__name__):
+        assert asyncio.run(collect()) == [b'one', b'two']
+    assert 'TV relay clock watch failed' in caplog.text

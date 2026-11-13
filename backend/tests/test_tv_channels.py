@@ -112,8 +112,8 @@ class TestTVChannelEndpoints:
         assert data["website"] == "https://updated.com"
         assert data["epg_id"] == "updated.tv"
         assert data["channel_number"] == 100
-        assert data["is_active"] == False
-        assert data["is_favorite"] == True
+        assert data["is_active"] is False
+        assert data["is_favorite"] is True
 
     def test_update_tv_channel_not_found(self, client):
         """Test updating a non-existent TV channel."""

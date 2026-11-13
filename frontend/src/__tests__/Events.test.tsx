@@ -192,6 +192,26 @@ it('offers MARCA and saves automatic imports with the rolling window and sport f
   await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [], true, true));
 });
 
+it('saves a schedule URL with a longer window and new events left for review', async () => {
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(screen.getByRole('button', { name: 'Add events' }));
+  await user.click(screen.getByLabelText('Add from'));
+  await user.click(screen.getByRole('option', { name: 'Load schedule URL' }));
+  await user.type(screen.getByLabelText('Schedule URL'), 'https://guide.example/events.json');
+  await user.click(screen.getByLabelText('Import window'));
+  await user.click(screen.getByRole('option', { name: 'Next 30 days' }));
+  await user.click(screen.getByRole('button', { name: 'Preview events' }));
+  await screen.findByRole('button', { name: 'Save source without events' });
+  expect(service.previewSource).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://guide.example/events.json', window_days: 30 }));
+  await user.click(screen.getByRole('checkbox', { name: /Refresh selected events automatically/ }));
+  expect(screen.getByText(/Each refresh checks the next 30 days/)).toBeVisible();
+  await user.click(screen.getByRole('checkbox', { name: 'Also import new matching events automatically' }));
+  expect(screen.getByText(/New events need review\./)).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Save source without events' }));
+  await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [], true, false));
+});
+
 it('requires selecting an exact stream to map an unresolved broadcaster', async () => {
   jest.mocked(channelService.getAcestreamChannels).mockResolvedValue({ total: 1, items: [{ id: 'b'.repeat(40), name: 'DAZN Spain', group: 'Spain', last_seen: '', status: '', is_online: null, epg_update_protected: false }] });
   const user = userEvent.setup();

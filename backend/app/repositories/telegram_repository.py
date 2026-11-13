@@ -6,7 +6,6 @@ from app.config.database import SessionLocal
 from app.models.models import AcestreamChannel
 from app.models.telegram import TelegramSourceRow, TelegramObservation
 from app.schemas.telegram import TelegramSource, TelegramSourceConfig
-from app.schemas.extraction import RecipePreview
 
 
 def dto(row: TelegramSourceRow) -> TelegramSource:

@@ -51,7 +51,8 @@ def _open_slow_channel(alembic_client, alembic_db_session, monkeypatch, per_sour
     from app.services.tuner_network import get_tuner_gate
     import app.services.tuner_playback_service as playback
     monkeypatch.setenv('TUNER_ALLOWED_NETWORKS', '*')
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
     try:
         tv = TVChannel(name='Slow', is_active=True)
         alembic_db_session.add(tv)
@@ -71,7 +72,8 @@ def _open_slow_channel(alembic_client, alembic_db_session, monkeypatch, per_sour
         monkeypatch.setattr(playback, 'relay_engine_stream', cold)
         return alembic_client.get(f'/tuner/channel/{tv.id}.ts')
     finally:
-        get_settings.cache_clear(); get_tuner_gate.cache_clear()
+        get_settings.cache_clear()
+        get_tuner_gate.cache_clear()
 
 
 def test_a_slow_source_plays_when_the_setting_gives_it_time(alembic_client, alembic_db_session, monkeypatch):

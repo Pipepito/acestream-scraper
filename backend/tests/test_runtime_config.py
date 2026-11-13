@@ -49,7 +49,8 @@ def test_saved_file_and_constructor_database_location(tmp_path):
 def test_invalid_existing_config_is_never_overwritten(tmp_path, value):
     path = tmp_path / 'runtime-config.json'
     path.write_text(value)
-    with pytest.raises(ConfigError): ensure_config(path, {})
+    with pytest.raises(ConfigError):
+        ensure_config(path, {})
     assert path.read_text() == value
 
 
@@ -58,7 +59,8 @@ def test_symlink_is_rejected(tmp_path):
     target.write_text('secret')
     path = tmp_path / 'runtime-config.json'
     path.symlink_to(target)
-    with pytest.raises(ConfigError): ensure_config(path, {})
+    with pytest.raises(ConfigError):
+        ensure_config(path, {})
     assert target.read_text() == 'secret'
 
 
@@ -66,9 +68,11 @@ def test_stale_edit_cannot_clobber_and_invalid_save_keeps_original(tmp_path):
     path = tmp_path / 'runtime-config.json'
     first = ensure_config(path, {})
     second = update_config(path, {'PLAYER_MAX_SESSIONS': 5}, revision(first), True)
-    with pytest.raises(ConfigConflict): update_config(path, {}, revision(first), True)
+    with pytest.raises(ConfigConflict):
+        update_config(path, {}, revision(first), True)
     for bad in [{'PLAYER_MAX_SESSIONS': -1}, {'APP_COMMAND': 'id'}, {'ENABLE_IPFS': 'yes'}, {'ACE_ENGINE_URL': 'http://user:secret@host'}]:
-        with pytest.raises(ConfigError): update_config(path, bad, revision(second), True)
+        with pytest.raises(ConfigError):
+            update_config(path, bad, revision(second), True)
     assert read_config(path) == second
 
 
@@ -143,7 +147,8 @@ def test_registry_defaults_match_settings():
     for name, option in OPTION_MAP.items():
         if name in Settings.model_fields:
             default = Settings.model_fields[name].default
-            if name == 'CORS_ORIGINS': default = ','.join(default)
+            if name == 'CORS_ORIGINS':
+                default = ','.join(default)
             assert option['default'] == default, name
 
 
@@ -222,7 +227,8 @@ def test_upgrade_imports_missing_keys_once_and_ignores_invalid_overridden_env(tm
 ])
 def test_service_options_are_validated_as_data(values):
     from runtime_config import validate_values
-    with pytest.raises(ConfigError): validate_values(values)
+    with pytest.raises(ConfigError):
+        validate_values(values)
 
 
 def test_checker_is_derived_not_saved_as_external(wizard_client):

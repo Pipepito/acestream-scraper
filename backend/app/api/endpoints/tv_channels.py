@@ -461,7 +461,7 @@ async def bulk_update_epg(
                 continue
 
             # Update the EPG ID
-            updated_channel = service.update_tv_channel(
+            service.update_tv_channel(
                 tv_channel_id=tv_channel_id,
                 updates={"epg_id": epg_id}
             )

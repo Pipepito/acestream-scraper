@@ -17,7 +17,7 @@ from dataclasses import asdict
 from typing import List
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
@@ -36,7 +36,7 @@ from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService, TunerSettings
 from app.services import tuner_playback_service
 from app.services.tuner_playback_service import (
-    CHECKPOINT_SECONDS, ViewingCheckpoint, prefer_recovered_sources, record_outcome, relay_ranked_streams,
+    CHECKPOINT_SECONDS, ViewingCheckpoint, prefer_recovered_sources, relay_ranked_streams,
 )
 from app.services.ts_clock import ClockWatch, watch_clock
 from app.services.tuner_remux import ffmpeg_binary

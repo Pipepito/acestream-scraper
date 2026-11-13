@@ -1,7 +1,6 @@
 """Actual owned fake children and coordinator lifecycle; never open live streams."""
 import asyncio
 from datetime import datetime, timedelta, timezone
-import fcntl
 import os
 import sys
 import threading
@@ -201,7 +200,6 @@ async def test_checkpoints_coalesce_while_database_writer_is_busy():
 
 @pytest.mark.asyncio
 async def test_due_dispatch_does_not_wait_for_database_writer(monkeypatch):
-    import time
     import app.services.recording_coordinator as module
     manager = RecordingCoordinator()
     due = datetime.now(timezone.utc) + timedelta(seconds=.3)

@@ -33,7 +33,7 @@ class StatsRepository:
 
     def get_tv_channel_rollup(self) -> Tuple[int, int, int, int]:
         total = self.db.query(TVChannel).count()
-        active = self.db.query(TVChannel).filter(TVChannel.is_active == True).count()
+        active = self.db.query(TVChannel).filter(TVChannel.is_active.is_(True)).count()
         with_epg = self.db.query(TVChannel).filter(TVChannel.epg_id.isnot(None)).count()
         acestreams = self.db.query(AcestreamChannel).filter(AcestreamChannel.tv_channel_id.isnot(None)).count()
         return total, active, with_epg, acestreams

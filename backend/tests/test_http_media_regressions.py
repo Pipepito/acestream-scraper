@@ -25,7 +25,8 @@ async def origin():
             raise web.HTTPFound('/html')
         if request.path == '/metadata':
             raise web.HTTPFound('http://169.254.169.254/latest/')
-        response = web.StreamResponse(); await response.prepare(request)
+        response = web.StreamResponse()
+        await response.prepare(request)
         try:
             while True:
                 await response.write(b'x' * 8192)
@@ -34,9 +35,12 @@ async def origin():
         except (ConnectionError, asyncio.CancelledError):
             state['disconnected'].set()
         return response
-    app = web.Application(); app.router.add_get('/{path}', stream)
-    runner = web.AppRunner(app); await runner.setup()
-    site = web.TCPSite(runner, '127.0.0.1', 0); await site.start()
+    app = web.Application()
+    app.router.add_get('/{path}', stream)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '127.0.0.1', 0)
+    await site.start()
     try:
         yield f'http://127.0.0.1:{site._server.sockets[0].getsockname()[1]}', state
     finally:
@@ -62,7 +66,8 @@ async def test_document_limit_is_enforced_during_transfer(origin):
 
 @pytest.mark.asyncio
 async def test_trickle_cannot_extend_total_read_deadline(origin):
-    url, state = origin; started = time.monotonic()
+    url, state = origin
+    started = time.monotonic()
     with pytest.raises(TimeoutError):
         await source_get(url + '/endless', max_bytes=20 * 1024 * 1024, timeout=0.08)
     assert time.monotonic() - started < 1
@@ -76,7 +81,8 @@ async def test_cancellation_closes_read(origin):
     while not state['bytes_sent']:
         await asyncio.sleep(0.01)
     task.cancel()
-    with pytest.raises(asyncio.CancelledError): await task
+    with pytest.raises(asyncio.CancelledError):
+        await task
     await asyncio.wait_for(state['disconnected'].wait(), 2)
 
 
@@ -165,7 +171,9 @@ def test_encrypted_init_order_is_preserved_without_trimming():
 
 @pytest.mark.asyncio
 async def test_fragmented_mp4_init_and_segment_verify_media(tmp_path, monkeypatch):
-    import os, shutil, subprocess
+    import os
+    import shutil
+    import subprocess
     from app.utils.bounded_source import SourceResponse
     ffmpeg = os.environ.get('FFMPEG_TEST_TOOL_PATH') or shutil.which('ffmpeg')
     assert ffmpeg, 'The full validation environment must provide FFmpeg'
@@ -175,7 +183,8 @@ async def test_fragmented_mp4_init_and_segment_verify_media(tmp_path, monkeypatc
     table = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
     asked = []
     async def get(url, **kwargs):
-        name = url.rsplit('/', 1)[-1]; asked.append(name)
+        name = url.rsplit('/', 1)[-1]
+        asked.append(name)
         return SourceResponse(200, table[name], {})
     monkeypatch.setattr(http_stream_check, 'source_get', get)
     assert await http_stream_check.check('https://cdn.example/list.m3u8') == (True, None)

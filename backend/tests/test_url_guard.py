@@ -7,7 +7,6 @@ import socket
 
 import pytest
 
-from app.utils import url_guard
 from app.utils.url_guard import BlockedURLError, validate_outbound_url
 
 

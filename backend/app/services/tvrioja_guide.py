@@ -27,7 +27,7 @@ Adapted from scarcraft1's aporte/guias-html contribution to issue #233
 """
 import html
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Tuple
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from xml.sax.saxutils import escape, quoteattr

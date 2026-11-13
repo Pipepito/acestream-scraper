@@ -5,9 +5,8 @@ import hashlib
 import re
 
 import logging
-import aiohttp
 from app.utils.outbound_http import source_session
-from typing import List, Tuple, Dict, Any, Set
+from typing import List, Tuple, Dict, Any
 from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)

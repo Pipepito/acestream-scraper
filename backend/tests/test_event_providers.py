@@ -396,3 +396,79 @@ def test_tv_automatch_preview_keeps_strict_country_rule(client, db_session):
     db_session.add(AcestreamChannel(id='c' * 40, name='ES: Eurosport 1', is_active=True))
     db_session.commit()
     assert client.post('/api/v1/tv-channels/automatch/preview').json()['candidates'] == []
+
+
+def _marca_page(rows, day='9 de Noviembre de 2026'):
+    """A MARCA agenda with one day; rows are (sport, time, competition, title, channels)."""
+    events = ''.join(
+        f'<li class="dailyevent"><div class="dailytime"><span class="dailyday">{sport}</span>'
+        f'<strong class="dailyhour">{clock}</strong></div><span class="dailycompetition">{competition}</span>'
+        f'<h4 class="dailyteams">{title}</h4>'
+        + ''.join(f'<span class="dailychannel">{channel}</span>' for channel in channels) + '</li>'
+        for sport, clock, competition, title, channels in rows)
+    return ('<div class="schedule"><ol class="daylist"><li class="content-item">'
+            f'<span class="title-section-widget">{day}</span><ol>{events}</ol></li></ol></div>')
+
+
+def test_marca_merges_a_fixture_listed_once_per_broadcaster():
+    from app.services.event_marca import parse_marca
+    rows = parse_marca(_marca_page([
+        ('Fútbol', '19:00', 'COPA', 'East - West', ['TV Uno']),
+        ('Fútbol', '19:00', 'COPA', 'East - West', ['TV Dos', 'TV Uno']),
+    ]))
+    assert len(rows) == 1
+    assert [b.label for b in rows[0].broadcasts] == ['TV Uno', 'TV Dos']
+
+
+def test_marca_refuses_one_fixture_listed_at_two_times():
+    # Same day, competition and teams: which kickoff is right cannot be told.
+    from app.services.event_marca import parse_marca
+    with pytest.raises(ValueError, match='Ambiguous MARCA daily occurrence'):
+        parse_marca(_marca_page([
+            ('Fútbol', '19:00', 'COPA', 'East - West', ['TV Uno']),
+            ('Fútbol', '21:00', 'COPA', 'East - West', ['TV Dos']),
+        ]))
+
+
+def test_marca_agenda_is_bounded():
+    from app.services.event_marca import parse_marca
+    page = _marca_page([('Fútbol', '19:00', 'COPA', f'Home {n} - Away {n}', ['TV Uno']) for n in range(2001)])
+    with pytest.raises(ValueError, match='exceeds event limit'):
+        parse_marca(page)
+
+
+def test_marca_is_fetched_through_the_guarded_session_and_parsed_as_bytes(monkeypatch):
+    # The publisher's page declares ISO-8859-1: it is handed over undecoded.
+    import asyncio
+    from app.services import event_providers
+    payload = (Path(__file__).parent / 'fixtures/events/providers/marca.html').read_text().replace(
+        'utf-8', 'iso-8859-1').encode('iso-8859-1')
+    calls = []
+
+    class Response:
+        def __init__(self):
+            self.content = self
+
+        def raise_for_status(self):
+            pass
+
+        async def iter_chunked(self, size):
+            yield payload
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+    class Session(Response):
+        def get(self, url, **kwargs):
+            calls.append((url, kwargs))
+            return Response()
+
+    monkeypatch.setattr(event_providers, 'source_session', lambda **kw: Session())
+    result = asyncio.run(event_providers.fetch_provider(
+        {'provider': 'marca_es', 'window_days': 2}, zone='UTC', now=datetime(2026, 11, 9, tzinfo=timezone.utc)))
+    assert calls == [('https://www.marca.com/programacion-tv.html', {'max_redirects': 5})]
+    assert [o.sport for o in result.observations] == ['Basketball', 'Football', 'American football']
+    assert result.observations[1].title == 'East - West'

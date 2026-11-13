@@ -22,7 +22,7 @@ class EPGSourceOperations:
 
     def get_enabled_sources(self) -> List[EPGSource]:
         """Get all enabled EPG sources"""
-        return self.db.query(EPGSource).filter(EPGSource.enabled == True).all()
+        return self.db.query(EPGSource).filter(EPGSource.enabled.is_(True)).all()
 
     def get_source(self, source_id: int) -> Optional[EPGSource]:
         """Get an EPG source by ID"""

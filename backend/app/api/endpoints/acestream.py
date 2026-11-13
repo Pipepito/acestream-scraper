@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 from app.services.acestream_status_service import AcestreamStatusService
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from sqlalchemy.orm import Session

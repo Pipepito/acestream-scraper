@@ -132,4 +132,4 @@ def test_folder_assignment_rejects_non_folders_and_empty_folders(client, catalog
     assert client.post(f'/api/v1/catalogues/{catalogue.id}/folders/dazn1/tv-channel', json={}).status_code == 422
     assert client.post(f'/api/v1/catalogues/{catalogue.id}/folders/dazn1/tv-channel', json={'create_name': 'x', 'tv_channel_id': 1}).status_code == 422
     assert client.post(f'/api/v1/catalogues/{catalogue.id}/folders/dazn1/tv-channel', json={'tv_channel_id': 999999}).status_code == 404
-    assert client.post(f'/api/v1/catalogues/999999/folders/dazn1/tv-channel', json={'create_name': 'x'}).status_code == 404
+    assert client.post('/api/v1/catalogues/999999/folders/dazn1/tv-channel', json={'create_name': 'x'}).status_code == 404

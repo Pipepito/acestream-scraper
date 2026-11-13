@@ -221,10 +221,12 @@ def lan(monkeypatch):
     try:
         with monkeypatch.context() as scoped:
             scoped.setenv("TUNER_ALLOWED_NETWORKS", "*")
-            get_settings.cache_clear(); get_tuner_gate.cache_clear()
+            get_settings.cache_clear()
+            get_tuner_gate.cache_clear()
             yield
     finally:
-        get_settings.cache_clear(); get_tuner_gate.cache_clear()
+        get_settings.cache_clear()
+        get_tuner_gate.cache_clear()
 
 
 @pytest.fixture

@@ -1,12 +1,10 @@
 """
 HTTP scraper implementation
 """
-import aiohttp
 from app.utils.outbound_http import source_session
 import certifi
 import logging
 import ssl
-from typing import Optional
 from urllib.parse import urljoin
 
 from app.models.url_types import RegularURL

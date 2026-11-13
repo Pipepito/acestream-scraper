@@ -3,10 +3,8 @@ Service for managing and generating M3U playlists
 """
 import re
 from urllib.parse import quote, urlsplit, urlunsplit
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
-from datetime import datetime
-import time
 
 from app.repositories.channel_repository import ChannelRepository
 from app.models.models import AcestreamChannel, TVChannel

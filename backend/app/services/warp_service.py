@@ -260,8 +260,8 @@ class WarpService:
             else:
                 return {
                     "success": False,
-                    "message": stderr or f"Failed to change WARP mode",
-                    "error": stderr or f"Failed to change WARP mode"
+                    "message": stderr or "Failed to change WARP mode",
+                    "error": stderr or "Failed to change WARP mode"
                 }
         except Exception as e:
             return {

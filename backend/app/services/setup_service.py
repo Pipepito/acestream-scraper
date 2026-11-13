@@ -33,10 +33,13 @@ def visible_endpoint(value: str) -> str:
     """Do not echo credentials or query tokens from older saved preferences."""
     try:
         parsed = urlsplit(value)
-        if not parsed.hostname: return ''
+        if not parsed.hostname:
+            return ''
         host = parsed.hostname
-        if ':' in host: host = f'[{host}]'
-        if parsed.port: host += f':{parsed.port}'
+        if ':' in host:
+            host = f'[{host}]'
+        if parsed.port:
+            host += f':{parsed.port}'
         return urlunsplit((parsed.scheme, host, parsed.path, '', ''))
     except ValueError:
         return 'Invalid saved address; review Settings'

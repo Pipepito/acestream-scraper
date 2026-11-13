@@ -2,10 +2,8 @@
 Integration tests for WARP endpoints
 """
 
-import pytest
 from fastapi import status
-from unittest.mock import patch, MagicMock, AsyncMock
-import asyncio
+from unittest.mock import patch, AsyncMock
 
 # Patch the warp_service instance in the endpoint module, not the class
 WARP_CONNECT_PATH = 'app.api.endpoints.warp.warp_service.connect'
@@ -35,7 +33,7 @@ class TestWARPStatusEndpoint:
         assert "connected" in data
         assert "mode" in data
         assert "account_type" in data
-        assert data["connected"] == False
+        assert data["connected"] is False
         assert data["mode"] == "off"
         assert data["account_type"] == "free"
 
@@ -55,7 +53,7 @@ class TestWARPStatusEndpoint:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["connected"] == True
+        assert data["connected"] is True
         assert data["mode"] == "warp"
         assert data["account_type"] == "premium"
         assert "ip" in data
@@ -92,10 +90,10 @@ class TestWARPConnectionEndpoints:
         response = client.post("/api/v1/warp/connect")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["success"] == True
+        assert data["success"] is True
         assert "message" in data
         assert "status" in data
-        assert data["status"]["connected"] == True
+        assert data["status"]["connected"] is True
 
     @patch(WARP_CONNECT_PATH, new_callable=AsyncMock)
     def test_connect_warp_failure(self, mock_connect, client):
@@ -129,7 +127,7 @@ class TestWARPConnectionEndpoints:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["success"] == True
+        assert data["success"] is True
         assert data["status"]["mode"] == "dot"
         # Verify the service was called with the mode
         mock_connect.assert_called_once_with(mode="dot")
@@ -150,10 +148,10 @@ class TestWARPConnectionEndpoints:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["success"] == True
+        assert data["success"] is True
         assert "message" in data
         assert "status" in data
-        assert data["status"]["connected"] == False
+        assert data["status"]["connected"] is False
 
     @patch(WARP_DISCONNECT_PATH, new_callable=AsyncMock)
     def test_disconnect_warp_failure(self, mock_disconnect, client):
@@ -192,7 +190,7 @@ class TestWARPModeEndpoint:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["success"] == True
+        assert data["success"] is True
         assert data["status"]["mode"] == "warp"
         mock_set_mode.assert_called_once_with("warp")
 
@@ -213,7 +211,7 @@ class TestWARPModeEndpoint:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["success"] == True
+        assert data["success"] is True
         assert data["status"]["mode"] == "dot"
 
     @patch(WARP_SET_MODE_PATH, new_callable=AsyncMock)
@@ -233,7 +231,7 @@ class TestWARPModeEndpoint:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["success"] == True
+        assert data["success"] is True
         assert data["status"]["mode"] == "proxy"
 
     @patch(WARP_SET_MODE_PATH, new_callable=AsyncMock)
@@ -295,7 +293,7 @@ class TestWARPLicenseEndpoint:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["success"] == True
+        assert data["success"] is True
         assert "message" in data
         assert data["account_type"] == "premium"
         assert data["license"] == "test-premium-license"
@@ -380,8 +378,8 @@ class TestWARPEndpointIntegration:
         response = client.post("/api/v1/warp/connect")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["success"] == True
-        assert data["status"]["connected"] == True
+        assert data["success"] is True
+        assert data["status"]["connected"] is True
 
         # Disconnect from WARP
         mock_disconnect.return_value = {
@@ -396,8 +394,8 @@ class TestWARPEndpointIntegration:
         response = client.post("/api/v1/warp/disconnect")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["success"] == True
-        assert data["status"]["connected"] == False
+        assert data["success"] is True
+        assert data["status"]["connected"] is False
 
     @patch(WARP_REGISTER_LICENSE_PATH, new_callable=AsyncMock)
     @patch(WARP_GET_STATUS_PATH, new_callable=AsyncMock)

@@ -69,6 +69,11 @@ def worker_extract(config: TelegramSourceConfig, message: Message) -> dict:
         # Hashes in HTTP paths, query strings and promotional URLs never become IDs.
         safe = re.sub(r'https?://\S+', '', sample, flags=re.I)
         result = extract(recipe, safe)
+        for item in result['channels']:
+            item['name'], attributes = m3u_label(item['name'])
+            for attribute, key in M3U_METADATA:
+                if attributes.get(attribute) and not item['metadata'].get(key):
+                    item['metadata'][key] = attributes[attribute]
         seen = {item['channel_id'] for item in result['channels']}
         for match in re.finditer(r'(?<![\w/=?&])acestream://([0-9a-f]{40})(?![a-z0-9/_?=&])', safe, re.I):
             cid = match.group(1).lower()
@@ -77,6 +82,23 @@ def worker_extract(config: TelegramSourceConfig, message: Message) -> dict:
                 result['channels'].append({'channel_id': cid, 'name': cid, 'metadata': {}})
                 result['record_count'] += 1
     return {'outcome': 'matched' if result['channels'] else 'no match', 'result': result}
+
+
+# Messages often paste M3U lines, so the line above an ID can be
+# '#EXTINF:-1 tvg-id="x" tvg-name="Name",Name' or only 'tvg-name="Name"'.
+_M3U_ATTRIBUTE = re.compile(r'([A-Za-z][\w-]*)="([^"]*)"')
+M3U_METADATA = (('tvg-id', 'tvg_id'), ('tvg-name', 'tvg_name'), ('tvg-logo', 'tvg_logo'), ('group-title', 'group_title'))
+
+
+def m3u_label(line: str) -> tuple[str, dict[str, str]]:
+    """The display name and attributes of an M3U-style label; other text is unchanged."""
+    attributes = {key.lower(): value.strip() for key, value in _M3U_ATTRIBUTE.findall(line)}
+    if not attributes and not line.lstrip().upper().startswith('#EXTINF'):
+        return line, {}
+    # Attributes go first so a comma inside a quoted value is not the separator.
+    rest = _M3U_ATTRIBUTE.sub(' ', line)
+    title = rest.rsplit(',', 1)[1].strip() if ',' in rest else ''
+    return (title or attributes.get('tvg-name') or line)[:200], attributes
 
 
 # AceStream's share links: acestream:?content_id=<id>[&infohash=...]. An

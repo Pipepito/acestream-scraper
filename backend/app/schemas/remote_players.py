@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from app.utils.stream_kind import ACESTREAM_ID_PATTERN
 
 PlayerKind = Literal["vlc", "kodi", "vlc_android"]
 PlayerCommand = Literal["pause", "resume", "stop", "volume"]
@@ -77,7 +78,7 @@ class RemotePlayerStatusResponse(BaseModel):
 
 
 class RemotePlayerPlayRequest(BaseModel):
-    content_id: str = Field(..., pattern=r"^[0-9a-fA-F]{40}$")
+    content_id: str = Field(..., pattern=rf"^{ACESTREAM_ID_PATTERN}$")
     title: Optional[str] = None
 
 

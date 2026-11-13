@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 import time
 from threading import Timer
 import uuid
@@ -23,6 +22,8 @@ from fastapi.concurrency import run_in_threadpool
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import PlaybackRouting
 from app.services.playback_ownership import PlaybackLease, source_ownership
+from app.utils.engine_url import engine_base_url
+from app.utils.stream_kind import is_acestream_id
 
 logger = logging.getLogger(__name__)
 
@@ -88,12 +89,10 @@ def _engine_target(value: object, field: str) -> str:
 
 
 def engine_url_from_settings(settings_repo: SettingsRepository) -> str:
-    url = (settings_repo.get_setting(SettingsRepository.ACE_ENGINE_URL) or "").strip()
+    url = engine_base_url(settings_repo.get_setting(SettingsRepository.ACE_ENGINE_URL))
     if not url:
         raise EngineUnavailableError("Acestream Engine URL is not configured")
-    if not url.startswith(("http://", "https://")):
-        url = f"http://{url}"
-    return url.rstrip("/")
+    return url
 
 
 def playback_client_from_settings(settings_repo: SettingsRepository) -> "EngineClient":
@@ -155,7 +154,7 @@ class EngineClient:
 
     def resolve_content_id(self, infohash: str) -> str:
         """Resolve a catalogue infohash without starting a playback session."""
-        if not re.fullmatch(r"[0-9a-fA-F]{40}", infohash):
+        if not is_acestream_id(infohash):
             raise ValueError("Invalid search infohash")
         if self.use_acexy:
             raise EngineUnavailableError("Content ID resolution requires an AceStream engine")
@@ -173,7 +172,7 @@ class EngineClient:
             raise EngineRefusedError("The engine could not resolve this search result")
         result = payload.get("result") if isinstance(payload, dict) else None
         content_id = result.get("content_id") if isinstance(result, dict) else None
-        if not isinstance(content_id, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", content_id):
+        if not is_acestream_id(content_id):
             raise EngineUnavailableError("The engine returned an invalid content ID")
         return content_id.lower()
 

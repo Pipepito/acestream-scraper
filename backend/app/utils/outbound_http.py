@@ -1,7 +1,9 @@
 """Source HTTP clients that validate redirects and connect only to checked IPs."""
 import asyncio
+import inspect
 import socket
 import time
+from contextlib import asynccontextmanager
 from urllib.parse import urljoin, urlsplit
 
 import aiohttp
@@ -23,6 +25,46 @@ class PinnedResolver(aiohttp.abc.AbstractResolver):
 
     async def close(self):
         pass
+
+
+REDIRECT_STATUSES = (301, 302, 303, 307, 308)
+_CREDENTIAL_HEADERS = ('authorization', 'cookie')
+
+
+def _origin(url: str) -> tuple:
+    parts = urlsplit(url)
+    return parts.scheme, parts.hostname, parts.port or (443 if parts.scheme == 'https' else 80)
+
+
+@asynccontextmanager
+async def follow_redirects(session, url, *, headers=None, max_redirects=5, check=None,
+                           too_many=ValueError, **request_kwargs):
+    """GET ``url`` on an aiohttp ``session``, following redirects one hop at a time.
+
+    Yields ``(final_url, response)`` for the first non-redirect answer, still
+    open so the caller can stream it. ``check(url)`` runs before every hop
+    (sync or async; raise to refuse it). Authorization and Cookie are dropped
+    when a redirect leaves the origin. A redirect without a Location raises
+    ValueError; more than ``max_redirects`` raises ``too_many``.
+    """
+    headers = dict(headers or {})
+    for _ in range(max_redirects + 1):
+        if check is not None:
+            outcome = check(url)
+            if inspect.isawaitable(outcome):
+                await outcome
+        async with session.get(url, headers=headers, allow_redirects=False, **request_kwargs) as response:
+            if response.status not in REDIRECT_STATUSES:
+                yield url, response
+                return
+            location = response.headers.get('Location')
+        if not location:
+            raise ValueError('Redirect has no destination')
+        target = urljoin(url, location)
+        if _origin(target) != _origin(url):
+            headers = {k: v for k, v in headers.items() if k.lower() not in _CREDENTIAL_HEADERS}
+        url = target
+    raise too_many(f"Too many redirects fetching '{url}'")
 
 
 def source_session(*, ssl=True, **kwargs):

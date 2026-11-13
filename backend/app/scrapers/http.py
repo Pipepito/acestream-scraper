@@ -1,11 +1,10 @@
 """
 HTTP scraper implementation
 """
-from app.utils.outbound_http import source_session
+from app.utils.outbound_http import follow_redirects, source_session
 import certifi
 import logging
 import ssl
-from urllib.parse import urljoin
 
 from app.models.url_types import RegularURL
 from app.scrapers.base import BaseScraper
@@ -44,31 +43,20 @@ class HTTPScraper(BaseScraper):
                 # Redirects are followed manually so every hop goes through
                 # the outbound URL guard — a public host 302ing to a private
                 # or metadata address must not slip past the initial check.
-                current_url = url
-                for _ in range(MAX_REDIRECTS + 1):
-                    async with session.get(current_url,
-                                         headers=self.headers,
-                                         timeout=self.timeout,
-                                         allow_redirects=False) as response:
-                        if response.status in (301, 302, 303, 307, 308):
-                            location = response.headers.get('Location')
-                            if not location:
-                                response.raise_for_status()
-                            current_url = urljoin(current_url, location)
-                            validate_outbound_url(current_url)
-                            continue
-                        response.raise_for_status()
-                        content = await response.text()
+                async with follow_redirects(session, url, headers=self.headers, timeout=self.timeout,
+                                            max_redirects=MAX_REDIRECTS, check=validate_outbound_url,
+                                            too_many=BlockedURLError) as (_, response):
+                    response.raise_for_status()
+                    content = await response.text()
 
-                        # If it's an M3U file, validate and log appropriately
-                        if is_m3u_file:
-                            if looks_like_m3u(content):
-                                logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
-                            else:
-                                logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")
+                    # If it's an M3U file, validate and log appropriately
+                    if is_m3u_file:
+                        if looks_like_m3u(content):
+                            logger.info(f"Successfully fetched M3U file content ({len(content)} bytes)")
+                        else:
+                            logger.warning(f"Content doesn't appear to be a valid M3U file. First 100 chars: {content[:100]}")
 
-                        return content
-                raise BlockedURLError(f"Too many redirects fetching '{url}'")
+                    return content
         except Exception as e:
             # The caller decides whether this is fatal (it retries); keep it at warning here.
             logger.warning(f"Error fetching content from {url}: {str(e)}")

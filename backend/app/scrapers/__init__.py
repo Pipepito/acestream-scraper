@@ -27,16 +27,16 @@ def create_scraper_for_url(url: str, url_type: str, timeout: Optional[int] = Non
     url_obj = create_url_object(url, url_type)
 
     if isinstance(url_obj, ZeronetURL):
-        timeout = timeout or 20
-        retries = retries or 5
+        timeout = timeout or settings.ZERONET_TIMEOUT
+        retries = retries or settings.ZERONET_RETRIES
         return ZeronetScraper(url_obj, timeout=timeout, retries=retries)
     elif isinstance(url_obj, IpfsURL):
         timeout = timeout or settings.IPFS_TIMEOUT
         retries = retries or settings.IPFS_RETRIES
         return IpfsScraper(url_obj, timeout=timeout, retries=retries)
     elif isinstance(url_obj, RegularURL):
-        timeout = timeout or 10
-        retries = retries or 3
+        timeout = timeout or settings.SCRAPER_TIMEOUT
+        retries = retries or settings.SCRAPER_RETRIES
         return HTTPScraper(url_obj, timeout=timeout, retries=retries)
     else:
         raise ValueError(f"Unsupported URL type: {url_obj.__class__.__name__}")

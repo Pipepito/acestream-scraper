@@ -17,7 +17,7 @@ Kodi keeps sending them after a redirect and to every segment.
 """
 import asyncio
 import time
-from urllib.parse import quote, urljoin
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.concurrency import run_in_threadpool
@@ -28,7 +28,7 @@ from app.config.database import get_db
 from app.models.models import AcestreamChannel
 from app.services import hls_manifest, live_providers
 from app.services.tuner_network import require_tuner_network
-from app.utils.bounded_source import source_get
+from app.utils.bounded_source import source_get, source_get_following
 
 live_router = APIRouter(prefix="/live", dependencies=[Depends(require_tuner_network)], tags=["live"])
 
@@ -70,17 +70,12 @@ async def _fetch_manifest(url: str, headers: dict, limit: int = MAX_MANIFEST_BYT
     """(final URL, body, content type), following redirects through the
     guarded client: every hop's address is checked, these URLs come from
     third-party playlists."""
-    deadline = time.monotonic() + OPEN_BUDGET_SECONDS
-    for _ in range(MAX_REDIRECTS + 1):
-        response = await source_get(url, timeout=deadline - time.monotonic(), headers=headers, max_bytes=limit, media_limit=512)
-        if response.status_code in (301, 302, 303, 307, 308) and response.headers.get('Location'):
-            url = urljoin(url, response.headers['Location'])
-            continue
-        response.raise_for_status()
-        if len(response.content) > limit:
-            raise ValueError('response too large')
-        return url, response.content, response.headers.get('Content-Type') or ''
-    raise ValueError('too many redirects')
+    url, response = await source_get_following(url, budget=OPEN_BUDGET_SECONDS, max_redirects=MAX_REDIRECTS,
+                                               get=source_get, headers=headers, max_bytes=limit, media_limit=512)
+    response.raise_for_status()
+    if len(response.content) > limit:
+        raise ValueError('response too large')
+    return url, response.content, response.headers.get('Content-Type') or ''
 
 
 async def _serve_manifest(stream_id: str, url: str, headers: dict, root_path: str = "", playback_token: str = ''):
@@ -121,7 +116,7 @@ async def open_live_stream(stream_id: str, request: Request, db: Session = Depen
     # A broadcaster whose master only answers the address that resolved it
     # is served from here too: with WARP, the server and the player leave
     # through different addresses, and a redirect gets the player a 403.
-    serve_here = getattr(live_providers.for_stream_url(stream_url), 'SERVE_MANIFEST', False)
+    serve_here = live_providers.serves_manifest(stream_url)
     if serve_here or hls_manifest.needs_manifest(stream_url, stream_headers):
         if request.method == "HEAD":
             return Response(status_code=200, media_type=HLS_TYPE)

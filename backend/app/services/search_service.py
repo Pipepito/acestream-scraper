@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from app.repositories.channel_repository import ChannelRepository
 from app.repositories.url_repository import URLRepository
 from app.services.channel_service import ChannelService
+from app.utils.engine_url import engine_base_url
 from app.schemas.search import AddChannelRequest, AddMultipleRequest
 from sqlalchemy.orm import Session
 
@@ -33,19 +34,9 @@ class SearchService:
         if self._engine_url:
             return self._engine_url
 
-        if self.config_service:
-            engine_url = self.config_service.get_ace_engine_url()
-        else:
-            engine_url = ''
-        if not (engine_url or '').strip():
+        engine_url = engine_base_url(self.config_service.get_ace_engine_url() if self.config_service else '')
+        if not engine_url:
             raise HTTPException(status_code=503, detail='AceStream Engine URL is not configured')
-
-        # If URL doesn't start with a protocol, assume http://
-        if not engine_url.startswith('http'):
-            engine_url = f"http://{engine_url}"
-
-        # Ensure the URL doesn't end with a slash
-        engine_url = engine_url.rstrip('/')
 
         self._engine_url = engine_url
         logger.debug(f"Acestream Search Service initialized with engine URL: {engine_url}")

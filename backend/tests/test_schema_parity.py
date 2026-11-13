@@ -221,8 +221,8 @@ def test_models_describe_no_table_or_column_the_alembic_head_lacks(tmp_path):
     """
     from sqlalchemy import create_engine, inspect
 
-    import app.models.models  # noqa: F401  (registers every table on Base)
-    from app.config.database import Base
+    # Through the model hub: importing it registers every table on Base.
+    from app.models.models import Base
 
     engine, inspector = _migrated_inspector(tmp_path, 'model-head-parity.db')
     created = create_engine(f"sqlite:///{(tmp_path / 'create-all-parity.db').as_posix()}")

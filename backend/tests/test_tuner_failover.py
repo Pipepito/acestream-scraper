@@ -8,8 +8,9 @@ from app.services.stream_relay import EngineStreamError, RelayRegistry
 from app.services.engine_client import EngineRefusedError
 from functools import partial
 from app.services.tuner_playback_service import relay_ranked_streams as default_relay_ranked_streams
-relay_ranked_streams = partial(default_relay_ranked_streams, experimental_transcoding=True)
 from app.services.tuner_service import TunerService
+
+relay_ranked_streams = partial(default_relay_ranked_streams, experimental_transcoding=True)
 
 
 @pytest.fixture(autouse=True)

@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.events import EventFields
+
 
 class CataloguePreviewRequest(BaseModel):
     url: str | None = Field(default=None, max_length=2048)
@@ -156,9 +158,6 @@ class CatalogueSummary(BaseModel):
     partial: bool
     refresh_enabled: bool
     updated_at: datetime
-
-
-from app.schemas.events import EventFields
 
 
 class CatalogueEventPreviewRequest(EventFields):

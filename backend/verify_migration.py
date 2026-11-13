@@ -1,5 +1,3 @@
-import sys
-
 from sqlalchemy import create_engine, inspect
 
 from app.config.settings import settings

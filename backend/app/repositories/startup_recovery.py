@@ -9,6 +9,7 @@ import shutil
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timezone
+from importlib import import_module
 from pathlib import Path
 from uuid import uuid4
 
@@ -93,7 +94,7 @@ def _copy_readable(source, target, report):
     Guide data and transient history are refreshed by the app, not salvaged.
     Values and SQL errors never enter the downloadable report.
     """
-    import app.models.models  # noqa: F401
+    import_module("app.models.models")  # registers every table on Base
     excluded = {'epg_programs', 'activity_log', 'stream_sessions'}
     total_copied = 0
     with closing(sqlite3.connect(source.as_uri() + '?mode=ro', uri=True)) as old, closing(sqlite3.connect(target)) as new:

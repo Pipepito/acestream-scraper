@@ -6,6 +6,7 @@ The engine and session factory are built lazily so tests can swap the bound
 module-level ``Base`` is constructed once and reused for every binding so
 SQLAlchemy's mapper registry stays consistent across the test suite.
 """
+from importlib import import_module
 from typing import List, Optional
 
 from sqlalchemy import create_engine
@@ -186,7 +187,7 @@ def create_missing_model_tables(database_url: Optional[str] = None) -> List[str]
 
     from sqlalchemy import create_engine, inspect
 
-    import app.models.models  # noqa: F401 - registers every table on Base
+    import_module("app.models.models")  # registers every table on Base
 
     url = database_url or get_settings().DATABASE_URL
     engine = create_engine(url)

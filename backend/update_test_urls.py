@@ -3,7 +3,6 @@
 Script to update all test URLs to include the API prefix /api/v1
 """
 
-import os
 import re
 from pathlib import Path
 

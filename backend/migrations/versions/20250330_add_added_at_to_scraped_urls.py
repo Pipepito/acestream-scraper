@@ -5,8 +5,6 @@ Revises: YtQg2uH3sL7m
 Create Date: 2025-03-30
 
 """
-from datetime import datetime
-
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect

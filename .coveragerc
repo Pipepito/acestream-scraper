@@ -6,5 +6,6 @@ omit =
     backend/tests/*
     backend/venv/*
     backend/frontend_build/*
+    backend/migrations/*
 [report]
 show_missing = False

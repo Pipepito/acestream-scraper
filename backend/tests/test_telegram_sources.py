@@ -1,4 +1,3 @@
-from app.services.telegram import ingestion
 """No live Telegram account or credentials. Transport is synthetic throughout."""
 import asyncio
 import json
@@ -11,6 +10,7 @@ from cryptography.fernet import Fernet
 from telethon import errors, types
 from app.schemas.telegram import TelegramPeer, TelegramPreviewRequest, TelegramSourceConfig, TelegramSourceCreate, TelegramLogin
 from app.schemas.extraction import ExtractionRecipe, RecipePreview
+from app.services.telegram import ingestion
 from app.services.telegram.extraction import Message, PAIR_RECIPE, preview_message, EMPTY
 from app.services.telegram.transport import normalize, Transport
 from app.services.telegram.manager import Manager

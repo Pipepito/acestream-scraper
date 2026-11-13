@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 class SearchResultItem(BaseModel):
     id: str = Field(..., description="Acestream channel ID (infohash)")
@@ -65,9 +65,6 @@ class SearchImportItem(BaseModel):
 class SearchImportRequest(BaseModel):
     items: list[SearchImportItem] = Field(min_length=1, max_length=100)
     tv_channel_id: Optional[int] = Field(None, gt=0, description='Explicit Add and Link target; existing assignments are preserved.')
-
-
-from typing import Literal
 
 
 class SearchImportOutcome(BaseModel):

@@ -25,3 +25,27 @@ def test_spa_refreshes_with_identical_file_size_and_normalized_mtime(client, mon
     assert updated.status_code == 200
     assert updated.headers["cache-control"] == "no-store"
     assert updated.text == "<html>build-B</html>"
+
+
+@pytest.mark.parametrize("name,media_type,payload", [
+    ("manifest.json", "application/manifest+json", b'{"name":"Acestream Scraper"}'),
+    ("favicon.ico", "image/x-icon", b"\x00\x00\x01\x00"),
+])
+def test_root_assets_serve_their_bytes_and_never_spa_html(
+    client, monkeypatch, tmp_path, name, media_type, payload,
+):
+    import main
+
+    monkeypatch.setattr(main, "frontend_dir", str(tmp_path))
+    (tmp_path / "index.html").write_text("<html>SPA</html>")
+    asset = tmp_path / name
+    asset.write_bytes(payload)
+    response = client.get("/" + name)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == media_type
+    assert response.headers["cache-control"] == "no-cache"
+    assert response.content == payload
+    asset.unlink()
+    missing = client.get("/" + name)
+    assert missing.status_code == 404
+    assert missing.json() == {"detail": "Frontend asset not found"}

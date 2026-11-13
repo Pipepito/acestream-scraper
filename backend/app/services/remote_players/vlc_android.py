@@ -135,7 +135,7 @@ class VlcAndroidDriver:
         try:
             self._event("hello")  # Recognized, read-only, does not require playback permission.
         except PlayerAuthError as exc:
-            return PlayerProbe(bool(self.password), False, None, str(exc), str(exc))
+            return PlayerProbe(bool(self.password), False, None, str(exc), str(exc), reason=exc.kind)
         return PlayerProbe(True, True, None, "VLC Android is paired.")
 
     def status(self) -> PlayerStatus:

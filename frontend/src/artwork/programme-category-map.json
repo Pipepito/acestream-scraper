@@ -1,0 +1,2432 @@
+[
+  {
+    "original": "Sports",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "0",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Movie / Drama",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Documentary",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "News magazine",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Variety show",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Entertainment programs for 6 to 14",
+    "canonical_key": "children",
+    "image_key": "children",
+    "priority": 85
+  },
+  {
+    "original": "News / Current affairs",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Cartoons / Puppets",
+    "canonical_key": "children",
+    "image_key": "children",
+    "priority": 85
+  },
+  {
+    "original": "Serious / Classical / Religious / Historical movie / Drama",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Leisure hobbies",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Adventure / Western / War",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Comedy",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Detective / Thriller",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Sports magazines",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Magazines / Reports / Documentary",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Music / Ballet / Dance",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Nature / Animals / Environment",
+    "canonical_key": "nature",
+    "image_key": "nature",
+    "priority": 85
+  },
+  {
+    "original": "Football - Club",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Science fiction / Fantasy / Horror",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Tourism / Travel",
+    "canonical_key": "travel",
+    "image_key": "travel",
+    "priority": 85
+  },
+  {
+    "original": "Football / Soccer",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Estilo de vida",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Cooking",
+    "canonical_key": "cooking",
+    "image_key": "cooking",
+    "priority": 85
+  },
+  {
+    "original": "Programas Magazín",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Pre-school children's programs",
+    "canonical_key": "children",
+    "image_key": "children",
+    "priority": 85
+  },
+  {
+    "original": "Arts / Culture (without music)",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Game show / Quiz / Contest",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Programas De Entretenimiento",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Motor sport",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Education / Science / Factual topics",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Magazine sportif",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Discussion / Interview / Debate",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Magazine de desporto",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Children's / Youth programs",
+    "canonical_key": "children",
+    "image_key": "children",
+    "priority": 85
+  },
+  {
+    "original": "Technology / Natural sciences",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Team sports (excluding football)",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Fu\\u00dfball",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "News / Weather report",
+    "canonical_key": "weather",
+    "image_key": "news",
+    "priority": 80
+  },
+  {
+    "original": "Multisports",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Tennis / Squash",
+    "canonical_key": "racket-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Social / Political issues / Economics",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Programas Sobre La Salud",
+    "canonical_key": "health",
+    "image_key": "neutral",
+    "priority": 80
+  },
+  {
+    "original": "Emission sportive",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Romance",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Popular culture / Traditional arts",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Soap / Melodrama / Folkloric",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Serious music / Classical music",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Economics / Social advisory",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Advertisement / Shopping",
+    "canonical_key": "shopping",
+    "image_key": "neutral",
+    "priority": 75
+  },
+  {
+    "original": "Water sport",
+    "canonical_key": "water-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Fussball",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Religion",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Special",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Film / Cinema",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Adult movie / Drama",
+    "canonical_key": "adult-fiction",
+    "image_key": "neutral",
+    "priority": 100
+  },
+  {
+    "original": "Entertainment programs for 10 to 16",
+    "canonical_key": "children",
+    "image_key": "children",
+    "priority": 85
+  },
+  {
+    "original": "Martial sports",
+    "canonical_key": "martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Football",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "American Football",
+    "canonical_key": "american-football",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Talk show",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Soccer",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Remarkable people",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Medicine / Physiology / Psychology",
+    "canonical_key": "health",
+    "image_key": "neutral",
+    "priority": 80
+  },
+  {
+    "original": "Formula One",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "True crime",
+    "canonical_key": "true-crime",
+    "image_key": "documentary",
+    "priority": 80
+  },
+  {
+    "original": "Equestrian",
+    "canonical_key": "equestrian",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Programas Informativos",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Náuticos",
+    "canonical_key": "water-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Telenovelas Extranjeras",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Entretenimento",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Series/Soap",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Programas De Música Clásica",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Off-Air",
+    "canonical_key": "off-air",
+    "image_key": "neutral",
+    "priority": 100
+  },
+  {
+    "original": "Artes marciais",
+    "canonical_key": "martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Cricket - Domestic",
+    "canonical_key": "cricket",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Sports related",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Cricket - International",
+    "canonical_key": "cricket",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Sports event",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Sportmagazin",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Reportajes Informativos",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Desportos motorizados",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Ice Hockey",
+    "canonical_key": "ice-hockey",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Current Affairs",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Fu\\u00dfballmagazin",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Programas De Telerealidad",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Cine español",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Programas De Cocina",
+    "canonical_key": "cooking",
+    "image_key": "cooking",
+    "priority": 85
+  },
+  {
+    "original": "Música clássica",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Filmes e séries",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Eishockey",
+    "canonical_key": "ice-hockey",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Basketball",
+    "canonical_key": "basketball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Fashion",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Desportos de equipa",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Programas De Variedades",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Consumer",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Shopping",
+    "canonical_key": "shopping",
+    "image_key": "neutral",
+    "priority": 75
+  },
+  {
+    "original": "Divers",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Formel 1",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Basket-ball",
+    "canonical_key": "basketball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Eventos desportivos",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Eventos especiais",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Fútbol De Liga",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Monster Truck",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Motor Sport",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Documentales De Historia",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Documentales De Ciencia Y Tecnología",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Cycling",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Horse racing",
+    "canonical_key": "horse-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Desportos de mesa",
+    "canonical_key": "table-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Motorcycling",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Fu\\u00dfballdokureihe",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Esquí alpino",
+    "canonical_key": "alpine-skiing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Darts",
+    "canonical_key": "darts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Formule 1",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Jazz",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Musical / Opera",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Basquetebol",
+    "canonical_key": "basketball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Desportos de inverno",
+    "canonical_key": "winter-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Promocional",
+    "canonical_key": "shopping",
+    "image_key": "neutral",
+    "priority": 75
+  },
+  {
+    "original": "Comedyserie",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Reportagereihe",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Rugby Union - Domestic",
+    "canonical_key": "rugby-union",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Dokumentationsreihe",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Literature",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Football américain",
+    "canonical_key": "american-football",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Martial Sports",
+    "canonical_key": "martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Humor Negro",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Pop & Rock",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "JT sport",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Dokusoap",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Sports talk",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Multi",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Variado",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Predicaciones",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Talk",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Programas Del Tiempo",
+    "canonical_key": "weather",
+    "image_key": "news",
+    "priority": 80
+  },
+  {
+    "original": "Langstreckenrennen",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Gespr\\u00e4ch",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Ski Alpin",
+    "canonical_key": "alpine-skiing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "E-Sport",
+    "canonical_key": "esports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Golfmagazin",
+    "canonical_key": "golf",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Racquet",
+    "canonical_key": "racket-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Action sports",
+    "canonical_key": "action-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Ski",
+    "canonical_key": "skiing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Radrennen",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Motorrad",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "3x3 basketball",
+    "canonical_key": "basketball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Skateboarding",
+    "canonical_key": "skateboarding",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Cine independiente",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Sailing",
+    "canonical_key": "sailing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Motocyclisme",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Motorsportmagazin",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Programas Sobre Religión",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Reflexiones Bíblicas",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Documentaire sport",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Moto GP",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Olympische Spiele",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Endurance",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Programas De Bricolaje",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Skiing",
+    "canonical_key": "skiing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Informational / Educational / School programs",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Rugby League - Domestic",
+    "canonical_key": "rugby-league",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Negro",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Documentaire sportif",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Golfe",
+    "canonical_key": "golf",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Special events (Olympic Games; World Cup; etc.)",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Footvolley",
+    "canonical_key": "footvolley",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Rallye",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Baseball",
+    "canonical_key": "baseball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Querfeldein",
+    "canonical_key": "cyclocross",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Football - International",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Handball",
+    "canonical_key": "handball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "1. Bundesliga",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Fu\\u00dfballtalk",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Languages",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "default",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Boxing",
+    "canonical_key": "boxing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Fin",
+    "canonical_key": "off-air",
+    "image_key": "neutral",
+    "priority": 100
+  },
+  {
+    "original": "Celebridades",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Hóquei",
+    "canonical_key": "hockey-unspecified",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Tennismagazin",
+    "canonical_key": "tennis",
+    "image_key": "tennis",
+    "priority": 90
+  },
+  {
+    "original": "Pool",
+    "canonical_key": "pool",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Rugby League - International",
+    "canonical_key": "rugby-league",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Series Policiacas Españolas",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Cyclisme",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Documentaire téléréalité",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Sports mécaniques",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Marathon",
+    "canonical_key": "marathon",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Futsal",
+    "canonical_key": "futsal",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Reportage",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Athletics",
+    "canonical_key": "athletics",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Arquitectura",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Ocio-Cultura",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Programme indéterminé",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Cyclo-cross",
+    "canonical_key": "cyclocross",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Triathlon",
+    "canonical_key": "triathlon",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Series Infantiles Españolas",
+    "canonical_key": "children",
+    "image_key": "children",
+    "priority": 85
+  },
+  {
+    "original": "Telenovelas Españolas",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Auto racing",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Rad",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Doku-Soap",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Indoor-Golf",
+    "canonical_key": "golf",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Australian Rules Football",
+    "canonical_key": "australian-football",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Ballet",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Winter sports",
+    "canonical_key": "winter-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Bicycle",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "eSports - Motorsport",
+    "canonical_key": "esports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Formel 1-Magazin",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Formación",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Gardening",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Programas De Humor",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Motorcycle",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Volley-ball",
+    "canonical_key": "volleyball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Magazine de notícias",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Arte e cultura",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Spartan Race",
+    "canonical_key": "obstacle-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "eSports - MOBA",
+    "canonical_key": "esports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Boxen",
+    "canonical_key": "boxing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Deporte invierno",
+    "canonical_key": "winter-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Consejo Bíblico",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Ministración",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Mountain biking",
+    "canonical_key": "mountain-biking",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Desportos Americanos",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Springreiten-Sportdoku",
+    "canonical_key": "equestrian",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Fu\\u00dfballerportr\\u00e4t",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Talkshow",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Combat Sports (without own categ",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Cine Histórico",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Escatología Bíblica",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Martial Arts",
+    "canonical_key": "martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Magazine de l'automobile",
+    "canonical_key": "automotive",
+    "image_key": "lifestyle",
+    "priority": 70
+  },
+  {
+    "original": "Ginástica",
+    "canonical_key": "gymnastics",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "eSports - Strategy und Shooter",
+    "canonical_key": "esports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Werbesendung",
+    "canonical_key": "shopping",
+    "image_key": "neutral",
+    "priority": 75
+  },
+  {
+    "original": "Motorsportdokureihe",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Mountainbiking",
+    "canonical_key": "mountain-biking",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Extremsport",
+    "canonical_key": "action-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Dokumentation",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Fishing",
+    "canonical_key": "fishing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Evento musical",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Folk / Traditional music",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Rally",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Autor",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Programas De Cultura",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Historia Cristiana",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Consejos",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Drama y Entretenimiento",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Historias Bíblicas",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Crime",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Documentaire nature",
+    "canonical_key": "nature",
+    "image_key": "nature",
+    "priority": 85
+  },
+  {
+    "original": "Voile",
+    "canonical_key": "sailing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "SDF2",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Pentathlon",
+    "canonical_key": "pentathlon",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Eiskunstlauf",
+    "canonical_key": "figure-skating",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Dokureihe",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Portr\\u00e4t",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Basketballmagazin",
+    "canonical_key": "basketball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "DFB-Pokal",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Motorbootsport",
+    "canonical_key": "powerboat-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Rallying",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Rugby Union - International",
+    "canonical_key": "rugby-union",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Disabled",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Cine para televisión",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Música dance",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Social / Spiritual sciences",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Alternativa",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Soul",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Estudio Bíblico",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Tertulia Bíblica",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Consejos Familiares",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Martial arts",
+    "canonical_key": "martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Trail",
+    "canonical_key": "trail-running",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Hockey sur glace",
+    "canonical_key": "ice-hockey",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Desportos aquáticos",
+    "canonical_key": "water-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Triatlo",
+    "canonical_key": "triathlon",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Water Jet",
+    "canonical_key": "powerboat-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Leichtathletik",
+    "canonical_key": "athletics",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Automobiles",
+    "canonical_key": "automotive",
+    "image_key": "lifestyle",
+    "priority": 70
+  },
+  {
+    "original": "Kampfsport",
+    "canonical_key": "martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Radsportlerportr\\u00e4t",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Reisereportage",
+    "canonical_key": "travel",
+    "image_key": "travel",
+    "priority": 85
+  },
+  {
+    "original": "Motorsportdoku",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "2. Bundesliga",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Nations League",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Rock / Pop",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Corto",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Artes marciales mixtas",
+    "canonical_key": "mixed-martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Fútbol De Copa",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Biography",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Cursos",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Testimonial",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Crecimiento espiritual",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Adventure",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "War",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Event",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Horror",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Arts",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Show / Game show",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "VTT",
+    "canonical_key": "mountain-biking",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Skating",
+    "canonical_key": "skating",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Hipismo",
+    "canonical_key": "equestrian",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Radical",
+    "canonical_key": "action-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Andebol",
+    "canonical_key": "handball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Motorboot",
+    "canonical_key": "powerboat-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Automagazin",
+    "canonical_key": "automotive",
+    "image_key": "lifestyle",
+    "priority": 70
+  },
+  {
+    "original": "Milit\\u00e4r-Castingreihe",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Comedyshow",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Springreiten",
+    "canonical_key": "equestrian",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Holzf\\u00e4llersport",
+    "canonical_key": "woodchopping",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Rennfahrerportr\\u00e4ts",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Rennfahrerportr\\u00e4t",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Fu\\u00dfballreportage",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Curling",
+    "canonical_key": "curling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Halterofilia",
+    "canonical_key": "weightlifting",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Triatlón",
+    "canonical_key": "triathlon",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Catástrofes",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Factual",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Clásico",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Gastronómico",
+    "canonical_key": "cooking",
+    "image_key": "cooking",
+    "priority": 85
+  },
+  {
+    "original": "Actualidad cinematográfica",
+    "canonical_key": "film-information",
+    "image_key": "film-drama",
+    "priority": 70
+  },
+  {
+    "original": "Internacional",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Informativos Documentales",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Informativos De Cine",
+    "canonical_key": "film-information",
+    "image_key": "film-drama",
+    "priority": 70
+  },
+  {
+    "original": "Entrevistas Impactantes",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Biografías, Testimonios, Escatología Bíblica",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Boat racing",
+    "canonical_key": "powerboat-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Snowboarding",
+    "canonical_key": "snowboarding",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Gen. Interest",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Volleyball",
+    "canonical_key": "volleyball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Documentaire art de vivre",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Moto 3",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Moto 2",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Equitation",
+    "canonical_key": "equestrian",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Automobilisme",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Fu\\u00dfballstammtisch",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Hallenfu\\u00dfball",
+    "canonical_key": "futsal",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Kulturmagazin",
+    "canonical_key": "culture",
+    "image_key": "culture",
+    "priority": 65
+  },
+  {
+    "original": "Wrestling",
+    "canonical_key": "wrestling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Etappenrennen",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Eintagesrennen",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Speedway",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Wissensdokureihe",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Doku",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Footballmagazin",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Golferportr\\u00e4t",
+    "canonical_key": "golf",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Surfmagazin",
+    "canonical_key": "surfing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Autorennsport",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Programa de serie",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Cine TV thriller",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Cine TV policíaco",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Late Night",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Patinaje artístico",
+    "canonical_key": "figure-skating",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Escalada deportiva",
+    "canonical_key": "climbing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Disney Originals",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "LGTB",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Policiaca-+14",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Romántica",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Familia",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Programas De Moda Y Tendencias",
+    "canonical_key": "lifestyle",
+    "image_key": "lifestyle",
+    "priority": 60
+  },
+  {
+    "original": "Programas De Música Y Videoclips",
+    "canonical_key": "music",
+    "image_key": "music",
+    "priority": 65
+  },
+  {
+    "original": "Gala",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Espiritual",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Temática",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Enseñanzas Bíblicas",
+    "canonical_key": "religion",
+    "image_key": "neutral",
+    "priority": 70
+  },
+  {
+    "original": "Aprendizaje",
+    "canonical_key": "science",
+    "image_key": "science",
+    "priority": 70
+  },
+  {
+    "original": "Navideño",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Netball",
+    "canonical_key": "netball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Playoff sports",
+    "canonical_key": "sports-general",
+    "image_key": "sports-general",
+    "priority": 40
+  },
+  {
+    "original": "Beach volleyball",
+    "canonical_key": "beach-volleyball",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Mixed martial arts",
+    "canonical_key": "mixed-martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Anthology",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Action",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Aviation",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Current",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Tennis de table",
+    "canonical_key": "table-tennis",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Film de guerre",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Comédie dramatique",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Téléfilm",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Téléfilm d'action",
+    "canonical_key": "film-drama",
+    "image_key": "film-drama",
+    "priority": 50
+  },
+  {
+    "original": "Hippisme",
+    "canonical_key": "horse-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Arts martiaux",
+    "canonical_key": "martial-arts",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Sport de force",
+    "canonical_key": "strength-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Sociedade e Economia",
+    "canonical_key": "news",
+    "image_key": "news",
+    "priority": 55
+  },
+  {
+    "original": "Documentário",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "Cerimónia",
+    "canonical_key": "unknown",
+    "image_key": "neutral",
+    "priority": 0
+  },
+  {
+    "original": "Espetáculo",
+    "canonical_key": "entertainment",
+    "image_key": "entertainment",
+    "priority": 45
+  },
+  {
+    "original": "Surf",
+    "canonical_key": "surfing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "MTB",
+    "canonical_key": "mountain-biking",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "eSports - Magazine und Dokus",
+    "canonical_key": "esports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Radsporttalk",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Kriterium",
+    "canonical_key": "cycling",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Klettern",
+    "canonical_key": "climbing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Kraftsport",
+    "canonical_key": "strength-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Snookerturnier",
+    "canonical_key": "snooker",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Offroad",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Wassersport",
+    "canonical_key": "water-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Formel-1-Magazin",
+    "canonical_key": "motorsport",
+    "image_key": "motorsport",
+    "priority": 90
+  },
+  {
+    "original": "Golfdoku",
+    "canonical_key": "golf",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Fu\\u00dfballdoku",
+    "canonical_key": "football",
+    "image_key": "football",
+    "priority": 90
+  },
+  {
+    "original": "Dokumentarfilm",
+    "canonical_key": "documentary",
+    "image_key": "documentary",
+    "priority": 50
+  },
+  {
+    "original": "American Footballmagazin",
+    "canonical_key": "american-football",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Pferderennen",
+    "canonical_key": "horse-racing",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Schachturnier",
+    "canonical_key": "chess",
+    "image_key": "sports-general",
+    "priority": 90
+  },
+  {
+    "original": "Powerlifting",
+    "canonical_key": "strength-sports",
+    "image_key": "sports-general",
+    "priority": 90
+  }
+]

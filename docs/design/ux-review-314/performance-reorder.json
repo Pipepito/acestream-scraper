@@ -1,0 +1,197 @@
+{
+  "date": "2026-11-08",
+  "beforeRevision": "de78a0f9",
+  "afterRevision": "5054e0a8",
+  "afterProvenance": "Measured working-tree application bytes were subsequently committed unchanged as 5054e0a8.",
+  "browser": "149.0.7827.55",
+  "fixture": "Two independent copied 10,000-channel synthetic databases, no streams or media. Desktop 1440x900.",
+  "method": "Five alternating cold-context samples per build. Open timing includes Playwright control activation and networkidle (500 ms). Keyboard timing includes two animation frames. CDP Runtime.getHeapUsage measures heap; garbage collection precedes the post-cancel measure. Concurrent host validation and localhost API time are included. No real-device or long-session claim.",
+  "script": "e2e/scripts/measure-reorder.py",
+  "pageErrors": [],
+  "writes": [],
+  "results": [
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 1,
+      "openSettledMs": 2973.779417006881,
+      "longTasks": [
+        1939,
+        317,
+        1384,
+        206
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 749572376,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2441.337292009848,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19795396
+    },
+    {
+      "build": "after",
+      "revision": "reorder-window-working",
+      "run": 1,
+      "openSettledMs": 853.7655420077499,
+      "longTasks": [],
+      "heap": 31200000,
+      "dom": 443,
+      "cdpHeapOpen": 24596928,
+      "renderedRows": 14,
+      "keyboardMoveMs": 22.789916009060107,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19675176
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 2,
+      "openSettledMs": 2792.303249996621,
+      "longTasks": [
+        1985,
+        298,
+        1377,
+        222
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 756326432,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2586.067666008603,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19257428
+    },
+    {
+      "build": "after",
+      "revision": "reorder-window-working",
+      "run": 2,
+      "openSettledMs": 360.1035000028787,
+      "longTasks": [],
+      "heap": 35100000,
+      "dom": 443,
+      "cdpHeapOpen": 28738392,
+      "renderedRows": 14,
+      "keyboardMoveMs": 30.905166000593454,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19815496
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 3,
+      "openSettledMs": 2842.134457998327,
+      "longTasks": [
+        1959,
+        318,
+        1375,
+        199
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 750646724,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2601.161917002173,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19832876
+    },
+    {
+      "build": "after",
+      "revision": "reorder-window-working",
+      "run": 3,
+      "openSettledMs": 861.0869999974966,
+      "longTasks": [],
+      "heap": 37300000,
+      "dom": 443,
+      "cdpHeapOpen": 30739096,
+      "renderedRows": 14,
+      "keyboardMoveMs": 22.862749989144504,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19837236
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 4,
+      "openSettledMs": 2795.9450829948764,
+      "longTasks": [
+        1918,
+        316,
+        1384,
+        224
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 757792460,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2646.7697089974536,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 20232868
+    },
+    {
+      "build": "after",
+      "revision": "reorder-window-working",
+      "run": 4,
+      "openSettledMs": 853.55020800489,
+      "longTasks": [],
+      "heap": 37300000,
+      "dom": 443,
+      "cdpHeapOpen": 31347432,
+      "renderedRows": 14,
+      "keyboardMoveMs": 30.394000001251698,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19725224
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 5,
+      "openSettledMs": 2948.5097079887055,
+      "longTasks": [
+        1930,
+        304,
+        1331,
+        198
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 747612340,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2561.8344160029665,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19949948
+    },
+    {
+      "build": "after",
+      "revision": "reorder-window-working",
+      "run": 5,
+      "openSettledMs": 847.2937920014374,
+      "longTasks": [],
+      "heap": 44700000,
+      "dom": 443,
+      "cdpHeapOpen": 37809728,
+      "renderedRows": 14,
+      "keyboardMoveMs": 22.062250005546957,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19844160
+    }
+  ],
+  "medians": {
+    "before": {
+      "openSettledMs": 2842.13,
+      "keyboardMoveMs": 2586.07,
+      "cdpHeapOpen": 750646724,
+      "dom": 150226,
+      "renderedRows": 10000,
+      "heapAfterCancelAndGC": 19832876
+    },
+    "after": {
+      "openSettledMs": 853.55,
+      "keyboardMoveMs": 22.86,
+      "cdpHeapOpen": 30739096,
+      "dom": 443,
+      "renderedRows": 14,
+      "heapAfterCancelAndGC": 19815496
+    }
+  }
+}

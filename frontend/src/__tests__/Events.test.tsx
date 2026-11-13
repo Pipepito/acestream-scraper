@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createAppTheme } from '../theme';
+import EventArtwork from '../components/events/EventArtwork';
 import Events from '../pages/Events';
 import EventAgenda from '../components/events/EventAgenda';
 import channelService from '../services/channelService';
@@ -83,7 +84,7 @@ it('previews manual events without saving until a row is selected', async () => 
   expect(await screen.findByRole('button', { name: 'Save selected (0)' })).toBeDisabled();
   expect(service.apply).not.toHaveBeenCalled();
   expect(service.preview).toHaveBeenCalledWith(expect.objectContaining({ observations: [expect.objectContaining({ title: 'New fixture', starts_at: null, state: 'unknown' })] }));
-  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · scheduled' }));
+  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · Scheduled' }));
   await user.click(screen.getByRole('button', { name: 'Save selected (1)' }));
   await waitFor(() => expect(service.apply).toHaveBeenCalledWith('review', [event.id]));
 });
@@ -109,6 +110,7 @@ it('opens over LAN HTTP and keeps manual identity stable across previews but sep
     await screen.findByRole('button', { name: 'Back to input' });
     expect(service.preview.mock.calls[1][0].observations[0].external_id).toBe(firstId);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await user.click(await screen.findByRole('button', { name: 'Discard changes' }));
     await user.click(screen.getByRole('button', { name: 'Add events' }));
     await user.click(screen.getByLabelText('Add from'));
     await user.click(screen.getByRole('option', { name: 'Create an event' }));
@@ -171,7 +173,7 @@ it('reviews a URL before enabling scheduled refresh and saves explicit retention
   expect(await screen.findByRole('button', { name: 'Save source without events' })).toBeEnabled();
   expect(service.apply).not.toHaveBeenCalled();
   await user.click(screen.getByRole('checkbox', { name: /Refresh selected events automatically/ }));
-  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · scheduled' }));
+  await user.click(screen.getByRole('checkbox', { name: 'North United vs South City · Scheduled' }));
   await user.click(screen.getByRole('button', { name: 'Save selected (1)' }));
   await waitFor(() => expect(service.apply).toHaveBeenCalledWith('source-review', [event.id], true, true));
 });
@@ -517,4 +519,61 @@ it('previews an XMLTV overlay and requires review again when the end changes', a
   await waitFor(() => expect(service.applyOverlay).toHaveBeenCalledWith(event.id, {
     revision: 1, broadcast_id: 'es', ends_at: '2026-10-24T23:30:00Z',
   }, 'a'.repeat(64)));
+});
+
+it('retains a correction and its reviewed revision across query refresh and language changes', async () => {
+  const { default: EventDetails } = await import('../components/events/EventDetails');
+  const { default: i18next } = await import('i18next');
+  const { act } = await import('@testing-library/react');
+  const user = userEvent.setup();
+  const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const onUpdate = jest.fn().mockResolvedValue(false);
+  const show = (revision: number) => <QueryClientProvider client={cache}><ThemeProvider theme={createAppTheme('dark')}><TestMemoryRouter><EventDetails event={{ ...event, revision }} zone="Europe/Madrid" busy={false} onUpdate={onUpdate} onPlay={jest.fn()} /></TestMemoryRouter></ThemeProvider></QueryClientProvider>;
+  const { rerender } = render(show(1));
+  await user.click(screen.getByRole('button', { name: 'Manage event' }));
+  await user.click(screen.getByRole('button', { name: 'Correct schedule' }));
+  const title = screen.getByLabelText('Title');
+  await user.clear(title);
+  await user.type(title, 'My correction');
+  rerender(show(2));
+  expect(screen.getByLabelText('Title')).toBe(title);
+  expect(title).toHaveValue('My correction');
+  await user.click(screen.getByRole('button', { name: 'Save correction' }));
+  expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ revision: 1, correction: expect.objectContaining({ title: 'My correction' }) }));
+  try {
+    await act(async () => { await i18next.changeLanguage('es'); });
+    expect(screen.getByLabelText('Título')).toBe(title);
+    expect(title).toHaveValue('My correction');
+  } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
+});
+
+it('requires a new explicit artwork request when the reviewed event revision changes', async () => {
+  service.artwork.mockRejectedValue(new Error('unavailable'));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const tree = (revision: number) => <QueryClientProvider client={client}><EventArtwork event={{ ...event, revision }} /></QueryClientProvider>;
+  const { rerender } = render(tree(1));
+  fireEvent.click(screen.getByRole('button', { name: 'Load event artwork' }));
+  await screen.findByText(/Artwork is unavailable/);
+  expect(service.artwork).toHaveBeenCalledTimes(1);
+  rerender(tree(2));
+  expect(screen.getByRole('button', { name: 'Load event artwork' })).toBeEnabled();
+  expect(service.artwork).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Load event artwork' }));
+  await waitFor(() => expect(service.artwork).toHaveBeenCalledTimes(2));
+  await screen.findByText(/Artwork is unavailable/);
+});
+
+it('keeps retention drafts when management is hidden and Cancel restores the saved policy', async () => {
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  const field = await screen.findByLabelText('Keep ended events (days)');
+  await user.clear(field); await user.type(field, '14');
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  expect(field).not.toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Sources & retention' }));
+  expect(screen.getByLabelText('Keep ended events (days)')).toHaveValue(14);
+  expect(service.saveRetention).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.getByLabelText('Keep ended events (days)')).toHaveValue(0);
 });

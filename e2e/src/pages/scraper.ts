@@ -13,7 +13,7 @@ const URL_TYPE_LABEL = { auto: 'Auto-detect', regular: 'Regular HTTP', zeronet: 
 export class ScraperPage extends AppShell {
   async open(): Promise<void> {
     await this.goto('/scraper');
-    await this.expectHeading('Scraper');
+    await this.expectHeading('Sources');
   }
 
   sources(): Locator {
@@ -29,30 +29,31 @@ export class ScraperPage extends AppShell {
   }
 
   async addUrl(opts: AddUrlOptions): Promise<void> {
-    await this.headerButton('Add URL').click();
-    const dialog = this.dialog('Add URL');
+    await this.headerButton('Add source').click();
+    const dialog = this.dialog('Add source');
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('textbox', { name: 'URL' }).fill(opts.url);
+    await dialog.getByRole('textbox', { name: 'Channel source link' }).fill(opts.url);
+    if (opts.urlType || opts.enabled === false || opts.bareIds) await dialog.getByRole('button', { name: 'Advanced source options' }).click();
     if (opts.urlType) {
       await this.selectOption(dialog.getByRole('combobox', { name: /^URL Type/ }), URL_TYPE_LABEL[opts.urlType]);
     }
     if (opts.enabled === false) {
-      await this.selectOption(dialog.getByRole('combobox', { name: /^Status/ }), 'Disabled');
+      await dialog.getByRole('checkbox', { name: 'Enable automatic source updates' }).uncheck();
     }
     if (opts.bareIds) {
       await dialog.getByRole('checkbox', { name: 'Harvest bare content IDs' }).check();
     }
-    await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Add source', exact: true }).click();
     await expect(dialog).toBeHidden();
   }
 
   async scrape(url: string): Promise<void> {
-    await this.row(url).getByRole('button', { name: `Scrape URL ${url}` }).click();
+    await this.row(url).getByRole('button', { name: `Find channels in ${url}` }).click();
   }
 
   async edit(url: string): Promise<Locator> {
     await this.rowMenuAction(this.row(url), url, 'Edit');
-    const dialog = this.dialog('Edit URL');
+    const dialog = this.dialog('Edit source');
     await expect(dialog).toBeVisible();
     return dialog;
   }

@@ -114,7 +114,18 @@ class RecordingService:
 
     def list(self, offset=0, limit=50, **filters):
         query = self.repo.list(**filters)
-        return RecordingList(total=query.count(), items=[self.get(row.id) for row in query.offset(offset).limit(limit)])
+        total = query.count()
+        rows = query.offset(offset).limit(limit).all()
+        if not rows:
+            return RecordingList(total=total, items=[])
+        # One bounded page, one file query and one attempt query. Multipart history
+        # must not add two queries per recording or change source/part ordering.
+        views = {row.id: RecordingView.model_validate(row) for row in rows}
+        for file in self.repo.files_for(list(views)):
+            views[file.recording_id].files.append(RecordingFile.model_validate(file))
+        for attempt in self.repo.attempts_for(list(views)):
+            views[attempt.recording_id].attempts.append(RecordingAttemptView.model_validate(attempt))
+        return RecordingList(total=total, items=list(views.values()))
 
     def create(self, data):
         now = _utcnow()
@@ -154,7 +165,7 @@ class RecordingService:
                     raise APIError('PROGRAMME_CHANGED', 'Programme or channel mapping changed. Refresh the guide.', 409)
                 occurrence = fingerprint([source.recording_uuid, guide.channel_xml_id, program.start_time.isoformat()])
                 snapshot = RecordingSnapshot(title=program.title, channel_name=channel.name,
-                    subtitle=program.subtitle, description=program.description, category=program.category,
+                    subtitle=program.subtitle, description=program.description, category=program.category, categories=program.categories,
                     guide_source_uuid=source.recording_uuid, guide_channel_id=guide.channel_xml_id,
                     original_start=program.start_time, original_end=program.end_time, provider_programme_id=program.program_xml_id)
             pending = self.repo.pending()

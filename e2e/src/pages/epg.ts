@@ -31,8 +31,8 @@ export class EPGPage extends AppShell {
     await this.sources().getByRole('button', { name: 'Add EPG Source' }).click();
     const dialog = this.dialog('Add EPG Source');
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
-    await dialog.getByRole('textbox', { name: 'URL' }).fill(url);
+    await dialog.getByRole('textbox', { name: 'Guide name' }).fill(name);
+    await dialog.getByRole('textbox', { name: 'Programme guide link' }).fill(url);
     if (!enabled) await dialog.getByRole('checkbox', { name: 'Enabled' }).uncheck();
     await dialog.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(dialog).toBeHidden();

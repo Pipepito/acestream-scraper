@@ -94,8 +94,9 @@ export const configService = {
     return response.data.value;
   },
 
-  updateNotificationWebhookUrl: async (value: string): Promise<void> => {
-    await apiClient.put(`${BASE_URL}/notification_webhook_url`, { value });
+  updateNotificationWebhookUrl: async (value: string): Promise<string> => {
+    const response = await apiClient.put<{ value: string }>(`${BASE_URL}/notification_webhook_url`, { value });
+    return response.data.value;
   },
 
   /** Send a test notification to the saved webhook. */

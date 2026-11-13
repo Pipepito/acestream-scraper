@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -12,6 +13,7 @@ interface AppShellProps {
 }
 
 const AppShell: React.FC<AppShellProps> = ({ children }) => {
+  const { t } = useTranslation();
   const [navCollapsed, setNavCollapsed] = useState(false);
   const { pathname } = useLocation();
   const theme = useTheme();
@@ -22,7 +24,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
   return (
     <Box data-testid="app-shell-root" sx={{ display: 'flex', minHeight: '100vh', minWidth: 0, bgcolor: theme.appTokens.surface.canvas }}>
-      <Link href="#main-content" sx={{ position: 'fixed', top: -100, left: 16, zIndex: 1600, p: 1.5, bgcolor: 'background.paper', color: 'text.primary', '&:focus': { top: 8 } }}>Skip to content</Link>
+      <Link href="#main-content" sx={{ position: 'fixed', top: -100, left: 16, zIndex: 1600, p: 1.5, bgcolor: 'background.paper', color: 'text.primary', '&:focus': { top: 8 } }}>{t('skipContent')}</Link>
       <NavBar drawerWidth={layout.navWidth} collapsed={navCollapsed} onToggleCollapsed={() => setNavCollapsed((value) => !value)} />
       <Box
         component="main"

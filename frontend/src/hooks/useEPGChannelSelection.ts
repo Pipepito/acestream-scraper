@@ -1,9 +1,11 @@
+import { getErrorMessage } from '../utils/errorUtils';
+import { uiText } from '../i18n/text';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { EPGChannel } from '../services/epgService';
 import { tvChannelService } from '../services/tvChannelService';
 import { TVChannel } from '../types/tvChannelTypes';
-import { SnackbarSeverity } from './useSnackbar';
+import { SnackbarNotify } from './useSnackbar';
 
 interface UseEPGChannelSelectionParams {
   epgChannels: EPGChannel[];
@@ -13,7 +15,7 @@ interface UseEPGChannelSelectionParams {
   selectedSourceId: number | undefined;
   channelPage: number;
   channelPageSize: number;
-  showSnackbar: (message: string, severity: SnackbarSeverity) => void;
+  showSnackbar: SnackbarNotify;
 }
 
 /**
@@ -92,7 +94,7 @@ export const useEPGChannelSelection = ({
       return channel && !isChannelMapped(channel);
     });
     if (unmappedIds.length === 0) {
-      showSnackbar('No unmapped EPG channels selected.', 'warning');
+      showSnackbar(() => (uiText("No unmapped EPG channels selected.")), 'warning');
       return;
     }
     try {
@@ -100,12 +102,12 @@ export const useEPGChannelSelection = ({
       queryClient.invalidateQueries({ queryKey: ['tvChannels'] });
       queryClient.invalidateQueries({ queryKey: ['epg-channels'] });
       showSnackbar(
-        `Created ${result.created_count} TV channels, skipped ${result.skipped_count}, auto-matched ${result.associated_count} Acestream channels`,
+        () => (uiText("Created {{created}} TV channels, skipped {{skipped}}, auto-matched {{associated}} Acestream channels", { created: result.created_count, skipped: result.skipped_count, associated: result.associated_count })),
         'success'
       );
       setSelectedEPGChannelIds([]);
     } catch (error) {
-      showSnackbar(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(() => (getErrorMessage(error)), 'error');
     }
   };
 

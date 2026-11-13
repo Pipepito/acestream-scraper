@@ -1,0 +1,2905 @@
+{
+  "brand": "SPORTZZ",
+  "collection": "SPORTZZ SIGNAL ICONS",
+  "version": "1.0",
+  "count": 70,
+  "reference": "sources/magnific-references/sportzz-reference-signal-icons-sample-5.svg",
+  "icons": [
+    {
+      "id": "home",
+      "name": "home",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-home-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-home-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "home"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline home pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "home",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "menu",
+      "name": "menu",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-menu-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-menu-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "menu"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline menu pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "menu",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "arrow-left",
+      "name": "arrow-left",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-arrow-left-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-left-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "arrow",
+        "left"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline arrow-left pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "arrow left",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "arrow-right",
+      "name": "arrow-right",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-arrow-right-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-right-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "arrow",
+        "right"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline arrow-right pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "arrow right",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "arrow-up",
+      "name": "arrow-up",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-arrow-up-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-up-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "arrow",
+        "up"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline arrow-up pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "arrow up",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "arrow-down",
+      "name": "arrow-down",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-arrow-down-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-arrow-down-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "arrow",
+        "down"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline arrow-down pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "arrow down",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "chevron-left",
+      "name": "chevron-left",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-chevron-left-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-left-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "chevron",
+        "left"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline chevron-left pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "chevron left",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "chevron-right",
+      "name": "chevron-right",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-chevron-right-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-right-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "chevron",
+        "right"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline chevron-right pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "chevron right",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "chevron-up",
+      "name": "chevron-up",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-chevron-up-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-up-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "chevron",
+        "up"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline chevron-up pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "chevron up",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "chevron-down",
+      "name": "chevron-down",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-chevron-down-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-chevron-down-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "chevron",
+        "down"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline chevron-down pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "chevron down",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "close",
+      "name": "close",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-close-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-close-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "close"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline close pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "close",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "external-link",
+      "name": "external-link",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-external-link-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-external-link-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "external",
+        "link"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline external-link pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "external link",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "breadcrumb",
+      "name": "breadcrumb",
+      "family": "navigation",
+      "filename": "sportzz-icon-navigation-breadcrumb-24.svg",
+      "path": "assets/icons/navigation/sportzz-icon-navigation-breadcrumb-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "navigation",
+        "breadcrumb"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline breadcrumb pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "breadcrumb",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "plus",
+      "name": "plus",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-plus-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-plus-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "plus"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline plus pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "plus",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "minus",
+      "name": "minus",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-minus-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-minus-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "minus"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline minus pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "minus",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "edit",
+      "name": "edit",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-edit-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-edit-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "edit"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline edit pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "edit",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "trash",
+      "name": "trash",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-trash-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-trash-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "trash"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline trash pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "trash",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "save",
+      "name": "save",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-save-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-save-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "save"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline save pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "save",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "copy",
+      "name": "copy",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-copy-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-copy-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "copy"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline copy pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "copy",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "download",
+      "name": "download",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-download-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-download-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "download"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline download pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "download",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "upload",
+      "name": "upload",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-upload-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-upload-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "upload"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline upload pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "upload",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "refresh",
+      "name": "refresh",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-refresh-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-refresh-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "refresh"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline refresh pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "refresh",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "search",
+      "name": "search",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-search-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-search-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "search"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline search pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "search",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "filter",
+      "name": "filter",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-filter-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-filter-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "filter"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline filter pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "filter",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "sort-ascending",
+      "name": "sort-ascending",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-sort-ascending-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-sort-ascending-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "sort",
+        "ascending"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline sort-ascending pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "sort ascending",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "sort-descending",
+      "name": "sort-descending",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-sort-descending-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-sort-descending-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "sort",
+        "descending"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline sort-descending pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "sort descending",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "more-horizontal",
+      "name": "more-horizontal",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-more-horizontal-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-more-horizontal-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "more",
+        "horizontal"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline more-horizontal pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "more horizontal",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "settings",
+      "name": "settings",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-settings-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-settings-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "settings"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline settings pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "settings",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "share",
+      "name": "share",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-share-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-share-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "share"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline share pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "share",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "link",
+      "name": "link",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-link-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-link-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "link"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline link pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "link",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "eye",
+      "name": "eye",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-eye-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-eye-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "eye"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline eye pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "eye",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "eye-off",
+      "name": "eye-off",
+      "family": "actions",
+      "filename": "sportzz-icon-actions-eye-off-24.svg",
+      "path": "assets/icons/actions/sportzz-icon-actions-eye-off-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "actions",
+        "eye",
+        "off"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline eye-off pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "eye off",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "check",
+      "name": "check",
+      "family": "status",
+      "filename": "sportzz-icon-status-check-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-check-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "check"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline check pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "check",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "check-circle",
+      "name": "check-circle",
+      "family": "status",
+      "filename": "sportzz-icon-status-check-circle-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-check-circle-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "check",
+        "circle"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline check-circle pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "check circle",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "alert-triangle",
+      "name": "alert-triangle",
+      "family": "status",
+      "filename": "sportzz-icon-status-alert-triangle-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-alert-triangle-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "alert",
+        "triangle"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline alert-triangle pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "alert triangle",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "alert-circle",
+      "name": "alert-circle",
+      "family": "status",
+      "filename": "sportzz-icon-status-alert-circle-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-alert-circle-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "alert",
+        "circle"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline alert-circle pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "alert circle",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "info",
+      "name": "info",
+      "family": "status",
+      "filename": "sportzz-icon-status-info-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-info-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "info"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline info pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "info",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "help-circle",
+      "name": "help-circle",
+      "family": "status",
+      "filename": "sportzz-icon-status-help-circle-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-help-circle-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "help",
+        "circle"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline help-circle pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "help circle",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "clock",
+      "name": "clock",
+      "family": "status",
+      "filename": "sportzz-icon-status-clock-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-clock-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "clock"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline clock pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "clock",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "loader",
+      "name": "loader",
+      "family": "status",
+      "filename": "sportzz-icon-status-loader-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-loader-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "loader"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline loader pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "loader",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "x-circle",
+      "name": "x-circle",
+      "family": "status",
+      "filename": "sportzz-icon-status-x-circle-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-x-circle-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "x",
+        "circle"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline x-circle pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "x circle",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "pause-circle",
+      "name": "pause-circle",
+      "family": "status",
+      "filename": "sportzz-icon-status-pause-circle-24.svg",
+      "path": "assets/icons/status/sportzz-icon-status-pause-circle-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "status",
+        "pause",
+        "circle"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline pause-circle pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "pause circle",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "database",
+      "name": "database",
+      "family": "data",
+      "filename": "sportzz-icon-data-database-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-database-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "database"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline database pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "database",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "server",
+      "name": "server",
+      "family": "data",
+      "filename": "sportzz-icon-data-server-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-server-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "server"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline server pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "server",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "network",
+      "name": "network",
+      "family": "data",
+      "filename": "sportzz-icon-data-network-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-network-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "network"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline network pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "network",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "terminal",
+      "name": "terminal",
+      "family": "data",
+      "filename": "sportzz-icon-data-terminal-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-terminal-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "terminal"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline terminal pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "terminal",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "file",
+      "name": "file",
+      "family": "data",
+      "filename": "sportzz-icon-data-file-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-file-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "file"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline file pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "file",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "file-text",
+      "name": "file-text",
+      "family": "data",
+      "filename": "sportzz-icon-data-file-text-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-file-text-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "file",
+        "text"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline file-text pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "file text",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "code",
+      "name": "code",
+      "family": "data",
+      "filename": "sportzz-icon-data-code-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-code-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "code"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline code pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "code",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "layers",
+      "name": "layers",
+      "family": "data",
+      "filename": "sportzz-icon-data-layers-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-layers-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "layers"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline layers pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "layers",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "activity",
+      "name": "activity",
+      "family": "data",
+      "filename": "sportzz-icon-data-activity-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-activity-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "activity"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline activity pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "activity",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "chart-line",
+      "name": "chart-line",
+      "family": "data",
+      "filename": "sportzz-icon-data-chart-line-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-chart-line-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "chart",
+        "line"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline chart-line pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "chart line",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "chart-bar",
+      "name": "chart-bar",
+      "family": "data",
+      "filename": "sportzz-icon-data-chart-bar-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-chart-bar-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "chart",
+        "bar"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline chart-bar pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "chart bar",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "list",
+      "name": "list",
+      "family": "data",
+      "filename": "sportzz-icon-data-list-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-list-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "list"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline list pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "list",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "grid",
+      "name": "grid",
+      "family": "data",
+      "filename": "sportzz-icon-data-grid-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-grid-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "grid"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline grid pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "grid",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "table",
+      "name": "table",
+      "family": "data",
+      "filename": "sportzz-icon-data-table-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-table-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "table"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline table pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "table",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "calendar",
+      "name": "calendar",
+      "family": "data",
+      "filename": "sportzz-icon-data-calendar-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-calendar-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "calendar"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline calendar pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "calendar",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "history",
+      "name": "history",
+      "family": "data",
+      "filename": "sportzz-icon-data-history-24.svg",
+      "path": "assets/icons/data/sportzz-icon-data-history-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "data",
+        "history"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline history pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "history",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "play",
+      "name": "play",
+      "family": "media",
+      "filename": "sportzz-icon-media-play-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-play-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "play"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline play pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "play",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "pause",
+      "name": "pause",
+      "family": "media",
+      "filename": "sportzz-icon-media-pause-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-pause-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "pause"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline pause pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "pause",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "stop",
+      "name": "stop",
+      "family": "media",
+      "filename": "sportzz-icon-media-stop-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-stop-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "stop"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline stop pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "stop",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "volume",
+      "name": "volume",
+      "family": "media",
+      "filename": "sportzz-icon-media-volume-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-volume-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "volume"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline volume pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "volume",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "volume-off",
+      "name": "volume-off",
+      "family": "media",
+      "filename": "sportzz-icon-media-volume-off-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-volume-off-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "volume",
+        "off"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline volume-off pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "volume off",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "fullscreen",
+      "name": "fullscreen",
+      "family": "media",
+      "filename": "sportzz-icon-media-fullscreen-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-fullscreen-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "fullscreen"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline fullscreen pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "fullscreen",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "trophy",
+      "name": "trophy",
+      "family": "media",
+      "filename": "sportzz-icon-media-trophy-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-trophy-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "trophy"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline trophy pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "trophy",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "football",
+      "name": "football",
+      "family": "media",
+      "filename": "sportzz-icon-media-football-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-football-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "football"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline football pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "football",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "basketball",
+      "name": "basketball",
+      "family": "media",
+      "filename": "sportzz-icon-media-basketball-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-basketball-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "basketball"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline basketball pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "basketball",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "tennis",
+      "name": "tennis",
+      "family": "media",
+      "filename": "sportzz-icon-media-tennis-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-tennis-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "tennis"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline tennis pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "tennis",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "racing-flag",
+      "name": "racing-flag",
+      "family": "media",
+      "filename": "sportzz-icon-media-racing-flag-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-racing-flag-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "racing",
+        "flag"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline racing-flag pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "racing flag",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    },
+    {
+      "id": "whistle",
+      "name": "whistle",
+      "family": "media",
+      "filename": "sportzz-icon-media-whistle-24.svg",
+      "path": "assets/icons/media/sportzz-icon-media-whistle-24.svg",
+      "viewBox": "0 0 24 24",
+      "stroke": 1.75,
+      "tags": [
+        "media",
+        "whistle"
+      ],
+      "provenance": "Original geometric reconstruction following Magnific reference and SPORTZZ specifications; no third-party icon paths imported",
+      "status": [
+        "vectorized",
+        "exported",
+        "validated"
+      ],
+      "validation": {
+        "xml": true,
+        "currentColor": true,
+        "no_raster": true,
+        "sizes": [
+          16,
+          20,
+          24,
+          32
+        ]
+      },
+      "description": "Original outline whistle pictogram",
+      "format": "svg",
+      "resolution": "scalable",
+      "ratio": "1:1",
+      "usage": [
+        "web-interface",
+        "documentation"
+      ],
+      "alt": "whistle",
+      "notes": "Decorative use aria-hidden; label the surrounding control when interactive.",
+      "review_status": "internally_reviewed"
+    }
+  ],
+  "generation_prompt_reference": "Design an original production-quality outline SVG icon family sample for SPORTZZ, a premium sports streaming and technology brand. Exactly five independent icons in a single horizontal row separated with generous whitespace: home, search, settings gear, activity heartbeat, football soccer ball. Each icon on a precise 24x24 grid, consistent 1.75px black stroke, rounded caps and joins, transparent background, no fills except stroke geometry, balanced optical margins. Professional thin outline quality but completely original independent geometry; do not copy Font Awesome paths. Simple recognizable silhouettes, elegant negative space. Must work at 16,20,24,32 px. No letters, labels, typography, logo, colors, gradients, shadows, raster images or decorative frames. This SVG is a reference master only; five icons will be separated and normalized to currentColor SVG paths for production.",
+  "reference_note": "Magnific sample used for direction; every production icon reconstructed locally as editable paths."
+}

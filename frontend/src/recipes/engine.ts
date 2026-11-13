@@ -88,7 +88,7 @@ export function extractPrepared(recipe: ExtractionRecipe, sample: string, html?:
       }).filter(Boolean);
     });
     const names = values.name ?? [], ids = (values.id ?? []).map(value => value.replace(/^acestream:\/\//, '').toLowerCase());
-    let reason = names.length !== 1 || names[0].length > 200 ? 'Choose exactly one channel name per record (up to 200 characters)' : !ids.length ? 'No channel ID found' : '';
+    let reason = names.length !== 1 || names[0].length > 200 ? "Choose exactly one channel name per record (up to 200 characters)" : !ids.length ? "No channel ID found" : '';
     if (ids.some(value => !/^[0-9a-f]{40}$/.test(value))) reason = 'Expected a 40-character hexadecimal ID or acestream:// link';
     if (reason) { result.invalid_count++; if (result.issues.length < MAX_RECORDS) result.issues.push({ record: index + 1, message: reason }); return; }
     const metadata: Record<string, string> = {};
@@ -97,7 +97,7 @@ export function extractPrepared(recipe: ExtractionRecipe, sample: string, html?:
       if (value && (key !== 'logo' || /^https?:\/\//.test(value))) metadata[target] = value;
     });
     ids.forEach(channel_id => {
-      if (seen.has(channel_id)) { result.duplicate_count++; if (result.issues.length < MAX_RECORDS) result.issues.push({ record: index + 1, message: 'Duplicate ID ignored' }); }
+      if (seen.has(channel_id)) { result.duplicate_count++; if (result.issues.length < MAX_RECORDS) result.issues.push({ record: index + 1, message: "Duplicate ID ignored" }); }
       else { seen.add(channel_id); result.channels.push({ channel_id, name: names[0], metadata }); }
       if (result.channels.length > MAX_RECORDS) fail('More than 1000 channel IDs; narrow the rule');
     });

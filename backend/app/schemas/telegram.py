@@ -23,6 +23,7 @@ class TelegramPassword(BaseModel):
 class TelegramStatus(BaseModel):
     state: str
     message: str = ''
+    message_code: str | None = None
     account_label: str = ''
     queue_size: int = 0
     retry_at: datetime | None = None
@@ -83,6 +84,7 @@ class TelegramSource(TelegramSourceConfig):
     last_success: datetime | None = None
     imported_count: int
     message: str
+    message_code: str | None = None
 
 
 class TelegramPreviewMessage(BaseModel):

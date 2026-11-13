@@ -30,6 +30,7 @@ from app.api.endpoints.playlists import (
     trigger_url_scrape_refresh,
 )
 from app.api.error_handlers import register_error_handlers
+from app.api.openapi_contract import installation_openapi
 from app.config.database import (
     backfill_scraped_url_flags,
     backup_sqlite,
@@ -333,10 +334,11 @@ async def startup_readiness(request: Request, call_next):
     path = route_path(request.scope)
     if startup_service.active and startup_service.status != 'ready':
         spa_paths = {'/', '/startup', '/live-tv', '/tv-channels', '/acestream-channels',
-                     '/recordings', '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings'}
+                     '/recordings', '/scraper', '/epg', '/playlist', '/warp', '/search', '/integrations', '/settings',
+                     '/connections', '/system', '/events'}
         allowed = path in spa_paths or path.startswith(('/assets/', '/static/', '/api/v1/startup', '/api/v1/auth/'))
         allowed = allowed or path in ('/login', '/watch', '/setup')
-        allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/'))
+        allowed = allowed or path.startswith(('/tv-channels/', '/epg/channels/', '/connections/', '/system/', '/integrations/', '/scraper/'))
         allowed = allowed or path in {'/favicon.ico', '/manifest.json', '/robots.txt'}
         allowed = allowed or path == '/api/v1/system/diagnostics'
         if not allowed and request.method != 'OPTIONS':
@@ -400,6 +402,17 @@ for dirname in ["static", "assets"]:
 # Mount static files directories that exist
 for dirname in static_dirs:
     app.mount(f"/{dirname}", StaticFiles(directory=os.path.join(frontend_dir, dirname)), name=dirname)
+
+# Root assets referenced by index.html must not fall through to SPA HTML.
+@app.get("/manifest.json", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
+def frontend_root_asset(request: Request):
+    filename = "manifest.json" if request.url.path.endswith("/manifest.json") else "favicon.ico"
+    path = os.path.join(frontend_dir, filename)
+    if not os.path.isfile(path):
+        raise StarletteHTTPException(status_code=404, detail="Frontend asset not found")
+    media_type = "application/manifest+json" if filename == "manifest.json" else "image/x-icon"
+    return FileResponse(path, media_type=media_type, headers={"Cache-Control": "no-cache"})
 
 # Public playlist route for user-friendly URLs (no /api prefix)
 @app.get("/playlists/m3u", response_class=PlainTextResponse, dependencies=[Depends(require_api_token)])
@@ -618,7 +631,9 @@ async def legacy_epg_xml(
 async def spa_server(request: Request, exc: StarletteHTTPException):
     """Serve SPA for all non-API routes."""
     # Only handle 404s for non-API routes (client-side routing)
-    if exc.status_code == 404 and not request.url.path.startswith(("/api", "/tuner", "/live/")):
+    if (exc.status_code == 404
+            and request.url.path not in {"/manifest.json", "/favicon.ico"}
+            and not request.url.path.startswith(("/api", "/tuner", "/live/"))):
         # Exported image timestamps are normalized; HTML must not acquire a
         # long heuristic cache lifetime from its old Last-Modified timestamp.
         return FileResponse(os.path.join(frontend_dir, "index.html"), headers={"Cache-Control": "no-store"})
@@ -639,6 +654,8 @@ async def read_index():
     except FileNotFoundError:
         # If frontend build doesn't exist yet, return a placeholder
         return HTMLResponse(content="<html><body><h1>Acestream Scraper</h1><p>Frontend not built yet. Please run 'npm run build' in the frontend directory.</p></body></html>")
+
+app.openapi = lambda: installation_openapi(app)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, proxy_headers=False, timeout_graceful_shutdown=3)

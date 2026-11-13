@@ -1,3 +1,6 @@
+import { useUiText } from '../../i18n/useUiText';
+import { useAppPreferences } from '../../preferences/AppPreferences';
+import ChannelArtwork from './ChannelArtwork';
 import React, { useEffect, useRef } from 'react';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
@@ -22,18 +25,21 @@ interface TVChannelListProps {
 const time = (value: string) => format(parseISO(value), 'HH:mm');
 
 const NowNextLines: React.FC<{ row: TVChannelNowNext | null | undefined; hasGuide: boolean }> = ({ row, hasGuide }) => {
-  if (!hasGuide) return <Typography color="text.secondary">No guide mapped to this channel.</Typography>;
-  if (row === undefined) return <Typography role="status">Loading programme…</Typography>;
+  const tUi = useUiText();
+  if (!hasGuide) return <Typography color="text.secondary">{tUi("No guide mapped to this channel.")}</Typography>;
+  if (row === undefined) return <Typography role="status">{tUi("Loading programme…")}</Typography>;
   const current: GuideSlot | null | undefined = row?.now;
   const next: GuideSlot | null | undefined = row?.next;
   return <>
-    <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{current ? `Now · ${current.title}` : 'No current programme listed.'}</Typography>
+    <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{current ? tUi("Now · {{value0}}", { value0: current.title }) : tUi("No current programme listed.")}</Typography>
     {current ? <Typography variant="body2" color="text.secondary">{time(current.start)}–{time(current.end)}</Typography> : null}
-    {next ? <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>Next · {time(next.start)} · {next.title}</Typography> : null}
+    {next ? <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>{tUi("Next ·")}{' '}{time(next.start)} · {next.title}</Typography> : null}
   </>;
 };
 
 const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; row: TVChannelNowNext | null | undefined; fallback: boolean; onWatch: (channel: TVChannel) => void }> = ({ channel, selected, now, row, fallback, onWatch }) => {
+  const tUi = useUiText();
+  const { interface: preset } = useAppPreferences();
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (selected) ref.current?.scrollIntoView?.({ block: 'nearest' }); }, [selected]);
   // A batched row proves the server resolved a guide mapping, whatever the catalogue copy carries.
@@ -41,29 +47,35 @@ const ChannelRow: React.FC<{ channel: TVChannel; selected: boolean; now: Date; r
   const bestStream = onlineStreams[0] ?? channel.acestream_channels.find(stream => stream.is_active !== false) ?? channel.acestream_channels[0];
   const hasGuide = Boolean(row) || Boolean(channel.epg_id && channel.epg_source_id);
   return <Box component="article" ref={ref} aria-label={channel.name} aria-current={selected ? 'true' : undefined}
-    sx={{ py: 2, px: 1, mx: -1, borderBottom: 1, borderColor: 'divider', contentVisibility: 'auto', containIntrinsicSize: 'auto 140px',
+    sx={{ py: 2, px: preset === 'lime' ? 1 : 2, mx: preset === 'lime' ? -1 : 0, minWidth: 0, border: preset === 'lime' ? 0 : 1, borderBottom: 1, borderRadius: preset === 'lime' ? 0 : 2, borderColor: 'divider', contentVisibility: 'auto', containIntrinsicSize: 'auto 140px',
       ...(selected ? { bgcolor: 'action.selected', borderRadius: 1 } : {}) }}>
+    <Box sx={{ display: 'grid', gap: preset === 'coral' ? 2 : 0, gridTemplateColumns: preset === 'coral' ? { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 200px) minmax(0, 1fr)' } : 'minmax(0, 1fr)', alignItems: 'start' }}>
+    {preset !== 'lime' ? <ChannelArtwork channel={channel} /> : null}
+    <Box sx={{ minWidth: 0 }}>
     <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
+      {preset === 'lime' ? <ChannelArtwork channel={channel} compact /> : null}
       <Box sx={{ flex: '1 1 180px', minWidth: 0 }}>
-        <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? `${channel.channel_number}. ` : ''}{channel.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{onlineStreams.length ? `${onlineStreams.length} online stream${onlineStreams.length === 1 ? '' : 's'}` : 'No stream verified online'}{channel.category ? ` · ${channel.category}` : ''}</Typography>
+        <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{channel.channel_number != null ? tUi("{{value0}}. ", { value0: channel.channel_number }) : ''}{channel.name}</Typography>
+        <Typography variant="body2" color="text.secondary">{onlineStreams.length ? tUi("{{value0}} online stream{{value1}}", { value0: onlineStreams.length, value1: onlineStreams.length === 1 ? '' : 's' }) : tUi("No stream verified online")}{channel.category ? tUi(" · {{value0}}", { value0: channel.category }) : ''}</Typography>
       </Box>
       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
-        <Button variant="contained" startIcon={<PlayArrowRounded />} aria-pressed={selected} aria-label={`Watch ${channel.name}`} onClick={() => onWatch(channel)}>{selected ? 'Selected' : 'Watch'}</Button>
+        <Button variant="contained" startIcon={<PlayArrowRounded />} aria-pressed={selected} aria-label={tUi("Watch {{value0}}", { value0: channel.name })} onClick={() => onWatch(channel)}>{selected ? tUi("Selected") : tUi("Watch")}</Button>
         <RecordButton channelId={channel.id} channelName={channel.name} disabled={!channel.acestream_channels.some(stream => stream.is_active)} />
-        <PlayOnMenu contentId={bestStream.id} title={channel.name} label="Send to player" />
+        <PlayOnMenu contentId={bestStream.id} title={channel.name} label={tUi("Send to player")} />
       </Stack>
     </Stack>
     {fallback ? null : <NowNextLines row={row} hasGuide={hasGuide} />}
     {/* Same slot in every state, so an opened guide (and its dialogs) survives the batch loading or failing.
         While the batch loads, `null` keeps the guide's own per-channel queries off: the batch is the only read. */}
     {hasGuide || fallback ? <ChannelGuide channel={channel} now={now} compact nowNext={fallback ? undefined : (row ?? null)} expanderOnly={!fallback} /> : null}
+    </Box>
+    </Box>
   </Box>;
 };
 
 /** The whole TV catalogue, no pagination: the list scrolls and the playing row stays highlighted. */
 const TVChannelList: React.FC<TVChannelListProps> = ({ channels, selectedId, now, nowNext, nowNextFailed = false, onWatch }) => (
-  <Box>
+  <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'minmax(0, 1fr)', '[data-interface=coral] &': { gridTemplateColumns: { xs: 'minmax(0, 1fr)', xl: 'repeat(2, minmax(0, 1fr))' } }, '[data-interface=cyan] &': { gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' } } }}>
     {channels.map((channel) => <ChannelRow key={channel.id} channel={channel} selected={selectedId === channel.id} now={now}
       row={nowNext ? nowNext.get(channel.id) ?? null : undefined} fallback={nowNextFailed} onWatch={onWatch} />)}
   </Box>

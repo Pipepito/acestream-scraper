@@ -1,11 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import { tvChannelService, type TVChannelNowNext } from '../services/tvChannelService';
 
-/** One batched Now/Next read for the whole Live TV list, keyed by TV channel id. */
-export const useNowNext = () => useQuery({
-  queryKey: ['tvChannels', 'now-next'],
-  queryFn: tvChannelService.nowNext,
-  staleTime: 60_000,
-  refetchInterval: 60_000,
-  select: (rows: TVChannelNowNext[]) => new Map(rows.map((row) => [row.tv_channel_id, row])),
-});
+/** Guide reads grow with loaded catalogue pages, never with the entire installation. */
+export const useNowNext = (channelIds: number[], asOf?: string) => {
+  const batches: number[][] = [];
+  for (let start = 0; start < channelIds.length; start += 50) batches.push(channelIds.slice(start, start + 50));
+  return useQueries({
+    queries: batches.map(ids => ({
+      queryKey: ['tvChannels', 'now-next', ids, asOf],
+      queryFn: () => tvChannelService.nowNext(ids, asOf),
+      staleTime: 60_000, refetchInterval: 60_000,
+    })),
+    combine: results => ({
+      data: results.some(result => result.isPending) ? undefined : new Map(results.flatMap(result => result.data ?? []).map((row: TVChannelNowNext) => [row.tv_channel_id, row])),
+      isError: results.some(result => result.isError),
+    }),
+  });
+};

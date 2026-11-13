@@ -156,6 +156,10 @@ class EPGChannelOperations:
 
         now = now or datetime.now(timezone.utc)
         cutoff = now - timedelta(hours=retention_hours)
+        from sqlalchemy import select
+        from app.models.models import EPGProgramCategory
+        expired = select(EPGProgram.id).where(EPGProgram.end_time < cutoff)
+        self.db.query(EPGProgramCategory).filter(EPGProgramCategory.program_id.in_(expired)).delete(synchronize_session=False)
         deleted = (
             self.db.query(EPGProgram)
             .filter(EPGProgram.end_time < cutoff)

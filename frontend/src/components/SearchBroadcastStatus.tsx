@@ -1,8 +1,10 @@
-import React from 'react';
-import { Box, Button, Chip, Typography } from '@mui/material';
+import { Box,Button,Chip,Typography } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
-import { SearchResultItem, searchService } from '../services/searchService';
-import { normalizeApiError } from '../services/apiErrors';
+import React from 'react';
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
+import { SearchResultItem,searchService } from '../services/searchService';
+import { getErrorMessage } from '../utils/errorUtils';
 import { formatRelativeTime } from '../utils/format';
 
 interface Props {
@@ -10,10 +12,11 @@ interface Props {
 }
 
 const SearchBroadcastStatus: React.FC<Props> = ({ channel }) => {
+  const tUi = useUiText();
   const probe = useMutation({ mutationFn: () => searchService.checkBroadcast(channel.id) });
   const catalogueLabel = channel.status === 2
-    ? 'Catalogue: available'
-    : channel.status === 1 ? 'Catalogue: uncertain' : 'Catalogue: unknown';
+    ? uiText("Catalogue: available")
+    : channel.status === 1 ? uiText("Catalogue: uncertain") : uiText("Catalogue: unknown");
   const updatedAt = channel.availability_updated_at;
   const updatedDate = updatedAt ? new Date(updatedAt * 1000) : null;
 
@@ -22,35 +25,35 @@ const SearchBroadcastStatus: React.FC<Props> = ({ channel }) => {
       <Typography variant="body2">{catalogueLabel}</Typography>
       {updatedDate && Number.isFinite(updatedDate.getTime()) ? (
         <Typography variant="caption" color="text.secondary" component="div">
-          Updated {formatRelativeTime(updatedDate.toISOString())}
+          {tUi("Updated")}{' '}{formatRelativeTime(updatedDate.toISOString())}
         </Typography>
       ) : null}
-      <Box role="status" aria-label={`Broadcast status for ${channel.name}`}>
+      <Box role="status" aria-label={tUi("Broadcast status for {{value0}}", { value0: channel.name })}>
         {probe.isPending ? (
-          <Typography variant="caption">Checking broadcast…</Typography>
+          <Typography variant="caption">{tUi("Checking broadcast…")}</Typography>
         ) : probe.isError ? (
-          <Typography variant="caption" color="error">Check failed: {normalizeApiError(probe.error).message}</Typography>
+          <Typography variant="caption" color="error">{tUi("Check failed:")}{' '}{getErrorMessage(probe.error)}</Typography>
         ) : probe.data ? (
           <>
             <Chip
               size="small"
               color={probe.data.is_online ? 'success' : 'default'}
-              label={probe.data.is_online ? 'Broadcast detected' : 'No broadcast detected'}
+              label={probe.data.is_online ? tUi("Broadcast detected") : tUi("No broadcast detected")}
               title={probe.data.message}
             />
             <Typography variant="caption" color="text.secondary" component="div">
-              Checked {formatRelativeTime(probe.data.last_checked)}
+              {tUi("Checked")}{' '}{formatRelativeTime(probe.data.last_checked)}
             </Typography>
           </>
-        ) : <Typography variant="caption" color="text.secondary">Broadcast not checked</Typography>}
+        ) : <Typography variant="caption" color="text.secondary">{tUi("Broadcast not checked")}</Typography>}
       </Box>
       <Button
         size="small"
         disabled={probe.isPending}
         onClick={() => probe.mutate()}
-        aria-label={`Check broadcast for ${channel.name}`}
+        aria-label={tUi("Check broadcast for {{value0}}", { value0: channel.name })}
       >
-        {probe.data || probe.isError ? 'Check again' : 'Check broadcast'}
+        {probe.data || probe.isError ? tUi("Check again") : tUi("Check broadcast")}
       </Button>
     </Box>
   );

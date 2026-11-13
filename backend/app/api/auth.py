@@ -12,9 +12,8 @@ Accepted credential carriers, checked in order:
 - ?token=<token> query parameter (for IPTV players and XMLTV grabbers,
   which can usually only be configured with a bare URL)
 
-The dependency reads the request directly instead of declaring Header/Query
-parameters so the OpenAPI schema (and the generated frontend client) stays
-unchanged.
+The dependency reads the request directly. openapi_contract documents the
+conditional credential carriers; middleware and semantic tests enforce their scopes.
 """
 
 import os

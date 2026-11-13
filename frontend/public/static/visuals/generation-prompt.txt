@@ -1,0 +1,5 @@
+Built-in image_gen tool; generated 7 November 2026. No input image.
+Selected output: one generic nature illustration; optimized to 800/1600 WebP using cwebp.
+Original PNG retained outside Git. No third-party image or Sportzz mark used as input.
+
+Use case: illustration-story. Asset type: decorative featured viewing background for an AceStream Scraper design prototype. Primary request: a sophisticated editorial illustration of an Atlantic coastline, pale cliffs, dark blue sea, distant headland and warm late-afternoon light. Wide landscape 16:9 composition; keep left third calm and dark enough for a separate interface text overlay, place distinctive cliffs and horizon on the right. Fine painted texture, cinematic but clearly illustrated, natural muted teal, slate and warm limestone. No people, sports, text, logos, watermark, interface or border. This is generic nature decoration, not artwork for an actual programme and not live footage. Deliver a single image.

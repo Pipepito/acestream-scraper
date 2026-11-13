@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { ApiError } from '../services/apiErrors';
 import { getErrorMessage } from '../utils/errorUtils';
 
@@ -63,4 +64,29 @@ describe('getErrorMessage', () => {
   expect(getErrorMessage(error('RECORDING_STORAGE_UNAVAILABLE'))).toBe(message);
   expect(getErrorMessage(error('INTERNAL_ERROR'))).toBe('The server could not complete the request. Try again shortly.');
   expect(getErrorMessage(error())).toBe('The server could not complete the request. Try again shortly.');
+});
+
+ describe('localized error boundaries', () => {
+  afterEach(async () => { await i18next.changeLanguage('en'); });
+  it('uses a stable backend code even when the backend sentence changes', async () => {
+    await i18next.changeLanguage('es');
+    const failure = new ApiError({ message: 'An internal sentence which must not be matched', status: 503, kind: 'server', canRetry: true, code: 'RECORDING_STORAGE_UNAVAILABLE' });
+    expect(getErrorMessage(failure)).toBe(i18next.t('RECORDING_STORAGE_UNAVAILABLE', { ns: 'errors' }));
+    expect(getErrorMessage(failure)).not.toMatch(/internal|Recording storage/);
+  });
+  it('uses localized status guidance for unknown codes and structured validation', async () => {
+    await i18next.changeLanguage('es');
+    expect(getErrorMessage({ isAxiosError: true, response: { status: 422, data: { detail: [{ msg: 'Field required' }] } } })).toBe(i18next.t('validation', { ns: 'errors' }));
+    expect(getErrorMessage(new ApiError({ message: 'secret internal path', status: 500, kind: 'server', canRetry: true, code: 'FUTURE_CODE' }))).toBe(i18next.t('server', { ns: 'errors' }));
+  });
+});
+
+describe('account and receiver HTTP error metadata', () => {
+  afterEach(async () => { await i18next.changeLanguage('en'); });
+  it.each(['ACCESS_CSRF_REQUIRED', 'CAST_DEVICE_NOT_FOUND', 'ACCESS_STORAGE_UNAVAILABLE'] as const)('translates %s without matching server wording', async (code) => {
+    await i18next.changeLanguage('es');
+    const failure = { isAxiosError: true, response: { status: 403, headers: { 'x-error-code': code }, data: { detail: 'Server wording can change' } } };
+    expect(getErrorMessage(failure)).toBe(i18next.t(code, { ns: 'errors' }));
+    expect(getErrorMessage(failure)).not.toContain('Server wording');
+  });
 });

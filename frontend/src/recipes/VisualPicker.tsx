@@ -1,3 +1,5 @@
+import { translateKnown } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import { renderingLimit } from './renderBudget';
 import React, { useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Stack, Typography } from '@mui/material';
@@ -26,6 +28,7 @@ function selectorPart(element: Element): string {
   return element.tagName.toLowerCase() + classes.map(name => `.${name}`).join('');
 }
 export default function VisualPicker({ sample, records, onPick, pickingRecord }: VisualPickerProps) {
+  const tUi = useUiText();
   const frame = useRef<HTMLIFrameElement>(null);
   const selected = useRef<Element | null>(null);
   const [description, setDescription] = useState('');
@@ -38,8 +41,8 @@ export default function VisualPicker({ sample, records, onPick, pickingRecord }:
     setDescription(selectorPart(element));
     let row: Element | null;
     try { row = !pickingRecord && records ? element.closest(records) : null; }
-    catch { setError('The repeating row selector is invalid. Correct it before selecting a field.'); return; }
-    if (!pickingRecord && !row) { setError('Select a repeating row first, then choose a field inside one of its rows.'); return; }
+    catch { setError(tUi("The repeating row selector is invalid. Correct it before selecting a field.")); return; }
+    if (!pickingRecord && !row) { setError(tUi("Select a repeating row first, then choose a field inside one of its rows.")); return; }
     setError('');
     let selector = pickingRecord ? selectorPart(element) : '';
     if (!pickingRecord && element !== row) {
@@ -70,9 +73,9 @@ export default function VisualPicker({ sample, records, onPick, pickingRecord }:
     return () => { doc.onclick = null; };
   });
   return <Stack spacing={1}>
-    <Typography variant="body2">Click a field to assign it. Choose its parent to select a whole channel row. Original scripts and external assets are disabled.</Typography>
-    <Stack direction="row" spacing={1} alignItems="center"><Button size="small" disabled={!description} onClick={() => { if (selected.current?.parentElement) pick(selected.current.parentElement); }}>Select parent</Button><Typography variant="caption">{description}</Typography></Stack>
-    {error && <Alert severity="warning">{error}</Alert>}
-    {limit ? <Alert severity="info">{limit}</Alert> : <Box component="iframe" ref={frame} title="Source visual picker" sandbox="allow-same-origin" srcDoc={srcDoc} onLoad={attach} sx={{ width: '100%', height: 380, border: '1px solid', borderColor: 'divider', borderRadius: 1 }} />}
+    <Typography variant="body2">{tUi("Click a field to assign it. Choose its parent to select a whole channel row. Original scripts and external assets are disabled.")}</Typography>
+    <Stack direction="row" spacing={1} alignItems="center"><Button size="small" disabled={!description} onClick={() => { if (selected.current?.parentElement) pick(selected.current.parentElement); }}>{tUi("Select parent")}</Button><Typography variant="caption">{description}</Typography></Stack>
+    {error && <Alert severity="warning">{translateKnown(error)}</Alert>}
+    {limit ? <Alert severity="info">{translateKnown(limit)}</Alert> : <Box component="iframe" ref={frame} title={tUi("Source visual picker")} sandbox="allow-same-origin" srcDoc={srcDoc} onLoad={attach} sx={{ width: '100%', height: 380, border: '1px solid', borderColor: 'divider', borderRadius: 1 }} />}
   </Stack>;
 }

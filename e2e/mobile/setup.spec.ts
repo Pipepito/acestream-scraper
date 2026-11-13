@@ -35,6 +35,7 @@ for (const mode of ['light', 'dark']) {
         data = state;
       }
       if (endpoint === '/scrapers/urls' || endpoint === '/epg/sources') data = [];
+      if (endpoint === '/scrapers/providers') data = [];
       await route.fulfill({ json: data });
     });
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);

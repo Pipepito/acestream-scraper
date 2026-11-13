@@ -74,11 +74,11 @@ describe('Scraper', () => {
 
   it('selects a built-in broadcaster and saves its friendly name without scraping', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Add URL' }));
-    await waitFor(() => expect(scraperService.getProviders).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Built-in provider' })).not.toHaveAttribute('aria-disabled', 'true'));
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Built-in provider' }));
     fireEvent.click(await screen.findByRole('option', { name: 'Atresmedia' }));
-    expect(screen.getByLabelText('URL')).toHaveValue('https://www.atresplayer.com');
+    expect(screen.getByRole('textbox', { name: /Channel source link/ })).toHaveValue('https://www.atresplayer.com');
     expect(screen.getByLabelText('Friendly name (optional)')).toHaveValue('Atresmedia');
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Built-in provider' }));
     fireEvent.click(screen.getByRole('option', { name: 'Mediaset' }));
@@ -87,7 +87,7 @@ describe('Scraper', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Built-in provider' }));
     fireEvent.click(screen.getByRole('option', { name: 'Atresmedia' }));
     expect(screen.getByLabelText('Friendly name (optional)')).toHaveValue('My broadcaster');
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
     await waitFor(() => expect(mockUseCreateURL().mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ name: 'My broadcaster', url_type: 'broadcaster', url: 'https://www.atresplayer.com' })));
     expect(mockUseScrapeAllURLs().mutateAsync).not.toHaveBeenCalled();
   });
@@ -125,7 +125,7 @@ describe('Scraper', () => {
     expect(status).toHaveTextContent('32');
     expect(status).toHaveTextContent(/ago/);
     expect(screen.queryByText(/source intake stage/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Scrape URL https://source-one.test/feed' })).toHaveTextContent('Scrape');
+    expect(screen.getByRole('button', { name: 'Find channels in https://source-one.test/feed' })).toHaveTextContent('Find channels');
     expect(screen.getByText('Auto-detect')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'More actions for https://source-one.test/feed' }));
@@ -226,7 +226,7 @@ describe('Scraper', () => {
       counts: { accepted: 1, duplicates: 0, invalid: 0, unsupported: 0, failed_fetches: 0 }, selected_branches: ['root'], mode: 'compatible',
       entries: [{ id: 'root', parent_id: null, name: 'Example catalogue', kind: 'folder' }, { id: 'live', parent_id: 'root', name: 'Live channels', kind: 'folder' }] });
     renderPage('/scraper?tab=w3u');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add catalogue' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add catalogue' }, { timeout: 5000 }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Catalogue URL' }), { target: { value: 'https://example.test/list.w3u' } });
     fireEvent.click(screen.getByRole('button', { name: 'Preview URL' }));
     expect(await screen.findByRole('heading', { name: 'Review import' })).toBeInTheDocument();
@@ -236,8 +236,8 @@ describe('Scraper', () => {
   it('hosts W3U catalogues as a tab under the Scraper heading', async () => {
     renderPage('/scraper?tab=w3u');
     expect(screen.getByRole('tab', { name: 'W3U catalogues', selected: true })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Scraper' })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Add catalogue' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Sources' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Add catalogue' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 1, name: 'Catalogues' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'W3U catalogues' })).not.toBeInTheDocument();
   });

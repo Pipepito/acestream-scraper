@@ -43,7 +43,7 @@ export class TVChannelsPage extends AppShell {
     if (form.name !== undefined) await dialog.getByRole('textbox', { name: 'Channel Name' }).fill(form.name);
     if (form.description !== undefined) await dialog.getByRole('textbox', { name: 'Description' }).fill(form.description);
     if (form.logoUrl !== undefined) await dialog.getByRole('textbox', { name: 'Logo URL' }).fill(form.logoUrl);
-    if (form.category !== undefined) await dialog.getByRole('textbox', { name: 'Category' }).fill(form.category);
+    if (form.category !== undefined) await dialog.getByRole('combobox', { name: 'Channel category' }).fill(form.category);
     if (form.country !== undefined) await dialog.getByRole('textbox', { name: 'Country' }).fill(form.country);
     if (form.language !== undefined) await dialog.getByRole('textbox', { name: 'Language' }).fill(form.language);
     if (form.favorite !== undefined) await dialog.getByRole('checkbox', { name: 'Favorite' }).setChecked(form.favorite);
@@ -112,7 +112,7 @@ export class TVChannelDetailPage extends AppShell {
     await expect(dialog).toBeVisible();
     await dialog.getByRole('textbox', { name: 'Search by name, group, or ID' }).fill(search);
     for (const name of names) {
-      await dialog.getByRole('checkbox', { name: `Select acestream ${name}`, exact: true }).check();
+      await dialog.getByRole('checkbox', { name: `Select stream ${name}`, exact: true }).check();
     }
     await dialog.getByRole('button', { name: 'Assign Selected' }).click();
     await expect(dialog).toBeHidden();

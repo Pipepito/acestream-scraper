@@ -53,9 +53,21 @@ class TVChannelService:
     def get_tv_channels_with_total(self, skip: int = 0, limit: int = 100,
                                    search: Optional[str] = None,
                                    favorites_only: bool = False):
-        return self.repository.get_tv_channels_with_total(
+        items, total = self.repository.get_tv_channels_with_total(
             skip=skip, limit=limit, search=search, favorites_only=favorites_only
         )
+        from app.services.category_service import CategoryService
+        return CategoryService(self.repository.db).decorate(items), total
+    def browse(self, filters):
+        from app.services.category_service import CategoryService
+        categories = CategoryService(self.repository.db)
+        ids = categories.matching_ids(filters) if filters.category_id else None
+        items, total = self.repository.browse_tv_channels(filters, ids)
+        return {'items': categories.decorate(items), 'total': total}
+
+    def inventory(self):
+        return self.repository.tv_inventory()
+
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
         return self.repository.get_tv_channel_by_epg_id(epg_id)
     """Service for TVChannel-related operations"""
@@ -66,51 +78,42 @@ class TVChannelService:
         return self.repository.get_tv_channels(skip=skip, limit=limit)
 
     def get_tv_channel_by_id(self, tv_channel_id: int) -> Optional[TVChannel]:
-        return self.repository.get_tv_channel_by_id(tv_channel_id)
+        from app.services.category_service import CategoryService
+        row = self.repository.get_tv_channel_by_id(tv_channel_id)
+        return CategoryService(self.repository.db).decorate([row])[0] if row else None
 
     def get_tv_channel_by_name(self, name: str) -> Optional[TVChannel]:
         return self.repository.get_tv_channel_by_name(name)
 
-    def create_tv_channel(self, name: str, logo_url: Optional[str] = None, description: Optional[str] = None, category: Optional[str] = None, country: Optional[str] = None, language: Optional[str] = None, website: Optional[str] = None, epg_id: Optional[str] = None, epg_source_id: Optional[int] = None, channel_number: Optional[int] = None, is_active: bool = True, is_favorite: bool = False) -> TVChannel:
-        tv_channel = self.repository.create_tv_channel(name=name, logo_url=logo_url, description=description, category=category, country=country, language=language, website=website, epg_id=epg_id, epg_source_id=epg_source_id, channel_number=channel_number, is_active=is_active, is_favorite=is_favorite)
+    def create_tv_channel(self, name: str, logo_url: Optional[str] = None, description: Optional[str] = None, category: Optional[str] = None, country: Optional[str] = None, language: Optional[str] = None, website: Optional[str] = None, epg_id: Optional[str] = None, epg_source_id: Optional[int] = None, channel_number: Optional[int] = None, is_active: bool = True, is_favorite: bool = False, *, category_origin: str = 'automatic') -> TVChannel:
+        tv_channel = self.repository.create_tv_channel(name=name, logo_url=logo_url, description=description, category=category, country=country, language=language, website=website, epg_id=epg_id, epg_source_id=epg_source_id, channel_number=channel_number, is_active=is_active, is_favorite=is_favorite, category_origin=category_origin)
         self.auto_associate_acestreams(tv_channel)
         return tv_channel
 
-    def now_next(self, window_back_hours: int = 1, window_forward_hours: int = 6):
+    def now_next(self, window_back_hours: int = 1, window_forward_hours: int = 6, channel_ids: list[int] | None = None, as_of=None):
         """Now/Next for every active TV channel with a guide mapping, read in one programme window
         so a full channel list never issues per-row guide requests."""
-        from datetime import datetime, timedelta, timezone
-        from app.models.models import EPGProgram
+        from datetime import datetime, timezone
         from app.schemas.channel import GuideSlot, TVChannelNowNext
-        from app.services.epg_service import EPGService
-        now = datetime.now(timezone.utc)
-        channels = self.repository.db.query(TVChannel).filter(TVChannel.is_active.is_(True), TVChannel.epg_id.isnot(None),
-                                                   TVChannel.epg_source_id.isnot(None)).all()
-        lookup = EPGService(self.repository.db).epg_channel_lookup(channels)
-        mapped = [(tv, lookup.get((tv.epg_source_id, tv.epg_id))) for tv in channels]
-        mapped = [(tv, epg) for tv, epg in mapped if epg is not None]
-        if not mapped:
-            return []
-        epg_ids = sorted({epg.id for _, epg in mapped})
-        by_channel: Dict[int, List[EPGProgram]] = {}
-        for offset in range(0, len(epg_ids), 500):
-            programs = (self.repository.db.query(EPGProgram)
-                        .filter(EPGProgram.epg_channel_id.in_(epg_ids[offset:offset + 500]),
-                                EPGProgram.start_time < now + timedelta(hours=window_forward_hours),
-                                EPGProgram.end_time > now - timedelta(hours=window_back_hours))
-                        .order_by(EPGProgram.epg_channel_id, EPGProgram.start_time).all())
-            for program in programs:
-                by_channel.setdefault(program.epg_channel_id, []).append(program)
+        from app.services.guide_projection import projected_guide
+        from app.services.programme_categories import observations, genres
+        now = as_of or datetime.now(timezone.utc)
+        query = self.repository.db.query(TVChannel).filter(TVChannel.is_active.is_(True), TVChannel.epg_id.isnot(None),
+                                                   TVChannel.epg_source_id.isnot(None))
+        if channel_ids is not None:
+            query = query.filter(TVChannel.id.in_(channel_ids))
+        channels = query.all()
+        projection = projected_guide(self.repository.db, channels, now)
 
         def slot(program):
-            return GuideSlot(title=program.title, start=program.start_time, end=program.end_time) if program else None
+            return GuideSlot(title=program.title, start=program.start_time, end=program.end_time,
+                              image_url=program.image_url, categories=observations(program), genre_ids=genres(program)) if program else None
 
         rows = []
-        for tv, epg in mapped:
-            listing = by_channel.get(epg.id, [])
-            current = next((p for p in listing if p.start_time <= now < p.end_time), None)
-            upcoming = next((p for p in listing if p.start_time > now), None)
-            rows.append(TVChannelNowNext(tv_channel_id=tv.id, epg_channel_id=epg.id, now=slot(current), next=slot(upcoming)))
+        for tv in channels:
+            guide_id, current, upcoming = projection[tv.id]
+            if guide_id is not None:
+                rows.append(TVChannelNowNext(tv_channel_id=tv.id, epg_channel_id=guide_id, now=slot(current), next=slot(upcoming)))
         return rows
 
     def update_tv_channel(self, tv_channel_id: int, updates: Dict[str, Any]) -> Optional[TVChannel]:

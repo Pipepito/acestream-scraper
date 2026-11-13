@@ -1,18 +1,6 @@
-import { ApiError, normalizeApiError } from '../services/apiErrors';
-
-const UNKNOWN_ERROR_MESSAGE = 'Something went wrong. Try again.';
-
-const ERROR_COPY: Record<ApiError['kind'], string> = {
-  offline: 'Unable to reach the server. Check your connection and try again.',
-  timeout: 'The request took too long. Try again in a moment.',
-  auth: 'Your session has expired. Sign in again and retry.',
-  permission: 'You do not have permission to perform this action.',
-  not_found: 'The requested item could not be found.',
-  validation: 'Please review the highlighted information and try again.',
-  rate_limit: 'Too many requests were sent. Wait a moment and try again.',
-  server: 'The server could not complete the request. Try again shortly.',
-  unknown: UNKNOWN_ERROR_MESSAGE,
-};
+import i18next from 'i18next';
+import { getLocale } from '../i18n/locale';
+import { normalizeApiError } from '../services/apiErrors';
 
 /**
  * Extract a user-friendly message from an error
@@ -20,12 +8,27 @@ const ERROR_COPY: Record<ApiError['kind'], string> = {
 export const getErrorMessage = (error: unknown): string => {
   const normalizedError = normalizeApiError(error);
 
+  if (normalizedError.code && i18next.exists(normalizedError.code, { ns: 'errors', lng: 'en' })) {
+    return i18next.t(normalizedError.code, { ns: 'errors', defaultValue: i18next.t('unknown', { ns: 'errors' }) });
+  }
+  // Legacy endpoints without reason codes retain their actionable English detail.
+  // Spanish uses safe status-based guidance, never matches an English sentence.
   // Explicit API errors carry operator-facing messages, including actionable
   // 5xx failures such as unavailable recording storage. Raw/unexpected server
   // failures still receive generic copy.
-  if ((normalizedError.kind === 'validation' || (normalizedError.code && normalizedError.code !== 'INTERNAL_ERROR')) && normalizedError.message.trim()) {
+  if (getLocale() === 'en-US' && normalizedError.kind === 'validation' && normalizedError.message.trim()) {
     return normalizedError.message;
   }
 
-  return ERROR_COPY[normalizedError.kind] ?? UNKNOWN_ERROR_MESSAGE;
+  return i18next.t(normalizedError.kind, { ns: 'errors' });
+};
+
+/**
+ * For call sites that have always shown a failure's own text. English keeps that
+ * text verbatim; other languages get translated guidance, never an English
+ * sentence. Undefined when the failure is not an Error.
+ */
+export const getErrorDetail = (error: unknown): string | undefined => {
+  if (!(error instanceof Error)) return undefined;
+  return getLocale() === 'en-US' ? error.message : getErrorMessage(error);
 };

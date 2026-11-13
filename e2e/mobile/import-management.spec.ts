@@ -37,7 +37,7 @@ for (const theme of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Add exclusion', exact: true }).click();
     await page.getByRole('textbox', { name: 'Value', exact: true }).fill('Publisher sports with a long regional name [ES]');
     await page.getByRole('button', { name: 'Preview matches' }).click();
-    await expect(page.getByText(/At least 18 matches/)).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: /At least/ })).toContainText(/At least\s+18\s+matches/);
     expect(writes).toEqual([]);
     await page.getByRole('button', { name: 'Save exclusion' }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);

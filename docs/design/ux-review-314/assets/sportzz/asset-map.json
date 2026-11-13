@@ -1,0 +1,255 @@
+{
+  "source_package": "sportzz-frontend-20261107.zip",
+  "package_sha256": "71347425454f9635c113f86618751fabe40e11ce26b2b54deb3dbecbe5dfaeb9",
+  "note": "User-supplied SPORTZZ design reference. No new generation. Font licenses and existing image provenance retained in assets/ and assets/selected/. Category attribution files retain photographer/license details. No broader rights claim for unused package assets.",
+  "files": [
+    {
+      "file": "assets/sportzz/logotipo-blanco.svg",
+      "source": "public/brand/sportzz/logotipo-blanco.svg",
+      "use": "Identity reference; black/white marks in navigation, lime on ink only",
+      "sha256": "b89a030607fa37a4a595389e4f4d7323a23445452616dd30250c797ef55b88be",
+      "bytes": 1722,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/logotipo-negro.svg",
+      "source": "public/brand/sportzz/logotipo-negro.svg",
+      "use": "Identity reference; black/white marks in navigation, lime on ink only",
+      "sha256": "33d6ae92bb3ceeb3df76b899d531f13df3b1d8232b3e591098b1e7a199c863fd",
+      "bytes": 1722,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/logotipo-verde.svg",
+      "source": "public/brand/sportzz/logotipo-verde.svg",
+      "use": "Identity reference; black/white marks in navigation, lime on ink only",
+      "sha256": "992e5caa44188eac077695583be97e0d431b0bc85384d3f688e4e953b387a4eb",
+      "bytes": 1722,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/isotipo-blanco.svg",
+      "source": "public/brand/sportzz/isotipo-blanco.svg",
+      "use": "Identity reference; black/white marks in navigation, lime on ink only",
+      "sha256": "1bd20c7bfc8111d197f903dfa65de7c3cf4d845011ddb5b01c693d041fcaa41b",
+      "bytes": 864,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/isotipo-negro.svg",
+      "source": "public/brand/sportzz/isotipo-negro.svg",
+      "use": "Identity reference; black/white marks in navigation, lime on ink only",
+      "sha256": "4dc7f8467687bab037b5f700b09d496fc40598a05e196bc10f13bcf647643847",
+      "bytes": 864,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/isotipo-verde.svg",
+      "source": "public/brand/sportzz/isotipo-verde.svg",
+      "use": "Identity reference; black/white marks in navigation, lime on ink only",
+      "sha256": "c1a23d8347b0c7db6e79030cea121f863c1b2f195ef56d318909e3168e49febb",
+      "bytes": 864,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/LEEME.txt",
+      "source": "public/brand/sportzz/LEEME.txt",
+      "use": "Original identity provenance",
+      "sha256": "5e0a0da6a6f2dafd4354251a6efae9ead554c3f30b794afc039386933c10bdd0",
+      "bytes": 747,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-nav-search.svg",
+      "source": "docs/brand/icons/ic-nav-search.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "1bd14bf78f4be45d2c6f9bef630591d4d4da95ab7e446543f47f57499fb7aa41",
+      "bytes": 274,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-action-filter.svg",
+      "source": "docs/brand/icons/ic-action-filter.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "a3ec4a749bede588f0ce5e0fcdfcde664bb8f26520d020ae4a64ea1d313019a9",
+      "bytes": 202,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-status-warning.svg",
+      "source": "docs/brand/icons/ic-status-warning.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "ba77851fe725a0b7fdec85bf0d0fcd2f05da5b77dda0bedeef3d490e71e56e60",
+      "bytes": 351,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-status-live.svg",
+      "source": "docs/brand/icons/ic-status-live.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "9197fd49ef7a9bd584d6408843f8c206db60a49bb4e6b266c1f066e53e1a0c67",
+      "bytes": 340,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-media-fullscreen.svg",
+      "source": "docs/brand/icons/ic-media-fullscreen.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "2e7f058bddbf9bf0ace7071e61cf3541912811b60a4aa3610f1674adfdb92a68",
+      "bytes": 256,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-nav-profile.svg",
+      "source": "docs/brand/icons/ic-nav-profile.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "9fc73076249b3c349d4eb8783bd3686b54f3b12a3c8fc47e82514e1964487b41",
+      "bytes": 309,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-nav-home.svg",
+      "source": "docs/brand/icons/ic-nav-home.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "fd1b69de6ca992a47c602f814d152c84d6a6a2fe5a40786deb61d3132383cbbd",
+      "bytes": 300,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-media-pause.svg",
+      "source": "docs/brand/icons/ic-media-pause.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "9a8b9c496278184d58beadd9e70e4fadd4a2c6672f9855ccc7cfc20ac9548f61",
+      "bytes": 248,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-nav-back.svg",
+      "source": "docs/brand/icons/ic-nav-back.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "ae5c897d534213f84015db865d9c19a737dbb3de0aa9a5212df9256ddebacfcc",
+      "bytes": 224,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-nav-schedule.svg",
+      "source": "docs/brand/icons/ic-nav-schedule.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "615513722a20f7ca9c77dade27ff80b4c042d3c6ecef665faefd7fa58dedf1a3",
+      "bytes": 305,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-action-favorite.svg",
+      "source": "docs/brand/icons/ic-action-favorite.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "dc4aab7ae97afa5519598e110c285235d90142434b0a374c8e3696e73e9582fd",
+      "bytes": 259,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/README.md",
+      "source": "docs/brand/icons/README.md",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "472659868a17da308ae65f98a6be609f27cb6cb96dd428b8abd9a5af1cb0d4ea",
+      "bytes": 856,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/icons/ic-media-play.svg",
+      "source": "docs/brand/icons/ic-media-play.svg",
+      "use": "Supplied interface collection and construction notes",
+      "sha256": "8f2975cfd697cf4f0153bf90a26570c242af53f2e39c4425dc4ff606ee097056",
+      "bytes": 227,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/baloncesto/cover-480.webp",
+      "source": "public/assets/categories/baloncesto/cover-480.webp",
+      "use": "Category imagery reference; named sport only, centered crop",
+      "sha256": "d9ecdc90938eb0f73fd314fbac8b4a709a8be9fa1561024a5e8341336bbac2f0",
+      "bytes": 16938,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/baloncesto/cover-960.webp",
+      "source": "public/assets/categories/baloncesto/cover-960.webp",
+      "use": "Category imagery reference; named sport only, centered crop",
+      "sha256": "e885042e59a5ce9cc7e6a7750d8fe75ccd840baa4f9280e4de6376e99e15c36b",
+      "bytes": 55116,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/baloncesto/attribution.json",
+      "source": "public/assets/categories/baloncesto/attribution.json",
+      "use": "Category imagery reference; named sport only, centered crop",
+      "sha256": "8b9aca1bd6c00196d3ee407360eee94823a7c00b6c86bd5391ee7b90f6db32cf",
+      "bytes": 1922,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/formula-1/cover-480.webp",
+      "source": "public/assets/categories/formula-1/cover-480.webp",
+      "use": "Category imagery reference; named sport only, centered crop",
+      "sha256": "3e340ababd3e17deeb1f9e49e20dbf27d88747af601f5f1bb28c6960ccc87f06",
+      "bytes": 11526,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/formula-1/cover-960.webp",
+      "source": "public/assets/categories/formula-1/cover-960.webp",
+      "use": "Category imagery reference; named sport only, centered crop",
+      "sha256": "fb08b213843acf066efb255ef2bc8bbc8dcafbee00bc34b201de30560b3170ff",
+      "bytes": 28952,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/sportzz/formula-1/attribution.json",
+      "source": "public/assets/categories/formula-1/attribution.json",
+      "use": "Category imagery reference; named sport only, centered crop",
+      "sha256": "fb7641910045fe10f8e2a6b3e3359819882b5a0975f519af0bd0713614cfdaca",
+      "bytes": 1714,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/inter.ttf",
+      "source": "public/fonts/sportzz/Inter-Variable.ttf",
+      "use": "Existing shared font; exact match to supplier",
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "bytes": 876576,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/barlow-condensed.ttf",
+      "source": "public/fonts/sportzz/BarlowCondensed-SemiBold.ttf",
+      "use": "Existing shared font; exact match to supplier",
+      "sha256": "7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9",
+      "bytes": 109428,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/selected/football-480.webp",
+      "source": "public/assets/categories/futbol/cover-480.webp",
+      "use": "Existing category photo; named sport only",
+      "sha256": "8afb4632e663d6abeb26d2c0e8801bc314999d2827dd40c6f666635ed58c9e6d",
+      "bytes": 17406,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/selected/football-960.webp",
+      "source": "public/assets/categories/futbol/cover-960.webp",
+      "use": "Existing category photo; named sport only",
+      "sha256": "8b8fd763b189fda567df5620d6cda65f9a04c050cbd522e5ddbf60beaa798a20",
+      "bytes": 71532,
+      "treatment": "Unmodified supplied file"
+    },
+    {
+      "file": "assets/selected/tennis-480.webp",
+      "source": "public/assets/categories/tenis/cover-480.webp",
+      "use": "Existing category photo; named sport only",
+      "sha256": "f5c3f6a0ab9db3d4d7e45048905f9850cf4fffce09ee01becba47325585a714f",
+      "bytes": 11432,
+      "treatment": "Unmodified supplied file"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ test.describe('scraper', () => {
 
       await scraper.open();
       await scraper.addUrl({ url, urlType: source.urlType });
-      await scraper.expectAlert('URL added successfully');
+      await scraper.expectAlert('Source added. Choose Find channels to import it.');
       const row = scraper.row(url);
       await expect(row).toBeVisible();
       await expect(scraper.enabledSwitch(url)).toBeChecked();
@@ -66,7 +66,7 @@ test.describe('scraper', () => {
     expect((await api.findUrl(url))?.enabled).toBe(false);
 
     // The UI does not offer a scrape for a disabled source; the API refuses it too.
-    await expect(scraper.row(url).getByRole('button', { name: `Scrape URL ${url}` })).toBeDisabled();
+    await expect(scraper.row(url).getByRole('button', { name: `Find channels in ${url}` })).toBeDisabled();
     errors.allowApi(/\/scrape 400 .*URL is disabled/);
     const refused = await api.raw('post', `/api/v1/scrapers/urls/${(await api.findUrl(url))!.id}/scrape`);
     expect(refused.status()).toBe(400);
@@ -78,10 +78,11 @@ test.describe('scraper', () => {
 
     // Editing through the dialog still works and keeps the type.
     const dialog = await scraper.edit(url);
-    await expect(dialog.getByRole('textbox', { name: 'URL' })).toHaveValue(url);
-    await dialog.getByRole('button', { name: 'Update' }).click();
+    await expect(dialog.getByRole('textbox', { name: 'Channel source link' })).toHaveValue(url);
+    await dialog.getByRole('textbox', { name: 'Friendly name (optional)' }).fill('E2E edited source');
+    await dialog.getByRole('button', { name: 'Save source' }).click();
     await expect(dialog).toBeHidden();
-    await scraper.expectAlert('URL updated successfully');
+    await scraper.expectAlert('Source saved.');
 
     // Bare-ID harvesting is a checked menu item driven by server state.
     await scraper.toggleBareIds(url);

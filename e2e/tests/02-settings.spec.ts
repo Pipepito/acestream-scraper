@@ -13,8 +13,8 @@ test.describe('settings', () => {
   test('the page has one section per concern and the engine reports online', async ({ page }) => {
     const settings = new SettingsPage(page);
     await settings.open();
-    const headings = await page.getByRole('heading', { level: 2 }).allInnerTexts();
-    expect(headings).toEqual(['Engine', 'Players and network']);
+    // The page heading precedes its lazy editor. Await the exact section list.
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Engine', 'Players and network']);
     await settings.refreshEngineStatus();
     await expect(settings.engineStatus()).toContainText(/Online/, { timeout: 20_000 });
   });

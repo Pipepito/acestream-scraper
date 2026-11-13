@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v1/auth/status', route => route.fulfill({ json: {
+    mode: 'open', user: null, permissions: [], csrf: 'test-csrf', legacy_token: false, account_transport: 'local_http',
+  } }));
+});
+
 for (const mode of ['light', 'dark']) {
   test(`${mode}: startup, diagnostics and confirmed recovery`, async ({ page }) => {
     await page.addInitScript((theme) => localStorage.setItem('app-theme-mode', theme), mode);

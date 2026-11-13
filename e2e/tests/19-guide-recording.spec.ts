@@ -19,6 +19,7 @@ test('Live TV schedules a guide programme without starting playback', async ({ p
     await page.goto('/live-tv');
     await page.getByRole('checkbox', { name: 'Online only' }).click();
     await expect(page.getByRole('checkbox', { name: 'Online only' })).not.toBeChecked();
+    await page.getByRole('button', { name: /^All channels/ }).click();
     await page.getByRole('button', { name: `TV guide for ${tv!.name}`, exact: true }).click();
     const schedule = page.getByRole('region', { name: `TV guide for ${tv!.name}`, exact: true });
     await expect(schedule.getByRole('tab', { name: 'Tomorrow', exact: true })).toBeVisible();
@@ -45,9 +46,10 @@ test('Live TV schedules a guide programme without starting playback', async ({ p
     expect(playerStarts).toBe(0);
     await expect(page.getByLabel(/Video player for/)).toHaveCount(0);
     await page.goto('/recordings');
+    await page.getByRole('tab', { name: 'Upcoming and active', exact: true }).click();
     const scheduled = page.getByRole('article')
       .filter({ has: page.getByRole('heading', { name: programme!.title, exact: true }) })
-      .filter({ has: page.getByText('scheduled', { exact: true }) });
+      .filter({ has: page.getByText('Scheduled', { exact: true }) });
     await expect(scheduled).toBeVisible();
   } finally {
     if (recordingId) {

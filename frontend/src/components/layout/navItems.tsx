@@ -1,17 +1,18 @@
 import React from 'react';
+import type { CommonLabel } from '../../i18n/resources';
+import i18n from '../../i18n';
+import { translateKnown } from '../../i18n/text';
 import { matchPath } from 'react-router-dom';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
-import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import LiveTvRoundedIcon from '@mui/icons-material/LiveTvRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
-import PlaylistPlayRoundedIcon from '@mui/icons-material/PlaylistPlayRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 
 export interface NavItem {
   text: string;
+  label: CommonLabel;
   path: string;
   icon: React.ReactElement;
   section: 'Watch' | 'Manage' | 'Integrations' | 'System';
@@ -19,26 +20,13 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { text: 'TV dashboard', path: '/', icon: <DashboardRoundedIcon />, section: 'Watch' },
-  { text: 'Live TV', path: '/live-tv', icon: <LiveTvRoundedIcon />, section: 'Watch' },
-  { text: 'Recordings', path: '/recordings', icon: <HistoryRoundedIcon />, section: 'Watch' },
-  { text: 'System status', path: '/system', icon: <DashboardRoundedIcon />, section: 'System' },
-  { text: 'Scraper', path: '/scraper', icon: <TravelExploreRoundedIcon />, section: 'Manage' },
-  { text: 'Search', path: '/search', icon: <SearchRoundedIcon />, section: 'Manage' },
-  { text: 'Acestream Channels', path: '/acestream-channels', icon: <LiveTvRoundedIcon />, section: 'Manage' },
-  { text: 'TV Channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Manage', matchPrefixes: ['/tv-channels'] },
-  { text: 'EPG', path: '/epg', icon: <EventNoteRoundedIcon />, section: 'Manage', matchPrefixes: ['/epg/channels'] },
-  { text: 'Events', path: '/events', icon: <EventNoteRoundedIcon />, section: 'Manage' },
-  { text: 'Playlist', path: '/playlist', icon: <PlaylistPlayRoundedIcon />, section: 'Manage' },
-  { text: 'Public address', path: '/integrations/public-address', icon: <HubRoundedIcon />, section: 'Integrations' },
-  { text: 'Web player', path: '/integrations/web-player', icon: <HubRoundedIcon />, section: 'Integrations' },
-  { text: 'TV casting', path: '/integrations/tv-casting', icon: <LiveTvRoundedIcon />, section: 'Integrations' },
-  { text: 'Remote players', path: '/integrations/remote-players', icon: <HubRoundedIcon />, section: 'Integrations' },
-  { text: 'Media servers', path: '/integrations/media-servers', icon: <HubRoundedIcon />, section: 'Integrations' },
-  { text: 'Telegram', path: '/integrations/telegram', icon: <HubRoundedIcon />, section: 'Integrations' },
-  { text: 'WARP', path: '/warp', icon: <HubRoundedIcon />, section: 'System' },
-  { text: 'Settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
-  { text: 'Changelog', path: '/changelog', icon: <HistoryRoundedIcon />, section: 'System' },
+  { text: 'Watch', label: 'watch', path: '/', icon: <LiveTvRoundedIcon />, section: 'Watch', matchPrefixes: ['/live-tv'] },
+  { text: 'Recordings', label: 'recordings', path: '/recordings', icon: <HistoryRoundedIcon />, section: 'Watch' },
+  { text: 'Events', label: 'events', path: '/events', icon: <EventNoteRoundedIcon />, section: 'Watch' },
+  { text: 'Channels', label: 'channels', path: '/tv-channels', icon: <LiveTvRoundedIcon />, section: 'Manage', matchPrefixes: ['/tv-channels', '/scraper', '/search', '/epg', '/acestream-channels'] },
+  { text: 'Connections', label: 'connections', path: '/connections', icon: <HubRoundedIcon />, section: 'Integrations', matchPrefixes: ['/connections', '/integrations', '/playlist'] },
+  { text: 'Settings', label: 'settings', path: '/settings', icon: <SettingsRoundedIcon />, section: 'System' },
+  { text: 'System', label: 'system', path: '/system', icon: <DashboardRoundedIcon />, section: 'System', matchPrefixes: ['/system', '/warp', '/setup', '/changelog'] },
 ];
 
 /** Routable pages that are reached from within another page rather than the nav. */
@@ -75,7 +63,7 @@ export function isNavItemSelected(item: NavItem, pathname: string): boolean {
 
 export function getNavTitle(pathname: string): string {
   const matched = navItems.find((item) => isNavItemSelected(item, pathname));
-  if (matched) return matched.text;
+  if (matched) return i18n.t(matched.label);
   const hidden = hiddenRouteTitles.find((item) => matchesSegmentPath(pathname, item.path, true));
-  return hidden?.title ?? 'Not Found';
+  return translateKnown(hidden?.title ?? 'Not Found');
 }

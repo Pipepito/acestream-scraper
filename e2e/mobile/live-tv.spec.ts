@@ -20,6 +20,14 @@ async function fixtures(page: Page) {
     if (path === '/startup') data = { status: 'ready', phase: 'Ready to use', events: [], recovery_token: 'test' };
     else if (path === '/setup') data = { setup_complete: true, restart_required: false };
     else if (path === '/tv-channels') data = { items: channels, total: channels.length };
+    else if (path === '/tv-channels/categories') data = { basis: new URL(request.url()).searchParams.get('category_basis') ?? 'channel', as_of: new Date().toISOString(), taxonomy_version: 1, total: 2, items: [{ id: 'sports', label: 'Sports', label_es: 'Deportes', artwork: 'sports-general', artwork_status: 'specific', count: 2 }] };
+    else if (path === '/tv-channels/browse') {
+      const params = new URL(request.url()).searchParams;
+      const filtered = channels.filter(item => item.acestream_channels.length &&
+        (params.get('is_favorite') !== 'true' || item.is_favorite) &&
+        item.name.toLowerCase().includes((params.get('search') ?? '').toLowerCase()));
+      data = { items: filtered, total: filtered.length };
+    }
     else if (/^\/tv-channels\/\d+$/.test(path)) data = channels.find((item) => item.id === Number(path.split('/').pop()));
     else if (path === '/tv-channels/now-next') data = [{ tv_channel_id: 1, epg_channel_id: 1,
       now: { title: 'Live match', start: new Date(now - 900_000).toISOString(), end: new Date(now + 900_000).toISOString() },
@@ -60,7 +68,7 @@ for (const mode of ['light', 'dark']) {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/live-tv');
+    await page.goto('/live-tv?category=all');
     await expect(page.getByRole('heading', { name: 'Live TV', exact: true })).toBeVisible();
     await expect(page.getByText('Now · Live match')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -110,9 +118,9 @@ for (const mode of ['light', 'dark']) {
 test('direct channel URL, guide error and retry, browser Back', async ({ page }) => {
   await fixtures(page);
   // When the batched Now/Next read fails, rows fall back to their own guide queries, which carry Retry.
-  await page.route('**/tv-channels/now-next', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
+  await page.route('**/tv-channels/now-next*', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
   await page.route('**/epg/channels/1/programs*', (route) => route.fulfill({ status: 503, json: { detail: 'Unavailable' } }));
-  await page.goto('/live-tv');
+  await page.goto('/live-tv?category=all');
   await expect(page.getByText('Guide unavailable.')).toBeVisible();
   await page.unroute('**/epg/channels/1/programs*');
   await page.getByRole('button', { name: 'Retry', exact: true }).click();
@@ -120,7 +128,7 @@ test('direct channel URL, guide error and retry, browser Back', async ({ page })
   await page.getByRole('button', { name: 'Watch Arena TV' }).click();
   await page.goBack();
   await expect(page.getByRole('region', { name: 'Live TV player', exact: true })).toHaveCount(0);
-  await page.goto('/live-tv?channel=1');
+  await page.goto('/live-tv?channel=1&category=all');
   await expect(page.getByRole('group', { name: 'Sources' })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Arena TV' })).toHaveAttribute('aria-current', 'true');
 });
@@ -159,7 +167,7 @@ for (const mode of ['light', 'dark']) {
       return route.fulfill({ json: { id: 'cast-session', state: 'playing' } });
     });
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/live-tv');
+    await page.goto('/live-tv?category=all');
     for (const title of ['Arena TV', 'Independent live stream']) {
       if (title === 'Independent live stream') await page.getByRole('button', { name: 'Streams' }).click();
       await page.getByRole('button', { name: `Send to player ${title}`, exact: true }).press('Enter');
@@ -186,7 +194,7 @@ for (const mode of ['light', 'dark']) {
       return route.fulfill({ json: { warnings: [] } });
     });
     await page.addInitScript((value) => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/live-tv');
+    await page.goto('/live-tv?category=all');
     for (const title of ['Arena TV', 'Independent live stream']) {
       if (title === 'Independent live stream') await page.getByRole('button', { name: 'Streams' }).click();
       const sendButton = page.getByRole('button', { name: `Send to player ${title}`, exact: true });
@@ -209,7 +217,7 @@ for (const mode of ['light', 'dark']) {
 
  test('browse and switch channels without closing the player', async ({ page }) => {
   const { starts, leaves } = await fixtures(page);
-  await page.goto('/live-tv');
+  await page.goto('/live-tv?category=all');
   await page.getByRole('button', { name: 'Watch Arena TV' }).click();
   await expect.poll(() => starts.length).toBe(1);
   await page.getByRole('searchbox', { name: 'Find a channel' }).fill('No guide');
@@ -237,7 +245,7 @@ for (const mode of ['light', 'dark']) {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(value => localStorage.setItem('app-theme-mode', value), mode);
-    await page.goto('/live-tv');
+    await page.goto('/live-tv?category=all');
     await page.getByRole('button', { name: 'TV guide for Arena TV' }).click();
     const guide = page.getByRole('region', { name: 'TV guide for Arena TV' });
     // The schedule loads when the guide opens; decide the day only once it has settled.

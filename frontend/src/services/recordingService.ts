@@ -8,6 +8,7 @@ export type RecordingCreate = components['schemas']['RecordingCreate'];
 export type RecordingSettings = components['schemas']['RecordingSettings'];
 export type RecordingEdit = components['schemas']['RecordingEdit'];
 export type RecordingCapabilities = components['schemas']['RecordingCapabilities'];
+export type RecordingCollection = 'all' | 'library' | 'upcoming' | 'history';
 const base = '/v1/recordings';
 const playbackBase = () => accessSession.managed() ? '/v1/view/recordings' : base;
 export const recordingService = {
@@ -16,7 +17,7 @@ export const recordingService = {
   openPlayback: async (id: string, file_id: string) => (await apiClient.post<components['schemas']['RecordingPlaybackView']>(`${playbackBase()}/${id}/playback-sessions`, { file_id })).data,
   playback: async (id: string, sid: string) => (await apiClient.get<components['schemas']['RecordingPlaybackView']>(`${playbackBase()}/${id}/playback-sessions/${sid}`)).data,
   closePlayback: async (id: string, sid: string) => { await apiClient.delete(`${playbackBase()}/${id}/playback-sessions/${sid}`); },
-  list: async (state?: string, offset = 0, search = '') => (await apiClient.get<components['schemas']['RecordingList']>(base, { params: { state: state || undefined, offset, limit: 50, search } })).data,
+  list: async (state?: string, offset = 0, search = '', collection: RecordingCollection = 'all') => (await apiClient.get<components['schemas']['RecordingList']>(base, { params: { state: state || undefined, offset, limit: 50, search, collection } })).data,
   get: async (id: string) => (await apiClient.get<Recording>(`${base}/${id}`)).data,
   capabilities: async () => (await apiClient.get<RecordingCapabilities>(`${base}/capabilities`)).data,
   create: async (data: RecordingCreate) => (await apiClient.post<Recording>(base, data)).data,

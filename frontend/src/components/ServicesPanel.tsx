@@ -1,3 +1,5 @@
+import { uiText, translateKnown } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -29,7 +31,7 @@ import { useTheme } from '@mui/material/styles';
 import { useControlEngine, useRestartService, useSystemServices } from '../hooks/useSystemServices';
 import type { ServiceState, ServiceStatus } from '../services/systemService';
 import { useSnackbar } from '../hooks/useSnackbar';
-import { normalizeApiError } from '../services/apiErrors';
+import { getErrorMessage } from '../utils/errorUtils';
 import { Link as RouterLink } from 'react-router-dom';
 
 interface StateMeta {
@@ -61,10 +63,10 @@ export const formatUptime = (seconds: number | null): string | null => {
 
 export const restartDisabledReason = (service: ServiceStatus, supervised: boolean): string | null => {
   if (service.managed) return null;
-  if (!service.installed) return 'Not included in this image flavor.';
-  if (!service.enabled) return `Turned off; enable it with its ENABLE_* variable and recreate the container.`;
-  if (!supervised) return 'Managed outside this container; restart it where it runs.';
-  return 'Not running under the container supervisor right now.';
+  if (!service.installed) return uiText("Not included in this image flavor.");
+  if (!service.enabled) return uiText("Turned off; enable it with its ENABLE_* variable and recreate the container.");
+  if (!supervised) return uiText("Managed outside this container; restart it where it runs.");
+  return uiText("Not running under the container supervisor right now.");
 };
 
 interface RestartWatch {
@@ -81,6 +83,7 @@ export interface ServicesPanelProps {
 }
 
 const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const [watch, setWatch] = useState<RestartWatch | null>(null);
   const [confirming, setConfirming] = useState<ServiceStatus | null>(null);
@@ -88,6 +91,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
   const { data, isLoading, error, refetch, isFetching } = useSystemServices({
     refetchInterval: watch ? 3_000 : pollIntervalMs,
   });
+  const operation = useRef(false);
   const restart = useRestartService();
   const control = useControlEngine();
   const showSnackbarRef = useRef(showSnackbar);
@@ -100,13 +104,13 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     if (!current) return;
     const relaunched = current.pid !== null && current.pid !== watch.previousPid;
     if (watch.action === 'stop' && current.stopped_by_user && current.pid === null) {
-      showSnackbarRef.current(`${watch.label} is stopped. Select Start to resume.`, 'success');
+      showSnackbarRef.current(() => uiText('{{name}} is stopped. Select Start to resume.', { name: translateKnown(watch.label) }), 'success');
       setWatch(null);
     } else if (watch.action !== 'stop' && relaunched && current.state === 'running') {
-      showSnackbarRef.current(`${watch.label} is back: ${current.message}`, 'success');
+      showSnackbarRef.current(() => uiText('{{name}} is running again.', { name: translateKnown(watch.label) }), 'success');
       setWatch(null);
     } else if (Date.now() - watch.startedAt > RESTART_TIMEOUT_MS) {
-      showSnackbarRef.current(`${watch.label} has not completed the requested action yet. Check the container logs.`, 'warning');
+      showSnackbarRef.current(() => uiText('{{name}} has not completed the requested action yet. Check the container logs.', { name: translateKnown(watch.label) }), 'warning');
       setWatch(null);
     }
   }, [data, watch]);
@@ -115,36 +119,37 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
   const supervised = data?.supervised ?? false;
 
   const handleConfirmRestart = async () => {
-    if (!confirming) return;
+    if (!confirming || operation.current) return;
+    operation.current = true;
     const target = confirming;
     setConfirming(null);
     try {
-      const result = await restart.mutateAsync(target.name);
-      showSnackbar(result.message || `Restart requested for ${target.label}.`, 'info');
+      await restart.mutateAsync(target.name);
+      showSnackbar(() => uiText('Restart requested for {{name}}.', { name: translateKnown(target.label) }), 'info');
       setWatch({ name: target.name, label: target.label, previousPid: target.pid, startedAt: Date.now() });
     } catch (err) {
-      const normalized = normalizeApiError(err);
-      showSnackbar(`Could not restart ${target.label}: ${normalized.message}`, 'error');
-    }
+      showSnackbar(() => uiText('Could not restart {{name}}: {{reason}}', { name: translateKnown(target.label), reason: getErrorMessage(err) }), 'error');
+    } finally { operation.current = false; }
   };
 
   const handleEngineControl = async (target: ServiceStatus) => {
-    if (target.name !== 'acestream' && target.name !== 'acestream-check') return;
+    if (operation.current || (target.name !== 'acestream' && target.name !== 'acestream-check')) return;
+    operation.current = true;
     const action = target.stopped_by_user ? 'start' : 'stop';
     try {
-      const result = await control.mutateAsync({ action, name: target.name });
-      showSnackbar(result.message, 'info');
+      await control.mutateAsync({ action, name: target.name });
+      showSnackbar(() => uiText(action === 'start' ? 'Start requested for {{name}}.' : 'Stop requested for {{name}}.', { name: translateKnown(target.label) }), 'info');
       setWatch({ name: target.name, label: target.label, previousPid: target.pid, action, startedAt: Date.now() });
     } catch (err) {
-      showSnackbar(`Could not ${action} ${target.label}: ${normalizeApiError(err).message}`, 'error');
-    }
+      showSnackbar(() => uiText(action === 'start' ? 'Could not start {{name}}: {{reason}}' : 'Could not stop {{name}}: {{reason}}', { name: translateKnown(target.label), reason: getErrorMessage(err) }), 'error');
+    } finally { operation.current = false; }
   };
 
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }} role="status">
-        <CircularProgress size={20} aria-label="Loading services" />
-        <Typography variant="body2">Checking sidecar services…</Typography>
+        <CircularProgress size={20} aria-label={tUi("Loading services")} />
+        <Typography variant="body2">{tUi("Checking sidecar services…")}</Typography>
       </Box>
     );
   }
@@ -155,11 +160,10 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
         severity="error"
         action={
           <Button color="inherit" size="small" onClick={() => refetch()}>
-            Retry
-          </Button>
+            {tUi("Retry")}</Button>
         }
       >
-        Could not load the services status: {normalizeApiError(error).message}
+        {tUi("Could not load the services status:")}{' '}{getErrorMessage(error)}
       </Alert>
     );
   }
@@ -168,9 +172,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
     <Box>
       {!supervised ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          This app is not running under the container entrypoint, so services are reported as external and cannot be
-          restarted from here.
-        </Alert>
+          {tUi("This app is not running under the container entrypoint, so services are reported as external and cannot be restarted from here.")}</Alert>
       ) : null}
       <Grid container spacing={2}>
         {services.map((service) => {
@@ -183,7 +185,7 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
               <Paper
                 variant="outlined"
                 role="group"
-                aria-label={`Service ${service.label}`}
+                aria-label={tUi("Service {{value0}}", { value0: translateKnown(service.label) })}
                 sx={{
                   p: 2,
                   height: '100%',
@@ -197,39 +199,46 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
                   <Box>
                     <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 600 }}>
-                      {service.label}
+                      {translateKnown(service.label)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {service.description}
+                      {translateKnown(service.description)}
                     </Typography>
                   </Box>
                   <Chip
                     size="small"
                     color={service.stopped_by_user ? 'default' : meta.color}
                     icon={meta.icon}
-                    label={restarting ? (watch.action === 'stop' ? 'Stopping…' : watch.action === 'start' ? 'Starting…' : 'Restarting…') : meta.label}
+                    label={restarting ? (watch.action === 'stop' ? tUi("Stopping…") : watch.action === 'start' ? tUi("Starting…") : tUi("Restarting…")) : translateKnown(meta.label)}
                     data-state={service.state}
                   />
                 </Stack>
                 <Typography variant="body2" sx={{ mt: 0.5 }}>
-                  {service.message}
+                  {service.stopped_by_user ? tUi('Stopped by you. Select Start to resume automatic recovery.')
+                    : service.state === 'running' ? tUi('The service is responding.')
+                    : service.state === 'unhealthy' ? tUi('The service is not responding correctly. Check its logs and configuration.')
+                    : service.state === 'external' ? tUi('This service runs outside this container.')
+                    : service.state === 'not-installed' ? tUi('Not included in this image flavor.')
+                    : service.state === 'disabled' ? tUi('This service is turned off. Review its configuration before enabling it.')
+                    : tUi('The service is enabled but is not running. Check its logs.')}
                 </Typography>
+                {service.message ? <Box component="details" sx={{ overflowWrap: 'anywhere' }}><Box component="summary" sx={{ cursor: 'pointer', typography: 'caption' }}>{tUi('Technical details (original service response)')}</Box><Typography variant="body2">{service.message}</Typography></Box> : null}
                 {service.stream_count_scope ? <Box>
                   <Typography variant="body2">
-                    {service.stream_count_scope === 'app' ? 'Open streams through this app' : 'Open streams through Acexy'}: {service.open_streams ?? 'Unavailable'}
+                    {service.stream_count_scope === 'app' ? tUi("Open streams through this app") : tUi("Open streams through Acexy")}: {service.open_streams ?? tUi('Unavailable')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {service.stream_count_scope === 'app'
-                      ? 'Web player and relay only; excludes direct players and Acexy. Includes streams starting or waiting to close.'
-                      : 'Reported by the proxy, including streams waiting to close. This is a stream count, not a viewer count.'}
+                      ? tUi("Web player and relay only; excludes direct players and Acexy. Includes streams starting or waiting to close.")
+                      : tUi("Reported by the proxy, including streams waiting to close. This is a stream count, not a viewer count.")}
                   </Typography>
                 </Box> : null}
                 <Stack spacing={0.25} sx={{ color: 'text.secondary', fontSize: theme.typography.caption.fontSize }}>
-                  {service.endpoint ? <span>Endpoint: {service.endpoint}</span> : null}
-                  {service.version ? <span>Version: {service.version}</span> : null}
+                  {service.endpoint ? <span>{tUi("Endpoint:")}{' '}{service.endpoint}</span> : null}
+                  {service.version ? <span>{tUi("Version:")}{' '}{service.version}</span> : null}
                   {service.distribution ? (
                     <span>
-                      Engine package:{' '}
+                      {tUi("Engine package:")}{' '}
                       {service.distribution_url ? (
                         <Link href={service.distribution_url} target="_blank" rel="noreferrer">
                           {service.distribution}
@@ -239,13 +248,12 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                       )}
                     </span>
                   ) : null}
-                  {uptime ? <span>Up for {uptime}</span> : null}
+                  {uptime ? <span>{tUi("Up for")}{' '}{uptime}</span> : null}
                 </Stack>
                 <Box sx={{ mt: 'auto', pt: 1, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                   {service.name === 'warp' && service.installed ? (
                     <Button size="small" variant="text" component={RouterLink} to="/warp">
-                      Manage WARP
-                    </Button>
+                      {tUi("Manage WARP")}</Button>
                   ) : null}
                   <Tooltip title={disabledReason ?? ''} disableHoverListener={!disabledReason}>
                     <span>
@@ -253,31 +261,30 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
                         size="small"
                         variant="outlined"
                         startIcon={<RestartAltIcon />}
-                        aria-label={`Restart ${service.label}`}
+                        aria-label={tUi("Restart {{value0}}", { value0: translateKnown(service.label) })}
                         disabled={Boolean(disabledReason) || restarting || restart.isPending || control.isPending}
                         onClick={() => setConfirming(service)}
                       >
-                        Restart
-                      </Button>
+                        {tUi("Restart")}</Button>
                     </span>
                   </Tooltip>
                   {(service.name === 'acestream' || service.name === 'acestream-check') && service.managed ? (
                     <Button
                       size="small"
                       variant="outlined"
-                      aria-label={`${service.stopped_by_user ? 'Start' : 'Stop'} ${service.label}`}
+                      aria-label={tUi("{{value0}} {{value1}}", { value0: service.stopped_by_user ? tUi('Start') : tUi('Stop'), value1: translateKnown(service.label) })}
                       disabled={restarting || restart.isPending || control.isPending}
                       onClick={() => handleEngineControl(service)}
                     >
-                      {service.stopped_by_user ? 'Start' : 'Stop'}
+                      {service.stopped_by_user ? tUi("Start") : tUi("Stop")}
                     </Button>
                   ) : null}
                   {(service.name === 'acestream' || service.name === 'acestream-check') && !service.managed ? (
-                    <Button component={RouterLink} to={service.name === 'acestream-check' ? '/settings?tab=automation' : '/settings?tab=playback'} size="small">Configure engine</Button>
+                    <Button component={RouterLink} to={service.name === 'acestream-check' ? '/settings?tab=automation' : '/settings?tab=playback'} size="small">{tUi("Configure engine")}</Button>
                   ) : null}
                   {disabledReason ? (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      {(service.name === 'acestream' || service.name === 'acestream-check') && !service.managed ? 'Configure an external engine in Settings. Start or stop it on its own host.' : disabledReason}
+                      {(service.name === 'acestream' || service.name === 'acestream-check') && !service.managed ? tUi("Configure an external engine in Settings. Start or stop it on its own host.") : disabledReason}
                     </Typography>
                   ) : null}
                 </Box>
@@ -288,23 +295,19 @@ const ServicesPanel: React.FC<ServicesPanelProps> = ({ pollIntervalMs = 30_000 }
       </Grid>
       {isFetching && !isLoading ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-          Refreshing…
-        </Typography>
+          {tUi("Refreshing…")}</Typography>
       ) : null}
 
       <Dialog open={Boolean(confirming)} onClose={() => setConfirming(null)} aria-labelledby="restart-service-title">
-        <DialogTitle id="restart-service-title">Restart {confirming?.label}?</DialogTitle>
+        <DialogTitle id="restart-service-title">{tUi("Restart")}{' '}{confirming ? translateKnown(confirming.label) : ''}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            The service stops for a few seconds and the container supervisor starts it again. Anything using it right
-            now, such as an open stream, is interrupted.
-          </DialogContentText>
+            {tUi("The service stops for a few seconds and the container supervisor starts it again. Anything using it right now, such as an open stream, is interrupted.")}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirming(null)}>Cancel</Button>
+          <Button onClick={() => setConfirming(null)}>{tUi("Cancel")}</Button>
           <Button variant="contained" color="warning" onClick={handleConfirmRestart}>
-            Restart service
-          </Button>
+            {tUi("Restart service")}</Button>
         </DialogActions>
       </Dialog>
 

@@ -18,7 +18,9 @@ from app.repositories.channel_repository import ChannelRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.services.epg_service import EPGService
 from app.services.stream_history import scores_for
-from app.services.stream_ranking import preference_key, sort_streams_curated
+from app.services.stream_ranking import (
+    FRESH_CHECK_HOURS, checked_since as _checked_since, preference_key, relay_order, sort_streams_curated,
+)
 from app.utils.m3u import m3u_attr
 
 # libhdhomerun's device-id checksum table, verbatim.
@@ -116,21 +118,6 @@ class Lineup:
     overflow: int = 0
 
 
-# A check older than this ranks a source after every fresher one when the
-# relay picks what to try first. The status check runs hourly by default.
-FRESH_CHECK_HOURS = 6
-
-
-def _checked_since(stream, since, until) -> bool:
-    checked = getattr(stream, "last_checked", None)
-    if checked is None:
-        return False
-    if checked.tzinfo is None:
-        checked = checked.replace(tzinfo=timezone.utc)
-    # A clock correction must not make an observation fresh indefinitely.
-    return since <= checked <= until
-
-
 class TunerService:
     def __init__(self, db: Session):
         self.db = db
@@ -221,25 +208,7 @@ class TunerService:
         """
         streams = [s for s in ChannelRepository(self.db).get_tuner_streams(tv_channel_id) if supported_tuner_stream(s)]
         now = datetime.now(timezone.utc)
-        fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
-        # Playback history (stream_history): within each group, sources that
-        # played before go first; a demoted source goes after every group.
-        history = scores_for(self.db, streams, now)
-        ranked = []
-        for stream in streams:
-            fresh = _checked_since(stream, fresh_since, now)
-            if stream.is_online:
-                bucket = 0 if fresh else 1
-            elif stream.is_online is False and fresh:
-                continue
-            else:
-                bucket = 2
-            past = history.get(stream.id.lower())
-            if past is not None and past.demoted:
-                bucket = 3
-            score = past.score if past is not None else 0.5
-            ranked.append((*preference_key(stream), bucket, -score, -(stream.bitrate_bps or 0), stream.id.lower()))
-        return list(dict.fromkeys(row[-1] for row in sorted(ranked)))
+        return relay_order(streams, scores_for(self.db, streams, now), now)
 
     # --- lineup -------------------------------------------------------------
     def build_lineup(self) -> Lineup:

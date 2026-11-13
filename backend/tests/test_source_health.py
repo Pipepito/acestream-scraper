@@ -83,3 +83,19 @@ def test_only_online_keeps_the_same_channels_in_the_m3u_and_the_tuner(db_session
     m3u = {name for name in ('Example Online', 'Example Unchecked HTTP', 'Example Unchecked ID', 'Example Dead HTTP')
            if name in body}
     assert lineup == m3u == {'Example Online', 'Example Unchecked HTTP'}
+
+
+def test_the_relay_order_is_a_pure_function_of_streams_history_and_now():
+    """No database: the same rows give the same order."""
+    from types import SimpleNamespace
+
+    from app.services.stream_ranking import relay_order
+
+    def row(key, online, hours_ago, order=None, bitrate=0):
+        return SimpleNamespace(id=key * 40, is_online=online, stream_order=order, bitrate_bps=bitrate,
+                               last_checked=None if hours_ago is None else NOW - timedelta(hours=hours_ago))
+    streams = [row('a', True, 30), row('b', True, 1), row('c', None, None), row('d', False, 1),
+               row('e', False, 30), row('f', True, 1, bitrate=9000), row('g', None, None, order=0)]
+    history = {'c' * 40: SimpleNamespace(score=0.9, demoted=False),
+               'f' * 40: SimpleNamespace(score=0.1, demoted=True)}
+    assert relay_order(streams, history, NOW) == [k * 40 for k in 'gbacef']

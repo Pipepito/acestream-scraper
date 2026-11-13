@@ -4,6 +4,7 @@ Service for managing background tasks using APScheduler in FastAPI.
 import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Optional
+from app.repositories.task_state_repository import TaskStateRepository
 from app.schemas.config import ScheduleAnchors
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -531,7 +532,5 @@ class TaskService:
     def get_task_states(self) -> Dict[str, Dict[str, Any]]:
         with self._state_lock:
             return {job_id: dict(state) for job_id, state in self._task_states.items()}
-
-from app.repositories.task_state_repository import TaskStateRepository
 
 task_service = TaskService(state_store=TaskStateRepository())

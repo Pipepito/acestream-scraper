@@ -6,12 +6,36 @@ from pathlib import Path, PurePosixPath
 import subprocess
 
 
-KEYS = ("APPLICATION", "WIKI", "PAGES", "DOCKERHUB", "METADATA")
-TEXT_ROOTS = {"README.md", "AGENTS.md", "CLAUDE.md", "LICENSE", ".github/PULL_REQUEST_TEMPLATE.md"}
+KEYS = ("APPLICATION", "WIKI", "PAGES", "DOCKERHUB", "METADATA", "IMAGES")
+TEXT_ROOTS = {"README.md", "AGENTS.md", "CLAUDE.md", "LICENSE", ".github/PULL_REQUEST_TEMPLATE.md",
+              "backend/AGENTS.md", "frontend/AGENTS.md", "e2e/AGENTS.md", "e2e/README.md"}
 DOC_SUFFIXES = {".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"}
 SITE_FILES = {"docs/index.html", "docs/.nojekyll", "docs/builder/app.js",
               "docs/builder/style.css", "docs/builder/runtime-options.json"}
 HUB_FILES = {"docs/dockerhub/README.md", "docs/dockerhub/short-description.txt"}
+
+
+# Application sources that an image only copies or bundles and that behave the
+# same on every platform. A change confined to them needs one native image
+# build. Every other application path (Dockerfile, docker/, runtime scripts,
+# dependency manifests, anything unrecognized) keeps the complete matrix.
+PORTABLE_ROOTS = ("backend/app/", "backend/migrations/", "backend/auth_migrations/",
+                  "backend/tests/", "backend/scripts/", "frontend/src/", "frontend/public/",
+                  "frontend/changelog/", "frontend/scripts/", "frontend/bundling/",
+                  "frontend/recipe-helper/", "e2e/", "scripts/")
+PORTABLE_FILES = {"backend/main.py", "backend/pytest.ini", "backend/run_tests.py",
+                  "backend/openapi.json", "frontend/index.html", "frontend/vite.config.mts",
+                  "frontend/vite.recipes.config.mts", "frontend/vite-env.d.ts",
+                  "frontend/tsconfig.json", "frontend/jest.config.js", "frontend/.eslintrc.cjs",
+                  "frontend/eslint.config.cjs"}
+# Packaging tests describe the images themselves.
+IMAGE_TEST_ROOT = "backend/tests/docker/"
+
+
+def is_portable_source(path):
+    if path.startswith(IMAGE_TEST_ROOT):
+        return False
+    return path in PORTABLE_FILES or path.startswith(PORTABLE_ROOTS)
 
 
 def is_repository_metadata(path):
@@ -35,6 +59,7 @@ def classify_paths(paths):
         result["METADATA"] |= is_metadata
         if not is_doc and not is_metadata:
             result["APPLICATION"] = True
+            result["IMAGES"] |= not is_portable_source(path)
         result["WIKI"] |= path.startswith("wiki/") or path == "scripts/ci/publish_wiki.sh"
         result["PAGES"] |= (path in SITE_FILES or path.startswith(("docs/builder/", "docs/recipes/"))
                             or path in {"scripts/ci/publish_pages.sh", "scripts/ci/prepare_pages.sh"}
@@ -59,6 +84,7 @@ def classify(repo, base, head="HEAD", pull_request=False):
             raise ValueError("no successful baseline")
         base = git(repo, "rev-parse", "--verify", f"{base}^{{commit}}").decode().strip()
         head = git(repo, "rev-parse", "--verify", f"{head}^{{commit}}").decode().strip()
+        target = base
         if pull_request:
             base = git(repo, "merge-base", base, head).decode().strip()
         elif subprocess.call(["git", "-C", str(repo), "merge-base", "--is-ancestor", base, head],
@@ -74,6 +100,14 @@ def classify(repo, base, head="HEAD", pull_request=False):
                     meta, path = entry.split(b"\t", 1)
                     if path.decode() in paths and not meta.startswith(b"100644 blob "):
                         result["APPLICATION"] = True
+                        result["IMAGES"] = True
+        if pull_request and result["APPLICATION"] and not result["IMAGES"]:
+            # Images are built from the head's whole tree, not from its diff. A
+            # branch that is behind the target, or rooted at a commit that was
+            # never the target's reviewed state, can carry different build
+            # inputs without changing them itself. Compare with the tip too.
+            tip = git(repo, "diff", "--no-ext-diff", "--no-renames", "--name-only", "-z", target, head).decode().split("\0")
+            result["IMAGES"] = classify_paths(set(filter(None, tip)))["IMAGES"]
         return result
     except (subprocess.CalledProcessError, ValueError, UnicodeError, OSError):
         return dict.fromkeys(KEYS, True)

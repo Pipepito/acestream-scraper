@@ -3,7 +3,6 @@ Integration tests for Search endpoints
 """
 
 import pytest
-import uuid
 from fastapi import status
 
 
@@ -18,7 +17,7 @@ class TestSearchEndpoints:
         assert "results" in data
         assert "pagination" in data
         assert "success" in data
-        assert data["success"] == True
+        assert data["success"] is True
         assert data["pagination"]["total_results"] == 2  # Based on mock data
         assert len(data["results"]) == 2
 

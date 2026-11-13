@@ -2,7 +2,6 @@
 Integration tests for Health endpoints
 """
 
-import pytest
 from fastapi import status
 from app.config.version import get_app_version
 
@@ -94,12 +93,6 @@ class TestStatsEndpoints:
         # Should contain various statistics
         assert isinstance(data, dict)
 
-        # May contain these statistics
-        possible_stats = [
-            "channels", "tv_channels", "epg_sources", "epg_channels",
-            "epg_programs", "scraped_urls", "uptime", "requests"
-        ]
-
         # At least some stats should be present
         assert len(data) > 0
 
@@ -135,8 +128,6 @@ class TestStatsEndpoints:
 
         # Check for different categories of stats
         database_stats = ["channels", "tv_channels", "epg_sources", "epg_channels", "epg_programs", "scraped_urls"]
-        system_stats = ["uptime", "memory", "cpu"]
-        application_stats = ["requests", "errors", "version"]
 
         # At least some database stats should be present
         database_stat_count = sum(1 for stat in database_stats if stat in data)

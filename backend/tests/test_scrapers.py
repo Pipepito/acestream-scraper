@@ -4,7 +4,6 @@ Integration tests for Scraper endpoints
 
 import asyncio
 import pytest
-import uuid
 from fastapi import status
 from app.models.models import (
     AcestreamChannel,

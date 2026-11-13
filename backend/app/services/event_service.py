@@ -253,7 +253,7 @@ class EventService:
                 raise ValueError('Preview expired; preview the schedule again')
             _, proposed, observations, revisions, context = preview
             selected = set(request.selected_ids)
-            if (not selected and not (context and context.get('adapter', {}).get('provider_options'))) or not selected <= proposed.keys():
+            if (not selected and not (context and 'adapter' in context)) or not selected <= proposed.keys():
                 raise ValueError('Select events from this preview')
             try:
                 existing_obs = {r.id: r for r in self.repo.observations()}
@@ -296,7 +296,7 @@ class EventService:
                     CatalogueRepository(self.repo.db).reserve_event_revision(context['id'], context['revision'], context['source_id'])
                 elif context:
                     from app.services.event_source_service import save_reviewed_source
-                    save_reviewed_source(self.repo.db, context, selected, observations, request.refresh_source)
+                    save_reviewed_source(self.repo.db, context, selected, observations, request.refresh_source, request.import_new)
                 self.repo.commit()
             except Exception:
                 self.repo.rollback()

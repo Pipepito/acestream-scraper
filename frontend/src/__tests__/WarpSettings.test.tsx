@@ -73,3 +73,15 @@ it('saves only changed startup settings without completing setup', async () => {
   await waitFor(() => expect(setupService.save).toHaveBeenCalledWith({ runtime: { WARP_ENABLE_NAT: true }, expected_revision: setup.revision, setup_complete: false }, expect.anything()));
   expect(await screen.findByText('Startup settings saved. Restart the container to apply changes.')).toBeInTheDocument();
 });
+
+it('offers the kill switch as a startup setting that is on by default', async () => {
+  const user = userEvent.setup();
+  (setupService.get as jest.Mock).mockResolvedValue({ ...setup, runtime: { ...setup.runtime, WARP_ENABLE_NAT: true, WARP_KILL_SWITCH: true } });
+  (setupService.save as jest.Mock).mockResolvedValue({ ...setup, restart_required: true });
+  renderSection(<WarpStartupSection />);
+  const option = await screen.findByRole('checkbox', { name: 'Block direct traffic while WARP is down' });
+  expect(option).toBeChecked();
+  await user.click(option);
+  await user.click(screen.getByRole('button', { name: 'Save startup settings' }));
+  await waitFor(() => expect(setupService.save).toHaveBeenCalledWith({ runtime: { WARP_KILL_SWITCH: false }, expected_revision: setup.revision, setup_complete: false }, expect.anything()));
+});

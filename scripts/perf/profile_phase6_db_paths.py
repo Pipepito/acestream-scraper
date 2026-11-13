@@ -4,31 +4,24 @@ Phase 6 profiling harness for high-churn database paths.
 """
 import argparse
 import json
-import os
 import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict
 
-ROOT = Path(__file__).resolve().parents[2]
-try:
-    from sqlalchemy import create_engine, event
-    from sqlalchemy.orm import sessionmaker
-    from sqlalchemy.pool import StaticPool
-except ModuleNotFoundError as exc:
-    fallback_python = ROOT / "v2" / "backend" / "venv" / "bin" / "python"
-    if exc.name == "sqlalchemy" and fallback_python.exists() and Path(sys.executable) != fallback_python:
-        os.execv(str(fallback_python), [str(fallback_python), __file__, *sys.argv[1:]])
-    raise
+# Run with backend/venv/bin/python: SQLAlchemy and the application come from there.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
 
-sys.path.insert(0, str(ROOT / "backend"))
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.config.database import Base  # noqa: E402
-from app.models.models import AcestreamChannel, EPGSource, ScrapedURL  # noqa: E402
-from app.repositories.channel_repository import ChannelRepository  # noqa: E402
-from app.repositories.url_repository import URLRepository  # noqa: E402
-from app.services.epg_service import EPGService  # noqa: E402
+from app.config.database import Base
+from app.models.models import AcestreamChannel, EPGSource, ScrapedURL
+from app.repositories.channel_repository import ChannelRepository
+from app.repositories.url_repository import URLRepository
+from app.services.epg_service import EPGService
 
 
 def build_sample_epg_xml(channel_count: int, programs_per_channel: int) -> bytes:

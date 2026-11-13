@@ -1,16 +1,22 @@
 import apiClient from './apiClient';
 import type { components } from '../types/api-generated';
+import { startupClockSample, type ClockSample } from '../utils/startupClock';
 
-export type StartupStatus = components['schemas']['StartupStatus'];
+export type StartupStatus = components['schemas']['StartupStatus'] & { clockSample?: ClockSample };
 export type RecoveryAction = components['schemas']['StartupRecoveryRequest']['action'];
 
 export const startupService = {
   async status(): Promise<StartupStatus> {
+    const startedAt = Date.now();
+    const monotonicStart = performance.now();
     const data = (await apiClient.get<StartupStatus>('/v1/startup', { timeout: 10000 })).data;
+    const receivedAt = Date.now();
+    const elapsed = performance.now() - monotonicStart;
     if (!data || !['starting', 'ready', 'failed'].includes(data.status) || !Array.isArray(data.events)) {
       throw new Error('Invalid startup response');
     }
-    return data;
+    const clockSample = startupClockSample(data.server_time, startedAt, receivedAt, elapsed);
+    return clockSample ? { ...data, clockSample } : data;
   },
   async recover(action: RecoveryAction, recoveryToken: string): Promise<StartupStatus> {
     return (await apiClient.post<StartupStatus>('/v1/startup/recover', {

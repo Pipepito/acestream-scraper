@@ -21,6 +21,8 @@ export interface EPGSource {
  */
 export interface EPGChannel {
   id: number;
+  identity_id?: number | null;
+  sources?: { channel_id: number; source_id: number; name: string; enabled: boolean }[];
   epg_source_id: number;
   channel_xml_id: string;
   name: string;

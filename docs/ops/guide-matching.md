@@ -64,7 +64,10 @@ Tuner M3U and its XMLTV use the same rule; HDHomeRun guide numbers are unchanged
 
 Unique upstream XML IDs are preserved. IDs occurring in multiple sources, IDs
 containing quotes/newlines, and the reserved `acestream-scraper:` namespace are
-encoded as `acestream-scraper:<source-id>:<percent-encoded-xml-id>`. This resolution
+encoded as `acestream-scraper:<source-id>:<percent-encoded-xml-id>`, preserving
+literal spaces in both playlists and XMLTV. Percent signs remain encoded so an
+upstream literal `%20` cannot collide with a space. Players with previously cached
+encoded IDs should refresh both the playlist and guide together. This resolution
 uses the complete guide inventory, so playlist/search/favorite filtering cannot
 change IDs. An unassigned stream with a colliding unqualified ID cannot choose a
 provider; review it before expecting guide data.

@@ -2,7 +2,6 @@
 Integration tests for Playlist endpoints
 """
 
-import pytest
 from fastapi import status
 
 

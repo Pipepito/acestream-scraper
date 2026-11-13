@@ -41,11 +41,11 @@ def repo(tmp_path):
     (".github/ISSUE_TEMPLATE/config.yaml", {"METADATA"}),
     (".github/rulesets/reviews.json", {"METADATA"}),
     (".github/workflows/assign-pull-requests.yml", {"METADATA"}),
-    (".github/ISSUE_TEMPLATE/run.py", {"APPLICATION"}),
-    (".github/ISSUE_TEMPLATE/nested/bug.yml", {"APPLICATION"}),
-    (".github/rulesets/run.js", {"APPLICATION"}),
-    (".github/workflows/release.yml", {"APPLICATION"}),
-    (".github/workflows/unknown.yml", {"APPLICATION"}),
+    (".github/ISSUE_TEMPLATE/run.py", {"APPLICATION", "IMAGES"}),
+    (".github/ISSUE_TEMPLATE/nested/bug.yml", {"APPLICATION", "IMAGES"}),
+    (".github/rulesets/run.js", {"APPLICATION", "IMAGES"}),
+    (".github/workflows/release.yml", {"APPLICATION", "IMAGES"}),
+    (".github/workflows/unknown.yml", {"APPLICATION", "IMAGES"}),
     ("scripts/ci/metadata-tools/validate.cjs", set(selection.KEYS)),
     ("scripts/ci/metadata-tools/package-lock.json", set(selection.KEYS)),
     ("scripts/ci/validate_repository_metadata.sh", set(selection.KEYS)),
@@ -55,21 +55,37 @@ def repo(tmp_path):
     ("docs/builder/app.js", {"PAGES"}),
     ("docs/builder/runtime-options.json", {"PAGES"}),
     ("docs/builder/example.png", {"PAGES"}),
-    ("docs/builder/new-script.js", {"APPLICATION", "PAGES"}),
+    ("docs/builder/new-script.js", {"APPLICATION", "PAGES", "IMAGES"}),
     ("docs/.nojekyll", {"PAGES"}),
-    ("docs/recipes/assets/preview.worker.js", {"APPLICATION", "PAGES"}),
+    ("docs/recipes/assets/preview.worker.js", {"APPLICATION", "PAGES", "IMAGES"}),
     ("scripts/ci/prepare_pages.sh", {"APPLICATION", "PAGES"}),
     ("docs/dockerhub/README.md", {"DOCKERHUB"}),
     ("docs/dockerhub/short-description.txt", {"DOCKERHUB"}),
+    # Portable application sources: images only copy or bundle them, so one
+    # native image build is representative (IMAGES stays false).
     ("backend/app/main.py", {"APPLICATION"}),
-    ("backend/requirements.txt", {"APPLICATION"}),
-    ("frontend/package-lock.json", {"APPLICATION", "PAGES"}),
+    ("backend/migrations/versions/20261103_1200_example.py", {"APPLICATION"}),
+    ("backend/tests/test_channels.py", {"APPLICATION"}),
+    ("frontend/src/App.tsx", {"APPLICATION"}),
+    ("frontend/vite.config.mts", {"APPLICATION"}),
+    ("frontend/vite.recipes.config.mts", {"APPLICATION", "PAGES"}),
+    ("e2e/tests/03-scraper.spec.ts", {"APPLICATION"}),
     ("frontend/src/recipes/catalogue.json", {"APPLICATION", "PAGES"}),
-    ("Dockerfile", {"APPLICATION"}),
-    (".dockerignore", {"APPLICATION"}),
-    ("version.txt", {"APPLICATION"}),
-    ("unexpected.txt", {"APPLICATION"}),
-    ("docs/new-executable.py", {"APPLICATION"}),
+    # Build, runtime, dependency and unrecognized inputs keep every platform.
+    ("backend/requirements.txt", {"APPLICATION", "IMAGES"}),
+    ("frontend/package-lock.json", {"APPLICATION", "PAGES", "IMAGES"}),
+    ("Dockerfile", {"APPLICATION", "IMAGES"}),
+    (".dockerignore", {"APPLICATION", "IMAGES"}),
+    ("docker/scripts/install-ipfs.sh", {"APPLICATION", "IMAGES"}),
+    ("entrypoint.sh", {"APPLICATION", "IMAGES"}),
+    ("backend/capture_logs.py", {"APPLICATION", "IMAGES"}),
+    ("backend/tests/docker/test_install_acestream.py", {"APPLICATION", "IMAGES"}),
+    ("version.txt", {"APPLICATION", "IMAGES"}),
+    ("unexpected.txt", {"APPLICATION", "IMAGES"}),
+    ("docs/new-executable.py", {"APPLICATION", "IMAGES"}),
+    # Nested agent and e2e guides are documentation.
+    ("backend/AGENTS.md", set()),
+    ("e2e/README.md", set()),
     ("scripts/ci/publish_pages.sh", {"APPLICATION", "PAGES"}),
     ("jenkins/develop.Jenkinsfile", set(selection.KEYS)),
     ("scripts/ci/classify_changes.py", set(selection.KEYS)),
@@ -99,6 +115,24 @@ def test_pr_compares_entire_branch_from_merge_base(repo):
     assert all(selection.classify(repo, target, head).values())  # rewritten develop history
 
 
+def test_pr_image_scope_also_compares_build_inputs_with_the_target_tip(repo):
+    # Images are built from the head's whole tree. A portable change keeps the
+    # narrow scope only while its build inputs match the current target.
+    base = git(repo, "rev-parse", "HEAD")
+    git(repo, "checkout", "-qb", "feature")
+    head = commit(repo, "backend/app/main.py")
+    assert not selection.classify(repo, base, head, pull_request=True)["IMAGES"]
+    git(repo, "checkout", "--detach", base)
+    target = commit(repo, "Dockerfile")
+    result = selection.classify(repo, target, head, pull_request=True)
+    assert result["APPLICATION"] and result["IMAGES"]
+    docs_target = commit(repo, "docs/new-guide.md")
+    git(repo, "checkout", "-q", "feature")
+    git(repo, "merge", "-q", "--no-edit", docs_target)
+    updated = git(repo, "rev-parse", "HEAD")
+    assert not selection.classify(repo, docs_target, updated, pull_request=True)["IMAGES"]
+
+
 def test_target_changes_are_not_counted_as_pr_changes(repo):
     base = git(repo, "rev-parse", "HEAD")
     git(repo, "checkout", "-qb", "feature")
@@ -125,7 +159,8 @@ def test_deleted_wiki_page_still_needs_publication(repo):
     base = commit(repo, "wiki/Removed.md")
     git(repo, "rm", "wiki/Removed.md")
     git(repo, "commit", "-qm", "delete")
-    assert selection.classify(repo, base) == dict(APPLICATION=False, WIKI=True, PAGES=False, DOCKERHUB=False, METADATA=False)
+    assert selection.classify(repo, base) == dict(
+        APPLICATION=False, WIKI=True, PAGES=False, DOCKERHUB=False, METADATA=False, IMAGES=False)
 
 
 @pytest.mark.parametrize("kind", ["symlink", "executable"])
@@ -141,6 +176,7 @@ def test_non_regular_docs_never_run_on_host(repo, kind):
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "mode change")
     assert selection.classify(repo, base)["APPLICATION"]
+    assert selection.classify(repo, base)["IMAGES"]
 
 
 def test_unchanged_successful_revision_has_no_publication(repo):
@@ -153,9 +189,11 @@ def test_contribution_setup_does_not_build_application_images(repo):
                  ".github/workflows/assign-pull-requests.yml", "docs/ops/repository-governance.md"):
         commit(repo, path)
     assert selection.classify(repo, base) == dict(
-        APPLICATION=False, WIKI=False, PAGES=False, DOCKERHUB=False, METADATA=True)
+        APPLICATION=False, WIKI=False, PAGES=False, DOCKERHUB=False, METADATA=True, IMAGES=False)
+    commit(repo, "backend/app/main.py")
+    assert selection.classify(repo, base)["APPLICATION"] and not selection.classify(repo, base)["IMAGES"]
     commit(repo, "Dockerfile")
-    assert selection.classify(repo, base)["APPLICATION"]
+    assert selection.classify(repo, base)["APPLICATION"] and selection.classify(repo, base)["IMAGES"]
 
 
 @pytest.mark.parametrize("kind", ["symlink", "executable"])

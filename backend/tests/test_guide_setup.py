@@ -17,10 +17,12 @@ from app.services.tuner_service import TunerService
 @pytest.fixture
 def inventory(db_session):
     source = EPGSource(name='Guide', url='https://example.com/guide', enabled=True)
-    db_session.add(source); db_session.flush()
+    db_session.add(source)
+    db_session.flush()
     epg = EPGChannel(name='ES: News One', channel_xml_id='news.one', epg_source_id=source.id)
     stream = AcestreamChannel(id='a'*40, name='ES: News One HD', is_active=True, is_online=True)
-    db_session.add_all([epg, stream]); db_session.flush()
+    db_session.add_all([epg, stream])
+    db_session.flush()
     now = datetime.now(timezone.utc)
     db_session.add(EPGProgram(epg_channel_id=epg.id, title='Morning news', start_time=now, end_time=now+timedelta(hours=1)))
     db_session.commit()
@@ -78,14 +80,24 @@ def test_authenticated_header_carriers(client, monkeypatch, header):
     assert client.get(url).status_code == 200
 
 
-def test_cross_source_ids_are_consistent_in_filtered_exports(client, db_session, inventory):
+@pytest.mark.parametrize(('xml_id', 'exported_suffix'), [
+    ('news.one', 'news.one'),
+    ('News One HD', 'News One HD'),
+    ('News%20One HD', 'News%2520One HD'),
+    ('News "One"\nHD', 'News %22One%22%0AHD'),
+])
+def test_cross_source_ids_are_consistent_in_filtered_exports(client, db_session, inventory, xml_id, exported_suffix):
     source, epg, _ = inventory
+    epg.channel_xml_id = xml_id
+    db_session.commit()
     apply(db_session, analyze(db_session)[0])
     second = EPGSource(name='Other guide', url='https://example.com/other', enabled=True)
-    db_session.add(second); db_session.flush()
+    db_session.add(second)
+    db_session.flush()
     epg2 = EPGChannel(name='Other station', channel_xml_id=epg.channel_xml_id, epg_source_id=second.id)
     tv2 = TVChannel(name='Other station', epg_id=epg.channel_xml_id, epg_source_id=second.id, is_active=True)
-    db_session.add_all([epg2, tv2]); db_session.flush()
+    db_session.add_all([epg2, tv2])
+    db_session.flush()
     db_session.add(AcestreamChannel(id='b'*40, name='Other station', tv_channel_id=tv2.id, is_online=True))
     now = datetime.now(timezone.utc)
     db_session.add(EPGProgram(epg_channel_id=epg2.id, title='Other show', start_time=now, end_time=now+timedelta(hours=1)))
@@ -93,6 +105,10 @@ def test_cross_source_ids_are_consistent_in_filtered_exports(client, db_session,
     xml = ET.fromstring(client.get('/api/v1/epg/xml').text)
     ids = [c.attrib['id'] for c in xml.findall('channel')]
     assert len(set(ids)) == 2
+    assert set(ids) == {
+        f'acestream-scraper:{source.id}:{exported_suffix}',
+        f'acestream-scraper:{second.id}:{exported_suffix}',
+    }
     playlist = client.get('/api/v1/playlists/m3u').text
     assert set(re.findall('tvg-id="([^"]+)"', playlist)) == set(ids)
     filtered = client.get('/api/v1/playlists/tv-channels/m3u', params={'search': 'Other station'}).text
@@ -129,19 +145,27 @@ def test_automation_opt_in_repeat_and_preserve_channel(db_session, inventory):
 @pytest.mark.parametrize('change', ['country', 'missing_country', 'fuzzy', 'protected', 'inactive', 'conflicting_id', 'assigned', 'disabled_source', 'existing_manual'])
 def test_automation_preserves_uncertain_or_manual_inventory(db_session, inventory, change):
     source, epg, stream = inventory
-    if change == 'country': stream.name = 'UK: News One'
-    if change == 'missing_country': stream.name = 'News One'
-    if change == 'fuzzy': stream.name = 'ES: News Ones'
-    if change == 'protected': stream.epg_update_protected = True
-    if change == 'inactive': stream.is_active = False
+    if change == 'country':
+        stream.name = 'UK: News One'
+    if change == 'missing_country':
+        stream.name = 'News One'
+    if change == 'fuzzy':
+        stream.name = 'ES: News Ones'
+    if change == 'protected':
+        stream.epg_update_protected = True
+    if change == 'inactive':
+        stream.is_active = False
     if change == 'conflicting_id':
         stream.tvg_id = 'different.id'
         db_session.add(EPGChannel(name='Different station', channel_xml_id='different.id', epg_source_id=source.id))
-    if change == 'disabled_source': source.enabled = False
+    if change == 'disabled_source':
+        source.enabled = False
     if change in ('assigned', 'existing_manual'):
         tv = TVChannel(name='ES: News One' if change == 'existing_manual' else 'Manual', epg_id='manual.id')
-        db_session.add(tv); db_session.flush()
-        if change == 'assigned': stream.tv_channel_id = tv.id
+        db_session.add(tv)
+        db_session.flush()
+        if change == 'assigned':
+            stream.tv_channel_id = tv.id
     db_session.commit()
     before = db_session.query(TVChannel).count()
     automation = EPGMatchingAutomation(db_session)
@@ -154,11 +178,13 @@ def test_automation_preserves_uncertain_or_manual_inventory(db_session, inventor
 def test_ambiguous_sources_require_explicit_source_review(db_session, inventory):
     _, epg, stream = inventory
     other = EPGSource(name='Other', url='https://example.com/2', enabled=True)
-    db_session.add(other); db_session.flush()
+    db_session.add(other)
+    db_session.flush()
     db_session.add(EPGChannel(name=epg.name, channel_xml_id=epg.channel_xml_id, epg_source_id=other.id))
     db_session.commit()
     assert all(row['ambiguous_count'] == 1 and not row['can_apply'] for row in analyze(db_session))
-    automation = EPGMatchingAutomation(db_session); automation.save(EPGMatchingConfig(enabled=True))
+    automation = EPGMatchingAutomation(db_session)
+    automation.save(EPGMatchingConfig(enabled=True))
     assert automation.run().created == 0
     row = EPGMatchService(db_session).analyze_matches('strict', source_id=other.id)['rows'][0]
     apply(db_session, row, source_id=other.id)
@@ -178,7 +204,8 @@ def test_stale_preview_rejects_new_candidates_without_writes(client, db_session,
 
 
 def test_automation_budget_failure_preserves_inventory(db_session, inventory, monkeypatch):
-    automation = EPGMatchingAutomation(db_session); automation.save(EPGMatchingConfig(enabled=True))
+    automation = EPGMatchingAutomation(db_session)
+    automation.save(EPGMatchingConfig(enabled=True))
     monkeypatch.setattr('app.services.epg_match_service.MAX_ANALYSIS_COMPARISONS', 0)
     assert automation.run().status == 'error'
     assert db_session.query(AcestreamChannel).count() == 1
@@ -186,7 +213,8 @@ def test_automation_budget_failure_preserves_inventory(db_session, inventory, mo
 
 
 def test_refresh_runs_optional_matching_after_success(db_session, inventory, monkeypatch):
-    automation = EPGMatchingAutomation(db_session); automation.save(EPGMatchingConfig(enabled=True))
+    automation = EPGMatchingAutomation(db_session)
+    automation.save(EPGMatchingConfig(enabled=True))
     service = EPGService(db_session)
     monkeypatch.setattr(service, '_fetch_epg_from_source', lambda _: {'success': True, 'channels_found': 1, 'programs_found': 1})
     assert service.refresh_source(inventory[0].id)['success']
@@ -203,13 +231,15 @@ async def test_scrape_then_review_fresh_catalogue(client, db_session, monkeypatc
     assert status == 'OK' and len(channels) == 1
     assert db_session.query(TVChannel).count() == 0
     source = EPGSource(name='Guide', url='https://example.com/guide', enabled=True)
-    db_session.add(source); db_session.commit()
+    db_session.add(source)
+    db_session.commit()
     now = datetime.now(timezone.utc)
     start = now.strftime('%Y%m%d%H%M%S +0000')
     end = (now+timedelta(hours=1)).strftime('%Y%m%d%H%M%S +0000')
     EPGService(db_session)._process_epg_xml(source.id, f'<tv><channel id="news"><display-name>ES: News One</display-name></channel><programme channel="news" start="{start}" stop="{end}"><title>News</title></programme></tv>'.encode())
     db_session.commit()
-    row = analyze(db_session)[0]; apply(db_session, row)
+    row = analyze(db_session)[0]
+    apply(db_session, row)
     response = client.get('/api/v1/playlists/all-streams/m3u')
     guide = client.get(re.search('url-tvg="([^"]+)"', response.text)[1])
     xml = ET.fromstring(guide.text)
@@ -279,7 +309,8 @@ def test_unresolved_imported_id_falls_back_to_name(client, db_session, inventory
 def test_resolvable_id_in_another_source_blocks_name_fallback(db_session, inventory, enabled):
     source, epg, stream = inventory
     other = EPGSource(name='Other guide', url='https://example.com/other', enabled=enabled)
-    db_session.add(other); db_session.flush()
+    db_session.add(other)
+    db_session.flush()
     db_session.add(EPGChannel(name='Other station', channel_xml_id='other.station', epg_source_id=other.id))
     stream.tvg_id = 'other.station'
     db_session.commit()
@@ -306,7 +337,8 @@ def test_unknown_id_preserves_ambiguity_and_source_review(db_session, inventory)
     source, epg, stream = inventory
     stream.tvg_id = 'publisher.id'
     other = EPGSource(name='Other guide', url='https://example.com/other', enabled=True)
-    db_session.add(other); db_session.flush()
+    db_session.add(other)
+    db_session.flush()
     db_session.add(EPGChannel(name=epg.name, channel_xml_id='other.id', epg_source_id=other.id))
     db_session.commit()
     preview = EPGMatchService(db_session).analyze_matches('loose')
@@ -361,12 +393,16 @@ def test_publisher_suffix_is_not_part_of_reviewed_station_name(db_session, inven
 def test_unknown_id_does_not_bypass_existing_protections(db_session, inventory, change):
     _, _, stream = inventory
     stream.tvg_id = 'publisher.id'
-    if change == 'country': stream.name = 'UK: News One'
-    if change == 'protected': stream.epg_update_protected = True
-    if change == 'inactive': stream.is_active = False
+    if change == 'country':
+        stream.name = 'UK: News One'
+    if change == 'protected':
+        stream.epg_update_protected = True
+    if change == 'inactive':
+        stream.is_active = False
     if change == 'assigned':
         tv = TVChannel(name='Manual station')
-        db_session.add(tv); db_session.flush()
+        db_session.add(tv)
+        db_session.flush()
         stream.tv_channel_id = tv.id
     db_session.commit()
     assert EPGMatchService(db_session).analyze_matches('loose')['summary']['matched_acestream_channels'] == 0

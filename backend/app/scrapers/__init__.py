@@ -4,7 +4,7 @@ Scraper factory module
 from typing import Optional
 
 from app.config.settings import settings
-from app.models.url_types import create_url_object, IpfsURL, ZeronetURL, RegularURL, BaseURL
+from app.models.url_types import create_url_object, IpfsURL, ZeronetURL, RegularURL
 from app.scrapers.base import BaseScraper
 from app.scrapers.http import HTTPScraper
 from app.scrapers.ipfs import IpfsScraper

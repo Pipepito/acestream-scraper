@@ -2,9 +2,10 @@
 SQLAlchemy models for the application
 """
 from datetime import datetime, timezone
+from importlib import import_module
 from uuid import uuid4
 
-from sqlalchemy import text, JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
+from sqlalchemy import text, JSON, Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator
@@ -208,6 +209,15 @@ class TVChannel(Base):
     epg_source = relationship("EPGSource", back_populates="tv_channels")
 
 
+class EPGChannelIdentity(Base):
+    """One logical channel, with source-qualified EPGChannel memberships."""
+    __tablename__ = 'epg_channel_identities'
+    __table_args__ = (UniqueConstraint('channel_xml_id', 'normalized_name', name='uq_epg_channel_identity'),)
+    id = Column(Integer, primary_key=True)
+    channel_xml_id = Column(String(255), nullable=False)
+    normalized_name = Column(String(255), nullable=False)
+
+
 class EPGChannel(Base):
     """Model for EPG channels"""
     __tablename__ = "epg_channels"
@@ -216,6 +226,7 @@ class EPGChannel(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    identity_id = Column(Integer, ForeignKey('epg_channel_identities.id'), nullable=True, index=True)
     epg_source_id = Column(Integer, ForeignKey("epg_sources.id"), nullable=False)
     channel_xml_id = Column(String(255), nullable=False, index=True)
     name = Column(String(255), nullable=False)
@@ -488,8 +499,6 @@ class TelegramObservation(Base):
     observed_at = Column(UtcDateTime(), nullable=False)
 
 
-from sqlalchemy import CheckConstraint
-
 class ImportPolicyState(Base):
     __tablename__ = 'import_policy_state'
     __table_args__ = (CheckConstraint('id = 1', name='ck_import_policy_singleton'),)
@@ -545,5 +554,6 @@ class SavedSearchChannel(Base):
     last_discovered_at = Column(UtcDateTime(), nullable=False, default=_utcnow)
 
 # Register operational models for both Alembic and metadata-created test databases.
-from app.models import recordings as _recording_models  # noqa: E402,F401
-from app.models import stream_attempts as _stream_attempt_models  # noqa: E402,F401
+# They import this module's Base and columns, so they load after everything above.
+import_module('app.models.recordings')
+import_module('app.models.stream_attempts')

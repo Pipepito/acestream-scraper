@@ -24,7 +24,9 @@ Do not add real credentials to fixtures; use clearly synthetic test data.
 The full suite writes backend Cobertura/JUnit and frontend Cobertura/Jest JSON
 under `.quality-reports/`. Generated TypeScript API declarations, declarations,
 test helpers/tests and build output are excluded from coverage; runtime code is
-not excluded to improve the percentage. Jenkins additionally normalizes Jest to
+not excluded to improve the percentage. Alembic migrations (`backend/migrations/`)
+are excluded too: the migration tests run them through Alembic in a subprocess,
+which coverage does not measure, so their lines always counted as never executed. Jenkins additionally normalizes Jest to
 JUnit and compares executable changed lines against the authenticated target's
 merge base. No changed executable lines means N/A, not 100%.
 
@@ -41,6 +43,6 @@ PR conversation summary per execution, updated with the final result. It include
 the exact revisions, counts and up to 20 fixable high/critical dependency findings,
 with new blockers first. Private infrastructure links, source snippets, secret
 locations and discovered secret values are omitted. Source-scan success does not
-replace application/image checks or owner approval. Report false positives
+replace application/image checks or maintainer authorization. Report false positives
 to the maintainer; exceptions require a fingerprint, reason, reviewer and expiry
 in the infrastructure repository. PR-owned suppressions do not weaken CI policy.

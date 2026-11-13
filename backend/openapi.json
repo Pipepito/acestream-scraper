@@ -928,6 +928,21 @@
             ],
             "title": "Peers"
           },
+          "source_state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "probing",
+                  "playing"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source State"
+          },
           "started_at": {
             "anyOf": [
               {
@@ -2824,7 +2839,7 @@
                 "type": "null"
               }
             ],
-            "description": "Setting value; channel_status_interval uses whole minutes (1\u201310080, default 60)",
+            "description": "Setting value; channel_status_interval uses whole minutes (1\u201310080, default 60); acestream_check_timeout whole seconds (5\u2013120, default 10)",
             "title": "Value"
           }
         },
@@ -3129,6 +3144,17 @@
             "title": "Id",
             "type": "integer"
           },
+          "identity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Id"
+          },
           "language": {
             "anyOf": [
               {
@@ -3143,6 +3169,13 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/EPGChannelSource"
+            },
+            "title": "Sources",
+            "type": "array"
           },
           "updated_at": {
             "format": "date-time",
@@ -3159,6 +3192,34 @@
           "updated_at"
         ],
         "title": "EPGChannelResponse",
+        "type": "object"
+      },
+      "EPGChannelSource": {
+        "properties": {
+          "channel_id": {
+            "title": "Channel Id",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id",
+          "source_id",
+          "name",
+          "enabled"
+        ],
+        "title": "EPGChannelSource",
         "type": "object"
       },
       "EPGMatchAnalysisRequest": {
@@ -3832,6 +3893,11 @@
       "EventApply": {
         "additionalProperties": false,
         "properties": {
+          "import_new": {
+            "default": false,
+            "title": "Import New",
+            "type": "boolean"
+          },
           "refresh_source": {
             "default": false,
             "title": "Refresh Source",
@@ -4684,6 +4750,39 @@
         "title": "EventProviderChoice",
         "type": "object"
       },
+      "EventProviderInterestsRequest": {
+        "additionalProperties": false,
+        "description": "Which names a built-in provider currently publishes; saved interests are ignored.",
+        "properties": {
+          "provider_options": {
+            "$ref": "#/components/schemas/EventProviderOptions"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          },
+          "timezone": {
+            "default": "UTC",
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider_options"
+        ],
+        "title": "EventProviderInterestsRequest",
+        "type": "object"
+      },
       "EventProviderOptions": {
         "additionalProperties": false,
         "properties": {
@@ -4725,7 +4824,8 @@
           "provider": {
             "enum": [
               "wosti_es",
-              "openfootball"
+              "openfootball",
+              "marca_es"
             ],
             "title": "Provider",
             "type": "string"
@@ -4775,6 +4875,11 @@
       "EventRefreshResult": {
         "additionalProperties": false,
         "properties": {
+          "created": {
+            "default": 0,
+            "title": "Created",
+            "type": "integer"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -4839,6 +4944,9 @@
             "title": "Format",
             "type": "string"
           },
+          "interests": {
+            "$ref": "#/components/schemas/EventInterests"
+          },
           "provider_options": {
             "anyOf": [
               {
@@ -4891,6 +4999,13 @@
               }
             ],
             "title": "Url"
+          },
+          "window_days": {
+            "default": 14,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Window Days",
+            "type": "integer"
           }
         },
         "title": "EventSourcePreviewRequest",
@@ -4935,6 +5050,14 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "import_new": {
+            "default": false,
+            "title": "Import New",
+            "type": "boolean"
+          },
+          "interests": {
+            "$ref": "#/components/schemas/EventInterests"
           },
           "last_attempt": {
             "anyOf": [
@@ -5007,6 +5130,13 @@
             "default": "UTC",
             "title": "Timezone",
             "type": "string"
+          },
+          "window_days": {
+            "default": 14,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Window Days",
+            "type": "integer"
           }
         },
         "required": [
@@ -10329,6 +10459,23 @@
             "title": "Recovery Token",
             "type": "string"
           },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "startup_dependency": {
+            "anyOf": [
+              {
+                "const": "warp",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startup Dependency"
+          },
           "status": {
             "enum": [
               "starting",
@@ -13808,7 +13955,7 @@
   "info": {
     "description": "API for scraping and managing Acestream channels",
     "title": "Acestream Scraper API",
-    "version": "v2.2.0"
+    "version": "v2.2.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -19854,6 +20001,48 @@
           }
         },
         "summary": "Event Providers",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/providers/interests": {
+      "post": {
+        "description": "Names to choose from before a preview. Fetches the provider; saves nothing.",
+        "operationId": "event_provider_interests_api_v1_events_providers_interests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventProviderInterestsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventInterestChoices"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Event Provider Interests",
         "tags": [
           "events"
         ]
@@ -27787,6 +27976,25 @@
           }
         },
         "summary": "Set WARP mode",
+        "tags": [
+          "warp"
+        ]
+      }
+    },
+    "/api/v1/warp/reconnect": {
+      "post": {
+        "operationId": "reconnect_warp_api_v1_warp_reconnect_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Reconnect WARP",
         "tags": [
           "warp"
         ]

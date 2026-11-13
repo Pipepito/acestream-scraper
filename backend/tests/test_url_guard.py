@@ -7,8 +7,7 @@ import socket
 
 import pytest
 
-from app.utils import url_guard
-from app.utils.url_guard import BlockedURLError, validate_outbound_url
+from app.utils.url_guard import BlockedURLError, validate_lan_target, validate_outbound_url
 
 
 def _fake_resolver(mapping):
@@ -156,9 +155,6 @@ class TestRedirectGuarding:
         assert "metadata" in result["error"]
         # The metadata URL itself was never fetched
         assert calls == ["http://public.example.com/epg.xml"]
-
-
-from app.utils.url_guard import validate_lan_target
 
 
 class TestLanTargetGuard:

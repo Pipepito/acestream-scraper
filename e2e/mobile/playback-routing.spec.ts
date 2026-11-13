@@ -16,6 +16,7 @@ for (const mode of ['light', 'dark']) {
       else if (path === '/config/ace_engine_url') data = { value: 'http://localhost:6878' };
       else if (path === '/config/rescrape_interval' || path === '/config/epg_refresh_interval') data = { value: '24' };
       else if (path === '/config/channel_status_interval') data = { value: '60' };
+      else if (path === '/config/acestream_check_timeout') data = { value: '10' };
       else if (path.startsWith('/config/')) data = { value: 'false' };
       else if (path === '/base-urls') data = [];
       await route.fulfill({ json: data });

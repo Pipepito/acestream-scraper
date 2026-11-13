@@ -42,12 +42,14 @@ def test_scan_classifies_vlc_and_kodi_on_a_local_server():
         async def vlc_handler(reader, writer):
             await reader.read(1024)
             writer.write(b"HTTP/1.0 403 Forbidden\r\nContent-Type: text/html\r\nContent-Length: 0\r\n\r\n")
-            await writer.drain(); writer.close()
+            await writer.drain()
+            writer.close()
 
         async def kodi_handler(reader, writer):
             await reader.read(1024)
             writer.write(b"HTTP/1.0 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"Kodi\"\r\nContent-Length: 0\r\n\r\n")
-            await writer.drain(); writer.close()
+            await writer.drain()
+            writer.close()
 
         vlc = await asyncio.start_server(vlc_handler, "127.0.0.1", 0)
         kodi = await asyncio.start_server(kodi_handler, "127.0.0.1", 0)
@@ -56,7 +58,8 @@ def test_scan_classifies_vlc_and_kodi_on_a_local_server():
         try:
             outcome = await scan_network(ipaddress.ip_network("127.0.0.1/32"), [vlc_port, kodi_port, 1], timeout_ms=500)
         finally:
-            vlc.close(); kodi.close()
+            vlc.close()
+            kodi.close()
         kinds = {(h.host, h.port): h.kind for h in outcome.hits}
         assert kinds[("127.0.0.1", vlc_port)] == "vlc"
         assert kinds[("127.0.0.1", kodi_port)] == "kodi"

@@ -239,7 +239,7 @@ def run_endpoint_coverage_test():
     test_path = str(backend_dir / "tests" / "test_endpoint_coverage.py")
     
     # Create a simple endpoint coverage test
-    coverage_test = f'''
+    coverage_test = '''
 """
 Endpoint coverage test
 """
@@ -268,9 +268,9 @@ def test_endpoint_coverage():
         if method == "GET":
             response = client.get(endpoint)
             # Accept 200 (success) or 500 (server error, but endpoint exists)
-            assert response.status_code in [200, 500], f"Endpoint {{method}} {{endpoint}} not found"
+            assert response.status_code in [200, 500], f"Endpoint {method} {endpoint} not found"
     
-    print(f"✅ All {{len(endpoints_to_test)}} basic endpoints are accessible")
+    print(f"✅ All {len(endpoints_to_test)} basic endpoints are accessible")
 '''
     
     with open(test_path, 'w') as f:

@@ -2079,6 +2079,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/providers/interests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Event Provider Interests
+         * @description Names to choose from before a preview. Fetches the provider; saves nothing.
+         */
+        post: operations["event_provider_interests_api_v1_events_providers_interests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/retention": {
         parameters: {
             query?: never;
@@ -4860,6 +4880,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/warp/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconnect WARP */
+        post: operations["reconnect_warp_api_v1_warp_reconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/warp/status": {
         parameters: {
             query?: never;
@@ -5261,6 +5298,8 @@ export interface components {
             kind: "browser" | "relay";
             /** Peers */
             peers?: number | null;
+            /** Source State */
+            source_state?: ("probing" | "playing") | null;
             /** Started At */
             started_at?: string | null;
             /**
@@ -6090,7 +6129,7 @@ export interface components {
             hours?: number | null;
             /**
              * Value
-             * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60)
+             * @description Setting value; channel_status_interval uses whole minutes (1–10080, default 60); acestream_check_timeout whole seconds (5–120, default 10)
              */
             value?: string | null;
         };
@@ -6230,15 +6269,30 @@ export interface components {
             icon_url?: string | null;
             /** Id */
             id: number;
+            /** Identity Id */
+            identity_id?: number | null;
             /** Language */
             language?: string | null;
             /** Name */
             name: string;
+            /** Sources */
+            sources?: components["schemas"]["EPGChannelSource"][];
             /**
              * Updated At
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** EPGChannelSource */
+        EPGChannelSource: {
+            /** Channel Id */
+            channel_id: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Name */
+            name: string;
+            /** Source Id */
+            source_id: number;
         };
         /** EPGMatchAnalysisRequest */
         EPGMatchAnalysisRequest: {
@@ -6535,6 +6589,11 @@ export interface components {
         };
         /** EventApply */
         EventApply: {
+            /**
+             * Import New
+             * @default false
+             */
+            import_new?: boolean;
             /**
              * Refresh Source
              * @default false
@@ -6850,6 +6909,20 @@ export interface components {
              */
             timezone?: string;
         };
+        /**
+         * EventProviderInterestsRequest
+         * @description Which names a built-in provider currently publishes; saved interests are ignored.
+         */
+        EventProviderInterestsRequest: {
+            provider_options: components["schemas"]["EventProviderOptions"];
+            /** Timeout Seconds */
+            timeout_seconds?: number | null;
+            /**
+             * Timezone
+             * @default UTC
+             */
+            timezone?: string;
+        };
         /** EventProviderOptions */
         EventProviderOptions: {
             /** Feeds */
@@ -6867,7 +6940,7 @@ export interface components {
              * Provider
              * @enum {string}
              */
-            provider: "wosti_es" | "openfootball";
+            provider: "wosti_es" | "openfootball" | "marca_es";
             /** Season */
             season?: string;
             /**
@@ -6888,6 +6961,11 @@ export interface components {
         };
         /** EventRefreshResult */
         EventRefreshResult: {
+            /**
+             * Created
+             * @default 0
+             */
+            created?: number;
             /** Message */
             message: string;
             /**
@@ -6927,6 +7005,7 @@ export interface components {
              * @enum {string}
              */
             format?: "event_import" | "schema_org";
+            interests?: components["schemas"]["EventInterests"];
             provider_options?: components["schemas"]["EventProviderOptions"] | null;
             /** Source Id */
             source_id?: string | null;
@@ -6939,6 +7018,11 @@ export interface components {
             timezone?: string;
             /** Url */
             url?: string | null;
+            /**
+             * Window Days
+             * @default 14
+             */
+            window_days?: number;
         };
         /** EventSourceUpdate */
         EventSourceUpdate: {
@@ -6959,6 +7043,12 @@ export interface components {
             format?: "event_import" | "schema_org";
             /** Id */
             id: string;
+            /**
+             * Import New
+             * @default false
+             */
+            import_new?: boolean;
+            interests?: components["schemas"]["EventInterests"];
             /** Last Attempt */
             last_attempt: string | null;
             last_result: components["schemas"]["EventRefreshResult"] | null;
@@ -6983,6 +7073,11 @@ export interface components {
              * @default UTC
              */
             timezone?: string;
+            /**
+             * Window Days
+             * @default 14
+             */
+            window_days?: number;
         };
         /** EventUpdate */
         EventUpdate: {
@@ -9176,6 +9271,13 @@ export interface components {
             recovery_available?: boolean;
             /** Recovery Token */
             recovery_token: string;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time?: string;
+            /** Startup Dependency */
+            startup_dependency?: "warp" | null;
             /**
              * Status
              * @enum {string}
@@ -14547,6 +14649,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventProviderCatalog"];
+                };
+            };
+        };
+    };
+    event_provider_interests_api_v1_events_providers_interests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventProviderInterestsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventInterestChoices"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -19994,6 +20129,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconnect_warp_api_v1_warp_reconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

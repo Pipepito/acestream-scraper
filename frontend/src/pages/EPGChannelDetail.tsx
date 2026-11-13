@@ -169,7 +169,9 @@ const EPGChannelDetail: React.FC = () => {
     );
   }
 
-  const linkedTVChannel = tvChannels?.find((tvChannel: TVChannel) => tvChannel.epg_id === channel.channel_xml_id) || null;
+  const sourceIds = channel.sources?.map((source) => source.source_id) ?? [channel.epg_source_id];
+  const linkedTVChannel = tvChannels?.find((tvChannel: TVChannel) => tvChannel.epg_id === channel.channel_xml_id &&
+    (tvChannel.epg_source_id == null || sourceIds.includes(tvChannel.epg_source_id))) || null;
 
   return (
     <Box sx={{ width: '100%', typography: 'body1' }}>
@@ -218,7 +220,17 @@ const EPGChannelDetail: React.FC = () => {
       </Stack>
 
       <ContentSection title="Schedule">
-        <GuideRecordingSelector epgChannelId={channelId} sourceId={channel.epg_source_id} xmlId={channel.channel_xml_id} />
+        {(channel.sources?.length ?? 0) > 1 ? <Stack spacing={1} sx={{ mb: 2 }}>
+          <Typography variant="body2">This channel is linked to multiple guides. Choose a source to view its schedule.</Typography>
+          <Stack direction="row" gap={1} flexWrap="wrap" aria-label="Guide sources">
+            {channel.sources?.map((source) => <Button key={source.channel_id} component={RouterLink}
+              to={`/epg/channels/${source.channel_id}`} variant={source.channel_id === channelId ? 'contained' : 'outlined'}
+              aria-current={source.channel_id === channelId ? 'page' : undefined}>
+              {source.name}{source.enabled ? '' : ' (disabled)'}
+            </Button>)}
+          </Stack>
+        </Stack> : null}
+        <GuideRecordingSelector key={channelId} epgChannelId={channelId} sourceId={channel.epg_source_id} xmlId={channel.channel_xml_id} />
       </ContentSection>
 
       <ContentSection

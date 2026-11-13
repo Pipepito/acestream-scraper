@@ -33,7 +33,7 @@ class StatsRepository:
 
     def get_tv_channel_rollup(self) -> Tuple[int, int, int, int]:
         total = self.db.query(TVChannel).count()
-        active = self.db.query(TVChannel).filter(TVChannel.is_active == True).count()
+        active = self.db.query(TVChannel).filter(TVChannel.is_active.is_(True)).count()
         with_epg = self.db.query(TVChannel).filter(TVChannel.epg_id.isnot(None)).count()
         acestreams = self.db.query(AcestreamChannel).filter(AcestreamChannel.tv_channel_id.isnot(None)).count()
         return total, active, with_epg, acestreams
@@ -50,7 +50,7 @@ class StatsRepository:
             "scraped_urls_error": self.db.query(ScrapedURL).filter(ScrapedURL.status.ilike("error%")).count(),
             "tv_channels": self.db.query(TVChannel).count(),
             "epg_sources": self.db.query(EPGSource).count(),
-            "epg_channels": self.db.query(EPGChannel).count(),
+            "epg_channels": self.db.query(func.count(func.distinct(func.coalesce(EPGChannel.identity_id, -EPGChannel.id)))).scalar(),
             "epg_programs": self.db.query(EPGProgram).count(),
             "scraped_urls": self.db.query(ScrapedURL).count(),
         }

@@ -110,7 +110,7 @@ def test_the_scraping_task_notifies_when_it_ends(monkeypatch, alembic_backend_ru
     url_scraping_task.run_url_scraping_task()
     assert len(sent) == 1
     assert sent[0]['processed'] == sent[0]['failures'] == 0
-    assert sent[0]['events'] == {'updated': 0, 'pending': 0, 'failures': 0, 'deferred': 0}
+    assert sent[0]['events'] == {'updated': 0, 'created': 0, 'pending': 0, 'failures': 0, 'deferred': 0}
     assert sent[0]['saved_searches']['searches'] == 0
     assert sent[0]['import_exclusions'] == {'excluded_candidates': 0}
 

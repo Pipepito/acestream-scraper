@@ -17,3 +17,8 @@ The complete refresh is limited to 90 seconds and each page to 2 MiB.
 
 Import football schedules under Events. For reviewed event windows over regular
 XMLTV listings, see [Sports events](Sports-Events.md#place-an-event-in-exported-guides).
+
+
+## Channels shared by guides
+
+Matching XMLTV IDs and names appear once in EPG → Channels, with all linked sources listed. Names may differ in case or spacing; regional and quality suffixes remain significant. Open the channel and choose a guide above Schedule to see that source’s programmes. Refreshing or deleting one guide leaves the other guide’s schedule intact. Existing TV channel and recording links retain their chosen source.

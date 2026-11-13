@@ -303,7 +303,7 @@ class TunerService:
         that failed its last refresh is ignored: its stamp says nothing new."""
         rows = (
             self.db.query(EPGSource.id, EPGSource.last_updated)
-            .filter(EPGSource.enabled == True, EPGSource.last_error.is_(None))  # noqa: E712
+            .filter(EPGSource.enabled.is_(True), EPGSource.last_error.is_(None))
             .order_by(EPGSource.id)
             .all()
         )

@@ -70,9 +70,9 @@ class TestBaseUrlCrud:
         assert any(e["name"] == "Engine LAN" for e in listed)
 
     def test_set_default_clears_previous_default(self, client):
-        first = client.post(
+        client.post(
             "/api/v1/base-urls", json={"name": "One", "pattern": "acestream://", "is_default": True}
-        ).json()
+        )
         second = client.post(
             "/api/v1/base-urls", json={"name": "Two", "pattern": "http://h/{channel_id}"}
         ).json()

@@ -212,8 +212,8 @@ def test_startup_stamps_existing_unstamped_v2_database(tmp_path):
     db_path.parent.mkdir(parents=True)
     legacy_db_path = tmp_path / "config" / "acestream.db"
 
-    from app.config.database import Base
-    import app.models.models  # noqa: F401  (register every table on Base)
+    # Through the model hub: importing it registers every table on Base.
+    from app.models.models import Base
 
     engine = create_engine(_database_url_for(db_path))
     try:

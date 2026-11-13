@@ -70,3 +70,42 @@ for (const mode of ['light', 'dark']) {
     expect(errors).toEqual([]);
   });
 }
+
+for (const mode of ['light', 'dark']) {
+  test(`${mode}: shared guide channel switches source schedules`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    const sources = [
+      { channel_id: 42, source_id: 1, name: 'Guide A', enabled: true },
+      { channel_id: 43, source_id: 2, name: 'Guide B', enabled: true },
+    ];
+    const fetchedSchedules: string[] = [];
+    await page.route('**/api/**', async route => {
+      const path = new URL(route.request().url()).pathname.replace('/api/v1', '').replace(/\/$/, '');
+      let json: unknown = {};
+      if (path === '/startup') json = { status: 'ready', phase: 'Ready to use', events: [] };
+      else if (path === '/tv-channels') json = { items: [], total: 0 };
+      else if (/\/epg\/channels\/4[23]$/.test(path)) {
+        const id = Number(path.split('/').at(-1));
+        json = { id, identity_id: 1, epg_source_id: id === 42 ? 1 : 2, channel_xml_id: 'sports.es', name: 'Shared Sports', sources };
+      } else if (path.endsWith('/programs')) { fetchedSchedules.push(path); json = []; }
+      else if (path.endsWith('/mappings')) json = [];
+      await route.fulfill({ json });
+    });
+    await page.addInitScript(value => {
+      localStorage.setItem('app-theme-mode', value);
+      localStorage.setItem('acestream.changelog.seen.v1', 'v2.2.1');
+    }, mode);
+    await page.goto('/epg/channels/42');
+    await expect(page.getByRole('heading', { name: 'Shared Sports', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Guide A', exact: true })).toHaveAttribute('aria-current', 'page');
+    await page.getByRole('link', { name: 'Guide B', exact: true }).click();
+    await expect(page).toHaveURL(/\/epg\/channels\/43$/);
+    await expect(page.getByRole('link', { name: 'Guide B', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect.poll(() => fetchedSchedules).toContain('/epg/channels/43/programs');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`shared-guide-${mode}.png`), fullPage: true, animations: 'disabled' });
+    expect(errors).toEqual([]);
+  });
+}

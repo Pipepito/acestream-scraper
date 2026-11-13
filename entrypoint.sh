@@ -216,6 +216,9 @@ supervise_engine() {
 # daemonizing launcher or intentional stop must not be respawned), and a
 # first launch that fails fast propagates its real status immediately — the
 # runtime contract expects "<label> startup command exited with status N".
+# WARP is the exception to exit 0: its startup coordinator follows this exact
+# process, so it never supported a daemonizing launcher, and a clean exit
+# takes Cloudflare's firewall with it. It is relaunched like a crash (#329).
 supervise_service() {
     local label="$1"
     local command="$2"
@@ -260,6 +263,9 @@ supervise_service() {
         launches=$((launches + 1))
         printf '%s\n' "$inner_pid" > "$SUPERVISOR_RUN_DIR/$slug.pid"
         printf '%s\n' "$started_at" > "$SUPERVISOR_RUN_DIR/$slug.started"
+        if [ "$slug" = warp ] && [ -n "${SCRAPER_WARP_BOOT:-}" ]; then
+            python3 "$WARP_COORDINATOR_SCRIPT" daemon "$inner_pid"
+        fi
         # Some daemons need their runtime state restored after the process is
         # relaunched. WARP, for example, starts disconnected even when the
         # container was configured to auto-connect. The initial launch is
@@ -279,6 +285,11 @@ supervise_service() {
             status=$?
         fi
         inner_pid=""
+        if [ "$slug" = warp ] && [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+            # Before anything else: without the daemon nothing stops direct
+            # traffic. The coordinator keeps this block refreshed.
+            nft -f "$SCRAPER_WARP_GUARD" || log "WARP traffic guard could not be armed"
+        fi
         ended_at=$(date +%s)
         rm -f "$SUPERVISOR_RUN_DIR/$slug.pid"
         if [ -f "$SUPERVISOR_RUN_DIR/$slug.restart" ]; then
@@ -290,13 +301,16 @@ supervise_service() {
             continue
         fi
 
-        if [ "$status" -eq 0 ]; then
+        if [ "$status" -eq 0 ] && { [ "$slug" != warp ] || [ -z "${SCRAPER_WARP_BOOT:-}" ]; }; then
             # Clean exit: the launcher daemonized (its children keep running
             # in the setsid group) or the service stopped on purpose.
             # Restarting would spawn duplicates.
             log "$label exited cleanly; not restarting"
             exit 0
         fi
+        # Giving up must stay visible to the entrypoint even after exit 0.
+        local failure_status="$status"
+        [ "$failure_status" -ne 0 ] || failure_status=1
 
         if [ $((ended_at - started_at)) -lt "$fast_exit_window" ]; then
             fast_exits=$((fast_exits + 1))
@@ -306,12 +320,12 @@ supervise_service() {
 
         if [ "$launches" -eq 1 ] && [ "$fast_exits" -gt 0 ]; then
             log "$label startup command exited with status $status"
-            exit "$status"
+            exit "$failure_status"
         fi
 
         if [ "$fast_exits" -ge "$fast_exit_limit" ]; then
             log "$label exited with status $status $fast_exits times within ${fast_exit_window}s of starting; giving up"
-            exit "$status"
+            exit "$failure_status"
         fi
 
         log "$label exited with status $status; restarting in ${restart_delay}s"
@@ -479,6 +493,30 @@ if feature_enabled "$ENABLE_TOR" && ! feature_enabled "$ENABLE_ZERONET"; then
     log "ENABLE_TOR=true has no effect without ENABLE_ZERONET=true; skipping TOR"
 fi
 
+# Ports that let programs outside the container use WARP (and Tor). Their
+# helpers start with the network services; see wiki/Docker.md#warp-and-tor-ports.
+valid_port() {
+    case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+warp_full_tunnel() {
+    feature_enabled "$ENABLE_WARP" && feature_enabled "${WARP_ENABLE_NAT:-false}" &&
+        ! feature_enabled "${WARP_DNS_ONLY:-false}"
+}
+if [ -n "${WARP_SOCKS_PORT:-}" ]; then
+    valid_port "$WARP_SOCKS_PORT" || fail "WARP_SOCKS_PORT must be a port number (1-65535)"
+    warp_full_tunnel || log "WARP_SOCKS_PORT needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; not starting the SOCKS port"
+fi
+if feature_enabled "${WARP_ALLOW_INBOUND:-false}" && ! warp_full_tunnel; then
+    log "WARP_ALLOW_INBOUND needs ENABLE_WARP=true and WARP_ENABLE_NAT=true in full tunnel mode; ignoring it"
+fi
+if [ -n "${TOR_SOCKS_PORT:-}" ]; then
+    { valid_port "$TOR_SOCKS_PORT" && [ "$TOR_SOCKS_PORT" != 9050 ]; } ||
+        fail "TOR_SOCKS_PORT must be a port number (1-65535) other than 9050, which Tor itself holds"
+    { feature_enabled "$ENABLE_TOR" && feature_enabled "$ENABLE_ZERONET"; } ||
+        log "TOR_SOCKS_PORT needs ENABLE_TOR=true and ENABLE_ZERONET=true; not starting the Tor port"
+fi
+
 export ACEXY_NO_RESPONSE_TIMEOUT="${ACEXY_NO_RESPONSE_TIMEOUT:-30s}"
 
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE"; then
@@ -525,6 +563,13 @@ if feature_enabled "$ENABLE_ZERONET"; then
     esac
 fi
 
+HELPERS_DIR="$(dirname "$0")"
+start_helper() {
+    supervise_service "$1" "$2" &
+    child_pids+=("$!")
+    child_names+=("$1")
+}
+
 start_tor() {
     if ! command -v tor >/dev/null 2>&1; then
         fail "ENABLE_TOR=true but the tor binary is not installed in this image (amd64 and arm64 images only)"
@@ -543,6 +588,11 @@ EOF
     supervise_service "Tor" "tor -f $torrc" &
     child_pids+=("$!")
     child_names+=("Tor")
+    # Tor only listens on the container's loopback; this exposes its SOCKS
+    # port on another container port, which can be published.
+    if [ -n "${TOR_SOCKS_PORT:-}" ]; then
+        start_helper "Tor-SOCKS" "exec python3 $(printf '%q' "$HELPERS_DIR/tcp-forward.py") --port $TOR_SOCKS_PORT --to 127.0.0.1:9050 --allow $(printf '%q' "$TUNER_ALLOWED_NETWORKS")"
+    fi
 }
 
 configure_ipfs_repo() {
@@ -565,6 +615,48 @@ configure_ipfs_repo() {
 child_pids=()
 child_names=()
 unset SCRAPER_WARP_STARTUP_ERROR
+unset SCRAPER_WARP_BOOT
+unset SCRAPER_WARP_GUARD
+unset SCRAPER_WARP_GUARD_UNAVAILABLE
+warp_coordinator_pid=""
+network_services_started=false
+runtime_stopping=false
+warp_guard_hold=4
+app_pid=""
+WARP_COORDINATOR_SCRIPT="$(dirname "$CAPTURE_SCRIPT")/warp_startup.py"
+if [ ! -f "$WARP_COORDINATOR_SCRIPT" ]; then WARP_COORDINATOR_SCRIPT=/app/warp_startup.py; fi
+WARP_GUARD_SCRIPT="$(dirname "$CAPTURE_SCRIPT")/warp_guard.py"
+if [ ! -f "$WARP_GUARD_SCRIPT" ]; then WARP_GUARD_SCRIPT=/app/warp_guard.py; fi
+WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
+# Resolve this before the web process inherits the applied environment.
+ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")
+export ACESTREAM_BIND_ALL
+
+start_warp_coordinator() {
+    python3 "$WARP_COORDINATOR_SCRIPT" run "$WARP_SETUP_SCRIPT" &
+    warp_coordinator_pid=$!
+}
+
+shutdown_runtime() {
+    runtime_stopping=true
+    # WARP stops before the engines and takes its firewall with it. Block
+    # direct traffic while the remaining services shut down.
+    if [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+        nft -f "$SCRAPER_WARP_GUARD" 2>/dev/null || true
+    fi
+    shutdown_children "${warp_coordinator_pid:-}"
+    if [ -n "${SCRAPER_WARP_BOOT:-}" ]; then
+        python3 "$WARP_COORDINATOR_SCRIPT" cleanup || true
+    fi
+    shutdown_children "${app_pid:-}" "${child_pids[@]:-}"
+    if [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+        # A host or shared network namespace outlives this container: leave
+        # no rules behind. A killed container's block expires by itself.
+        python3 "$WARP_GUARD_SCRIPT" standby || true
+        SCRAPER_WARP_GUARD=""
+    fi
+}
+trap 'shutdown_runtime' INT TERM EXIT
 
 if feature_enabled "$ENABLE_WARP"; then
     # warp-svc runs under the supervisor (restartable from the app, relaunched
@@ -573,16 +665,29 @@ if feature_enabled "$ENABLE_WARP"; then
     if bash "$(dirname "$0")/warp-setup.sh" prepare; then
         # warp-svc inherits this from its supervisor.
         export WARP_FORCE_IPV4="${WARP_FORCE_IPV4:-true}"
-        WARP_SETUP_SCRIPT="$(dirname "$0")/warp-setup.sh"
-        supervise_service "WARP" "${WARP_START_COMMAND:-warp-svc --accept-tos}" "bash \"$WARP_SETUP_SCRIPT\" configure" &
+        warp_daemon_command="${WARP_START_COMMAND:-warp-svc --accept-tos}"
+        if python3 "$WARP_GUARD_SCRIPT" enabled; then
+            # Automatic full tunnel: block direct traffic before the daemon
+            # exists. The daemon runs in the one group the block lets through,
+            # so it can still register and connect.
+            warp_guard_rules="$SUPERVISOR_RUN_DIR/warp-guard.nft"
+            if python3 "$WARP_GUARD_SCRIPT" install "$warp_guard_rules"; then
+                export SCRAPER_WARP_GUARD="$warp_guard_rules"
+                warp_daemon_command="exec python3 $(printf '%q' "$WARP_GUARD_SCRIPT") daemon $(printf '%q' "$warp_daemon_command")"
+            else
+                # An upgrade must not stop WARP on a host that worked before.
+                # Run as before and let the WARP page say it is unguarded.
+                export SCRAPER_WARP_GUARD_UNAVAILABLE=1
+                log "WARP kill switch is unavailable on this host; WARP runs without it. It needs nftables support and the default SETGID capability. Set WARP_KILL_SWITCH=false to silence this."
+            fi
+        fi
+        SCRAPER_WARP_BOOT=$(python3 "$WARP_COORDINATOR_SCRIPT" identity)
+        export SCRAPER_WARP_BOOT
+        python3 "$WARP_COORDINATOR_SCRIPT" init
+        supervise_service "WARP" "$warp_daemon_command" &
         child_pids+=("$!")
         child_names+=("WARP")
-        if ! bash "$WARP_SETUP_SCRIPT" configure; then
-            export SCRAPER_WARP_STARTUP_ERROR=setup
-            shutdown_children "${child_pids[@]}"
-            child_pids=()
-            child_names=()
-        fi
+        start_warp_coordinator
     else
         warp_prepare_status=$?
         export SCRAPER_WARP_STARTUP_ERROR=setup
@@ -592,10 +697,8 @@ if feature_enabled "$ENABLE_WARP"; then
     fi
 fi
 
-if [ -n "${SCRAPER_WARP_STARTUP_ERROR:-}" ]; then
-    log "WARP setup failed; keeping the web UI and diagnostics available. Network services are blocked until the container configuration is fixed and restarted."
-else
-# Do not start any network sidecar after a requested WARP setup failed.
+start_network_services() {
+# Called once, only after the WARP configuration barrier is satisfied.
 if feature_enabled "$ENABLE_ZERONET"; then
     mkdir -p "$ZERONET_DATA_DIR"
     if feature_enabled "$ENABLE_TOR"; then
@@ -649,8 +752,6 @@ fi
 # Docker Desktop host path are accepted through a published 6878. The API is
 # unauthenticated either way: publish 6878 only on trusted networks.
 # ACESTREAM_BIND_ALL=false restores the engine's own address filter.
-ACESTREAM_BIND_ALL=$(normalize_bool "${ACESTREAM_BIND_ALL:-true}")
-export ACESTREAM_BIND_ALL
 if feature_enabled "$ENABLE_ACESTREAM_ENGINE" && [ -n "${ACESTREAM_START_COMMAND:-}" ]; then
     if feature_enabled "$ACESTREAM_BIND_ALL"; then
         case " $ACESTREAM_START_COMMAND " in *" --bind-all "*) ;; *) ACESTREAM_START_COMMAND="$ACESTREAM_START_COMMAND --bind-all" ;; esac
@@ -673,6 +774,24 @@ if feature_enabled "$ENABLE_ACEXY" && [ -n "${ACEXY_START_COMMAND:-}" ]; then
     child_pids+=("$!")
     child_names+=("Acexy")
 fi
+
+# Started after the WARP barrier, so nothing is relayed before the tunnel is
+# up; the kill switch then blocks the helper's traffic whenever WARP is down.
+if [ -n "${WARP_SOCKS_PORT:-}" ] && warp_full_tunnel; then
+    start_helper "WARP-SOCKS" "exec python3 $(printf '%q' "$HELPERS_DIR/warp-socks.py") --port $WARP_SOCKS_PORT --allow $(printf '%q' "$TUNER_ALLOWED_NETWORKS")"
+fi
+# WARP's firewall drops connections from public addresses (#93); this lets
+# them in again after every reconnect and keeps their replies off the tunnel.
+if feature_enabled "${WARP_ALLOW_INBOUND:-false}" && warp_full_tunnel; then
+    start_helper "WARP-inbound" "exec sh $(printf '%q' "$HELPERS_DIR/warp-inbound.sh")"
+fi
+network_services_started=true
+}
+
+if [ -n "${SCRAPER_WARP_STARTUP_ERROR:-}" ]; then
+    log "WARP preparation failed; keeping the web UI and diagnostics available. Fix the container prerequisites and restart."
+elif ! feature_enabled "$ENABLE_WARP"; then
+    start_network_services
 fi
 
 APP_COMMAND=("$@")
@@ -688,6 +807,37 @@ wait_for_supervised_exit() {
         local pid
         prune_finished_children
 
+        # A coordinator stopped by shutdown is not a WARP failure.
+        if [ -n "${SCRAPER_WARP_BOOT:-}" ] && [ "$runtime_stopping" = false ]; then
+            if [ -n "$warp_coordinator_pid" ] && ! kill -0 "$warp_coordinator_pid" 2>/dev/null; then
+                wait "$warp_coordinator_pid" || true
+                warp_coordinator_pid=""
+                python3 "$WARP_COORDINATOR_SCRIPT" cleanup || true
+                if [ "$network_services_started" = true ]; then
+                    fail "WARP relaunch configuration failed"
+                fi
+                python3 "$WARP_COORDINATOR_SCRIPT" lost || true
+            fi
+            if [ -z "$warp_coordinator_pid" ] && python3 "$WARP_COORDINATOR_SCRIPT" retry-pending 2>/dev/null; then
+                start_warp_coordinator
+            fi
+            if [ -z "$warp_coordinator_pid" ] && [ -n "${SCRAPER_WARP_GUARD:-}" ]; then
+                # Only the coordinator refreshes the block. While it is gone
+                # and WARP is unconfigured, keep the block from lapsing.
+                warp_guard_hold=$((warp_guard_hold + 1))
+                if [ "$warp_guard_hold" -ge 5 ]; then
+                    warp_guard_hold=0
+                    nft -f "$SCRAPER_WARP_GUARD" 2>/dev/null || log "WARP traffic guard could not be armed"
+                fi
+            fi
+            if [ "$network_services_started" = false ] && python3 "$WARP_COORDINATOR_SCRIPT" configured; then
+                start_network_services
+                # Revalidate generation after launching. A lost barrier must
+                # terminate the new children, never release the application.
+                python3 "$WARP_COORDINATOR_SCRIPT" release || fail "WARP changed during network startup"
+            fi
+        fi
+
         if ! kill -0 "$app_pid" 2>/dev/null; then
             wait "$app_pid" 2>/dev/null
             return $?
@@ -696,8 +846,6 @@ wait_for_supervised_exit() {
         sleep 1
     done
 }
-
-trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT
 
 (capture_output scraper; exec "${APP_COMMAND[@]}") &
 app_pid=$!
@@ -708,7 +856,7 @@ else
     app_status=$?
 fi
 
-shutdown_children "$app_pid" "${child_pids[@]:-}"
+shutdown_runtime
 
 trap - INT TERM EXIT
 exit "$app_status"

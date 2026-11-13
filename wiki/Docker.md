@@ -185,9 +185,74 @@ unhealthy until fixed. Recreate the container with the required permissions and
 the same data mounts, or explicitly disable WARP in the saved runtime configuration.
 An in-app setting cannot add Docker capabilities or devices. Retry in the startup
 screen cannot repair container permissions; restart after correcting deployment.
+For transient configuration failures, WARP stays supervised and configuration
+retries for up to ten minutes. **Try startup again** opens another recovery
+window afterward. Network services start only after setup and saved exclusions
+succeed; auto-connect requires `Connected`. A server/browser clock mismatch is
+an advisory warning: see [clock troubleshooting](Troubleshooting.md#warp-startup-and-system-clock).
 If the host has no `/dev/net/tun` but the command includes `--device`, Docker
 itself refuses to create the container, before the app can show diagnostics.
 Choose DNS-only mode and omit that device mapping, or provide host TUN support.
+On SELinux hosts such as Fedora with Podman, a mapped device can still be
+denied: startup reports `/dev/net/tun (present, but access is denied)`. Adding
+`--security-opt label=disable` next to `--device /dev/net/tun` resolves it.
+
+### WARP kill switch
+
+When WARP connects before engines start in full tunnel mode, the app also
+blocks direct internet traffic whenever the WARP service is not running:
+before it first connects, while it restarts, and during container shutdown.
+While the service runs, Cloudflare's own firewall does the same job during
+reconnects. If WARP stops by itself, it is restarted and reconnected without
+restarting the container. The WARP page shows **Kill switch on**, and says when
+traffic is being blocked.
+
+- **Disconnect** on the WARP page is your decision: traffic then uses your
+  normal connection until you connect again. **Reconnect** has no such gap.
+- Local networks stay reachable while traffic is blocked. Hosts you excluded
+  from WARP are unreachable until WARP is connected again.
+- It needs nftables support on the host and Docker's default `SETGID`
+  capability. On a host without them, WARP still starts, without the kill
+  switch, and the WARP page says so. Set `WARP_KILL_SWITCH=false`, or clear
+  **Block direct traffic while WARP is down** under WARP → Startup settings, to
+  turn it off.
+- It does not apply to manual connection (`WARP_ENABLE_NAT=false`) or DNS-only
+  mode, where the normal connection is used by design.
+
+Details: [startup recovery](https://github.com/Pipepito/acestream-scraper/blob/develop/docs/ops/startup-recovery.md#warp-kill-switch).
+
+### WARP and Tor ports
+
+In full tunnel mode everything the container sends leaves through WARP, but
+other programs (a media centre add-on, another container) cannot use that
+tunnel, and WARP's own proxy mode would switch the tunnel off. These optional
+ports let them use it:
+
+- `WARP_SOCKS_PORT=1080` starts a SOCKS5 server on that container port; publish
+  it (`-p 127.0.0.1:1080:1080`) and point the program at it with remote DNS
+  (`socks5h://`). It starts after WARP connects and only with
+  `WARP_ENABLE_NAT=true` in full tunnel mode; with the kill switch on, nothing
+  it relays leaves while WARP is down.
+- `TOR_SOCKS_PORT=9150` exposes the embedded Tor's SOCKS port, which only
+  listens inside the container, on that container port so it can be published.
+  It needs `ENABLE_TOR=true` with `ENABLE_ZERONET=true`, and cannot be `9050`,
+  which Tor itself holds.
+
+Neither port has a password, so clients must come from `TUNER_ALLOWED_NETWORKS`
+(private ranges by default). The WARP port also only connects to public
+addresses, never to the container's own services or your local network.
+
+### Inbound connections with WARP
+
+In full tunnel mode WARP's own firewall drops connections that come from a
+public address, and replies would go into the tunnel anyway: the engine's P2P
+port and remote access from outside your network stop working. Clients on
+private ranges are not affected. `WARP_ALLOW_INBOUND=true` (with
+`WARP_ENABLE_NAT=true`) lets connections that arrive on the container's
+`eth0` (`WARP_INBOUND_IFACE`) in again after every WARP reconnect, and sends
+only their replies outside the tunnel; everything the container starts itself
+still leaves through WARP. While WARP is down, the kill switch keeps rejecting
+those replies too.
 
 ### Pre-release channel (`develop`)
 

@@ -13,7 +13,6 @@ def dvr(client, db_session, monkeypatch, tmp_path):
     from app.config.settings import get_settings
     from app.services import recording_service
     monkeypatch.setattr(get_settings(), 'RECORDINGS_DIR', str(tmp_path))
-    monkeypatch.setattr(recording_service, 'binaries', lambda: ('fake', 'fake'))
     monkeypatch.setattr(recording_service, 'media_capabilities', lambda: dict(stream_copy=True, mp4_remux=True, aac_conversion=True))
     monkeypatch.setattr(recording_service.RecordingService, 'notify', lambda *_: None)
     source = EPGSource(name='Guide', url='https://example.com/guide.xml')

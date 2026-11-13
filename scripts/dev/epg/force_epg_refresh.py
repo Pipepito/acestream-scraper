@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 def force_epg_refresh():
     """Force refresh of EPG data"""
     from app import create_app
-    from app.services.epg_service import refresh_epg_data, EPGService
+    from app.services.epg_service import EPGService
     
     app = create_app()
     

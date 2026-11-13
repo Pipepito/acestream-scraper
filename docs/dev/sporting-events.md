@@ -131,8 +131,7 @@ Errors expose neither private inputs nor response bodies.
 
 Preview contexts keep the URL private. Applying explicitly selected rows stores
 source approvals and event updates in one transaction, including a source revision
-check. Scheduled refresh can update only approved identities still present in the
-database; it cannot create new events. User corrections/mappings, following and
+check. Scheduled refresh defaults to approved identities still present in the database. An explicit `EventApply.import_new` opt-in is saved in the source adapter and permits new matching observations within its rolling calendar window. Refresh re-reads the overlapping days to update metadata and inserts only unseen source/external IDs. User corrections/mappings, following and
 archive state survive. A changed source invalidates in-flight work. Source failures
 retain data and last-success timestamps; pending counts expose new reviewable IDs.
 There are at most 20 sources and 2,000 approvals per source, pruned by retention.
@@ -183,7 +182,7 @@ artwork only on request via the authenticated API and revokes its blob URL on un
 
 ## Built-in providers and interests
 
-`event_providers.py` exposes fixed WOSTI Spain sport feeds and OpenFootball
+`event_providers.py` exposes fixed MARCA daily TV listings, WOSTI Spain sport feeds and OpenFootball
 league/season paths through `GET /events/providers`. The existing source preview
 accepts `provider_options`; it cannot combine a provider with an arbitrary URL.
 Options persist in `EventScheduleSource.adapter`, and date-only values and typed
@@ -205,14 +204,21 @@ Broadcast changes keep the snapshot identity; doubleheaders remain distinct.
 with OR. The calendar window starts today in the source zone and ends exclusively
 at today + N days (default 14; 1–30 accepted by API). Choices are discovered before
 interest filtering; previews return at most 500 rows with a truncation notice.
+`POST /api/v1/events/providers/interests` returns those choices before any preview,
+for the form's lists: it fetches the provider through the same guarded adapter and
+admission limit as a preview, clears the request's own interests so they never
+narrow the answer, and reads and writes no database rows. The form calls it when a
+list is first opened and again only after the provider options change. Interest
+fields accept listed names only; `allowCustom` remains for schedule URLs, whose
+names are unknown before fetching, and selections saved earlier stay listed.
 Display filters use the same union rule independently from saved imports. A field
 for `scheduled_date` is retained when kickoff is absent. Neither the window nor
 interest changes perform deletion. Existing manual corrections stay authoritative.
 
-Provider-only empty selections may save source options, with the same source
-revision/identity transaction guard. Manual and arbitrary URL imports still need
-selected rows. New provider rows still require review; scheduled refresh does not
-subscribe users to automatic creation. Use pending counts and Review schedule.
+Provider and URL empty selections may save source options with the same source
+revision/identity transaction guard. Manual imports still need selected rows.
+Automatic creation requires the saved import-new opt-in; reviewed-only sources
+continue exposing pending counts and Review schedule.
 The date window limits refresh input as well as previews; rows outside it remain
 saved with their previous observations.
 
@@ -273,3 +279,38 @@ source/manual metadata is overwritten and no stale programme IDs are persisted.
 WOSTI football uses linked participant spans and competition header rows; the
 multi-sport row layout remains supported. The fetch byte/deadline limits and
 all-or-nothing failure preservation remain in force.
+
+
+## v2.2.1 rolling imports and MARCA
+
+MARCA's [TV agenda](https://www.marca.com/programacion-tv.html) was inspected on
+2026-11-09: the server-rendered `.schedule .daylist` contained 87 listings across
+November 9–15. This is a dated observation, not a coverage guarantee. The adapter
+reads explicit Spanish dates, sport, competition, clock and broadcaster labels;
+no scripts or media URLs are executed. It preserves the legacy HTML encoding and
+uses Europe/Madrid. NBA/NFL labels identify their competition and sport even when
+the publisher's icon disagrees. Synthetic markup fixtures pin the parser.
+
+No fixture IDs are present. Identity is date + sport + competition + title;
+same-day clock and broadcaster changes refresh that occurrence. Changed dates or
+titles create separate occurrences. Ambiguous same-day doubleheaders fail closed.
+WOSTI retains its existing date-and-time snapshot identity. These limitations are
+shown in preview; neither adapter guesses cross-date reschedules.
+
+Automatic import is an explicit saved option, independent of the refresh enable
+switch. Old saved sources default to reviewed-only. The source's window is
+recomputed in its timezone every pass, with saved OR interests. HTTP URL sources
+have the same bounded window/interests. A source can be saved with zero selected
+events; automatic import then admits matching events on the next scheduled pass.
+Initial selection controls that apply only; subsequent automatic imports cover
+all matches. Results distinguish created, updated, pending and failed. Corrections,
+following, archive state and broadcaster mappings survive. Upstream associations
+cannot attach a newly imported observation to an arbitrary existing event.
+
+The 500-row import limit and 2,000-event inventory limit remain enforced. A
+truncated provider window fails automatic refresh atomically and asks for narrower
+interests; it never silently processes only its first 500 matches. Source revision
+checks protect concurrent disable/edit/delete, and failures keep prior data.
+
+MundoPlus was also inspected on 2026-11-09. Its visible agenda and JSON-LD clocks
+disagreed by one hour, so it is not included as a certified adapter.

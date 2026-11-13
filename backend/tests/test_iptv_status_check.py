@@ -9,13 +9,13 @@ checked the way a player opens them: playlist, variant, a segment.
 from unittest.mock import AsyncMock, MagicMock
 from pathlib import Path
 
-MEDIA = (Path(__file__).parent / "docker/fixtures/sample-h264-ac3.m2ts").read_bytes()
-
 import pytest
 
 from app.models.models import AcestreamChannel
 from app.services import http_stream_check, live_providers
 from app.services.channel_status_service import ChannelStatusService
+
+MEDIA = (Path(__file__).parent / "docker/fixtures/sample-h264-ac3.m2ts").read_bytes()
 
 
 @pytest.fixture(autouse=True)

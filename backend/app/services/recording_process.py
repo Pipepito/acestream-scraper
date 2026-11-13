@@ -9,7 +9,6 @@ import selectors
 import signal
 import subprocess
 import sys
-import time
 
 
 def supervise(control, output, ownership, argv):

@@ -35,6 +35,9 @@ class XMLTVProcessing:
                 .all()
             )
             channel_mapping = {channel.channel_xml_id: channel for channel in existing_channels}
+            from app.repositories.epg_inventory_repository import EPGInventoryRepository
+            inventory = EPGInventoryRepository(self.db)
+            pending_identities = {}
 
             for channel_elem in root.findall(".//channel"):
                 channel_id = channel_elem.get("id", "")
@@ -42,7 +45,7 @@ class XMLTVProcessing:
                     continue
 
                 display_name_elem = channel_elem.find("display-name")
-                name = display_name_elem.text if display_name_elem is not None else channel_id
+                name = (display_name_elem.text if display_name_elem is not None else None) or channel_id
                 language = display_name_elem.get("lang") if display_name_elem is not None else None
 
                 icon_url = None
@@ -51,6 +54,7 @@ class XMLTVProcessing:
                     icon_url = icon_elem.get("src")
 
                 db_channel = channel_mapping.get(channel_id)
+                needs_identity = not db_channel or not db_channel.identity_id or db_channel.name != name
                 if not db_channel:
                     db_channel = EPGChannel(
                         epg_source_id=source_id,
@@ -69,6 +73,8 @@ class XMLTVProcessing:
                     db_channel.icon_url = icon_url
                     db_channel.language = language
                     db_channel.updated_at = datetime.now(timezone.utc)
+                if needs_identity:
+                    pending_identities[channel_id] = db_channel
 
             # Existing channel IDs are already available. Avoid taking SQLite's
             # writer lock while parsing/diffing a large replacement guide.
@@ -176,6 +182,11 @@ class XMLTVProcessing:
                     if index >= 0 and ends[index] > program.start_time:
                         self.db.delete(program)
 
+            # Identity creation may flush. Defer it until parsing and reconciliation
+            # finish so a repeated guide does not hold SQLite's writer lock early.
+            for channel in pending_identities.values():
+                channel.identity_id = inventory.identity(channel.channel_xml_id, channel.name)
+
             from app.services.epg_link_service import EPGLinkService
             EPGLinkService(self.db).repair()
             self.db.commit()
@@ -191,7 +202,6 @@ class XMLTVProcessing:
         Parse XMLTV time format: YYYYMMDDHHMMSS +ZZZZ
         Examples: 20231201120000 +0000, 20231201120000
         """
-        import re
 
         # Remove any extra whitespace
         time_str = time_str.strip()

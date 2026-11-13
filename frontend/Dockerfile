@@ -1,31 +1,36 @@
-FROM node:18-alpine as build
+# syntax=docker/dockerfile:1.7
 
-# Set working directory
-WORKDIR /app
+# Component image: the built web interface served as static files, without the
+# API. The published images serve the same files from the backend (root
+# Dockerfile). Build from the repository root:
+#
+#   docker build -f frontend/Dockerfile -t acestream-scraper-frontend .
+#
+# It listens on 8080 as an unprivileged user. Put it behind a proxy that sends
+# /api to the backend.
+FROM node:20-slim AS build
 
-# Copy package files
-COPY package*.json ./
+WORKDIR /build/frontend
 
-# Install dependencies
+COPY frontend/package*.json ./
 RUN npm ci
 
-# Copy the rest of the app
-COPY . .
-
-# Build the app
+COPY frontend/ ./
+COPY version.txt /build/version.txt
 RUN npm run build
 
-# Production image
-FROM nginx:alpine
 
-# Copy built files to nginx
-COPY --from=build /app/dist /usr/share/nginx/html
+FROM nginxinc/nginx-unprivileged:stable-alpine
 
-# Copy nginx config if you have a custom one
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Client-side routes fall back to the application shell.
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /build/frontend/dist/ /usr/share/nginx/html/
 
-# Expose port
-EXPOSE 80
+EXPOSE 8080
 
-# Start nginx
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["wget", "--quiet", "--spider", "http://127.0.0.1:8080/"]
+
+USER nginx
+
 CMD ["nginx", "-g", "daemon off;"]

@@ -8,8 +8,9 @@ from app.services.stream_relay import EngineStreamError, RelayRegistry
 from app.services.engine_client import EngineRefusedError
 from functools import partial
 from app.services.tuner_playback_service import relay_ranked_streams as default_relay_ranked_streams
-relay_ranked_streams = partial(default_relay_ranked_streams, experimental_transcoding=True)
 from app.services.tuner_service import TunerService
+
+relay_ranked_streams = partial(default_relay_ranked_streams, experimental_transcoding=True)
 
 
 @pytest.fixture(autouse=True)
@@ -155,24 +156,30 @@ def test_channel_url_resolves_current_sources_and_head_never_starts_engine(alemb
     from app.services.tuner_network import get_tuner_gate
     from app.config.settings import get_settings
     monkeypatch.setenv('TUNER_ALLOWED_NETWORKS', '*')
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
     try:
         tv = TVChannel(name='F1', is_active=True)
-        alembic_db_session.add(tv); alembic_db_session.flush()
+        alembic_db_session.add(tv)
+        alembic_db_session.flush()
         row = AcestreamChannel(id='a' * 40, name='feed', is_online=True, is_active=True, tv_channel_id=tv.id)
-        alembic_db_session.add(row); alembic_db_session.commit()
+        alembic_db_session.add(row)
+        alembic_db_session.commit()
         engine = Mock()
         monkeypatch.setattr(tuner, '_engine', engine)
         url = f'/tuner/channel/{tv.id}.ts'
         assert alembic_client.head(url).status_code == 200
         engine.assert_not_called()
         assert alembic_client.get('/tuner/lineup.json').json()[0]['URL'].endswith(url)
-        row.is_online = False; tv.is_active = False; alembic_db_session.commit()
+        row.is_online = False
+        tv.is_active = False
+        alembic_db_session.commit()
         assert alembic_client.get(url).json()['error']['code'] == 'NO_ONLINE_STREAMS'
         engine.assert_not_called()
     finally:
         monkeypatch.undo()
-        get_settings.cache_clear(); get_tuner_gate.cache_clear()
+        get_settings.cache_clear()
+        get_tuner_gate.cache_clear()
 
 
 @pytest.mark.asyncio

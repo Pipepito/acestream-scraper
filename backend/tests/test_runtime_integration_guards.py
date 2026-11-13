@@ -1,7 +1,6 @@
 import json
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -31,8 +30,29 @@ def test_frontend_container_builds_from_vite_dist_directory():
     frontend_dockerfile = (REPO_ROOT / "frontend" / "Dockerfile").read_text()
     root_dockerfile = (REPO_ROOT / "Dockerfile").read_text()
 
-    assert "COPY --from=build /app/dist /usr/share/nginx/html" in frontend_dockerfile
+    assert "COPY --from=build /build/frontend/dist/ /usr/share/nginx/html/" in frontend_dockerfile
     assert "COPY --link --from=frontend-builder /build/frontend/dist/ /app/frontend_build/" in root_dockerfile
+
+
+def test_component_images_build_from_the_repository_root_as_an_unprivileged_user():
+    # Both are built with the repository root as context, so their COPY sources
+    # carry the component's folder; a path above the context cannot be copied.
+    for component, user in (("backend", "scraper"), ("frontend", "nginx")):
+        dockerfile = (REPO_ROOT / component / "Dockerfile").read_text()
+        assert "COPY ../" not in dockerfile
+        assert f"COPY {component}/" in dockerfile
+        instructions = [line.split()[0] for line in dockerfile.splitlines() if line[:1].isalpha()]
+        assert "HEALTHCHECK" in instructions
+        users = [line.split()[1] for line in dockerfile.splitlines() if line.startswith("USER ")]
+        assert users and users[-1] == user
+
+
+def test_packaging_is_a_declared_requirement():
+    # app.config.version imports it; relying on pytest or wheel to bring it
+    # along broke the first image that installed only the requirements.
+    requirements = (REPO_ROOT / "backend" / "requirements.txt").read_text().splitlines()
+    assert any(line.startswith("packaging") for line in requirements)
+    assert "from packaging.version import" in (REPO_ROOT / "backend" / "app" / "config" / "version.py").read_text()
 
 
 def test_copy_build_script_copies_artifacts_with_overrides(tmp_path):
@@ -298,7 +318,9 @@ def test_entrypoint_stops_the_app_before_sidecars_on_signals():
     entrypoint = (REPO_ROOT / "entrypoint.sh").read_text()
     # The lifespan's engine `stop` calls must reach a live engine, so the app
     # goes down first on INT/TERM (it already does on the normal exit path).
-    assert """trap 'shutdown_children "$app_pid" "${child_pids[@]:-}"' INT TERM EXIT""" in entrypoint
+    assert "trap 'shutdown_runtime' INT TERM EXIT" in entrypoint
+    shutdown = entrypoint.split("shutdown_runtime() {", 1)[1].split("\n}", 1)[0]
+    assert 'shutdown_children "${app_pid:-}" "${child_pids[@]:-}"' in shutdown
 
 
 def test_entrypoint_appends_bind_all_to_engine_command_by_default():

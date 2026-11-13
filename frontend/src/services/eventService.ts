@@ -5,6 +5,7 @@ export type EventOverlayPreview = components['schemas']['EventOverlayPreview'];
 export type EventOverlayView = components['schemas']['EventOverlayView'];
 export type EventInterests = components['schemas']['EventInterests'];
 export type EventProviderOptions = components['schemas']['EventProviderOptions'];
+export type EventProviderInterestsRequest = components['schemas']['EventProviderInterestsRequest'];
 export type EventChannelTarget = components['schemas']['EventChannelTarget'];
 export type SportingEvent = components['schemas']['EventView'];
 export type EventFields = components['schemas']['EventFields'];
@@ -33,10 +34,13 @@ export const eventService = {
     (await apiClient.get('/v1/events', { params })).data,
   get: async (id: string): Promise<SportingEvent> => (await apiClient.get(`/v1/events/${id}`)).data,
   preview: async (input: EventImport): Promise<EventPreview> => (await apiClient.post('/v1/events/preview', input)).data,
-  apply: async (token: string, selected_ids: string[], refresh_source = false): Promise<SportingEvent[]> =>
-    (await apiClient.post('/v1/events/apply', { token, selected_ids, refresh_source })).data,
+  apply: async (token: string, selected_ids: string[], refresh_source = false, import_new = false): Promise<SportingEvent[]> =>
+    (await apiClient.post('/v1/events/apply', { token, selected_ids, refresh_source, import_new })).data,
   providers: async (): Promise<components['schemas']['EventProviderCatalog']> => (await apiClient.get('/v1/events/providers')).data,
   interests: async (): Promise<EventInterests> => (await apiClient.get('/v1/events/interests')).data,
+  /** Names a built-in provider publishes now. The server fetches the provider; nothing is saved. */
+  providerInterests: async (input: EventProviderInterestsRequest): Promise<EventInterests> =>
+    (await apiClient.post('/v1/events/providers/interests', input, { timeout: ((input.timeout_seconds ?? 15) + 30) * 1000 })).data,
   broadcastTargets: async (search: string): Promise<EventChannelTarget[]> => (await apiClient.get('/v1/events/broadcast-targets', { params: { search } })).data,
   mapBroadcastTarget: async (id: string, revision: number, broadcast_id: string, target: EventChannelTarget, applyToSource = true): Promise<SportingEvent> =>
     (await apiClient.patch(`/v1/events/${id}/broadcast`, { revision, broadcast_id, target_kind: target.kind, target_id: target.id, apply_to_source: applyToSource })).data,

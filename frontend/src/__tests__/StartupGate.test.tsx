@@ -77,3 +77,23 @@ it('keeps diagnostics accessible after startup has completed', async () => {
   expect(await screen.findByRole('heading', { name: 'Startup and migration' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Open app' })).toBeInTheDocument();
 });
+
+it.each([600000, -600000])('shows an advisory WARP clock warning for offset %s', async difference => {
+  const browserTime = Date.parse('2026-11-09T12:00:00Z');
+  service.status.mockResolvedValue({ ...failed, recovery_available: false, startup_dependency: 'warp',
+    clockSample: { serverTime: browserTime + difference, browserTime, differenceMs: difference } });
+  renderGate();
+  expect(await screen.findByText(/The server and browser clocks differ/)).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Clock troubleshooting' })).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(screen.getByRole('button', { name: 'Try startup again' })).toBeEnabled();
+  expect(screen.queryByRole('button', { name: 'Start fresh' })).not.toBeInTheDocument();
+  expect(screen.queryByText('Application content')).not.toBeInTheDocument();
+});
+
+it.each([undefined, 'warp'] as const)('does not warn at the threshold or without a WARP dependency: %s', async dependency => {
+  service.status.mockResolvedValue({ ...failed, startup_dependency: dependency,
+    clockSample: { serverTime: 300000, browserTime: 0, differenceMs: dependency ? 300000 : 600000 } });
+  renderGate();
+  await screen.findByRole('heading', { name: 'Startup needs your attention' });
+  expect(screen.queryByText(/The server and browser clocks differ/)).not.toBeInTheDocument();
+});

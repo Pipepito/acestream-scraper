@@ -12,9 +12,10 @@ from app.schemas.events import EventImport, EventPreview, EventApply, EventView,
 from app.services.event_service import EventService
 from app.services.event_overlay_service import EventOverlayService
 from app.schemas.events import EventOverlayRequest, EventOverlayApply, EventOverlayView, EventOverlayPreview
-from app.services.event_source_service import EventSourceService
+from app.services.event_source_service import EventSourceService, provider_interest_choices
 from app.schemas.events import EventSourcePreviewRequest, EventSourceView, EventSourceUpdate, EventRetention, EventBroadcastMapping, EventRefreshQueued
 from app.schemas.events import EventInterests, EventInterestChoices, EventChannelTarget, EventProviderCatalog, EventSelection, BroadcasterLinkView
+from app.schemas.events import EventProviderInterestsRequest
 
 
 class PrivateEventRoute(APIRoute):
@@ -92,6 +93,12 @@ def event_providers():
     from app.services.event_providers import FEEDS, LEAGUES, FOOTBALL_COMPETITIONS
     return EventProviderCatalog(football_competitions=[{'id': key, 'name': value} for key, value in FOOTBALL_COMPETITIONS.items()], feeds=[{'id': key, 'name': value} for key, value in FEEDS.items()],
         leagues=[{'id': key, 'name': name, 'timezone': zone} for key, (name, zone) in LEAGUES.items()])
+
+
+@router.post('/providers/interests', response_model=EventInterestChoices)
+def event_provider_interests(request: EventProviderInterestsRequest):
+    """Names to choose from before a preview. Fetches the provider; saves nothing."""
+    return invoke(provider_interest_choices, request)
 
 
 @router.get('/interests', response_model=EventInterestChoices)

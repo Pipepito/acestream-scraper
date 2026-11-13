@@ -254,6 +254,8 @@ describe('TVChannelDetail', () => {
     fireEvent.click(await screen.findByRole('option', { name: 'Not set' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(mutateAsync).toHaveBeenLastCalledWith({ id: 7, updates: expect.objectContaining({ epg_source_id: null }) });
+    // The save finishes after the request: wait for the form to close before the test ends.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument());
   });
 
   it('removes the channel number when the field is emptied', async () => {

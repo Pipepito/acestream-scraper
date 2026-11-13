@@ -3,14 +3,32 @@
   "scope": "Design only; counts overlap; raw reports remain outside Git.",
   "application_source": "cf952afc6b4489c02b7a675ff3d634cc13d98e0b",
   "main_source": "180f544c140f2f0361c386ebd395dcf366ae343d",
-  "prototype_sha256": {
-    "workflow-engine.js": "094048f525cc2e596d05b06d920767c1352b0ce14c545179f11a785cdcbba03d",
-    "workflow-data.json": "1d29020d71c5bfc5e0c9a55ef988950c7982afb35d75f133df4f3ff09b328574",
-    "workflow-data.js": "fbbe5928a9adc20a824b478927ebe5b5e20ca8cb7fcd335067beea24cc1ec54a",
-    "presentation-presets.css": "c54accd4ab6584ec9b7630fb4720d4159fd0db90c9a85b9ce44db37064ad118b",
-    "workflow-prototype.html": "63dd1db4030c0bf44289a3dbca08fe3948cc6f59e41c86078ae0d10f7a383f49",
-    "openapi-contract-map.json": "b693710cf52517208338774e9bb47eaedf6198d53e0bb3d7c3ebf25f27e10555"
-  },
+  "prototype_sha256": [
+    {
+      "file": "workflow-engine.js",
+      "sha256": "094048f525cc2e596d05b06d920767c1352b0ce14c545179f11a785cdcbba03d"
+    },
+    {
+      "file": "workflow-data.json",
+      "sha256": "1d29020d71c5bfc5e0c9a55ef988950c7982afb35d75f133df4f3ff09b328574"
+    },
+    {
+      "file": "workflow-data.js",
+      "sha256": "fbbe5928a9adc20a824b478927ebe5b5e20ca8cb7fcd335067beea24cc1ec54a"
+    },
+    {
+      "file": "presentation-presets.css",
+      "sha256": "c54accd4ab6584ec9b7630fb4720d4159fd0db90c9a85b9ce44db37064ad118b"
+    },
+    {
+      "file": "workflow-prototype.html",
+      "sha256": "63dd1db4030c0bf44289a3dbca08fe3948cc6f59e41c86078ae0d10f7a383f49"
+    },
+    {
+      "file": "openapi-contract-map.json",
+      "sha256": "b693710cf52517208338774e9bb47eaedf6198d53e0bb3d7c3ebf25f27e10555"
+    }
+  ],
   "reports": {
     "full": {
       "file": "workflow-checks.json",

@@ -75,7 +75,20 @@
     "jest-environment-jsdom": {
       "jsdom": "^29.1.1"
     },
-    "test-exclude": "^8.0.0"
+    "test-exclude": {
+      ".": "^8.0.0",
+      "minimatch": "^11.0.5"
+    },
+    "eslint": {
+      "minimatch": "^11.0.5"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.5"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.5"
+    },
+    "glob": "^14.0.2"
   },
   "browserslist": {
     "production": [

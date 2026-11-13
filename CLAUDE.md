@@ -985,8 +985,9 @@ with clearly bad recent history, or from mostly offline lists without own
 history. Saved preferences stay first; engine outages do not count against a
 source. Migration `20261102_1200` follows `20261103_1200`. The opt-in tuner
 setting `hide_unusable` (off by default; playlist URLs may override it) leaves
-the stale and clearly bad ones out of the lineup and M3U playlists, never for
-a mostly offline list alone. See `docs/ops/stream-history.md`.
+out discarded sources (5 failed checks in a row and 7 days without working;
+lists do not count) and clearly bad ones; discarded sources are rechecked last,
+weekly, and return when they work. See `docs/ops/stream-history.md`.
 
 
 ## Live TV availability and offline retention

@@ -20,6 +20,11 @@ Ranking is rule based and deliberately small:
   when no list has published it for ``STALE_DAYS``, when its own recent
   history is clearly bad, or when it has no history of its own and its list
   is almost entirely offline.
+
+Hiding (``unusable_ids``) does not look at lists: sources are the assets and
+lists only where they were found (13-11). A source is *discarded* when
+``DISCARD_FAILED_CHECKS`` checks in a row found no media and it has not worked
+for ``DISCARD_DAYS``; it comes back as soon as it works again.
 """
 from __future__ import annotations
 
@@ -45,6 +50,15 @@ DEAD_LIST_SHARE = 0.2
 BAD_EVIDENCE = 2.0
 BAD_SCORE = 0.25
 PRUNE_EVERY = 500
+# Discarded: this many failed checks in a row AND this long without working
+# (or failing, if it never worked). Both: a box that is on now and then can
+# make 7 days one check, and 5 checks can fall in one afternoon.
+DISCARD_FAILED_CHECKS = 5
+DISCARD_DAYS = 7
+# A discarded source is still checked, at most this often and after the rest.
+DISCARDED_RECHECK_DAYS = 7
+# Relay outcomes that prove the source works.
+WORKED_OUTCOMES = frozenset({'ok', 'handover'})
 # A row written with a clock that ran ahead (a box switched on before its clock
 # synchronised) says nothing reliable about when it happened: it is ignored
 # instead of counting as the most recent attempt.
@@ -129,44 +143,36 @@ def scores_for(db, streams, now: Optional[datetime] = None) -> Dict[str, SourceS
     return score_sources(streams, attempts, health, now)
 
 
-def _latest_list_reading(db, now: datetime) -> datetime:
-    """When the lists were last read: the newest ``last_seen`` of any active
-    source, never later than ``now``.
+def discarded(stream, now: datetime) -> bool:
+    """Failed ``DISCARD_FAILED_CHECKS`` checks in a row and has not worked for
+    ``DISCARD_DAYS`` (counted from when it started failing if it never worked).
 
-    Hiding measures staleness from here, not from the wall clock, so a clock
-    that starts ahead (a box switched on before it synchronises) or a box that
-    stayed off for weeks hides nothing until the lists have been read again."""
-    from sqlalchemy import func
-
-    from app.models.models import AcestreamChannel
-    latest = (db.query(func.max(AcestreamChannel.last_seen))
-              .filter(AcestreamChannel.is_active.is_(True)).scalar())
-    return min(now, _aware(latest)) if latest is not None else now
+    A time in the future counts as unknown, so it never discards."""
+    if (getattr(stream, 'failed_checks', 0) or 0) < DISCARD_FAILED_CHECKS:
+        return False
+    since = getattr(stream, 'last_worked_at', None) or getattr(stream, 'failing_since', None)
+    if since is None or _aware(since) > now + FUTURE_TOLERANCE:
+        return False
+    return now - _aware(since) >= timedelta(days=DISCARD_DAYS)
 
 
 def unusable_ids(db, streams, now: Optional[datetime] = None) -> set[str]:
-    """Sources with no useful prospect: no list has published them for
-    ``STALE_DAYS`` before the latest list reading, or their own recent
-    playback history is clearly bad.
+    """Sources with no useful prospect: discarded (see ``discarded``), or their
+    own recent playback history is clearly bad.
 
-    Deliberately narrower than ``demoted``: a mostly offline list alone does
-    not make a source unusable, because status checks of a box that is only on
-    now and then are often hours or days old. Used by the playlist's
-    ``hide_unusable`` option; a source becomes usable again as soon as a list
-    publishes it or it plays."""
+    Which lists still publish a source does not count: a list that goes away
+    or drops a source changes nothing. Used by the playlist's and the tuner's
+    ``hide_unusable`` option; a source becomes usable again as soon as a check
+    finds media or the relay plays it."""
     now = now or datetime.now(timezone.utc)
     streams = list(streams)
     scores = scores_for(db, streams, now)
-    reference = _latest_list_reading(db, now)
     unusable = set()
     for stream in streams:
         cid = stream.id.lower()
-        last_seen = getattr(stream, 'last_seen', None)
-        stale = (last_seen is not None and _aware(last_seen) <= now + FUTURE_TOLERANCE
-                 and reference - _aware(last_seen) > timedelta(days=STALE_DAYS))
         past = scores.get(cid)
         bad = past is not None and past.evidence >= BAD_EVIDENCE and past.score < BAD_SCORE
-        if stale or bad:
+        if bad or discarded(stream, now):
             unusable.add(cid)
     return unusable
 
@@ -216,6 +222,10 @@ class StreamHistoryRecorder:
                 db = self._session_factory()
                 try:
                     repo = StreamAttemptRepository(db)
+                    if outcome in WORKED_OUTCOMES:
+                        # Sources are kept for working, not for being published.
+                        from app.repositories.channel_repository import ChannelRepository
+                        ChannelRepository(db).mark_worked(content_id, at)
                     row_id = self._rows.pop(attempt, None) if final else self._rows.get(attempt)
                     if row_id is not None and repo.update(row_id, outcome, seconds=seconds) is not None:
                         continue

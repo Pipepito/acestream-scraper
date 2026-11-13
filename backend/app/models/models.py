@@ -124,6 +124,13 @@ class AcestreamChannel(Base):
     id_kind = Column(String(16), nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
     offline_since = Column(UtcDateTime(), nullable=True)
+    # Sources are the assets, lists only where they were found (13-11): whether a
+    # source is kept depends on whether it works, not on who still publishes it.
+    # Last time a check brought media or a relay attempt played it.
+    last_worked_at = Column(UtcDateTime(), nullable=True)
+    # Checks in a row that found no media since then, and when that run started.
+    failed_checks = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    failing_since = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
     audio_tracks = Column(JSON, nullable=True)
     bitrate_bps = Column(Integer, nullable=True)

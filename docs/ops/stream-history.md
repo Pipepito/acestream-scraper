@@ -57,15 +57,31 @@ ranking for a channel.
 ## Hiding sources with no use
 
 The tuner setting `hide_unusable` (off by default; `PUT /api/v1/tuner/settings`)
-leaves out of the lineup and the M3U playlists every source that no list has
-published for 14 days, or whose own recent history is clearly bad (the same
-evidence and score bounds as demotion). A channel left with none drops out.
-A mostly offline list alone hides nothing: that only demotes. The source is
-still in the database, so it comes back as soon as a list publishes it again.
-A playlist URL can override the setting with `hide_unusable=true|false`.
-The 14 days count back from the latest list reading (the newest `last_seen`
-of any active source), not from the clock, so a clock that starts ahead or a
-server left off for weeks hides nothing until the lists are read again.
+leaves out of the lineup and the M3U playlists every *discarded* source and
+every source whose own recent history is clearly bad (the same evidence and
+score bounds as demotion). A channel left with none drops out. A playlist URL
+can override the setting with `hide_unusable=true|false`.
+
+A source is the asset; a list is only where it was found. Which lists still
+publish a source does not count for hiding: a list that goes away or drops a
+source changes nothing. A source is discarded when both hold:
+
+- `failed_checks` is 5 or more: five status checks in a row found no media.
+  Only real checks count (an HTTP check, or an engine check whose lookup
+  answered found or not found); a timeout or an engine outage says nothing
+  about the source.
+- It has not worked for 7 days: `last_worked_at` (a check with media, or a
+  relay attempt that ended `ok` or `handover`), or `failing_since` when it
+  never worked. A time in the future discards nothing.
+
+Both, because a server that is on now and then can make 7 days a single check,
+and 5 checks can fall in one afternoon. A discarded source stays in the
+database and is still checked, after every other source and at most once a
+week; the first check with media or the first viewing brings it back.
+
+Migration `20261113_1400` adds the three columns. It fills `last_worked_at`
+from sources online at their last check and from `ok`/`handover` attempts;
+failures count from the upgrade on.
 
 ## Limits
 

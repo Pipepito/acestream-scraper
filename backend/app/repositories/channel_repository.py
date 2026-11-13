@@ -10,6 +10,10 @@ from datetime import datetime, timezone
 from app.models.models import AcestreamChannel, EPGChannel, TVChannel
 
 
+def _as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
 class ChannelRepository:
     def source_filter_inventory(self):
         from app.models.models import ScrapedURL, W3UCatalogue
@@ -22,7 +26,9 @@ class ChannelRepository:
     def status_check_inventory(self, scope: str, *, http_only: bool = False):
         """Select active streams eligible for the next background pass."""
         query = (self.db.query(AcestreamChannel.id, AcestreamChannel.last_checked,
-                               AcestreamChannel.tv_channel_id, TVChannel.is_favorite)
+                               AcestreamChannel.tv_channel_id, TVChannel.is_favorite,
+                               AcestreamChannel.failed_checks, AcestreamChannel.last_worked_at,
+                               AcestreamChannel.failing_since)
                  .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
                  .filter(AcestreamChannel.is_active.is_(True)))
         if scope in ("assigned", "favorites"):
@@ -653,11 +659,23 @@ class ChannelRepository:
 
     @retry_database_write
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None,
-                              id_kind: Optional[str] = None) -> AcestreamChannel:
-        """Update the online status of a channel"""
+                              id_kind: Optional[str] = None, verified: bool = False) -> AcestreamChannel:
+        """Update the online status of a channel.
+
+        ``verified`` marks the result of a real check: media found means the
+        source worked; none found is one more failed check in a row.
+        """
         channel = self.get_channel_by_id(channel_id)
         if not channel:
             return None
+        if verified:
+            now = datetime.now(timezone.utc)
+            if is_online:
+                self._worked(channel, now)
+            else:
+                channel.failed_checks = (channel.failed_checks or 0) + 1
+                if channel.failing_since is None:
+                    channel.failing_since = now
 
         channel.is_online = is_online
         channel.network_status = network_status
@@ -684,6 +702,23 @@ class ChannelRepository:
         self.db.commit()
         self.db.refresh(channel)
         return channel
+
+    @staticmethod
+    def _worked(channel: AcestreamChannel, at: datetime) -> None:
+        if channel.last_worked_at is None or _as_utc(channel.last_worked_at) < at:
+            channel.last_worked_at = at
+        channel.failed_checks = 0
+        channel.failing_since = None
+
+    def mark_worked(self, channel_id: str, at: Optional[datetime] = None) -> bool:
+        """The relay played this source: it works, whatever the last check said."""
+        channel = (self.db.query(AcestreamChannel)
+                   .filter(func.lower(AcestreamChannel.id) == channel_id.lower()).first())
+        if channel is None:
+            return False
+        self._worked(channel, at or datetime.now(timezone.utc))
+        self.db.commit()
+        return True
 
     def check_all_channels_status(self) -> int:
         """Check status for all active channels"""

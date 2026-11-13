@@ -181,15 +181,26 @@ def _playlist(db, **options):
         only_online=False, base_url='http://tuner.example/tuner/channel/{tv_channel_id}.ts', **options))
 
 
+def _discard(db, key, *, days=8, worked=True):
+    """Five failed checks in a row, the last time it worked ``days`` ago."""
+    row = db.query(AcestreamChannel).filter_by(id=key * 40).one()
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    row.failed_checks = 5
+    row.last_worked_at = since if worked else None
+    row.failing_since = since
+
+
 def test_hide_unusable_leaves_out_a_channel_with_no_useful_source(db_session):
     gone = TVChannel(name='Stale Channel', is_active=True)
     kept = TVChannel(name='Live Channel', is_active=True)
     db_session.add_all([gone, kept])
     db_session.flush()
-    _stream(db_session, 'a', gone, last_seen=datetime.now(timezone.utc) - timedelta(days=60))
+    _stream(db_session, 'a', gone)
     _stream(db_session, 'b', gone)
     _attempts(db_session, 'b', 'no_data', 3)
     _stream(db_session, 'c', kept)
+    db_session.flush()
+    _discard(db_session, 'a')
     db_session.commit()
     assert 'Stale Channel' in _playlist(db_session)
     hidden = _playlist(db_session, hide_unusable=True)
@@ -198,8 +209,10 @@ def test_hide_unusable_leaves_out_a_channel_with_no_useful_source(db_session):
 
 def test_hide_unusable_keeps_a_channel_while_one_source_is_useful(db_session):
     tv = _channel(db_session)
-    _stream(db_session, 'a', tv, last_seen=datetime.now(timezone.utc) - timedelta(days=60))
+    _stream(db_session, 'a', tv)
     _stream(db_session, 'b', tv, online=None)
+    db_session.flush()
+    _discard(db_session, 'a')
     db_session.commit()
     body = _playlist(db_session, hide_unusable=True, per_source=True)
     assert 'Example Sports' in body
@@ -211,8 +224,10 @@ def test_the_tuner_setting_hides_unusable_channels_in_the_playlist_and_lineup(db
     kept = TVChannel(name='Live Channel', is_active=True)
     db_session.add_all([gone, kept])
     db_session.flush()
-    _stream(db_session, 'a', gone, last_seen=datetime.now(timezone.utc) - timedelta(days=60))
+    _stream(db_session, 'a', gone)
     _stream(db_session, 'c', kept)
+    db_session.flush()
+    _discard(db_session, 'a')
     db_session.commit()
     tuner = TunerService(db_session)
     assert not tuner.settings().hide_unusable
@@ -223,27 +238,86 @@ def test_the_tuner_setting_hides_unusable_channels_in_the_playlist_and_lineup(db
     assert {entry.guide_name for entry in tuner.build_lineup().entries} == {'Live Channel'}
 
 
-def test_a_clock_that_starts_ahead_hides_nothing_until_the_lists_are_read(db_session):
+def test_a_source_no_list_publishes_any_more_is_not_hidden(db_session):
+    """Sources are the assets; lists only found them (13-11)."""
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv, last_seen=datetime.now(timezone.utc) - timedelta(days=90))
+    db_session.commit()
+    assert 'a' * 40 in _playlist(db_session, hide_unusable=True, per_source=True)
+
+
+@pytest.mark.parametrize('failed, days, hidden', [
+    (4, 30, False),    # many days, not enough checks: a box on now and then
+    (9, 6.9, False),   # many checks in one afternoon, not enough days
+    (5, 7, True),
+])
+def test_discarding_needs_both_five_failed_checks_and_seven_days(failed, days, hidden):
+    from app.services.stream_history import discarded
+
+    class Source:
+        failed_checks = failed
+        last_worked_at = NOW - timedelta(days=days)
+        failing_since = NOW - timedelta(days=1)
+    assert discarded(Source, NOW) is hidden
+
+
+def test_a_source_that_never_worked_counts_from_when_it_began_failing():
+    from app.services.stream_history import discarded
+
+    class Source:
+        failed_checks = 5
+        last_worked_at = None
+        failing_since = NOW - timedelta(days=3)
+    assert not discarded(Source, NOW)
+    Source.failing_since = NOW - timedelta(days=7)
+    assert discarded(Source, NOW)
+    Source.failing_since = None
+    assert not discarded(Source, NOW)
+
+
+def test_a_clock_that_starts_ahead_discards_nothing():
+    from app.services.stream_history import discarded
+
+    class Source:
+        failed_checks = 5
+        last_worked_at = NOW + timedelta(days=45)
+        failing_since = None
+    assert not discarded(Source, NOW)
+
+
+def test_checks_count_failures_and_a_working_check_brings_the_source_back(db_session):
+    from app.repositories.channel_repository import ChannelRepository
     from app.services.stream_history import unusable_ids
     tv = _channel(db_session)
     _stream(db_session, 'a', tv)
-    _stream(db_session, 'b', tv, last_seen=datetime.now(timezone.utc) - timedelta(days=3))
     db_session.commit()
-    streams = db_session.query(AcestreamChannel).all()
-    assert unusable_ids(db_session, streams, now=datetime.now(timezone.utc) + timedelta(days=45)) == set()
+    repo = ChannelRepository(db_session)
+    for _ in range(5):
+        repo.update_channel_status('a' * 40, False, 'no media', verified=True)
+    repo.update_channel_status('a' * 40, False, 'engine timeout')       # not a real check
+    row = db_session.query(AcestreamChannel).one()
+    assert row.failed_checks == 5 and row.failing_since is not None
+    later = datetime.now(timezone.utc) + timedelta(days=8)
+    assert unusable_ids(db_session, [row], now=later) == {'a' * 40}
+    repo.update_channel_status('a' * 40, True, verified=True)
+    assert (row.failed_checks, row.failing_since) == (0, None) and row.last_worked_at is not None
+    assert unusable_ids(db_session, [row], now=later) == set()
 
 
-def test_a_box_left_off_for_weeks_hides_only_what_the_last_reading_had_already_lost(db_session):
-    gone = TVChannel(name='Stale Channel', is_active=True)
-    kept = TVChannel(name='Live Channel', is_active=True)
-    db_session.add_all([gone, kept])
+@pytest.mark.parametrize('outcome, back', [('ok', True), ('handover', True), ('no_data', False), ('stall', False)])
+def test_the_relay_playing_a_source_brings_it_back(db_session, outcome, back):
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
     db_session.flush()
-    last_reading = datetime.now(timezone.utc) - timedelta(days=21)
-    _stream(db_session, 'a', gone, last_seen=last_reading - timedelta(days=20))
-    _stream(db_session, 'c', kept, last_seen=last_reading)
+    _discard(db_session, 'a')
     db_session.commit()
-    body = _playlist(db_session, hide_unusable=True)
-    assert 'Live Channel' in body and 'Stale Channel' not in body
+    recorder = _recorder_on(db_session)
+    recorder.record('A' * 40, tv.id, outcome, seconds=40)
+    recorder.flush()
+    db_session.expire_all()
+    row = db_session.query(AcestreamChannel).one()
+    assert (row.failed_checks == 0) is back
+    assert (row.failing_since is None) is back
 
 
 def test_a_source_that_kept_jumping_back_ranks_below_one_that_played_cleanly():
@@ -335,3 +409,30 @@ def test_the_checkpoint_writes_nothing_before_30_s_and_then_every_30_s(monkeypat
         checkpoint.tick(played)
     checkpoint.finish('ended', 70)
     assert calls == [('ok', 30, False), ('ok', 60.5, False), ('ended', 70, True)]
+
+
+def test_source_worked_migration_fills_in_from_checks_and_viewings(tmp_path):
+    import sqlite3
+    from contextlib import closing
+    path = tmp_path / 'worked.db'
+    upgrade_to_revision(path, '20261109_1300')
+    checked = '2026-11-01 10:00:00.000000'
+    with closing(sqlite3.connect(path)) as db:
+        for cid, online in (('a', 1), ('b', 0), ('c', 0)):
+            db.execute("INSERT INTO acestream_channels (id, name, is_active, is_online, last_checked) "
+                       "VALUES (?, ?, 1, ?, ?)", (cid * 40, cid, online, checked))
+        db.execute("INSERT INTO stream_attempts (content_id, outcome, seconds, created_at) "
+                   "VALUES (?, 'ok', 60, '2026-11-05 10:00:00.000000')", ('b' * 40,))
+        db.execute("INSERT INTO stream_attempts (content_id, outcome, seconds, created_at) "
+                   "VALUES (?, 'no_data', 0, '2026-11-05 10:00:00.000000')", ('c' * 40,))
+        db.commit()
+    upgrade_to_head(path)
+    with closing(sqlite3.connect(path)) as db:
+        rows = dict(db.execute("SELECT name, last_worked_at FROM acestream_channels").fetchall())
+        assert db.execute("SELECT SUM(failed_checks) FROM acestream_channels").fetchone()[0] == 0
+    assert rows['a'].startswith('2026-11-01 10:00') and rows['b'].startswith('2026-11-05 10:00')
+    assert rows['c'] is None
+    downgrade_to_revision(path, '20261109_1300')
+    engine = create_engine(database_url_for(path))
+    assert 'failed_checks' not in {c['name'] for c in inspect(engine).get_columns('acestream_channels')}
+    engine.dispose()

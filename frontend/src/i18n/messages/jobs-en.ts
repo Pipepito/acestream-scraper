@@ -3,7 +3,7 @@ export const jobEnglish = {
   url_scraping: 'Scrape sources', epg_refresh: 'Refresh EPG', epg_program_cleanup: 'Purge old programmes',
   channel_status: 'Check stream status', channel_cleanup: 'Remove stale channels', offline_stream_cleanup: 'Remove long-offline streams',
   activity_log_cleanup: 'Clean activity log', media_server_sync: 'Sync media servers', v1_epg_programs_migration: 'Migrate v1 EPG programmes',
-  manual: '{{name}} (manual)', sources_one: '{{count, number}} source', sources_other: '{{count, number}} sources',
+  manual: '{{name}} (manual)', catch_up: '{{name}} (catch-up)', sources_one: '{{count, number}} source', sources_other: '{{count, number}} sources',
   errors_one: '{{count, number}} error', errors_other: '{{count, number}} errors',
   scrape: '{{sources}}, {{errors}}',
   events: 'events: {{updated, number}} updated, {{pending, number}} need review, {{failed, number}} source errors, {{deferred, number}} deferred',

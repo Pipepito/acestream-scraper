@@ -2860,5 +2860,11 @@
   "select match row {{name}}": "seleccionar coincidencia {{name}}",
   "Select {{name}}": "Seleccionar {{name}}",
   "Include {{name}}": "Incluir {{name}}",
-  "source {{id}}": "fuente {{id}}"
+  "source {{id}}": "fuente {{id}}",
+  "Stream links": "Enlaces de emisión",
+  "online (external)": "en línea (externo)",
+  "online": "en línea",
+  "not configured": "sin configurar",
+  "stopped by you": "detenido por ti",
+  "not reachable": "no responde"
 }

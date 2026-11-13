@@ -3,7 +3,7 @@ export const jobSpanish: Record<keyof typeof jobEnglish, string> = {
   url_scraping: 'Buscar canales en las fuentes', epg_refresh: 'Actualizar la guía', epg_program_cleanup: 'Borrar programas antiguos',
   channel_status: 'Comprobar las emisiones', channel_cleanup: 'Eliminar canales obsoletos', offline_stream_cleanup: 'Eliminar emisiones sin señal desde hace tiempo',
   activity_log_cleanup: 'Limpiar el registro de actividad', media_server_sync: 'Sincronizar servidores multimedia', v1_epg_programs_migration: 'Migrar programas de la guía v1',
-  manual: '{{name}} (manual)', sources_one: '{{count, number}} fuente', sources_other: '{{count, number}} fuentes',
+  manual: '{{name}} (manual)', catch_up: '{{name}} (recuperación)', sources_one: '{{count, number}} fuente', sources_other: '{{count, number}} fuentes',
   errors_one: '{{count, number}} error', errors_other: '{{count, number}} errores',
   scrape: '{{sources}}, {{errors}}',
   events: 'eventos: {{updated, number}} actualizados, {{pending, number}} por revisar, {{failed, number}} errores de fuentes, {{deferred, number}} aplazados',

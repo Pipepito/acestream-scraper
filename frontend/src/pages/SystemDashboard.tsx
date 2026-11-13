@@ -73,10 +73,10 @@ const SystemDashboard: React.FC = () => {
         items={[
           {
             label: uiText("Engine"),
-            value: statusUnavailable ? uiText("Unavailable") : engineOnline ? (engineExternal ? 'online (external)' : engine?.version ?? 'online') : !engineConfigured ? 'not configured' : engineStopped ? 'stopped by you' : 'not reachable',
+            value: statusUnavailable ? uiText("Unavailable") : engineOnline ? (engineExternal ? uiText('online (external)') : engine?.version ?? uiText('online')) : !engineConfigured ? uiText('not configured') : engineStopped ? uiText('stopped by you') : uiText('not reachable'),
             tone: statusUnavailable ? 'default' : engineOnline ? 'success' : !engineConfigured || engineStopped ? 'default' : 'error',
           },
-          { label: uiText("Application version"), value: health.error ? uiText("Unavailable") : health.data?.version ?? 'Loading…' },
+          { label: uiText("Application version"), value: health.error ? uiText("Unavailable") : health.data?.version ?? uiText('Loading…') },
         ]}
         action={
           <Button size="small" variant="outlined" onClick={refetchAll}>

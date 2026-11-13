@@ -44,10 +44,12 @@ const jobIds = ['url_scraping', 'epg_refresh', 'epg_program_cleanup', 'channel_s
   'offline_stream_cleanup', 'activity_log_cleanup', 'media_server_sync', 'v1_epg_programs_migration'] as const;
 export const formatJobName = (id: string): string => {
   const manual = id.startsWith('manual_');
-  const key = manual ? id.slice(7) : id;
+  // A run the scheduler queued after a restart to make up for a missed one.
+  const catchUp = !manual && id.endsWith('_catch_up');
+  const key = manual ? id.slice(7) : catchUp ? id.slice(0, -9) : id;
   const known = jobIds.find(value => value === key);
   const name = known ? jobText(known) : key.replace(/_/g, ' ');
-  return manual ? jobText('manual', { name }) : name;
+  return manual ? jobText('manual', { name }) : catchUp ? jobText('catch_up', { name }) : name;
 };
 const num = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' ? value as Record<string, unknown> : {};

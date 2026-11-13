@@ -32,6 +32,8 @@ describe('job names and results', () => {
     expect(formatJobName('epg_refresh')).toBe('Refresh EPG');
     expect(formatJobName('channel_status')).toBe('Check stream status');
     expect(formatJobName('some_new_job')).toBe('some new job');
+    // A run queued after a restart to make up for a missed one keeps its job's name.
+    expect(formatJobName('channel_status_catch_up')).toBe('Check stream status (catch-up)');
   });
   it('summarises last results per job', () => {
     expect(summarizeJobResult('url_scraping', { processed: 2, failures: 0 })).toBe('2 sources, 0 errors');

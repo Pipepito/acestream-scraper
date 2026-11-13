@@ -2860,5 +2860,11 @@
   "select match row {{name}}": "select match row {{name}}",
   "Select {{name}}": "Select {{name}}",
   "Include {{name}}": "Include {{name}}",
-  "source {{id}}": "source {{id}}"
+  "source {{id}}": "source {{id}}",
+  "Stream links": "Stream links",
+  "online (external)": "online (external)",
+  "online": "online",
+  "not configured": "not configured",
+  "stopped by you": "stopped by you",
+  "not reachable": "not reachable"
 }

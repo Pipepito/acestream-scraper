@@ -64,3 +64,10 @@ it('expands pseudo copy while leaving names and other interpolation values uncha
   expect(tokens(expanded)).toEqual(['name']);
   expect(i18n.t('pseudo-test', { ns: 'ui', defaultValue: expanded, name: 'News 日本語' })).toContain('News 日本語');
 });
+
+it('translates every Settings section name, which fall back to English silently when a key is missing', async () => {
+  const { translateKnown } = await import('../i18n/text');
+  await act(async () => { await i18n.changeLanguage('es'); });
+  expect(['Playback', 'Automation', 'Stream links', 'Access', 'Network'].map(name => translateKnown(name)))
+    .toEqual(['Reproducción', 'Automatización', 'Enlaces de emisión', 'Acceso', 'Red']);
+});

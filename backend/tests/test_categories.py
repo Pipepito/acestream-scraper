@@ -1,4 +1,5 @@
 """Category ownership, lossless metadata and cross-page live discovery contracts."""
+
 from datetime import datetime, timedelta, timezone
 import xml.etree.ElementTree as ET
 import pytest
@@ -12,21 +13,21 @@ from app.services.category_taxonomy import classify_genres, channel_category
 def category_data(db_session):
     now = datetime.now(timezone.utc).replace(microsecond=0)
     source = EPGSource(name='Category guide', url='https://example.test/guide', enabled=True)
-    db_session.add(source); db_session.flush()
+    db_session.add(source)
+    db_session.flush()
     guide = EPGChannel(name='La 1', channel_xml_id='one', epg_source_id=source.id, icon_url='https://example.test/epg-logo.png')
-    db_session.add(guide); db_session.flush()
+    db_session.add(guide)
+    db_session.flush()
     channels = []
     for i in range(3):
-        channel = TVChannel(name=['La 1', 'Sports channel', 'Unknown channel'][i], category=['general', 'sports', None][i],
-            epg_id=guide.channel_xml_id if i == 0 else None, epg_source_id=source.id if i == 0 else None,
-            is_active=True, is_favorite=i == 0, logo_url='https://example.test/manual.png' if i == 0 else None)
-        db_session.add(channel); db_session.flush()
-        db_session.add(AcestreamChannel(id=f'{i+1:040x}', name=channel.name, tv_channel_id=channel.id, is_active=True, is_online=True))
+        channel = TVChannel(name=['La 1', 'Sports channel', 'Unknown channel'][i], category=['general', 'sports', None][i], epg_id=guide.channel_xml_id if i == 0 else None, epg_source_id=source.id if i == 0 else None, is_active=True, is_favorite=i == 0, logo_url='https://example.test/manual.png' if i == 0 else None)
+        db_session.add(channel)
+        db_session.flush()
+        db_session.add(AcestreamChannel(id=f'{i + 1:040x}', name=channel.name, tv_channel_id=channel.id, is_active=True, is_online=True))
         channels.append(channel)
-    program = EPGProgram(epg_channel_id=guide.id, title='Football live', start_time=now-timedelta(minutes=10),
-        end_time=now+timedelta(minutes=10), category='0', category_observations=[
-            EPGProgramCategory(position=0, label='0'), EPGProgramCategory(position=1, label='Football / Soccer', language='en')])
-    db_session.add(program); db_session.commit()
+    program = EPGProgram(epg_channel_id=guide.id, title='Football live', start_time=now - timedelta(minutes=10), end_time=now + timedelta(minutes=10), category='0', category_observations=[EPGProgramCategory(position=0, label='0'), EPGProgramCategory(position=1, label='Football / Soccer', language='en')])
+    db_session.add(program)
+    db_session.commit()
     return now, source, guide, channels, program
 
 
@@ -55,24 +56,33 @@ def test_current_programme_boundary_and_disabled_source(client, db_session, cate
     params = {'category_basis': 'now', 'as_of': now.isoformat(), 'is_favorite': True}
     result = client.get('/api/v1/tv-channels/categories', params=params).json()
     assert result['items'][0]['id'] == 'no-guide'
-    program.end_time = now + timedelta(minutes=5);source.enabled = False;db_session.commit()
+    program.end_time = now + timedelta(minutes=5)
+    source.enabled = False
+    db_session.commit()
     assert client.get('/api/v1/tv-channels/now-next', params={'channel_ids': channels[0].id}).json() == []
 
 
 def test_review_is_read_only_atomic_and_rejects_stale_evidence(client, db_session, category_data):
     _, _, _, channels, _ = category_data
-    row = channels[0];row.category = None;db_session.commit()
+    row = channels[0]
+    row.category = None
+    db_session.commit()
     request = {'channel_ids': [row.id]}
     preview = client.post('/api/v1/tv-channels/category-suggestions/preview', json=request).json()[0]
     assert preview['suggested_category'] == 'general'
-    db_session.refresh(row);assert row.category is None
+    db_session.refresh(row)
+    assert row.category is None
     apply = {'items': [{'channel_id': row.id, 'category_id': 'general', 'fingerprint': preview['fingerprint']}]}
-    row.name = 'Different identity';db_session.commit()
+    row.name = 'Different identity'
+    db_session.commit()
     assert client.post('/api/v1/tv-channels/category-suggestions/apply', json=apply).status_code == 409
-    db_session.refresh(row);assert row.category is None
-    row.name = 'La 1';db_session.commit()
+    db_session.refresh(row)
+    assert row.category is None
+    row.name = 'La 1'
+    db_session.commit()
     assert client.post('/api/v1/tv-channels/category-suggestions/apply', json=apply).json() == {'updated': 1}
-    db_session.refresh(row);assert row.category_origin == 'reviewed'
+    db_session.refresh(row)
+    assert row.category_origin == 'reviewed'
     assert client.post('/api/v1/tv-channels/category-suggestions/apply', json=apply).status_code == 409
 
 
@@ -92,31 +102,34 @@ def test_manual_clear_and_automatic_reset_have_different_ownership(client, db_se
 
 def test_multicategory_refresh_export_and_cleanup(db_session, category_data):
     now, source, guide, _, _ = category_data
-    start = (now+timedelta(hours=1)).strftime('%Y%m%d%H%M%S +0000')
-    end = (now+timedelta(hours=2)).strftime('%Y%m%d%H%M%S +0000')
-    template = '<tv><channel id="one"><display-name>La 1</display-name></channel><programme channel="one" start="'+start+'" stop="'+end+'"><title>Next</title>{}</programme></tv>'
+    start = (now + timedelta(hours=1)).strftime('%Y%m%d%H%M%S +0000')
+    end = (now + timedelta(hours=2)).strftime('%Y%m%d%H%M%S +0000')
+    template = '<tv><channel id="one"><display-name>La 1</display-name></channel><programme channel="one" start="' + start + '" stop="' + end + '"><title>Next</title>{}</programme></tv>'
     service = EPGService(db_session)
     xml = template.format('<category>0</category><category lang="es">Cine, Acción</category><category lang="en">Action</category><category lang="">Unmapped label</category>')
     service._process_epg_xml(source.id, xml.encode())
-    program = db_session.query(EPGProgram).filter_by(title='Next').one();identity=program.id
+    program = db_session.query(EPGProgram).filter_by(title='Next').one()
+    identity = program.id
     assert program.category == '0'
     assert program.genre_ids == ['action', 'movies']
     lines = service.programme_xml_lines(program, 'one')
     parsed = ET.fromstring('\n'.join(lines))
     assert [(c.text, c.get('lang')) for c in parsed.findall('category')] == [('0', None), ('Cine, Acción', 'es'), ('Action', 'en'), ('Unmapped label', '')]
-    service._process_epg_xml(source.id, xml.encode());db_session.expire_all()
+    service._process_epg_xml(source.id, xml.encode())
+    db_session.expire_all()
     assert db_session.query(EPGProgram).filter_by(title='Next').one().id == identity
-    service._process_epg_xml(source.id, template.format('<category>Weather</category>').encode());db_session.expire_all()
+    service._process_epg_xml(source.id, template.format('<category>Weather</category>').encode())
+    db_session.expire_all()
     program = db_session.query(EPGProgram).filter_by(title='Next').one()
     assert program.categories == [{'label': 'Weather', 'language': None}]
     assert db_session.query(EPGProgramCategory).filter_by(program_id=identity).count() == 1
-    service.purge_expired_programs(now=now+timedelta(days=100))
+    service.purge_expired_programs(now=now + timedelta(days=100))
     assert db_session.query(EPGProgramCategory).count() == 0
 
 
 def test_oversized_metadata_rolls_back_import(db_session, category_data):
     _, source, _, _, _ = category_data
-    xml = '<tv><channel id="new"><display-name>New</display-name></channel><programme channel="new" start="20261110000000 +0000" stop="20261110010000 +0000"><title>Long</title><category>'+('x'*1025)+'</category></programme></tv>'
+    xml = '<tv><channel id="new"><display-name>New</display-name></channel><programme channel="new" start="20261110000000 +0000" stop="20261110010000 +0000"><title>Long</title><category>' + ('x' * 1025) + '</category></programme></tv>'
     with pytest.raises(ValueError, match='bounds'):
         EPGService(db_session)._process_epg_xml(source.id, xml.encode())
     assert db_session.query(EPGChannel).filter_by(channel_xml_id='new').count() == 0
@@ -124,8 +137,11 @@ def test_oversized_metadata_rolls_back_import(db_session, category_data):
 
 def test_source_qualified_logo_lookup(client, db_session, category_data):
     _, _, guide, channels, _ = category_data
-    other = EPGSource(name='Other', url='https://example.test/other');db_session.add(other);db_session.flush()
-    db_session.add(EPGChannel(name='Wrong', channel_xml_id=guide.channel_xml_id, epg_source_id=other.id, icon_url='https://example.test/wrong.png'));db_session.commit()
+    other = EPGSource(name='Other', url='https://example.test/other')
+    db_session.add(other)
+    db_session.flush()
+    db_session.add(EPGChannel(name='Wrong', channel_xml_id=guide.channel_xml_id, epg_source_id=other.id, icon_url='https://example.test/wrong.png'))
+    db_session.commit()
     result = client.get(f'/api/v1/tv-channels/{channels[0].id}').json()
     assert result['epg_logo_url'].endswith('/epg-logo.png')
 

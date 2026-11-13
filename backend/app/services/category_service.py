@@ -8,7 +8,7 @@ import re
 
 from app.repositories.category_repository import CategoryRepository
 from app.schemas.categories import CategoryView, CategoryInventory, CategorySuggestion, CategoryCoverage, CategoryCoverageRow
-from app.services.category_taxonomy import (Category, CHANNEL_CATEGORIES, CHANNEL_IDS, GENRES, BY_ID,
+from app.services.category_taxonomy import (Category, CHANNEL_IDS, GENRES, BY_ID,
     TAXONOMY_VERSION, channel_category, normalize_label, classify_genres, artwork_status)
 from app.services.guide_projection import projected_guide
 from app.services.programme_categories import genres, observations

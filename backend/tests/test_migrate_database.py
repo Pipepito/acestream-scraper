@@ -276,8 +276,8 @@ def _strip_scrape_bare_ids_default(v2_path: Path) -> None:
 
 
 def _create_all_v2(v2_path: Path) -> None:
-    from app.config.database import Base
-    from app.models import models  # noqa: F401 - registers the tables on Base
+    # Through the model hub: importing it registers the tables on Base.
+    from app.models.models import Base
 
     engine = create_engine(f"sqlite:///{v2_path.as_posix()}")
     try:

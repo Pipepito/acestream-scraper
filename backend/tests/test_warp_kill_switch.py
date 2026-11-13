@@ -203,6 +203,14 @@ def test_reconnect_endpoint_maps_failures_like_connect(client, monkeypatch):
     assert response.status_code == 200
     assert response.json()['success'] is True
 
+    async def broken():
+        raise RuntimeError('warp-cli did not answer')
+
+    monkeypatch.setattr(module.warp_service, 'reconnect', broken)
+    response = client.post('/api/v1/warp/reconnect')
+    assert response.status_code == 503
+    assert response.json()['error']['code'] == 'WARP_RECONNECT_UNAVAILABLE'
+
 
 def test_kill_switch_that_could_not_be_installed_is_reported_not_hidden(monkeypatch):
     monkeypatch.delenv('SCRAPER_WARP_GUARD', raising=False)

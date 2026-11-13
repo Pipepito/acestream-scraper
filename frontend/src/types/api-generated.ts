@@ -2079,6 +2079,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/providers/interests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Event Provider Interests
+         * @description Names to choose from before a preview. Fetches the provider; saves nothing.
+         */
+        post: operations["event_provider_interests_api_v1_events_providers_interests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/retention": {
         parameters: {
             query?: never;
@@ -6886,6 +6906,20 @@ export interface components {
             /**
              * Timezone
              * @default Europe/Madrid
+             */
+            timezone?: string;
+        };
+        /**
+         * EventProviderInterestsRequest
+         * @description Which names a built-in provider currently publishes; saved interests are ignored.
+         */
+        EventProviderInterestsRequest: {
+            provider_options: components["schemas"]["EventProviderOptions"];
+            /** Timeout Seconds */
+            timeout_seconds?: number | null;
+            /**
+             * Timezone
+             * @default UTC
              */
             timezone?: string;
         };
@@ -14615,6 +14649,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventProviderCatalog"];
+                };
+            };
+        };
+    };
+    event_provider_interests_api_v1_events_providers_interests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventProviderInterestsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventInterestChoices"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

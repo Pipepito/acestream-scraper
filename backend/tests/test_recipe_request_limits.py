@@ -1,4 +1,3 @@
-import pytest
 from app.middleware import recipe_limits
 from test_extraction_recipes import CATALOGUE
 

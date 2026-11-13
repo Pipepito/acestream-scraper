@@ -3,7 +3,7 @@ Service for managing scraping operations
 """
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Optional
 import logging
 
 from app.models.models import ScrapedURL, AcestreamChannel

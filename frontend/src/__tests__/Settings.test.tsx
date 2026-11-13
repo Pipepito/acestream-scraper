@@ -146,6 +146,18 @@ describe('Settings page', () => {
     expect(await screen.findByText('Each stream check now waits up to 30 s')).toBeInTheDocument();
   });
 
+  it('says when the stream check timeout could not be saved', async () => {
+    const rejected = new ApiError({ status: 422, kind: 'validation', canRetry: false, message: 'Stream check timeout must be 5 to 120 seconds' });
+    const mutate = jest.fn((_value, options) => options.onError(rejected));
+    (configHooks.useUpdateAcestreamCheckTimeout as jest.Mock).mockReturnValue({ mutate, isPending: false });
+    renderPage('automation');
+    const input = await screen.findByRole('spinbutton', { name: 'Stream check timeout (seconds)' });
+    fireEvent.change(input, { target: { value: '45' } });
+    fireEvent.submit(screen.getByRole('form', { name: 'Stream check timeout (seconds) form' }));
+    expect(mutate).toHaveBeenCalledWith(45, expect.any(Object));
+    expect(await screen.findByText('Failed to save the stream check timeout: Stream check timeout must be 5 to 120 seconds')).toBeInTheDocument();
+  });
+
   it('saves the stream check interval in minutes and reports failure', async () => {
     const mutate = jest.fn((_value, options) => options.onError(new Error('Unavailable')));
     (configHooks.useUpdateChannelStatusInterval as jest.Mock).mockReturnValue({ mutate, isPending: false });

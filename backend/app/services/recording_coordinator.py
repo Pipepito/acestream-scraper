@@ -1,6 +1,6 @@
 """Dedicated DVR event loop and durable journal reconciliation, outside maintenance FIFO."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import asyncio
 import contextlib
 import fcntl

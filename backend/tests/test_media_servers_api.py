@@ -2,9 +2,12 @@
 import httpx
 import pytest
 
-# resolvable_fake_hosts is an autouse fixture: imported here so the fake ``.lan``
-# hosts resolve for the guard every client runs before a request (spec 4.4).
-from tests.test_media_servers import FakeJellyfin, FakePlex, resolvable_fake_hosts  # noqa: F401
+from tests import test_media_servers
+from tests.test_media_servers import FakeJellyfin, FakePlex
+
+# An autouse fixture, shared with this module so the fake ``.lan`` hosts resolve
+# for the guard every client runs before a request (spec 4.4).
+resolvable_fake_hosts = test_media_servers.resolvable_fake_hosts
 
 
 @pytest.fixture

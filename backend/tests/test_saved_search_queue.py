@@ -42,7 +42,8 @@ def test_manual_and_scheduled_targets_coalesce_in_both_orders():
             assert completed.wait(5)
         assert order == ['epg', 'manual', 'urls']
         # Scheduled-first reservation exists while its enclosing URL work runs.
-        entered.clear(); release.clear()
+        entered.clear()
+        release.clear()
         with ThreadPoolExecutor(1) as pool:
             scheduled = pool.submit(service._instrument_task('url_scraping', lambda targets: (blocker(), targets)[1], maintenance=True))
             assert entered.wait(5)

@@ -10,7 +10,6 @@ import asyncio
 import time
 
 import anyio
-from unittest.mock import Mock
 import httpx
 import pytest
 

@@ -202,7 +202,6 @@ class XMLTVProcessing:
         Parse XMLTV time format: YYYYMMDDHHMMSS +ZZZZ
         Examples: 20231201120000 +0000, 20231201120000
         """
-        import re
 
         # Remove any extra whitespace
         time_str = time_str.strip()

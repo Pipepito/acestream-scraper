@@ -1,8 +1,7 @@
 """
 Service for channel operations
 """
-from typing import List, Optional, Dict, Any, Tuple
-from datetime import datetime
+from typing import List, Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 from app.repositories.channel_repository import ChannelRepository

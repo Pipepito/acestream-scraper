@@ -332,3 +332,36 @@ def test_delete_source_preserves_events_and_invalidates_pending_review(client, f
     assert response.status_code == 409
     assert client.get('/api/v1/events/sources').json() == []
     assert client.get('/api/v1/events').json() == before
+
+
+def test_reviewing_a_saved_url_with_a_window_and_interests_narrows_the_preview(client, monkeypatch):
+    from app.services import event_source_service
+    data = schedule()
+    base = {**data['observations'][0], 'broadcasts': []}
+    soon = (datetime.now(timezone.utc) + timedelta(days=2)).replace(microsecond=0)
+    data['observations'] = [
+        {**base, 'external_id': 'soon-football', 'title': 'North vs South', 'sport': 'Football', 'starts_at': soon.isoformat()},
+        {**base, 'external_id': 'soon-tennis', 'title': 'First vs Second', 'sport': 'Tennis', 'participants': [],
+         'starts_at': soon.isoformat()},
+        {**base, 'external_id': 'later-football', 'title': 'East vs West', 'sport': 'Football',
+         'starts_at': (soon + timedelta(days=20)).isoformat()},
+    ]
+
+    async def fetch(*args, **kwargs):
+        return EventImport.model_validate(data)
+    monkeypatch.setattr(event_source_service, 'fetch_schedule', fetch)
+
+    everything = source_preview(client)
+    assert {e['title'] for e in everything['events']} == {'North vs South', 'First vs Second', 'East vs West'}
+    source = save_source(client, everything)
+
+    def review(**choices):
+        response = client.post('/api/v1/events/sources/preview', json={'source_id': source['id'], **choices})
+        assert response.status_code == 200, response.text
+        return {e['title'] for e in response.json()['events']}
+
+    # A plain review of the saved source still shows the whole schedule.
+    assert review() == {'North vs South', 'First vs Second', 'East vs West'}
+    assert review(window_days=7) == {'North vs South', 'First vs Second'}
+    assert review(window_days=30) == {'North vs South', 'First vs Second', 'East vs West'}
+    assert review(window_days=7, interests={'sports': ['Football']}) == {'North vs South'}

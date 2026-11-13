@@ -1,9 +1,13 @@
 """Thin DVR API. All endpoints inherit the application's optional API token."""
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
+from app.api.auth import authenticated_player_url
 from app.config.database import get_db
+from app.models.models import _utcnow
 from app.schemas.recordings import (RecordingCreate, RecordingEdit, RecordingView, RecordingList,
-    RecordingSettings, RecordingCapabilities, RecordingConversion, RecordingFile, RecordingState)
+    RecordingSettings, RecordingCapabilities, RecordingConversion, RecordingFile, RecordingState,
+    ProgrammeSelection, RecordingPlaybackRequest, RecordingPlaybackView)
+from app.services import recording_playback
 from app.services.recording_service import RecordingService
 from app.services.recording_files import file_response
 
@@ -40,10 +44,6 @@ def listing(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
             state: RecordingState | None = None, search: str | None = Query(None, max_length=200),
             tv_channel_id: int | None = None, svc: RecordingService = Depends(service)):
     return svc.list(offset, limit, state=state, search=search, tv_channel_id=tv_channel_id)
-
-
-from app.schemas.recordings import ProgrammeSelection
-from app.models.models import _utcnow
 
 
 @router.get('/current-programme', response_model=ProgrammeSelection | None)
@@ -91,11 +91,6 @@ def convert(rid: str, data: RecordingConversion, svc: RecordingService = Depends
 @router.head('/{rid}/files/{fid}')
 def file(rid: str, fid: str, request: Request, download: bool = False, svc: RecordingService = Depends(service)):
     return file_response(svc, rid, fid, request, download)
-
-
-from app.schemas.recordings import RecordingPlaybackRequest, RecordingPlaybackView
-from app.services import recording_playback
-from app.api.auth import authenticated_player_url
 
 
 def playback_url(view, request):

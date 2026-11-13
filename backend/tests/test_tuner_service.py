@@ -110,10 +110,12 @@ def test_fingerprints_change_with_lineup_and_epg_sources(db_session):
     assert svc.lineup_fingerprint(svc.build_lineup()) != empty
     g0 = svc.guide_fingerprint()
     source = EPGSource(url="http://x", name="x", enabled=True, last_updated=datetime(2026, 1, 1, tzinfo=timezone.utc))
-    db_session.add(source); db_session.commit()
+    db_session.add(source)
+    db_session.commit()
     g1 = svc.guide_fingerprint()
     assert g1 != g0
-    source.last_error = "boom"; db_session.commit()
+    source.last_error = "boom"
+    db_session.commit()
     assert svc.guide_fingerprint() == g0  # failed sources are ignored
 
 

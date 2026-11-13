@@ -1,6 +1,7 @@
 import ssl
 from types import SimpleNamespace
 
+import aiohttp
 import pytest
 
 from app.models.url_types import RegularURL
@@ -57,7 +58,7 @@ async def test_http_scraper_uses_certifi_ssl_context(monkeypatch):
     monkeypatch.setattr(http_scraper_module, "validate_outbound_url", lambda _url: None)
     monkeypatch.setattr(http_scraper_module, "ssl", SimpleNamespace(create_default_context=fake_create_default_context), raising=False)
     monkeypatch.setattr(http_scraper_module, "certifi", SimpleNamespace(where=lambda: "/tmp/certifi.pem"), raising=False)
-    monkeypatch.setattr(http_scraper_module.aiohttp, "ClientSession", fake_client_session)
+    monkeypatch.setattr(aiohttp, "ClientSession", fake_client_session)
 
     content = await scraper.fetch_content("https://example.com/test.m3u")
 

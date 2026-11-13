@@ -1,17 +1,12 @@
 """
 Database table creation script for Acestream Scraper v2
 """
+from importlib import import_module
+
 from app.config.database import engine, Base
-from app.models.models import (
-    ScrapedURL, 
-    AcestreamChannel, 
-    EPGSource, 
-    TVChannel, 
-    EPGChannel, 
-    EPGProgram, 
-    EPGStringMapping, 
-    Setting
-)
+
+# Importing the model hub registers every table on Base.metadata.
+import_module("app.models.models")
 
 def create_tables():
     """Create all database tables"""

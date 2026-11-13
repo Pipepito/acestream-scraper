@@ -28,7 +28,7 @@ class URLRepository:
 
     def get_enabled(self) -> List[ScrapedURL]:
         """Get enabled ScrapedURLs only."""
-        result = self.db.execute(select(ScrapedURL).where(ScrapedURL.enabled == True))
+        result = self.db.execute(select(ScrapedURL).where(ScrapedURL.enabled.is_(True)))
         return result.scalars().all()
 
     def get_by_id(self, url_id: int) -> Optional[ScrapedURL]:

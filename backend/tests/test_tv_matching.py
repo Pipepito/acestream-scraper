@@ -29,10 +29,12 @@ def test_preview_apply_and_stale_assignments(client, db_session):
     from app.models.models import AcestreamChannel, TVChannel
     tv = TVChannel(name='DAZN 1')
     other = TVChannel(name='Other')
-    db_session.add_all([tv, other]); db_session.flush()
+    db_session.add_all([tv, other])
+    db_session.flush()
     streams = [AcestreamChannel(id=str(i)*40, name='DAZN 1 FHD --> ELCANO') for i in range(1, 4)]
     streams[2].tv_channel_id = other.id
-    db_session.add_all(streams); db_session.commit()
+    db_session.add_all(streams)
+    db_session.commit()
     preview = client.post('/api/v1/tv-channels/automatch/preview')
     assert preview.status_code == 200
     data = preview.json()
@@ -53,16 +55,19 @@ def test_preview_apply_and_stale_assignments(client, db_session):
 def test_ambiguity_epg_and_metadata_changes(client, db_session):
     from app.models.models import AcestreamChannel, TVChannel
     tvs = [TVChannel(name='Sport', epg_id='one'), TVChannel(name='Sport HD', epg_id='two')]
-    db_session.add_all(tvs); db_session.flush()
+    db_session.add_all(tvs)
+    db_session.flush()
     streams = [AcestreamChannel(id='a'*40, name='Sport'), AcestreamChannel(id='b'*40, name='Sport', tvg_id='one'),
                AcestreamChannel(id='c'*40, name='Sport', tvg_id='conflict')]
-    db_session.add_all(streams); db_session.commit()
+    db_session.add_all(streams)
+    db_session.commit()
     data = client.post('/api/v1/tv-channels/automatch/preview').json()
     assert data['ambiguous_streams'] == 1
     assert data['unmatched_streams'] == 1
     assert len(data['candidates']) == 1
     assert data['candidates'][0]['reason'] == 'Exact EPG ID and normalized name'
-    streams[1].tvg_id = 'changed'; db_session.commit()
+    streams[1].tvg_id = 'changed'
+    db_session.commit()
     request = {'assignments': [{'acestream_channel_id': streams[1].id, 'tv_channel_id': tvs[0].id}]}
     assert client.post('/api/v1/tv-channels/automatch/apply', json=request).json()['skipped_count'] == 1
     request['assignments'].append({'acestream_channel_id': streams[1].id, 'tv_channel_id': tvs[1].id})
@@ -116,14 +121,16 @@ def test_unknown_edition_is_ambiguous_and_epg_conflicts_need_review(client, db_s
     from app.models.models import AcestreamChannel, TVChannel
     spanish = TVChannel(name='DAZN 1', epg_id='dazn-es')
     portuguese = TVChannel(name='PT | DAZN 1', epg_id='dazn-pt')
-    db_session.add_all([spanish, portuguese]); db_session.flush()
+    db_session.add_all([spanish, portuguese])
+    db_session.flush()
     streams = [
         AcestreamChannel(id='e'*40, name='DAZN 1 HD'),
         AcestreamChannel(id='f'*40, name='DAZN 1 HD', tvg_id='dazn-es'),
         AcestreamChannel(id='g'*40, name='DAZN 2 HD', tvg_id='dazn-es'),
         AcestreamChannel(id='h'*40, name='DAZN 1 HD', tvg_name='DAZN 2 HD', tvg_id='dazn-es'),
     ]
-    db_session.add_all(streams); db_session.commit()
+    db_session.add_all(streams)
+    db_session.commit()
     data = client.post('/api/v1/tv-channels/automatch/preview').json()
     assert data['ambiguous_streams'] == 1
     matches = {item['acestream_channel_id']: item for item in data['candidates']}
@@ -160,14 +167,16 @@ def test_dazn_and_movistar_station_matrix(client, db_session):
     names = ['DAZN 1', 'DAZN 2', 'DAZN 3', 'DAZN 4', 'DAZN LaLiga', 'DAZN F1',
              'M+ Acción', 'M+ Peliculas', 'M+ Comedia']
     targets = [TVChannel(name=name) for name in names]
-    db_session.add_all(targets); db_session.flush()
+    db_session.add_all(targets)
+    db_session.flush()
     streams = []
     for index, target in enumerate(targets):
         stream_name = target.name.replace('M+', 'Movistar')
         for backup in range(2):
             streams.append(AcestreamChannel(id=f'{index:038d}{backup:02d}', name=f'{stream_name} HD --> Provider'))
     streams.append(AcestreamChannel(id='z'*40, name='DAZN Liga'))
-    db_session.add_all(streams); db_session.commit()
+    db_session.add_all(streams)
+    db_session.commit()
     result = client.post('/api/v1/tv-channels/automatch/preview').json()
     assert len(result['candidates']) == 18
     assert result['unmatched_streams'] == 1
@@ -185,7 +194,8 @@ def test_complete_reviewed_catalog_matches_independent_expectations(client, db_s
     from app.models.models import AcestreamChannel, TVChannel
     fixture = json.loads((Path(__file__).parent / 'fixtures/tv_matching_reviewed_catalog.json').read_text())
     targets = [TVChannel(name=name) for name in fixture['tv_names']]
-    db_session.add_all(targets); db_session.flush()
+    db_session.add_all(targets)
+    db_session.flush()
     by_name = {tv.name: tv.id for tv in targets}
     expected = {}
     for group_index, group in enumerate(fixture['stream_groups']):
@@ -240,13 +250,15 @@ def test_every_reviewed_tv_station_stays_separate_from_every_other():
 def test_country_assumption_resolves_only_unlabelled_editions_and_revalidates(client, db_session):
     from app.models.models import AcestreamChannel, TVChannel
     targets = [TVChannel(name='DAZN 1'), TVChannel(name='PT | DAZN 1'), TVChannel(name='FR | beIN Sports 1')]
-    db_session.add_all(targets); db_session.flush()
+    db_session.add_all(targets)
+    db_session.flush()
     streams = [AcestreamChannel(id='a'*40, name='DAZN 1 HD'),
                AcestreamChannel(id='b'*40, name='DAZN 1 HD (PT)'),
                AcestreamChannel(id='c'*40, name='beIN Sports 1 HD'),
                AcestreamChannel(id='d'*40, name='DAZN 1 HD', tvg_name='DAZN 1 (PT)'),
                AcestreamChannel(id='e'*40, name='DAZN 1 (ES) [PT]')]
-    db_session.add_all(streams); db_session.commit()
+    db_session.add_all(streams)
+    db_session.commit()
     url = '/api/v1/tv-channels/automatch/preview'
     base = client.post(url).json()
     assert 'a'*40 not in {item['acestream_channel_id'] for item in base['candidates']}

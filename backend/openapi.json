@@ -4750,6 +4750,39 @@
         "title": "EventProviderChoice",
         "type": "object"
       },
+      "EventProviderInterestsRequest": {
+        "additionalProperties": false,
+        "description": "Which names a built-in provider currently publishes; saved interests are ignored.",
+        "properties": {
+          "provider_options": {
+            "$ref": "#/components/schemas/EventProviderOptions"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          },
+          "timezone": {
+            "default": "UTC",
+            "maxLength": 100,
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider_options"
+        ],
+        "title": "EventProviderInterestsRequest",
+        "type": "object"
+      },
       "EventProviderOptions": {
         "additionalProperties": false,
         "properties": {
@@ -19968,6 +20001,48 @@
           }
         },
         "summary": "Event Providers",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/v1/events/providers/interests": {
+      "post": {
+        "description": "Names to choose from before a preview. Fetches the provider; saves nothing.",
+        "operationId": "event_provider_interests_api_v1_events_providers_interests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventProviderInterestsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventInterestChoices"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Event Provider Interests",
         "tags": [
           "events"
         ]

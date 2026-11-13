@@ -207,9 +207,11 @@ def lan(monkeypatch):
     from app.config.settings import get_settings
     from app.services.tuner_network import get_tuner_gate
     monkeypatch.setenv("TUNER_ALLOWED_NETWORKS", "*")
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
     yield
-    get_settings.cache_clear(); get_tuner_gate.cache_clear()
+    get_settings.cache_clear()
+    get_tuner_gate.cache_clear()
 
 
 def test_not_opened_outside_allowed_networks(client, db_session, monkeypatch):
@@ -593,7 +595,6 @@ def test_apunt_live_page_cannot_use_up_the_resolution_budget(fake, monkeypatch):
     """The page gets a short deadline of its own, and the request after it
     sees the caller's deadline again. Without this a slow website took the
     whole 15 s and the last request was never made."""
-    import time
     clock = [5000.0]
     monkeypatch.setattr(apunt.time, 'monotonic', lambda: clock[0])
     caller_deadline = clock[0] + 15

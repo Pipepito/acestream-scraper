@@ -8,6 +8,7 @@ source as a stream change (measured 720p->720p and 720p->1080p).
 """
 import asyncio
 import inspect
+import logging
 from unittest.mock import Mock
 
 import pytest
@@ -61,3 +62,42 @@ async def test_without_the_setting_the_response_ends_as_before(monkeypatch):
 def test_the_channel_route_passes_the_setting():
     from app.api.endpoints import tuner
     assert 'switch_midstream=await run_in_threadpool(_switch_on_failure)' in inspect.getsource(tuner)
+
+
+@pytest.mark.asyncio
+async def test_the_channel_response_ends_cleanly_when_every_source_is_spent(monkeypatch, caplog):
+    # Video already went out: running out of sources ends the response, it is
+    # not an error raised into a transfer the client is reading.
+    from types import SimpleNamespace
+    from starlette.requests import Request
+    from app.api.endpoints import tuner
+    registry = RelayRegistry()
+    stopped = []
+    monkeypatch.setattr(tuner, 'relay_registry', registry)
+    monkeypatch.setattr(tuner, '_channel_candidates', lambda *args, **kwargs: ['first', 'second'])
+    monkeypatch.setattr(tuner, '_tuner_count', lambda: 1)
+    monkeypatch.setattr(tuner, '_engine', Mock)
+    monkeypatch.setattr(tuner, '_relay_settings', lambda: SimpleNamespace(
+        experimental_transcoding=False, plex_compatible_audio=False, source_start_seconds=1, startup_budget_seconds=2))
+    monkeypatch.setattr(tuner, '_switch_on_failure', lambda: True)
+    monkeypatch.setattr(tuner.tuner_probe_service, 'start', Mock(return_value=None))
+    monkeypatch.setattr(tuner.tuner_probe_service, 'stop_channel', stopped.append)
+
+    async def relay(_engine, _candidates, _label, claim, **kwargs):
+        assert kwargs['switch_midstream'] is True
+        try:
+            yield b'first-a'
+            yield b'second-a'
+            raise EngineStreamError('No source left')
+        finally:
+            registry.close(claim.id)
+    monkeypatch.setattr(tuner, 'relay_ranked_streams', relay)
+
+    response = await tuner.tuner_channel(7, Request({'type': 'http', 'method': 'GET', 'client': ('127.0.0.1', 1)}))
+    with caplog.at_level(logging.INFO, logger=tuner.__name__):
+        chunks = [chunk async for chunk in response.body_iterator]
+
+    assert chunks == [b'first-a', b'second-a']
+    assert 'ran out of sources after playback; ending tv_channel_id=7' in caplog.text
+    assert stopped == [7]
+    assert registry.count_active() == 0

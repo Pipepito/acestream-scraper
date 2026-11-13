@@ -10,7 +10,7 @@ from app.models.recordings import Recording, RecordingArtifact
 from app.repositories.recording_repository import RecordingRepository, PENDING
 from app.schemas.recordings import (RecordingSettings, RecordingSnapshot, RecordingView, RecordingFile,
     RecordingAttemptView, RecordingList, RecordingCapabilities)
-from app.services.recording_storage import RecordingStorage, binaries, media_capabilities
+from app.services.recording_storage import RecordingStorage, media_capabilities
 
 CONFIG_KEY = 'recordings'
 ROOT_KEY = 'recordings_root_id'

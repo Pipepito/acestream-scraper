@@ -290,6 +290,13 @@ def test_a_viewing_is_written_while_it_plays_and_its_end_rewrites_the_same_row(d
     assert [(r.outcome, r.seconds) for r in db_session.query(StreamAttempt)] == [('stall', 75)]
 
 
+def test_rewriting_a_viewing_whose_row_is_gone_changes_nothing(db_session):
+    # History is pruned and sources are deleted while a channel plays.
+    from app.repositories.stream_attempt_repository import StreamAttemptRepository
+    assert StreamAttemptRepository(db_session).update(999, 'stall', seconds=75) is None
+    assert db_session.query(StreamAttempt).count() == 0
+
+
 def test_a_viewing_cut_short_by_a_power_off_keeps_what_was_watched(db_session):
     """No final outcome ever comes: the last checkpoint is the viewing."""
     tv = _channel(db_session)

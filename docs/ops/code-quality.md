@@ -24,7 +24,9 @@ Do not add real credentials to fixtures; use clearly synthetic test data.
 The full suite writes backend Cobertura/JUnit and frontend Cobertura/Jest JSON
 under `.quality-reports/`. Generated TypeScript API declarations, declarations,
 test helpers/tests and build output are excluded from coverage; runtime code is
-not excluded to improve the percentage. Jenkins additionally normalizes Jest to
+not excluded to improve the percentage. Alembic migrations (`backend/migrations/`)
+are excluded too: the migration tests run them through Alembic in a subprocess,
+which coverage does not measure, so their lines always counted as never executed. Jenkins additionally normalizes Jest to
 JUnit and compares executable changed lines against the authenticated target's
 merge base. No changed executable lines means N/A, not 100%.
 

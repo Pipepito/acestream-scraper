@@ -3,7 +3,6 @@ Integration tests for EPG endpoints
 """
 
 import pytest
-import uuid
 from datetime import datetime, timedelta
 from fastapi import status
 
@@ -453,7 +452,7 @@ class TestEPGStringMappingEndpoints:
 
     def test_auto_map_channels_regex(self, client, seed_epg_channels, seed_tv_channels, db_session):
         """Test auto-mapping with regex pattern."""
-        from app.models.models import EPGStringMapping, TVChannel
+        from app.models.models import EPGStringMapping
         epg_channel = seed_epg_channels[0]
         tv_channel = seed_tv_channels[0]
         tv_channel.name = "MySpecialChannel123"
@@ -541,7 +540,7 @@ class TestEPGGlobalMappingEndpoints:
 
     def test_auto_map_channels(self, client, seed_epg_channels, seed_tv_channels, db_session):
         """Test auto-mapping TV channels to EPG channels based on string patterns."""
-        from app.models.models import EPGStringMapping, TVChannel
+        from app.models.models import EPGStringMapping
         # Add a mapping that should match a TV channel name
         epg_channel = seed_epg_channels[0]
         tv_channel = seed_tv_channels[0]

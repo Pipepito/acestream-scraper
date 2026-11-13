@@ -1,6 +1,5 @@
 """Failed gates must remain diagnosable without a Jenkins workspace or rerun."""
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys

@@ -7,7 +7,6 @@ from app.utils.outbound_http import source_session
 import asyncio
 import json
 import re
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 
 from app.models.url_types import ZeronetURL

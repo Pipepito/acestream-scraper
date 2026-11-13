@@ -180,6 +180,22 @@ def test_warp_restart_still_happens_when_the_early_block_fails(tmp_path, monkeyp
     assert signalled == [os.getpid()]
 
 
+def test_warp_restart_without_the_kill_switch_leaves_nftables_alone(tmp_path, monkeypatch):
+    # Manual or DNS-only WARP has no guard to hold: restart only signals.
+    import warp_guard
+
+    _clear_env(monkeypatch)
+    monkeypatch.delenv("SCRAPER_WARP_GUARD", raising=False)
+    (tmp_path / "warp.pid").write_text(str(os.getpid()))
+    service = _service(tmp_path, FakeHttp({}))
+    signalled: list[int] = []
+    monkeypatch.setattr(warp_guard.Guard, "arm", lambda self: pytest.fail("the kill switch does not apply"))
+    monkeypatch.setattr(service, "_terminate", lambda pid: signalled.append(pid))
+
+    assert service.restart("warp")["success"] is True
+    assert signalled == [os.getpid()]
+
+
 def test_other_services_restart_without_touching_the_warp_guard(tmp_path, monkeypatch):
     import warp_guard
 

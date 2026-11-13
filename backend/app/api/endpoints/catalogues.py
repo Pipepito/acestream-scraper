@@ -6,7 +6,9 @@ from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from app.config.database import get_db
 from app.schemas.catalogue import (CataloguePreviewRequest, CatalogueSaveRequest, CatalogueSummary, CatalogueView,
-    FolderAssignRequest, FolderAssignResult, FolderMatchPreview, FolderMatchApplyRequest, FolderMatchApplyResult)
+    FolderAssignRequest, FolderAssignResult, FolderMatchPreview, FolderMatchApplyRequest, FolderMatchApplyResult,
+    CatalogueEventPreviewRequest)
+from app.schemas.events import EventPreview
 from app.services.catalogue_service import CatalogueService, ConflictError
 
 class PrivateInputRoute(APIRoute):
@@ -86,10 +88,6 @@ def preview_folder_matches(catalogue_id: int, svc: CatalogueService = Depends(se
 def apply_folder_matches(catalogue_id: int, request: FolderMatchApplyRequest, svc: CatalogueService = Depends(service)):
     """Apply the chosen folder assignments in one transaction; a vanished folder or TV channel rejects the whole request."""
     return invoke(svc.apply_folder_matches, catalogue_id, request)
-
-
-from app.schemas.catalogue import CatalogueEventPreviewRequest
-from app.schemas.events import EventPreview
 
 
 @router.post('/{catalogue_id}/events/preview', response_model=EventPreview)

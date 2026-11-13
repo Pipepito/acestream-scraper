@@ -1,7 +1,7 @@
 """
 API endpoints for TV channel management
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -36,9 +36,6 @@ from app.schemas.channel import (
 )
 
 router = APIRouter()
-
-
-from fastapi import Query
 
 
 @router.post("/automatch/preview", response_model=TVMatchPreview)
@@ -461,7 +458,7 @@ async def bulk_update_epg(
                 continue
 
             # Update the EPG ID
-            updated_channel = service.update_tv_channel(
+            service.update_tv_channel(
                 tv_channel_id=tv_channel_id,
                 updates={"epg_id": epg_id}
             )

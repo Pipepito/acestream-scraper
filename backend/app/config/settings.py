@@ -55,7 +55,8 @@ class Settings(BaseSettings):
                             warning['selected'] = warning['replacement']
                     if os.environ.get('SCRAPER_RUNTIME_LOADED') != '1':
                         values = resolved_values(bootstrap_values(raw, saved['runtime']))
-                        for name in OPTION_MAP: data.pop(name, None)
+                        for name in OPTION_MAP:
+                            data.pop(name, None)
                         data.update({name: value for name, value in values.items() if name in cls.model_fields})
             data["configuration_warnings"] = warnings
             return data

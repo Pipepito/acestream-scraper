@@ -150,6 +150,7 @@ for (const mode of ['light', 'dark']) {
       let json: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
       if (path === '/api/v1/events') json = { events: [], total: 0 };
       if (path === '/api/v1/events/providers') json = { feeds: [], football_competitions: [], leagues: [] };
+      if (path === '/api/v1/events/providers/interests') json = { sports: ['Basketball', 'Football'], competitions: ['Example Cup'], teams: [] };
       if (path === '/api/v1/events/sources/preview') {
         previewBody = route.request().postDataJSON();
         json = { token: 'marca-preview', events: [fixture], warnings: [], available_interests: { sports: ['Football'], competitions: ['Example Cup'], teams: [] } };
@@ -165,8 +166,9 @@ for (const mode of ['light', 'dark']) {
     await page.getByTestId('page-header-primary-actions').getByRole('button', { name: 'Add events', exact: true }).click();
     await page.getByRole('combobox', { name: /^Provider/ }).click();
     await page.getByRole('option', { name: /MARCA/ }).click();
-    await page.getByRole('combobox', { name: 'Import: Sports', exact: true }).fill('Football');
-    await page.keyboard.press('Enter');
+    // Sports are chosen from MARCA's own names; typing only narrows the list.
+    await page.getByRole('combobox', { name: 'Import: Sports', exact: true }).fill('foot');
+    await page.getByRole('option', { name: 'Football', exact: true }).click();
     expect(previewBody).toBeUndefined();
     await page.getByRole('button', { name: 'Preview events', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Save source without events', exact: true })).toBeVisible();

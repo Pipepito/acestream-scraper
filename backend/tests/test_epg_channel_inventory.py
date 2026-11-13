@@ -23,6 +23,8 @@ def test_shared_channel_inventory_keeps_programmes_and_source_deletion_independe
     assert len(shared['sources']) == 2
     assert db_session.query(EPGChannelIdentity).count() == 2
     assert db_session.query(EPGChannel).count() == 3  # Source memberships, not inventory channels.
+    from app.repositories.epg_inventory_repository import EPGInventoryRepository
+    assert EPGInventoryRepository(db_session).count() == 2
     assert len(client.get(f'/api/v1/epg/channels/{shared["id"]}').json()['sources']) == 2
     assert client.get('/api/v1/epg/channels', params={'source_id': sources[1].id}).json()['total'] == 1
     service._process_epg_xml(sources[0].id, guide(title='Corrected first schedule'))

@@ -1,8 +1,6 @@
-from app.services.telegram import ingestion
 """No live Telegram account or credentials. Transport is synthetic throughout."""
 import asyncio
 import json
-import os
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -12,6 +10,7 @@ from cryptography.fernet import Fernet
 from telethon import errors, types
 from app.schemas.telegram import TelegramPeer, TelegramPreviewRequest, TelegramSourceConfig, TelegramSourceCreate, TelegramLogin
 from app.schemas.extraction import ExtractionRecipe, RecipePreview
+from app.services.telegram import ingestion
 from app.services.telegram.extraction import Message, PAIR_RECIPE, preview_message, EMPTY
 from app.services.telegram.transport import normalize, Transport
 from app.services.telegram.manager import Manager
@@ -110,7 +109,9 @@ def test_additive_replay_edit_delete_and_manual_ownership(alembic_backend_runtim
     assert ingestion.record(source.id, 'account', generation, 1, 'one', result, True)
     with alembic_backend_runtime.SessionLocal() as db:
         assert db.query(AcestreamChannel).count() == 6
-        channel = db.get(AcestreamChannel, IDS[0]); channel.name = 'Manual'; channel.is_active = False
+        channel = db.get(AcestreamChannel, IDS[0])
+        channel.name = 'Manual'
+        channel.is_active = False
         db.commit()
     assert ingestion.record(source.id, 'account', generation, 1, 'edit', result, False)
     assert ingestion.record(source.id, 'account', generation, 1, 'delete', RecipePreview(**EMPTY), False)
@@ -135,7 +136,9 @@ def test_additive_replay_edit_delete_and_manual_ownership(alembic_backend_runtim
 def private_settings(tmp_path, monkeypatch):
     from app.config.settings import get_settings
     monkeypatch.setattr('app.repositories.startup_recovery.database_path', lambda: tmp_path / 'config' / 'scraper.db')
-    key = tmp_path / 'key'; key.write_bytes(Fernet.generate_key()); key.chmod(0o600)
+    key = tmp_path / 'key'
+    key.write_bytes(Fernet.generate_key())
+    key.chmod(0o600)
     root = tmp_path / 'sessions'
     monkeypatch.setenv('TELEGRAM_KEY_FILE', str(key))
     monkeypatch.setenv('TELEGRAM_SESSION_DIR', str(root))
@@ -148,7 +151,8 @@ def private_settings(tmp_path, monkeypatch):
 def test_vault_encryption_permissions_lock_and_recovery(private_settings):
     from app.services.telegram.vault import Vault
     key, root = private_settings
-    vault = Vault(); vault.acquire()
+    vault = Vault()
+    vault.acquire()
     data = {'session': 'session-secret', 'api_hash': 'hash-secret'}
     vault.save(data)
     assert vault.load() == data
@@ -157,7 +161,10 @@ def test_vault_encryption_permissions_lock_and_recovery(private_settings):
     other = Vault()
     with pytest.raises(ValueError, match='Another process'):
         other.acquire()
-    vault.close(); other.acquire(); assert other.load() == data; other.close()
+    vault.close()
+    other.acquire()
+    assert other.load() == data
+    other.close()
     key.chmod(0o644)
     with pytest.raises(ValueError, match='0600'):
         Vault()
@@ -219,12 +226,14 @@ class FakeTransport:
     def subscribe(self, callback): self.callback = callback
     async def send_code(self, phone): return 'temporary-code-hash'
     async def code(self, *args):
-        if self.need_password: raise errors.SessionPasswordNeededError(None)
+        if self.need_password:
+            raise errors.SessionPasswordNeededError(None)
     async def password(self, value): pass
     async def me(self): return SimpleNamespace(id=123, first_name='Test account')
     async def logout(self): self.revoked = True
     async def member(self, chat):
-        if self.lost_access: raise ValueError('lost')
+        if self.lost_access:
+            raise ValueError('lost')
         return chat, 'Sports chat'
     async def label(self, identity): return 'Test sender'
     async def topics(self, entity): return [TelegramPeer(id='7', label='Links', kind='topic')]
@@ -341,7 +350,8 @@ def test_private_routes_never_echo_secrets_and_preview_never_writes(alembic_back
     from app.models.models import AcestreamChannel
     service = Manager(FakeTransport)
     monkeypatch.setattr(telegram, 'manager', service)
-    app = FastAPI(); app.include_router(telegram.router, prefix='/api/v1/telegram')
+    app = FastAPI()
+    app.include_router(telegram.router, prefix='/api/v1/telegram')
     headers = {'X-Telegram-Admin': 'admin-' + 'x'*40}
     with TestClient(app, base_url='https://testserver') as client:
         invalid = client.post('/api/v1/telegram/login', headers=headers,

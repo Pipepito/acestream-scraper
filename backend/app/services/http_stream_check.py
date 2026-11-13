@@ -35,7 +35,7 @@ async def check(stream_url: str, headers: Optional[Dict[str, str]] = None) -> Tu
     try:
         async with asyncio.timeout(TIMEOUT + 5):
             if live_providers.for_stream_url(stream_url) is not None:
-                stream_url = await live_providers.resolve_async(stream_url, timeout=TIMEOUT)
+                stream_url = await live_providers.resolve_async(stream_url, timeout=TIMEOUT, checking=True)
                 if not stream_url:
                     return None, 'The broadcaster did not return a live link'
             url, response = await _get(stream_url, headers, sample=True, media_limit=SAMPLE_BYTES)

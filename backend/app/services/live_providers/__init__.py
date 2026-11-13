@@ -2,10 +2,11 @@
 
 Adding a broadcaster's website as a scraper source (https://www.atresplayer.com,
 https://www.mediasetinfinity.es, https://www.7riojaplay.tv,
-https://www.telemadrid.es, https://www.apuntmedia.es) imports its channels
-like any M3U list: the source is recognised by its host and its channels are
-written out as M3U, each stream stored as `<scheme>://<id>` with the headers
-playback needs.
+https://www.telemadrid.es; for free ad-supported channels in Spain,
+https://pluto.tv, https://watch.plex.tv, https://www.samsungtvplus.com)
+imports its channels like any M3U list: the
+source is recognised by its host and its channels are written out as M3U,
+each stream stored as `<scheme>://<id>` with the headers playback needs.
 
 Their links carry signed tokens that expire -- Mediaset's master playlist
 after about ten minutes, Atresmedia's after eight hours -- so they are never
@@ -16,9 +17,10 @@ from typing import Optional
 from types import ModuleType
 from urllib.parse import urlparse
 
-from app.services.live_providers import apunt, atresplayer, base, mediaset, sietetv, telemadrid
+from app.services.live_providers import (apunt, atresplayer, base, mediaset, plex, pluto, samsung,
+                                         sietetv, telemadrid)
 
-PROVIDERS = (atresplayer, mediaset, sietetv, telemadrid, apunt)
+PROVIDERS = (atresplayer, mediaset, sietetv, telemadrid, apunt, pluto, plex, samsung)
 # One advertised source per installed adapter; no network requests during listing.
 BUILTIN_SOURCES = (
     {'id': 'atresplayer', 'name': 'Atresmedia', 'url': 'https://www.atresplayer.com'},
@@ -26,6 +28,9 @@ BUILTIN_SOURCES = (
     {'id': '7riojaplay', 'name': '7 Rioja', 'url': 'https://www.7riojaplay.tv'},
     {'id': 'telemadrid', 'name': 'Telemadrid', 'url': 'https://www.telemadrid.es'},
     {'id': 'apunt', 'name': 'À Punt', 'url': 'https://www.apuntmedia.es'},
+    {'id': 'pluto', 'name': 'Pluto TV', 'url': 'https://pluto.tv'},
+    {'id': 'plex', 'name': 'Plex', 'url': 'https://watch.plex.tv'},
+    {'id': 'samsung', 'name': 'Samsung TV Plus', 'url': 'https://samsungtvplus.com'},
 )
 LIVE_PATH = '/live/'
 
@@ -52,6 +57,8 @@ def playlist(provider: ModuleType) -> str:
     lines = ['#EXTM3U']
     for channel in provider.channels():
         tvg = f' tvg-id="{channel["tvg_id"]}"' if channel.get('tvg_id') else ''
+        if channel.get('logo'):
+            tvg += ' tvg-logo="%s"' % channel['logo'].replace('"', '%22')
         lines.append(f'#EXTINF:-1{tvg} group-title="{provider.GROUP}",{channel["name"]}')
         for name, value in provider.PLAY_HEADERS.items():
             lines.append(f'#EXTVLCOPT:http-{"referrer" if name == "Referer" else name.lower()}={value}')
@@ -75,8 +82,11 @@ def resolve(stream_url: str) -> Optional[str]:
         return None
 
 
-async def resolve_async(stream_url: str, *, timeout: float = 15):
-    """Keep existing provider adapters off-loop with one bounded/cancellable budget."""
+async def resolve_async(stream_url: str, *, timeout: float = 15, checking: bool = False):
+    """Keep existing provider adapters off-loop with one bounded/cancellable budget.
+
+    `checking`: a status check, not a viewer -- see `base.checking`.
+    """
     import asyncio
     import anyio
     import time
@@ -87,9 +97,11 @@ async def resolve_async(stream_url: str, *, timeout: float = 15):
 
     def run():
         token = base.resolution_limits.set((deadline, cancelled))
+        mode = base.checking.set(checking)
         try:
             return resolve(stream_url)
         finally:
+            base.checking.reset(mode)
             base.resolution_limits.reset(token)
 
     try:

@@ -224,6 +224,42 @@ async def test_a_source_that_dies_in_its_first_minute_failed_to_start(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_a_source_that_sent_nothing_stays_behind_for_the_next_opening(sources, monkeypatch):
+    """A channel opened again two minutes later tried first the sources that
+    had sent nothing the first time (20 s each) before any it had not tried.
+    A source that sent no byte in its whole start time stays behind the others
+    past the plain 60 s, but not for good: a broadcast may start later."""
+    stream = _relay(RelayRegistry(), [DEAD, LIVE])
+    assert await anext(stream) == b"video"
+    await stream.aclose()
+    real = time.monotonic
+    monkeypatch.setattr(playback.time, "monotonic", lambda: real() + 120)
+    assert playback.prefer_recovered_sources([DEAD, OTHER]) == [OTHER, DEAD]
+    monkeypatch.setattr(playback.time, "monotonic", lambda: real() + playback.NO_DATA_COOLDOWN_SECONDS + 1)
+    assert playback.prefer_recovered_sources([DEAD, OTHER]) == [DEAD, OTHER]
+
+
+@pytest.mark.asyncio
+async def test_a_source_that_ended_empty_at_once_keeps_the_plain_cooldown(monkeypatch):
+    """An engine session that ends at once is often the previous viewing's
+    session still closing, not the source: it is not held back longer."""
+    async def empty(_engine, content_id, _label, **kwargs):
+        if content_id == OTHER:
+            return
+            yield
+        while True:
+            yield b"video"
+            await asyncio.sleep(0.01)
+    monkeypatch.setattr(playback, "relay_engine_stream", empty)
+    stream = _relay(RelayRegistry(), [OTHER, LIVE])
+    assert await anext(stream) == b"video"
+    await stream.aclose()
+    real = time.monotonic
+    monkeypatch.setattr(playback.time, "monotonic", lambda: real() + playback.FAILURE_COOLDOWN_SECONDS + 1)
+    assert playback.prefer_recovered_sources([OTHER, DEAD]) == [OTHER, DEAD]
+
+
+@pytest.mark.asyncio
 async def test_each_attempt_reports_how_it_ended(sources):
     outcomes = []
     playback.set_outcome_recorder(lambda cid, tv, outcome, **kw: outcomes.append((cid, outcome)))

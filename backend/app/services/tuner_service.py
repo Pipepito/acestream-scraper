@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import html
 import logging
-import re
 import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -22,6 +21,7 @@ from app.services.stream_ranking import (
     FRESH_CHECK_HOURS, checked_since as _checked_since, preference_key, relay_order, sort_streams_curated,
 )
 from app.utils.m3u import m3u_attr
+from app.utils.stream_kind import is_acestream_id, is_http_id
 
 # libhdhomerun's device-id checksum table, verbatim.
 _LOOKUP = [0xA, 0x5, 0xF, 0x6, 0x7, 0xC, 0x1, 0xB, 0x9, 0x2, 0x8, 0xD, 0x4, 0x3, 0xE, 0x0]
@@ -35,9 +35,7 @@ MIN_START_SECONDS, MAX_START_SECONDS = 5, 180
 
 def supported_tuner_stream(stream: AcestreamChannel) -> bool:
     """Accept stored media identities, never arbitrary URLs supplied by clients."""
-    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", stream.id) or (
-        re.fullmatch(r"url:[0-9a-f]{40}", stream.id) and stream.stream_url
-    ))
+    return bool(is_acestream_id(stream.id) or (is_http_id(stream.id) and stream.stream_url))
 
 
 class TunerDeviceIdError(RuntimeError):

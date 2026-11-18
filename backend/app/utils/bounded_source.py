@@ -49,6 +49,27 @@ async def source_get(url, *, headers=None, timeout=10, max_bytes=4 * 1024 * 1024
             return SourceResponse(response.status, bytes(body), response.headers.copy())
 
 
+async def source_get_following(url, *, budget, max_redirects=5, get=None, **kwargs):
+    """``source_get`` across redirects inside one shared ``budget`` (seconds).
+
+    Returns ``(final_url, response)``; every hop is still guarded by
+    ``source_get`` (or the ``get`` a caller passes in its place). More than
+    ``max_redirects`` raises ValueError.
+    """
+    import asyncio
+    from urllib.parse import urljoin
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + budget
+    for _ in range(max_redirects + 1):
+        response = await (get or source_get)(url, timeout=deadline - loop.time(), **kwargs)
+        if response.status_code in (301, 302, 303, 307, 308) and response.headers.get('Location'):
+            url = urljoin(url, response.headers['Location'])
+            continue
+        return url, response
+    raise ValueError('Too many redirects')
+
+
 async def source_request(url, *, method='GET', headers=None, payload=None, timeout=10,
                          max_bytes=2 * 1024 * 1024, cancelled=None):
     """Bound provider JSON/text, including cancellation from its resolving thread."""

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import List, Literal, Optional
+from app.utils.stream_kind import ACESTREAM_ID_PATTERN
 
 class SearchResultItem(BaseModel):
     id: str = Field(..., description="Acestream channel ID (infohash)")
@@ -44,7 +45,7 @@ class SearchResponse(BaseModel):
     pagination: SearchPagination = Field(..., description="Pagination information")
 
 class AddChannelRequest(BaseModel):
-    id: str = Field(pattern=r"^[0-9a-fA-F]{40}$", description="Catalogue infohash; resolved by the server before import")
+    id: str = Field(pattern=rf"^{ACESTREAM_ID_PATTERN}$", description="Catalogue infohash; resolved by the server before import")
     name: str = Field(..., min_length=1, max_length=512, description="Channel name")
     url: str = Field(..., description="Channel URL")
     category: Optional[str] = Field(None, description="Channel category")
@@ -57,7 +58,7 @@ class AddMultipleRequest(BaseModel):
 
 
 class SearchImportItem(BaseModel):
-    infohash: str = Field(pattern=r'^[a-fA-F0-9]{40}$')
+    infohash: str = Field(pattern=rf'^{ACESTREAM_ID_PATTERN}$')
     name: str = Field(min_length=1, max_length=512)
     category: str = Field(default='', max_length=100)
 

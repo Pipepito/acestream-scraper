@@ -19,6 +19,7 @@ from app.services.stream_bitrate_service import probe_media
 from app.services.stream_stats import stream_stats_sample
 from app.services.probe_queue import ProbePriority, probe_queue
 from app.services.source_health import is_real_check
+from app.utils.engine_url import engine_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -170,13 +171,7 @@ class ChannelStatusService:
 
     def _get_engine_url(self) -> str:
         from app.services.check_engine_config_service import CheckEngineConfigService
-        url = CheckEngineConfigService(self.settings_repo).effective_url()
-        if not url:
-            return ""
-        url = url.strip()
-        if not url.startswith(('http://', 'https://')):
-            url = f"http://{url}"
-        return url.rstrip('/')
+        return engine_base_url(CheckEngineConfigService(self.settings_repo).effective_url())
 
     @staticmethod
     def _session_url(engine_url: str, value: Any, kind: str) -> Optional[str]:

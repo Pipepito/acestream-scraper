@@ -11,7 +11,7 @@ class TunerSettingsResponse(BaseModel):
     tuner_count: int
     max_channels: int
     only_online: bool
-    hide_unusable: bool = Field(False, description="Leave out sources no list has published for two weeks or whose recent playback clearly failed, and channels left with none (lineup and M3U playlists)")
+    hide_unusable: bool = Field(False, description="Leave out sources that failed five checks in a row and have not worked for a week, or whose recent playback clearly failed, and channels left with none (lineup and M3U playlists)")
     plex_compatible_audio: bool = Field(False, description="Convert tuner audio to stereo AAC/LATM for Plex Desktop; copy video unless experimental recovery is enabled")
     experimental_transcoding: bool = Field(False, description="Experimental CPU-intensive transcoding for midstream recovery; default recovery requires client reconnection")
     source_start_seconds: int = Field(15, description="Seconds a source gets to deliver its first byte before the next is tried")

@@ -422,7 +422,7 @@ const TunerSettingsBlock: React.FC<{ notify: MediaServerNotify }> = ({ notify })
               onChange={(event) => setForm(prev => prev ? { ...prev, hide_unusable: event.target.checked } : prev)} />}
             label={tUi("Hide stale or repeatedly failing sources")}
           />
-          <Typography variant="body2" color="text.secondary">{tUi("Leaves sources unseen by lists for 14 days or with repeated playback failures out of tuner lineups and playlists. Nothing is deleted; sources can return after fresh evidence.")}</Typography>
+          <Typography variant="body2" color="text.secondary">{tUi("Leaves sources that failed five checks in a row and have not worked for a week, or with repeated playback failures, out of tuner lineups and playlists. Nothing is deleted; a source returns as soon as it works.")}</Typography>
           <FormControlLabel
             control={<Switch checked={form?.plex_compatible_audio ?? false} disabled={!form || update.isPending}
               onChange={(event) => setForm(prev => prev ? { ...prev, plex_compatible_audio: event.target.checked } : prev)} />}

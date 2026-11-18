@@ -10542,7 +10542,7 @@ export interface components {
             friendly_name: string;
             /**
              * Hide Unusable
-             * @description Leave out sources no list has published for two weeks or whose recent playback clearly failed, and channels left with none (lineup and M3U playlists)
+             * @description Leave out sources that failed five checks in a row and have not worked for a week, or whose recent playback clearly failed, and channels left with none (lineup and M3U playlists)
              * @default false
              */
             hide_unusable?: boolean;

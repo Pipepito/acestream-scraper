@@ -930,7 +930,7 @@
   "Seconds to start a channel": "Segundos para iniciar un canal",
   "Publish only channels that are online": "Publicar solo canales con señal",
   "Hide stale or repeatedly failing sources": "Ocultar fuentes antiguas o con fallos repetidos",
-  "Leaves sources unseen by lists for 14 days or with repeated playback failures out of tuner lineups and playlists. Nothing is deleted; sources can return after fresh evidence.": "Excluye del sintonizador y las listas las fuentes ausentes durante 14 días o con fallos de reproducción repetidos. No se elimina nada; pueden volver si hay nuevas comprobaciones favorables.",
+  "Leaves sources that failed five checks in a row and have not worked for a week, or with repeated playback failures, out of tuner lineups and playlists. Nothing is deleted; a source returns as soon as it works.": "Excluye del sintonizador y las listas las fuentes que fallaron cinco comprobaciones seguidas y llevan una semana sin funcionar, o con fallos de reproducción repetidos. No se elimina nada; una fuente vuelve en cuanto funciona.",
   "Plex Desktop compatible audio": "Audio compatible con Plex Desktop",
   "Converts audio tracks to stereo AAC/LATM for Plex Desktop. Keeps the original video quality unless experimental recovery is enabled. Uses server CPU and requires FFmpeg. Applies to new TV channel connections.": "Convierte las pistas de audio a AAC/LATM estéreo para Plex Desktop. Conserva el vídeo original salvo que se active la recuperación experimental. Usa CPU del servidor y requiere FFmpeg. Se aplica a nuevas conexiones de canales de TV.",
   "Experimental transcoding recovery": "Recuperación experimental mediante transcodificación",

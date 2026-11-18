@@ -62,7 +62,7 @@ async def test_checked_over_http_with_its_headers_and_saved(probe, monkeypatch):
     assert result['is_online'] is False and result['status'] == 'offline'
     assert result['error'] == 'HTTP 404 from the playlist'
     probe.channel_repository.update_channel_status.assert_called_once_with(
-        'url:' + 'a' * 40, False, 'HTTP 404 from the playlist')
+        'url:' + 'a' * 40, False, 'HTTP 404 from the playlist', verified=True)
 
 
 @pytest.mark.asyncio
@@ -88,7 +88,7 @@ async def test_http_viewing_does_not_prevent_verified_status_refresh(probe, monk
     if verified is None:
         probe.channel_repository.update_channel_status.assert_not_called()
     else:
-        probe.channel_repository.update_channel_status.assert_called_once_with('url:' + 'a' * 40, verified, None)
+        probe.channel_repository.update_channel_status.assert_called_once_with('url:' + 'a' * 40, verified, None, verified=True)
 
 
 @pytest.mark.asyncio

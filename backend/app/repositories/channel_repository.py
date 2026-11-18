@@ -22,7 +22,9 @@ class ChannelRepository:
     def status_check_inventory(self, scope: str, *, http_only: bool = False):
         """Select active streams eligible for the next background pass."""
         query = (self.db.query(AcestreamChannel.id, AcestreamChannel.last_checked,
-                               AcestreamChannel.tv_channel_id, TVChannel.is_favorite)
+                               AcestreamChannel.tv_channel_id, TVChannel.is_favorite,
+                               AcestreamChannel.failed_checks, AcestreamChannel.last_worked_at,
+                               AcestreamChannel.failing_since)
                  .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
                  .filter(AcestreamChannel.is_active.is_(True)))
         if scope in ("assigned", "favorites"):
@@ -391,16 +393,8 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.group == group)
 
         if only_online:
-            # An HTTP stream not checked yet is unknown, and without this the
-            # default playlist (only_online=true) had NO HTTP channel at all
-            # until the next status pass. Unknown HTTP streams are published:
-            # a dead one fails in Kodi within seconds and leaves the remote
-            # responsive, which is not true of an acestream id waiting on the
-            # engine. Checked-dead ones are left out.
-            query = query.filter(or_(
-                AcestreamChannel.is_online.is_(True),
-                and_(AcestreamChannel.stream_url.isnot(None), AcestreamChannel.is_online.is_(None)),
-            ))
+            from app.services.source_health import published_when_only_online_clause
+            query = query.filter(published_when_only_online_clause())
 
         if include_groups and len(include_groups) > 0:
             query = query.filter(AcestreamChannel.group.in_(include_groups))
@@ -653,11 +647,18 @@ class ChannelRepository:
 
     @retry_database_write
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None,
-                              id_kind: Optional[str] = None) -> AcestreamChannel:
-        """Update the online status of a channel"""
+                              id_kind: Optional[str] = None, verified: bool = False) -> AcestreamChannel:
+        """Update the online status of a channel.
+
+        ``verified`` marks the result of a real check: media found means the
+        source worked; none found is one more failed check in a row.
+        """
         channel = self.get_channel_by_id(channel_id)
         if not channel:
             return None
+        if verified:
+            from app.services.source_health import apply_check
+            apply_check(channel, is_online, datetime.now(timezone.utc))
 
         channel.is_online = is_online
         channel.network_status = network_status
@@ -684,6 +685,17 @@ class ChannelRepository:
         self.db.commit()
         self.db.refresh(channel)
         return channel
+
+    def mark_worked(self, channel_id: str, at: Optional[datetime] = None) -> bool:
+        """The relay played this source: it works, whatever the last check said."""
+        channel = (self.db.query(AcestreamChannel)
+                   .filter(func.lower(AcestreamChannel.id) == channel_id.lower()).first())
+        if channel is None:
+            return False
+        from app.services.source_health import apply_worked
+        apply_worked(channel, at or datetime.now(timezone.utc))
+        self.db.commit()
+        return True
 
     def check_all_channels_status(self) -> int:
         """Check status for all active channels"""

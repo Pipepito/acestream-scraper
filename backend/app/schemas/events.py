@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic_core import PydanticCustomError
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from app.utils.stream_kind import ACESTREAM_ID_PATTERN, STREAM_ID_PATTERN
 
 EventState = Literal['unknown', 'scheduled', 'live', 'finished', 'postponed', 'cancelled']
 EventSelection = Literal['agenda', 'dashboard']
@@ -92,7 +93,7 @@ class EventBroadcast(StrictModel):
     quality: str = Field(default='', max_length=80)
     country: str = Field(default='', max_length=80)
     # Explicit stored channel mappings are reviewed, never guessed from a name.
-    channel_id: str | None = Field(default=None, pattern=r'^(?:url:)?[0-9a-fA-F]{40}$')
+    channel_id: str | None = Field(default=None, pattern=rf'^{STREAM_ID_PATTERN}$')
     url: str | None = Field(default=None, max_length=4096)
     headers: dict[str, str] = Field(default_factory=dict, max_length=3)
 
@@ -104,7 +105,7 @@ class EventBroadcast(StrictModel):
             p = urlsplit(self.url)
             if p.scheme == 'acestream':
                 import re
-                if not re.fullmatch(r'acestream://[0-9a-fA-F]{40}', self.url):
+                if not re.fullmatch(rf'acestream://{ACESTREAM_ID_PATTERN}', self.url):
                     raise PydanticCustomError('EVENT_ACESTREAM_ID_INVALID', 'Invalid AceStream ID')
             elif p.scheme not in ('http', 'https') or not p.hostname or p.username or p.password:
                 raise PydanticCustomError('EVENT_STREAM_SCHEME', 'Use HTTP(S) or an AceStream ID')
@@ -375,7 +376,7 @@ class BroadcasterLinkView(StrictModel):
 class EventBroadcastMapping(StrictModel):
     revision: int = Field(ge=1)
     broadcast_id: str = Field(min_length=1, max_length=193)
-    channel_id: str | None = Field(default=None, pattern=r'^(?:url:)?[0-9a-fA-F]{40}$')
+    channel_id: str | None = Field(default=None, pattern=rf'^{STREAM_ID_PATTERN}$')
     target_kind: Literal['tv', 'epg'] | None = None
     target_id: int | None = Field(default=None, ge=1)
     # Default: the choice becomes this source's alias for the broadcaster, applied to every event.

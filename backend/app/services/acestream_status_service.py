@@ -3,6 +3,7 @@ import os
 import requests
 from typing import Dict, Any
 from app.config.settings import settings
+from app.utils.engine_url import engine_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +21,7 @@ class AcestreamStatusService:
             self.engine_url = f"http://{host}:{port}"
         else:
             self.engine_url = self.config_engine_url or ""
-        if self.engine_url and not self.engine_url.startswith('http'):
-            self.engine_url = f"http://{self.engine_url}"
-        self.engine_url = self.engine_url.rstrip('/')
+        self.engine_url = engine_base_url(self.engine_url)
 
     def is_enabled(self) -> bool:
         return os.environ.get('ENABLE_ACESTREAM_ENGINE', 'false').lower() == 'true'

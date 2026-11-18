@@ -7,6 +7,7 @@ from starlette.responses import JSONResponse
 from app.repositories.access_repository import AccessRepository
 from app.services.access_service import request_user, require_csrf, playback_allowed, same_origin
 from app.utils.request_path import route_path
+from app.utils.stream_kind import ACESTREAM_ID_PATTERN, HTTP_ID_PATTERN
 
 # Complete playback exceptions; an unlisted route or method remains management.
 PLAYBACK_PATHS = {
@@ -18,7 +19,7 @@ PLAYBACK_PATHS = {
     '/tuner/discover.json', '/tuner/lineup.json', '/tuner/lineup_status.json',
     '/tuner/device.xml', '/tuner/guide.xml', '/tuner/playlist.m3u', '/tuner/epg.xml',
 }
-MEDIA_PATH = re.compile(r'^/(?:tuner/(?:stream/[0-9a-fA-F]{40}|source/url:[0-9a-f]{40}|channel/\d+)\.ts|live/[a-zA-Z0-9:_-]+(?:\.[a-z0-9]+)?)$')
+MEDIA_PATH = re.compile(rf'^/(?:tuner/(?:stream/{ACESTREAM_ID_PATTERN}|source/{HTTP_ID_PATTERN}|channel/\d+)\.ts|live/[a-zA-Z0-9:_-]+(?:\.[a-z0-9]+)?)$')
 PUBLIC_PATHS = {'GET': {'/api/v1/health', '/api/v1/auth/status'},
                 'POST': {'/api/v1/auth/login', '/api/v1/auth/bootstrap'}}
 DELEGATED = {

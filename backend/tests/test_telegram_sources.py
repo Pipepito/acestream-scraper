@@ -357,12 +357,18 @@ def test_private_routes_never_echo_secrets_and_preview_never_writes(alembic_back
         invalid = client.post('/api/v1/telegram/login', headers=headers,
             json={'api_id': 'secret-invalid', 'api_hash': 'never-echo-this', 'phone': '+12345'})
         assert invalid.status_code == 422 and 'never-echo-this' not in invalid.text and 'secret-invalid' not in invalid.text
-        assert client.get('/api/v1/telegram/status').status_code == 403
+        assert invalid.headers['x-error-code'] == 'TELEGRAM_INVALID_INPUT'
+        denied = client.get('/api/v1/telegram/status')
+        assert denied.status_code == 403
+        assert denied.headers['x-error-code'] == 'TELEGRAM_ADMIN_TOKEN'
         disconnected_scan = client.post('/api/v1/telegram/sources/1/scan', headers=headers)
         assert disconnected_scan.status_code == 400
+        assert disconnected_scan.headers['x-error-code'] == 'TELEGRAM_CONNECT_FIRST'
         assert disconnected_scan.json()['detail'] == 'Connect your Telegram account first'
-        assert client.post('/api/v1/telegram/login', headers=headers,
-            json={'api_id':12345, 'api_hash':'a'*32, 'phone':'+123456789'}).status_code == 200
+        login = client.post('/api/v1/telegram/login', headers=headers,
+            json={'api_id':12345, 'api_hash':'a'*32, 'phone':'+123456789'})
+        assert login.status_code == 200
+        assert login.json()['message_code'] == 'TELEGRAM_ENTER_CODE'
         assert client.post('/api/v1/telegram/code', headers=headers, json={'code':'12345'}).status_code == 200
         service.client.messages = [raw(1)]
         preview = client.post('/api/v1/telegram/preview', headers=headers, json={'source':config().model_dump(), 'limit':10})
@@ -370,6 +376,13 @@ def test_private_routes_never_echo_secrets_and_preview_never_writes(alembic_back
         assert preview.headers['cache-control'] == 'no-store'
         state = client.get('/api/v1/telegram/status', headers=headers)
         assert 'encrypted-session' not in state.text and 'a'*32 not in state.text and '+123456789' not in state.text
+        from openapi_core import OpenAPI
+        from scripts.validate_api_contracts import request_adapter, validate_response
+        contract = OpenAPI.from_dict(json.loads((Path(__file__).resolve().parents[1] / 'openapi.json').read_text()))
+        for response in (invalid, denied, disconnected_scan, login, preview, state):
+            request = request_adapter({'method': response.request.method, 'url': str(response.request.url)})
+            validate_response(contract, request, response.status_code, response.headers, response.content)
+
         with alembic_backend_runtime.SessionLocal() as db:
             assert db.query(AcestreamChannel).count() == 0
         assert client.delete('/api/v1/telegram/account', headers=headers).status_code == 200
@@ -510,3 +523,12 @@ async def test_topic_preview_and_history_read_inside_the_topic(alembic_backend_r
     assert (await manager.sources())[0].cursor == 1
     assert set(repo.existing_ids(IDS)) == set(IDS)
     await manager.stop()
+
+
+def test_persisted_source_diagnostic_has_a_localizable_code(alembic_backend_runtime):
+    source = repo.save_source('account', config(), 'Original chat name', {}, 0)
+    repo.set_status(source.id, 'error', 'Chat access lost')
+    restored = repo.list_sources('account')[0]
+    assert restored.message == 'Chat access lost'
+    assert restored.message_code == 'TELEGRAM_CHAT_LOST'
+    assert restored.chat_label == 'Original chat name'

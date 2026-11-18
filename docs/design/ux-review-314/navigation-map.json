@@ -1,0 +1,2618 @@
+{
+  "navigation": [
+    {
+      "id": "dashboard",
+      "label": [
+        "Watch",
+        "Ver"
+      ]
+    },
+    {
+      "id": "recordings",
+      "label": [
+        "Recordings",
+        "Grabaciones"
+      ]
+    },
+    {
+      "id": "events",
+      "label": [
+        "Events",
+        "Eventos"
+      ]
+    },
+    {
+      "id": "channels",
+      "label": [
+        "Channels",
+        "Canales"
+      ]
+    },
+    {
+      "id": "connections",
+      "label": [
+        "Connections",
+        "Conexiones"
+      ]
+    },
+    {
+      "id": "settings",
+      "label": [
+        "Settings",
+        "Ajustes"
+      ]
+    },
+    {
+      "id": "system",
+      "label": [
+        "System",
+        "Sistema"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "recording-schedule",
+      "current": "/live-tv?channel=demo",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-schedule",
+      "save": [
+        {
+          "editor": "schedule",
+          "timing": "explicit action",
+          "api": "recordingService.create"
+        }
+      ],
+      "source": [
+        "frontend/src/components/recordings/RecordingDialog.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-dst",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-dst",
+      "save": [
+        {
+          "editor": "dst",
+          "timing": "explicit action",
+          "api": "recordingService.create / edit"
+        }
+      ],
+      "source": [
+        "frontend/src/utils/recordingTimes.ts"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-now",
+      "current": "/live-tv",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-now",
+      "save": [
+        {
+          "editor": "now",
+          "timing": "explicit action",
+          "api": "recordingService.create"
+        }
+      ],
+      "source": [
+        "frontend/src/components/recordings/RecordingDialog.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-active",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-active",
+      "save": [
+        {
+          "editor": "end",
+          "timing": "explicit action",
+          "api": "recordingService.edit"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Recordings.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-parts",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-parts",
+      "save": [],
+      "source": [
+        "frontend/src/components/recordings/RecordingPlayback.tsx",
+        "backend/app/schemas/recordings.py"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-copy",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-copy",
+      "save": [
+        {
+          "editor": "copy",
+          "timing": "explicit action",
+          "api": "recordingService.convert"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Recordings.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-settings",
+      "current": "/settings?tab=automation",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-settings",
+      "save": [
+        {
+          "editor": "recording-settings",
+          "timing": "explicit action",
+          "api": "recordingService.configure"
+        }
+      ],
+      "source": [
+        "frontend/src/components/recordings/RecordingSettingsFields.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-storage",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-storage",
+      "save": [],
+      "source": [
+        "frontend/src/components/recordings/RecordingOverview.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-cancel",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-cancel",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Recordings.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-delete",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-delete",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Recordings.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "recording-disable",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "contextual editor or detail",
+      "canonical": "recording-disable",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Recordings.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "access-activate",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-activate",
+      "save": [
+        {
+          "editor": "activate",
+          "timing": "explicit action",
+          "api": "accessService.bootstrap"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/AccountSetup.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-login",
+      "current": "/watch",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-login",
+      "save": [
+        {
+          "editor": "login",
+          "timing": "explicit action",
+          "api": "accessService.login"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/LoginForm.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-account",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "section",
+      "canonical": "access-account",
+      "save": [
+        {
+          "editor": "account",
+          "timing": "explicit action",
+          "api": "accessService.updateUser"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/AccessSettings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-create",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-create",
+      "save": [
+        {
+          "editor": "create-account",
+          "timing": "explicit action",
+          "api": "accessService.createUser"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/AccessSettings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-policy",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-policy",
+      "save": [
+        {
+          "editor": "policy",
+          "timing": "explicit action",
+          "api": "accessService.savePolicy"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/AccessSettings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-password",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-password",
+      "save": [
+        {
+          "editor": "password",
+          "timing": "explicit action",
+          "api": "accessService.password"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/PasswordForm.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-sessions",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-sessions",
+      "save": [],
+      "source": [
+        "frontend/src/components/access/AccessSettings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-credentials",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-credentials",
+      "save": [
+        {
+          "editor": "credential",
+          "timing": "explicit action",
+          "api": "accessService.issueCredential"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/AccessSettings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-secret",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-secret",
+      "save": [],
+      "source": [
+        "frontend/src/components/access/AccessSettings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-disable",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-disable",
+      "save": [
+        {
+          "editor": "disable-access",
+          "timing": "explicit action",
+          "api": "accessService.disable"
+        }
+      ],
+      "source": [
+        "frontend/src/components/access/AccessSettings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "access-transport",
+      "current": "/settings?tab=access",
+      "destination": "settings",
+      "section": "access-account",
+      "presentation": "contextual editor or detail",
+      "canonical": "access-transport",
+      "save": [],
+      "source": [
+        "frontend/src/components/access/AccountTransportNotice.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "channels",
+      "current": "/tv-channels",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "primary destination",
+      "canonical": "channels",
+      "save": [
+        {
+          "editor": "channel-filter",
+          "timing": "explicit action",
+          "api": "local URL / catalogue query"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/TVChannels.tsx",
+        "frontend/src/components/TVChannelFilters.tsx",
+        "frontend/src/components/TVChannelsTable.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "channel-edit",
+      "current": "/tv-channels/:id",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-edit",
+      "save": [
+        {
+          "editor": "tv",
+          "timing": "explicit action",
+          "api": "tvChannelService.create / update"
+        }
+      ],
+      "source": [
+        "frontend/src/components/TVChannelFormDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "channel-detail",
+      "current": "/tv-channels/:id",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-detail",
+      "save": [],
+      "source": [
+        "frontend/src/pages/TVChannelDetail.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "channel-reorder",
+      "current": "/tv-channels",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-reorder",
+      "save": [],
+      "source": [
+        "frontend/src/components/TVChannelReorder.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "channel-preferences",
+      "current": "/tv-channels",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-preferences",
+      "save": [],
+      "source": [
+        "frontend/src/pages/TVChannelDetail.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "streams",
+      "current": "/acestream-channels",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "section",
+      "canonical": "streams",
+      "save": [
+        {
+          "editor": "streams-filter",
+          "timing": "explicit action",
+          "api": "channelService query"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/AcestreamChannels.tsx",
+        "frontend/src/components/channels/ChannelFilterBar.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "stream-stats",
+      "current": "/acestream-channels",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "canonical": "stream-stats",
+      "save": [],
+      "source": [
+        "frontend/src/components/channels/StreamStatistics.tsx",
+        "frontend/src/components/ChannelActivityLogDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "stream-edit",
+      "current": "/acestream-channels",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "canonical": "stream-edit",
+      "save": [
+        {
+          "editor": "stream",
+          "timing": "explicit action",
+          "api": "channelService.create"
+        }
+      ],
+      "source": [
+        "frontend/src/components/QuickEditDialog.tsx",
+        "frontend/src/components/TVChannelLinkField.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "stream-bulk",
+      "current": "/acestream-channels",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "canonical": "stream-bulk",
+      "save": [
+        {
+          "editor": "bulk",
+          "timing": "explicit action",
+          "api": "channelService bulk commands"
+        }
+      ],
+      "source": [
+        "frontend/src/components/BulkOperations.tsx",
+        "frontend/src/components/BatchAssignDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "channel-assign",
+      "current": "/tv-channels/:id",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-assign",
+      "save": [],
+      "source": [
+        "frontend/src/components/BatchAcestreamAssignment.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "stream-match",
+      "current": "/tv-channels",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "canonical": "stream-match",
+      "save": [
+        {
+          "editor": "similar-options",
+          "timing": "explicit action",
+          "api": "TVMatchOptions preview"
+        }
+      ],
+      "source": [
+        "frontend/src/components/TVAutoMatchDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "channel-delete",
+      "current": "/tv-channels",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-delete",
+      "save": [],
+      "source": [
+        "frontend/src/components/TVChannelDeleteDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-sources",
+      "current": "/epg?tab=sources",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "section",
+      "canonical": "guide-sources",
+      "save": [],
+      "source": [
+        "frontend/src/components/EPGSourcesTable.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-source",
+      "current": "/epg?tab=sources",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-source",
+      "save": [
+        {
+          "editor": "guide-source",
+          "timing": "explicit action",
+          "api": "epgService.createSource / updateSource"
+        }
+      ],
+      "source": [
+        "frontend/src/components/EPGSourceDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-detail",
+      "current": "/epg/channels/:id",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-detail",
+      "save": [],
+      "source": [
+        "frontend/src/pages/EPGChannelDetail.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-choice",
+      "current": "/epg?tab=matching",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-choice",
+      "save": [],
+      "source": [
+        "frontend/src/components/EPGMatchAnalysisPanel.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-match",
+      "current": "/epg?tab=matching",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-match",
+      "save": [
+        {
+          "editor": "guide-scope",
+          "timing": "explicit action",
+          "api": "guideSetupService preview"
+        }
+      ],
+      "source": [
+        "frontend/src/components/EPGMatchAnalysisPanel.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-rule",
+      "current": "/epg/channels/:id",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-rule",
+      "save": [
+        {
+          "editor": "rule",
+          "timing": "explicit action",
+          "api": "epgService stringMappings"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/EPGChannelDetail.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-auto",
+      "current": "/settings?tab=automation",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-auto",
+      "save": [
+        {
+          "editor": "guide-auto",
+          "timing": "immediate",
+          "api": "configService epg-matching"
+        }
+      ],
+      "source": [
+        "frontend/src/components/GuideMatchingFields.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-export",
+      "current": "/epg?tab=export",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-export",
+      "save": [
+        {
+          "editor": "xml",
+          "timing": "explicit action",
+          "api": "epgService.generateXml"
+        }
+      ],
+      "source": [
+        "frontend/src/components/EPGXmlOutputPanel.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-coverage",
+      "current": "/epg",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-coverage",
+      "save": [],
+      "source": [
+        "frontend/src/components/GuideCoverage.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "playlist",
+      "current": "/playlist",
+      "destination": "connections",
+      "section": "playlist",
+      "presentation": "section",
+      "canonical": "playlist",
+      "save": [
+        {
+          "editor": "playlist",
+          "timing": "explicit action",
+          "api": "usePlaylistLink / playlistService"
+        }
+      ],
+      "source": [
+        "frontend/src/components/playlist/PlaylistOptionsForm.tsx",
+        "frontend/src/components/playlist/PlaylistLinkPanel.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "formats",
+      "current": "/settings?tab=links",
+      "destination": "connections",
+      "section": "playlist",
+      "presentation": "contextual editor or detail",
+      "canonical": "formats",
+      "save": [
+        {
+          "editor": "format",
+          "timing": "explicit action",
+          "api": "baseUrlService.createBaseUrl"
+        },
+        {
+          "editor": "link-identifiers-0",
+          "timing": "explicit action",
+          "api": "configService independent setting: links.add_pid"
+        },
+        {
+          "editor": "link-identifiers-1",
+          "timing": "explicit action",
+          "api": "configService independent setting: links.app_id"
+        }
+      ],
+      "source": [
+        "frontend/src/components/StreamLinkFormatsSection.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "format-edit",
+      "current": "/settings?tab=links",
+      "destination": "connections",
+      "section": "playlist",
+      "presentation": "contextual editor or detail",
+      "canonical": "format-edit",
+      "save": [
+        {
+          "editor": "edit-format",
+          "timing": "explicit action",
+          "api": "baseUrlService.updateBaseUrl"
+        }
+      ],
+      "source": [
+        "frontend/src/components/StreamLinkFormatsSection.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "source-web",
+      "current": "/scraper?tab=sources",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "source-web",
+      "save": [
+        {
+          "editor": "source",
+          "timing": "explicit action",
+          "api": "scraperService createURL / updateURL"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "source-auto",
+      "current": "/scraper?tab=sources",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "source-auto",
+      "save": [
+        {
+          "editor": "source",
+          "timing": "explicit action",
+          "api": "scraperService createURL / updateURL"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "source-zeronet",
+      "current": "/scraper?tab=sources",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "source-zeronet",
+      "save": [
+        {
+          "editor": "source",
+          "timing": "explicit action",
+          "api": "scraperService createURL / updateURL"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "source-ipfs",
+      "current": "/scraper?tab=sources",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "source-ipfs",
+      "save": [
+        {
+          "editor": "source",
+          "timing": "explicit action",
+          "api": "scraperService createURL / updateURL"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "source-provider",
+      "current": "/scraper?tab=sources",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "source-provider",
+      "save": [
+        {
+          "editor": "source",
+          "timing": "explicit action",
+          "api": "scraperService createURL / updateURL"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "source-results",
+      "current": "/scraper",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "source-results",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "source-remove",
+      "current": "/scraper",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "source-remove",
+      "save": [
+        {
+          "editor": "remove-source",
+          "timing": "explicit action",
+          "api": "DELETE scrapers/urls/{id}?delete_streams="
+        }
+      ],
+      "source": [
+        "frontend/src/components/scraper/DeleteSourceDialog.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "sources-orphans",
+      "current": "/scraper",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "sources-orphans",
+      "save": [],
+      "source": [
+        "frontend/src/components/scraper/OrphanedSourcesDialog.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "w3u",
+      "current": "/scraper?tab=w3u",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "w3u",
+      "save": [
+        {
+          "editor": "catalogue-preview",
+          "timing": "explicit action",
+          "api": "catalogueService preview"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Catalogues.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "w3u-save",
+      "current": "/scraper?tab=w3u",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "w3u-save",
+      "save": [
+        {
+          "editor": "catalogue-save",
+          "timing": "explicit action",
+          "api": "catalogueService save"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Catalogues.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "w3u-detail",
+      "current": "/scraper?tab=w3u",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "w3u-detail",
+      "save": [
+        {
+          "editor": "w3u-browse",
+          "timing": "explicit action",
+          "api": "local catalogue view"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Catalogues.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "w3u-folder",
+      "current": "/scraper?tab=w3u",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "w3u-folder",
+      "save": [
+        {
+          "editor": "folder",
+          "timing": "explicit action",
+          "api": "catalogueService folder assignment"
+        }
+      ],
+      "source": [
+        "frontend/src/components/catalogues/FolderMatchDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "saved-search",
+      "current": "/scraper?tab=searches",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "saved-search",
+      "save": [
+        {
+          "editor": "saved-search",
+          "timing": "explicit action",
+          "api": "savedSearchService save"
+        }
+      ],
+      "source": [
+        "frontend/src/components/imports/SavedSearchDialog.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "saved-search-preview",
+      "current": "/scraper?tab=searches",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "saved-search-preview",
+      "save": [],
+      "source": [
+        "frontend/src/components/imports/SavedSearches.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "exclusion",
+      "current": "/scraper?tab=exclusions",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "exclusion",
+      "save": [
+        {
+          "editor": "exclusion",
+          "timing": "explicit action",
+          "api": "importExclusionService save"
+        }
+      ],
+      "source": [
+        "frontend/src/components/imports/ImportExclusions.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "search",
+      "current": "/search",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "search",
+      "save": [
+        {
+          "editor": "search",
+          "timing": "explicit action",
+          "api": "searchService.search"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Search.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "search-add-link",
+      "current": "/search",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "search-add-link",
+      "save": [
+        {
+          "editor": "add-link",
+          "timing": "explicit action",
+          "api": "searchService.resolve + import tv_channel_id"
+        }
+      ],
+      "source": [
+        "frontend/src/components/search/AddAndLinkDialog.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-installed",
+      "current": "/scraper/builder",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-installed",
+      "save": [
+        {
+          "editor": "fetch",
+          "timing": "explicit action",
+          "api": "recipeService.fetch"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/ExtractionBuilder.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-standalone",
+      "current": "standalone helper",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-standalone",
+      "save": [
+        {
+          "editor": "sample",
+          "timing": "explicit action",
+          "api": "standalone recipe worker"
+        }
+      ],
+      "source": [
+        "frontend/src/recipes/standalone.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-html",
+      "current": "/scraper/builder",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-html",
+      "save": [
+        {
+          "editor": "recipe-html",
+          "timing": "explicit action",
+          "api": "recipeService.preview / standalone worker"
+        }
+      ],
+      "source": [
+        "frontend/src/recipes/RecipeFields.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-json",
+      "current": "/scraper/builder",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-json",
+      "save": [
+        {
+          "editor": "recipe-json",
+          "timing": "explicit action",
+          "api": "recipeService.preview / standalone worker"
+        }
+      ],
+      "source": [
+        "frontend/src/recipes/RecipeFields.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-regex",
+      "current": "/scraper/builder",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-regex",
+      "save": [
+        {
+          "editor": "recipe-regex",
+          "timing": "explicit action",
+          "api": "recipeService.preview / standalone worker"
+        }
+      ],
+      "source": [
+        "frontend/src/recipes/RecipeFields.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-manual",
+      "current": "/scraper/builder",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-manual",
+      "save": [
+        {
+          "editor": "manual",
+          "timing": "explicit action",
+          "api": "RecipeBuilder source selection"
+        }
+      ],
+      "source": [
+        "frontend/src/recipes/RecipeBuilder.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-large",
+      "current": "/scraper/builder",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-large",
+      "save": [],
+      "source": [
+        "frontend/src/recipes/VisualPicker.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "helper-results",
+      "current": "/scraper/builder",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "helper-results",
+      "save": [],
+      "source": [
+        "frontend/src/recipes/RecipeResults.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "dashboard",
+      "current": "/",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "primary destination",
+      "canonical": "dashboard",
+      "save": [],
+      "source": [
+        "frontend/src/pages/TVDashboard.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "live",
+      "current": "/live-tv",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "canonical": "live",
+      "save": [
+        {
+          "editor": "browse",
+          "timing": "explicit action",
+          "api": "LiveTV URL state"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/LiveTV.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "player-tracks",
+      "current": "player dialog",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "canonical": "player-tracks",
+      "save": [
+        {
+          "editor": "tracks",
+          "timing": "explicit action",
+          "api": "playerService shared viewer lifecycle"
+        }
+      ],
+      "source": [
+        "frontend/src/components/player/StreamPlayerDialog.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "viewer",
+      "current": "/watch",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "canonical": "viewer",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Watch.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "events",
+      "current": "/events",
+      "destination": "events",
+      "section": "events",
+      "presentation": "primary destination",
+      "canonical": "events",
+      "save": [
+        {
+          "editor": "agenda",
+          "timing": "explicit action",
+          "api": "eventPreferences"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventAgenda.tsx",
+        "frontend/src/pages/Events.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-detail",
+      "current": "/events?event=demo&zone=Europe/Madrid",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-detail",
+      "save": [],
+      "source": [
+        "frontend/src/components/events/EventDetails.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-provider",
+      "current": "/events",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-provider",
+      "save": [
+        {
+          "editor": "provider",
+          "timing": "explicit action",
+          "api": "eventService provider preview"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventProviderFields.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-import",
+      "current": "/events",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-import",
+      "save": [
+        {
+          "editor": "event-import",
+          "timing": "explicit action",
+          "api": "eventService preview"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventImportPanel.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-review",
+      "current": "/events",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-review",
+      "save": [
+        {
+          "editor": "event-refresh",
+          "timing": "explicit action",
+          "api": "EventApply.refresh_source"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventImportPanel.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-correct",
+      "current": "/events?event=demo",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-correct",
+      "save": [
+        {
+          "editor": "correction",
+          "timing": "explicit action",
+          "api": "eventService.update"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventDetails.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-mapping",
+      "current": "/events?event=demo",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-mapping",
+      "save": [
+        {
+          "editor": "broadcast-link",
+          "timing": "explicit action",
+          "api": "eventService broadcaster mapping"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventBroadcastMapper.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-overlay",
+      "current": "/events?event=demo",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-overlay",
+      "save": [
+        {
+          "editor": "overlay",
+          "timing": "explicit action",
+          "api": "eventService overlay preview"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventGuideOverlay.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-sources",
+      "current": "/events",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-sources",
+      "save": [
+        {
+          "editor": "event-retention",
+          "timing": "explicit action",
+          "api": "eventService retention"
+        }
+      ],
+      "source": [
+        "frontend/src/components/events/EventSourcesPanel.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "connections",
+      "current": "proposed orientation layer",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "primary destination",
+      "canonical": "connections",
+      "save": [],
+      "source": [
+        "frontend/src/components/integrations/IntegrationPage.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "browser-player",
+      "current": "/integrations/web-player",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "section",
+      "canonical": "browser-player",
+      "save": [],
+      "source": [
+        "frontend/src/components/integrations/WebPlayerSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "public-address",
+      "current": "/integrations/public-address",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "public-address",
+      "save": [
+        {
+          "editor": "address",
+          "timing": "explicit action",
+          "api": "configService public-base-url"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/PublicAddressSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "casting",
+      "current": "/integrations/tv-casting",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "casting",
+      "save": [],
+      "source": [
+        "frontend/src/pages/integrations/TvCasting.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "casting-settings",
+      "current": "/integrations/tv-casting",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "casting-settings",
+      "save": [
+        {
+          "editor": "cast-settings",
+          "timing": "explicit action",
+          "api": "castService.saveSettings"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/integrations/TvCasting.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "casting-trust",
+      "current": "/integrations/tv-casting",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "casting-trust",
+      "save": [
+        {
+          "editor": "trust",
+          "timing": "explicit action",
+          "api": "castService.trustHome"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/integrations/TvCasting.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "casting-control",
+      "current": "player casting options",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "casting-control",
+      "save": [
+        {
+          "editor": "cast-control",
+          "timing": "explicit action",
+          "api": "castService.command"
+        }
+      ],
+      "source": [
+        "frontend/src/components/player/CastControls.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "remote-player",
+      "current": "/integrations/remote-players",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "remote-player",
+      "save": [
+        {
+          "editor": "remote",
+          "timing": "explicit action",
+          "api": "remotePlayerService create / update"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/RemotePlayerDialog.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "remote-android",
+      "current": "/integrations/remote-players",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "remote-android",
+      "save": [
+        {
+          "editor": "android-pair",
+          "timing": "explicit action",
+          "api": "remotePlayerService.finishAndroidPairing"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/RemotePlayerDialog.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "remote-discovery",
+      "current": "/integrations/remote-players",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "remote-discovery",
+      "save": [
+        {
+          "editor": "scan",
+          "timing": "explicit action",
+          "api": "remotePlayerService.scan"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/FindPlayersDialog.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "remote-control",
+      "current": "PlayOnMenu",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "remote-control",
+      "save": [
+        {
+          "editor": "remote-command",
+          "timing": "explicit action",
+          "api": "remotePlayerService.command"
+        }
+      ],
+      "source": [
+        "frontend/src/components/player/PlayOnMenu.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "media-server",
+      "current": "/integrations/media-servers",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "media-server",
+      "save": [
+        {
+          "editor": "media",
+          "timing": "explicit action",
+          "api": "mediaServerService create / update"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/MediaServerDialog.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "tuner",
+      "current": "/integrations/media-servers",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "tuner",
+      "save": [
+        {
+          "editor": "tuner",
+          "timing": "explicit action",
+          "api": "tunerService.updateSettings"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/MediaServersSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "telegram-auth",
+      "current": "/integrations/telegram",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "telegram-auth",
+      "save": [
+        {
+          "editor": "telegram-auth",
+          "timing": "explicit action",
+          "api": "telegramService login"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/TelegramSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "telegram-code",
+      "current": "/integrations/telegram",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "telegram-code",
+      "save": [
+        {
+          "editor": "telegram-code",
+          "timing": "explicit action",
+          "api": "telegramService code"
+        },
+        {
+          "editor": "telegram-password",
+          "timing": "explicit action",
+          "api": "telegramService password"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/TelegramSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "telegram-source",
+      "current": "/integrations/telegram",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "telegram-source",
+      "save": [
+        {
+          "editor": "telegram-source",
+          "timing": "explicit action",
+          "api": "telegramService source"
+        }
+      ],
+      "source": [
+        "frontend/src/components/integrations/TelegramSourceEditor.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "notifications",
+      "current": "/settings?tab=automation",
+      "destination": "connections",
+      "section": "connections",
+      "presentation": "contextual editor or detail",
+      "canonical": "notifications",
+      "save": [
+        {
+          "editor": "webhook",
+          "timing": "explicit action",
+          "api": "configService notification-webhook"
+        }
+      ],
+      "source": [
+        "frontend/src/components/NotificationsSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "warp",
+      "current": "/warp",
+      "destination": "system",
+      "section": "warp",
+      "presentation": "section",
+      "canonical": "warp",
+      "save": [
+        {
+          "editor": "warp-mode",
+          "timing": "explicit action",
+          "api": "warpService.setMode"
+        },
+        {
+          "editor": "warp-license",
+          "timing": "explicit action",
+          "api": "warpService.registerLicense"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/WARP.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "warp-exclusions",
+      "current": "/warp",
+      "destination": "system",
+      "section": "warp",
+      "presentation": "contextual editor or detail",
+      "canonical": "warp-exclusions",
+      "save": [
+        {
+          "editor": "exclusions",
+          "timing": "explicit action",
+          "api": "warpService exclusions"
+        }
+      ],
+      "source": [
+        "frontend/src/components/WarpExclusionsSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "warp-startup",
+      "current": "/warp",
+      "destination": "system",
+      "section": "warp",
+      "presentation": "contextual editor or detail",
+      "canonical": "warp-startup",
+      "save": [
+        {
+          "editor": "warp-runtime",
+          "timing": "explicit action",
+          "api": "runtime setup API"
+        }
+      ],
+      "source": [
+        "frontend/src/components/WarpStartupSection.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "settings",
+      "current": "/settings",
+      "destination": "settings",
+      "section": "settings",
+      "presentation": "primary destination",
+      "canonical": "settings",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Settings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "playback-settings",
+      "current": "/settings?tab=playback",
+      "destination": "connections",
+      "section": "browser-player",
+      "presentation": "contextual editor or detail",
+      "canonical": "playback-settings",
+      "save": [
+        {
+          "editor": "engine-url",
+          "timing": "explicit action",
+          "api": "configService ace-engine-url"
+        },
+        {
+          "editor": "route",
+          "timing": "explicit action",
+          "api": "configService playback-routing"
+        }
+      ],
+      "source": [
+        "frontend/src/components/player/PlaybackRoutingFields.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "automation",
+      "current": "/settings?tab=automation",
+      "destination": "settings",
+      "section": "automation",
+      "presentation": "section",
+      "canonical": "automation",
+      "save": [
+        {
+          "editor": "intervals-0",
+          "timing": "explicit action",
+          "api": "configService independent setting: schedule.rescrape_interval"
+        },
+        {
+          "editor": "intervals-1",
+          "timing": "explicit action",
+          "api": "configService independent setting: schedule.epg_refresh_interval"
+        },
+        {
+          "editor": "intervals-2",
+          "timing": "explicit action",
+          "api": "configService independent setting: schedule.channel_status_interval"
+        },
+        {
+          "editor": "checker",
+          "timing": "explicit action",
+          "api": "configService check-engine"
+        },
+        {
+          "editor": "scope",
+          "timing": "immediate",
+          "api": "configService stream-check-scope"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Settings.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "schedule-anchors",
+      "current": "/settings?tab=automation",
+      "destination": "settings",
+      "section": "automation",
+      "presentation": "contextual editor or detail",
+      "canonical": "schedule-anchors",
+      "save": [
+        {
+          "editor": "anchors",
+          "timing": "explicit action",
+          "api": "configService schedule-anchors"
+        }
+      ],
+      "source": [
+        "frontend/src/components/ScheduleAnchorFields.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "offline-cleanup",
+      "current": "/settings?tab=automation",
+      "destination": "settings",
+      "section": "automation",
+      "presentation": "contextual editor or detail",
+      "canonical": "offline-cleanup",
+      "save": [
+        {
+          "editor": "offline",
+          "timing": "explicit action",
+          "api": "configService offline-cleanup"
+        }
+      ],
+      "source": [
+        "frontend/src/components/settings/OfflineCleanupFields.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "network",
+      "current": "/settings?tab=network",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "canonical": "network",
+      "save": [],
+      "source": [
+        "frontend/src/components/settings/NetworkSettingsFields.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "system",
+      "current": "/system",
+      "destination": "system",
+      "section": "system",
+      "presentation": "primary destination",
+      "canonical": "system",
+      "save": [],
+      "source": [
+        "frontend/src/pages/SystemDashboard.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "services",
+      "current": "/system",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "services",
+      "save": [],
+      "source": [
+        "frontend/src/components/ServicesPanel.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "jobs",
+      "current": "/system",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "jobs",
+      "save": [],
+      "source": [
+        "frontend/src/components/overview/ScheduledJobs.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "job-detail",
+      "current": "/system",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "job-detail",
+      "save": [],
+      "source": [
+        "frontend/src/components/overview/ScheduledJobs.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "storage",
+      "current": "/system",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "storage",
+      "save": [],
+      "source": [
+        "frontend/src/components/overview/StoragePanel.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "diagnostics",
+      "current": "/system",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "diagnostics",
+      "save": [],
+      "source": [
+        "frontend/src/components/DiagnosticsDownload.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "setup",
+      "current": "/setup",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "setup",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Setup.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "startup",
+      "current": "outer startup gate",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "startup",
+      "save": [],
+      "source": [
+        "frontend/src/components/StartupGate.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "recovery",
+      "current": "startup failure gate",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "recovery",
+      "save": [],
+      "source": [
+        "frontend/src/components/StartupGate.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "recovery-readable",
+      "current": "startup recovery",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "recovery-readable",
+      "save": [
+        {
+          "editor": "recovery-readable",
+          "timing": "explicit action",
+          "api": "startupService recovery"
+        }
+      ],
+      "source": [
+        "frontend/src/components/StartupGate.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "recovery-fresh",
+      "current": "startup recovery",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "recovery-fresh",
+      "save": [
+        {
+          "editor": "recovery-fresh",
+          "timing": "explicit action",
+          "api": "startupService recovery"
+        }
+      ],
+      "source": [
+        "frontend/src/components/StartupGate.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "recovery-result",
+      "current": "startup recovery",
+      "destination": "system",
+      "section": "system",
+      "presentation": "contextual editor or detail",
+      "canonical": "recovery-result",
+      "save": [],
+      "source": [
+        "frontend/src/components/StartupGate.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "preferences",
+      "current": "shared shell preferences",
+      "destination": "settings",
+      "section": "preferences",
+      "presentation": "section",
+      "canonical": "preferences",
+      "save": [
+        {
+          "editor": "preferences",
+          "timing": "explicit action",
+          "api": "proposed browser preference resource"
+        }
+      ],
+      "source": [
+        "frontend/src/components/layout/AppShell.tsx"
+      ],
+      "owner": 317
+    },
+    {
+      "id": "notices",
+      "current": "shared shell",
+      "destination": "system",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "canonical": "notices",
+      "save": [
+        {
+          "editor": "api-token",
+          "timing": "explicit action",
+          "api": "apiToken browser credential"
+        }
+      ],
+      "source": [
+        "frontend/src/components/ApiTokenNotice.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "not-found",
+      "current": "*",
+      "destination": "dashboard",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "canonical": "not-found",
+      "save": [],
+      "source": [
+        "frontend/src/pages/NotFound.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "changelog",
+      "current": "/changelog",
+      "destination": "system",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "canonical": "changelog",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Changelog.tsx"
+      ],
+      "owner": 322
+    },
+    {
+      "id": "unsaved",
+      "current": "shared dirty guard",
+      "destination": "settings",
+      "section": "settings",
+      "presentation": "contextual editor or detail",
+      "canonical": "unsaved",
+      "save": [
+        {
+          "editor": "unsaved-example",
+          "timing": "explicit action",
+          "api": "proposed form dirty guard"
+        }
+      ],
+      "source": [
+        "frontend/src/components/ConfirmDialog.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "runtime-playback",
+      "current": "/setup · Connection settings (advanced)",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "section",
+      "canonical": "runtime-playback",
+      "save": [
+        {
+          "editor": "runtime-playback",
+          "timing": "explicit action",
+          "api": "setupService.update expected_revision"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/RuntimeSetup.tsx",
+        "backend/app/config/runtime-options.json"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "runtime-network",
+      "current": "/setup · Connection settings (advanced)",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "canonical": "runtime-network",
+      "save": [
+        {
+          "editor": "runtime-network",
+          "timing": "explicit action",
+          "api": "setupService.update expected_revision"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/RuntimeSetup.tsx",
+        "backend/app/config/runtime-options.json"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "runtime-services",
+      "current": "/setup · Connection settings (advanced)",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "canonical": "runtime-services",
+      "save": [
+        {
+          "editor": "runtime-services",
+          "timing": "explicit action",
+          "api": "setupService.update expected_revision"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/RuntimeSetup.tsx",
+        "backend/app/config/runtime-options.json"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "runtime-advanced",
+      "current": "/setup · Connection settings (advanced)",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "canonical": "runtime-advanced",
+      "save": [
+        {
+          "editor": "runtime-advanced",
+          "timing": "explicit action",
+          "api": "setupService.update expected_revision"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/RuntimeSetup.tsx",
+        "backend/app/config/runtime-options.json"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "runtime-engine-ports",
+      "current": "/setup · Connection settings (advanced)",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "canonical": "runtime-engine-ports",
+      "save": [
+        {
+          "editor": "runtime-engine-ports",
+          "timing": "explicit action",
+          "api": "setupService.update expected_revision"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/RuntimeSetup.tsx",
+        "backend/app/config/runtime-options.json"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "runtime-gateway-ports",
+      "current": "/setup · Connection settings (advanced)",
+      "destination": "system",
+      "section": "runtime-playback",
+      "presentation": "contextual editor or detail",
+      "canonical": "runtime-gateway-ports",
+      "save": [
+        {
+          "editor": "runtime-gateway-ports",
+          "timing": "explicit action",
+          "api": "setupService.update expected_revision"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/RuntimeSetup.tsx",
+        "backend/app/config/runtime-options.json"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "recordings",
+      "current": "/recordings",
+      "destination": "recordings",
+      "section": "recordings",
+      "presentation": "primary destination",
+      "canonical": "recordings",
+      "save": [
+        {
+          "editor": "recording-filter",
+          "timing": "explicit action",
+          "api": "recordingService.list"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/Recordings.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "channel-activity",
+      "current": "/acestream-channels",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-activity",
+      "save": [],
+      "source": [
+        "frontend/src/components/ChannelActivityLogDialog.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "stream-bulk-fields",
+      "current": "/acestream-channels",
+      "destination": "channels",
+      "section": "streams",
+      "presentation": "contextual editor or detail",
+      "canonical": "stream-bulk-fields",
+      "save": [
+        {
+          "editor": "bulk-fields",
+          "timing": "explicit action",
+          "api": "BulkChannelEditRequest"
+        },
+        {
+          "editor": "bulk-tv-properties",
+          "timing": "explicit action",
+          "api": "source-only contract mismatch → TVChannelUpdate"
+        }
+      ],
+      "source": [
+        "frontend/src/pages/AcestreamChannels.tsx",
+        "frontend/src/components/BulkOperations.tsx",
+        "frontend/src/services/channelService.ts",
+        "backend/app/schemas/channel.py",
+        "backend/app/api/endpoints/channels.py"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "guide-inventory",
+      "current": "/epg?tab=channels",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "guide-inventory",
+      "save": [
+        {
+          "editor": "guide-browse",
+          "timing": "explicit action",
+          "api": "epgService inventory"
+        }
+      ],
+      "source": [
+        "frontend/src/components/EPGChannelInventoryTable.tsx",
+        "frontend/src/components/epg/ScheduleView.tsx",
+        "frontend/src/pages/EPG.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "player-picker",
+      "current": "shared player dialog",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "canonical": "player-picker",
+      "save": [
+        {
+          "editor": "picker",
+          "timing": "explicit action",
+          "api": "player channel picker"
+        }
+      ],
+      "source": [
+        "frontend/src/components/player/ChannelPickerDialog.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "player-sessions",
+      "current": "shared player controls",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "canonical": "player-sessions",
+      "save": [],
+      "source": [
+        "frontend/src/components/player/ActiveStreamsList.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "dashboard-events",
+      "current": "/",
+      "destination": "dashboard",
+      "section": "dashboard",
+      "presentation": "contextual editor or detail",
+      "canonical": "dashboard-events",
+      "save": [
+        {
+          "editor": "dashboard-events",
+          "timing": "explicit action",
+          "api": "readEventPreferences / writeEventPreferences"
+        }
+      ],
+      "source": [
+        "frontend/src/components/overview/UpcomingEvents.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "event-broadcasters",
+      "current": "/events",
+      "destination": "events",
+      "section": "events",
+      "presentation": "contextual editor or detail",
+      "canonical": "event-broadcasters",
+      "save": [],
+      "source": [
+        "frontend/src/components/events/BroadcasterLinks.tsx"
+      ],
+      "owner": 319
+    },
+    {
+      "id": "setup-source",
+      "current": "/setup",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "reuse canonical editor",
+      "canonical": "source-web",
+      "save": [
+        {
+          "editor": "source",
+          "timing": "explicit action",
+          "api": "scraperService createURL / updateURL"
+        }
+      ],
+      "source": [
+        "frontend/src/components/setup/SetupSources.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "setup-guide",
+      "current": "/setup",
+      "destination": "channels",
+      "section": "guide-sources",
+      "presentation": "reuse canonical editor",
+      "canonical": "guide-source",
+      "save": [
+        {
+          "editor": "guide-source",
+          "timing": "explicit action",
+          "api": "epgService.createSource / updateSource"
+        }
+      ],
+      "source": [
+        "frontend/src/components/setup/SetupGuide.tsx"
+      ],
+      "owner": 318
+    },
+    {
+      "id": "channel-inline",
+      "current": "/tv-channels",
+      "destination": "channels",
+      "section": "channels",
+      "presentation": "contextual editor or detail",
+      "canonical": "channel-inline",
+      "save": [
+        {
+          "editor": "inline-number",
+          "timing": "enter-blur",
+          "api": "TVChannelUpdate.channel_number"
+        },
+        {
+          "editor": "inline-favorite",
+          "timing": "immediate",
+          "api": "TVChannelUpdate.is_favorite"
+        }
+      ],
+      "source": [
+        "frontend/src/components/ChannelNumberField.tsx",
+        "frontend/src/components/TVChannelsTable.tsx"
+      ],
+      "owner": 320
+    },
+    {
+      "id": "sources",
+      "current": "/sources",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "section",
+      "canonical": "sources",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    },
+    {
+      "id": "add-channels",
+      "current": "/sources",
+      "destination": "channels",
+      "section": "sources",
+      "presentation": "contextual editor or detail",
+      "canonical": "add-channels",
+      "save": [],
+      "source": [
+        "frontend/src/pages/Scraper.tsx"
+      ],
+      "owner": 321
+    }
+  ]
+}

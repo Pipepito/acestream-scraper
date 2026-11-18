@@ -1,3 +1,5 @@
+import { uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Button } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
@@ -6,11 +8,12 @@ import RemotePlayersSection from '../../components/integrations/RemotePlayersSec
 import { useRemotePlayers } from '../../hooks/useRemotePlayers';
 
 export default function RemotePlayers() {
+  const tUi = useUiText();
   const players = useRemotePlayers();
-  return <IntegrationPage title="Remote players" summary={[
-    { label: 'Players', value: players.error ? 'Unavailable' : players.data?.length ?? 'Loading…' },
+  return <IntegrationPage title={tUi("Remote players")} summary={[
+    { label: uiText("Players"), value: players.error ? uiText("Unavailable") : players.data?.length ?? 'Loading…' },
   ]}>{notify => <>
     <RemotePlayersSection notify={notify} />
-    <Button component={RouterLink} to="/integrations/public-address">Configure public address</Button>
+    <Button component={RouterLink} to="/integrations/public-address">{tUi("Configure public address")}</Button>
   </>}</IntegrationPage>;
 }

@@ -1,0 +1,21 @@
+/* Readable static reference documents; brand values remain in shared tokens. */
+main.document-main { max-width: 1080px; margin: 0 auto; padding: 48px 32px; overflow-wrap: anywhere; }
+.document-main h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1.05; margin: 16px 0 32px; }
+.document-main h2 { margin: 48px 0 16px; }
+.document-main h3 { margin-top: 32px; }
+.document-main p, .document-main li { max-width: 80ch; line-height: 1.7; }
+.document-main li + li { margin-top: 8px; }
+.document-main a { text-decoration: underline; text-underline-offset: 3px; }
+.document-main img { max-width: 100%; height: auto; }
+.document-main pre { overflow: auto; padding: 20px; border: 1px solid var(--line); border-radius: 8px; font-size: .875rem; line-height: 1.6; }
+.document-main pre code { white-space: pre; }
+.document-main code { font-size: .875em; }
+.document-main :target { scroll-margin-top: 100px; }
+.document-main pre :target { background: var(--accent); color: var(--ink); }
+.document-table { max-width: 100%; overflow-x: auto; margin: 24px 0; }
+.document-table table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.document-table th, .document-table td { min-width: 140px; padding: 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+.document-table .document-align-right { text-align: right; }
+.document-table .document-align-center { text-align: center; }
+.document-footer { max-width: 1080px; margin: 0 auto; padding: 24px 32px 48px; border-top: 1px solid var(--line); overflow-wrap: anywhere; font-size: .875rem; line-height: 1.6; }
+@media (max-width: 600px) { main.document-main { padding: 32px 20px; } .document-footer { padding: 24px 20px; } .document-main ul, .document-main ol { padding-left: 24px; } }

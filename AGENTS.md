@@ -6,7 +6,7 @@ First-run account setup and later activation live in Settings → Access; no new
 Docker bootstrap credentials are required. Keep the independent migrated access
 store and fail-closed marker outside catalogue exports/recovery. Default-deny
 management applies to all API aliases and ASGI prefixes. Viewer/media capabilities,
-IPTV credentials and administrative headers are separate. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own Integrations page and works without accounts for verified
+IPTV credentials and administrative headers are separate. Accounts support HTTPS and private-IP HTTP on a home network, including private Docker NAT connections. A public Cast trust entry never permits public HTTP accounts. TV casting has its own page under Connections and works without accounts for verified
 home clients. With accounts enabled, require casting permission. Remote control
 always requires an account and explicit opt-in. Keep automatic discovery bounded,
 proxy trust scoped (`auto` detects Docker bridge peers but excludes gateways), and local-browser ownership separate from accounts. Preserve explicit saved proxy overrides. Receiver cleanup must verify exact media ownership; original
@@ -40,12 +40,13 @@ loads the applicable file when working below those directories.
 ## Start here
 
 - The active integration branch is `develop`; `main` is the release branch.
-- The current release PR is GitHub PR #207, `develop` -> `main`, preparing
-  v2.2.0. PR #162 is historical and has already merged.
+- Release PR #207 (`develop` -> `main`, v2.2.0) is merged, verified
+  2026-11-08. PR #162 is also historical. This branch selects v2.3.0;
+  selecting a version does not establish stable publication.
 - Treat live PR and CI state as volatile. Before reporting it, run
   `gh pr view 207 --json state,mergeable,mergeStateStatus,statusCheckRollup,updatedAt,url`
   or inspect the PR in GitHub. Local validation is not proof of current CI status.
-- `version.txt` records the selected release version (`v2.2.0` for this cycle),
+- `version.txt` records the selected release version (`v2.3.0` for this cycle),
   without a `-dev` suffix. Development images use only floating `develop*` tags;
   versioned tags and `latest` belong exclusively to the manual release from main.
 - `backend/` and `frontend/` are the only canonical application roots. Do not
@@ -326,10 +327,10 @@ changes. Acexy owns its sessions. See `docs/ops/stream-check-pid.md`.
 
 Live TV embeds the existing HLS player alongside a scrollable catalogue. Filtering
 does not release playback; changing the channel or Stop watching releases the
-current viewer. Other pages retain the player dialog. Navigation groups Watch,
-Manage, Integrations and System, with WARP always discoverable. Settings uses deep-linkable
+current viewer. Other pages retain the player dialog. Navigation uses Watch, Recordings, Events, Channels, Connections, Settings and
+System, with WARP always discoverable. Settings uses deep-linkable
 `?tab=playback|automation|links|access|network` sections; public address belongs to
-Integrations. PID/AppID belong to Stream links, not Automation.
+Connections. PID/AppID belong to Stream links, not Automation.
 
 
 ## TV channel inventory and playlist formats
@@ -349,6 +350,9 @@ previews consecutive numbers. Save order uses `POST /api/v1/tv-channels/reorder`
 with the complete desired IDs and original order; the backend commits all numbers
 atomically and rejects stale/incomplete inventories. Cancel leaves stored numbers
 unchanged. Number edits remain available outside reorder mode.
+Above 100 channels, reorder renders a measured virtual window while retaining the
+complete draft and original order. Keep stable channel keys, focused/dragged rows,
+full names and list positions. Home/End/Page Up/Page Down move focus; arrows reorder.
 
 
 Engines are optional. Settings → Automation stores external checker selection via
@@ -747,7 +751,13 @@ remain unchanged; see `wiki/Usage.md#search-and-manual-additions` for recovery.
 
 ## TV and system dashboards
 
-The default `/` route is TV dashboard under Watch: app-owned playback, channel/stream
+Channel categories are stable, owned assignments; On now uses complete current
+programme genres. Preserve ordered/language-tagged XMLTV categories, legacy scalar
+compatibility, source-qualified logos and explicit stale-checked category review.
+Manual clears remain protected; channel cards prefer saved/guide logos before
+illustrations. See `docs/dev/tv-categories.md` and `wiki/TV-Categories.md`.
+
+The default `/` route combines the Live TV catalogue and Watch overview: app-owned playback, channel/stream
 inventory, upcoming/followed events and time until the next content updates. System status at `/system` owns services, storage,
 diagnostics and full job history. `/health` redirects to `/system`; `/dashboard` and
 `/stats` redirect to `/`. Keep section failures independent and missing data unknown.
@@ -760,7 +770,7 @@ reads. See `docs/dev/dashboard-split.md`.
 
 ## Integration navigation
 
-Integrations is a sidebar category with independent pages at
+Connections groups the existing independent integration pages at
 `/integrations/public-address`, `/integrations/web-player`,
 `/integrations/remote-players`, `/integrations/media-servers` and
 `/integrations/telegram`. The old `/integrations` URL redirects to Public address.
@@ -812,7 +822,7 @@ leases, guarded HTTP input, control-pipe/process-group cleanup, journal recovery
 stop intent and immutable guide snapshots. Never replace originals during
 conversion or delete protected/active/reader-held media. File routes retain the
 optional API-token policy and descriptor-relative no-follow access. Recordings
-is under Watch; scheduling is TV-channel-only. See `wiki/Recordings.md` and
+is a main navigation destination; scheduling is TV-channel-only. See `wiki/Recordings.md` and
 `docs/ops/recordings.md` for limits, qualification and rollback.
 
 Live TV exposes the seven-day guide inline without starting playback. Programme

@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Alert, Stack, Typography } from '@mui/material';
 import ContentSection from '../layout/ContentSection';
@@ -8,6 +9,7 @@ import { getErrorMessage } from '../../utils/errorUtils';
 
 /** ffmpeg availability and everything the server is streaming right now. */
 const WebPlayerSection: React.FC = () => {
+  const tUi = useUiText();
   const { data: caps, isError: capsFailed, error: capsError } = usePlayerCapabilities();
   const { data: active, isError: streamsFailed, error: streamsError } = useActiveStreams();
   const list = active?.streams ?? [];
@@ -16,40 +18,37 @@ const WebPlayerSection: React.FC = () => {
   // it is still checking, and a failed read says so with the reason.
   const ffmpegLine = (): React.ReactNode => {
     if (capsFailed) {
-      return <InlineStatusNotice severity="error" title="Unable to check the web player" description={getErrorMessage(capsError)} />;
+      return <InlineStatusNotice severity="error" title={tUi("Unable to check the web player")} description={getErrorMessage(capsError)} />;
     }
     if (!caps) {
       return (
         <Typography variant="body2" color="text.secondary">
-          Checking ffmpeg…
-        </Typography>
+          {tUi("Checking ffmpeg…")}</Typography>
       );
     }
     if (!caps.ffmpeg_available) {
       return (
         <Alert severity="warning">
-          ffmpeg is not available on this server, so channels cannot play in the browser. Set FFMPEG_BINARY_PATH or use the bundled image.
-        </Alert>
+          {tUi("ffmpeg is not available on this server, so channels cannot play in the browser. Set FFMPEG_BINARY_PATH or use the bundled image.")}</Alert>
       );
     }
     return (
       <Typography variant="body2" color="text.secondary">
-        ffmpeg {caps.ffmpeg_path ? `at ${caps.ffmpeg_path}` : 'ready'} · up to {caps.max_sessions} channels at once
-      </Typography>
+        {tUi("ffmpeg")}{' '}{caps.ffmpeg_path ? tUi("at {{value0}}", { value0: caps.ffmpeg_path }) : tUi("ready")} {' '}{tUi("· up to")}{' '}{caps.max_sessions} {tUi("channels at once")}</Typography>
     );
   };
 
   return (
     <ContentSection
-      title="Web player"
-      description="Channels play in the browser through a small server-side conversion (video copied, audio re-encoded). Media servers and remote players are relayed as they are."
+      title={tUi("Web player")}
+      description={tUi("Channels play in the browser through a small server-side conversion (video copied, audio re-encoded). Media servers and remote players are relayed as they are.")}
     >
       <Stack spacing={1.5}>
         {ffmpegLine()}
         {streamsFailed ? (
-          <InlineStatusNotice severity="error" title="Unable to load what is playing" description={getErrorMessage(streamsError)} />
+          <InlineStatusNotice severity="error" title={tUi("Unable to load what is playing")} description={getErrorMessage(streamsError)} />
         ) : !active ? (
-          <Typography role="status">Loading playback…</Typography>
+          <Typography role="status">{tUi("Loading playback…")}</Typography>
         ) : <ActiveStreamsList streams={list} showContentId />}
 
       </Stack>

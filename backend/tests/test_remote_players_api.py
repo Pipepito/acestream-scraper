@@ -111,6 +111,7 @@ def test_probe_answers_when_the_port_is_not_a_player(alembic_client, vlc):
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["reachable"] is False and body["authenticated"] is False and body["hint"]
+    assert body["reason"] == "not_player"
 
     player = _create(alembic_client).json()
     vlc["handler"] = lambda r: httpx.Response(500, text="server error")

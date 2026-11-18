@@ -41,14 +41,12 @@ from app.services.tuner_playback_service import (
 from app.services.ts_clock import ClockWatch, watch_clock
 from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
+from app.utils.stream_kind import is_acestream_id, is_http_id
 
 logger = logging.getLogger(__name__)
 
 hdhr_router = APIRouter(prefix="/tuner", dependencies=[Depends(require_tuner_network)], tags=["hdhomerun"])
 router = APIRouter()  # /api/v1/tuner settings + status
-
-_CONTENT_ID = re.compile(r"^[0-9a-fA-F]{40}$")
-
 
 def _engine() -> EngineClient:
     """Read the configured engine URL through a session of its own.
@@ -85,7 +83,7 @@ def _relay_client_factory(**kwargs) -> httpx.AsyncClient:
 
 
 def _validate_content_id(content_id: str) -> str:
-    if not _CONTENT_ID.match(content_id):
+    if not is_acestream_id(content_id):
         # APIError, not HTTPException: the 403 and the 502s on this router all
         # answer with the {"error": {...}} envelope and this must match.
         raise APIError(
@@ -192,7 +190,7 @@ def playlist_m3u(request: Request, db: Session = Depends(get_db)) -> PlainTextRe
 async def tuner_http_source(content_id: str, request: Request):
     """A stored HTTP source uses the bounded, credential-preserving TS relay."""
     from app.services.watch_service import imported_stream
-    if not re.fullmatch(r'url:[0-9a-f]{40}', content_id) or not await run_in_threadpool(imported_stream, content_id):
+    if not is_http_id(content_id) or not await run_in_threadpool(imported_stream, content_id):
         raise HTTPException(404, 'Channel not found')
     if request.method == 'HEAD':
         return Response(status_code=200, headers=RELAY_HEADERS)

@@ -7,3 +7,15 @@ docker/vendor/**/SHA256SUMS text diff
 backend/tests/docker/fixtures/** binary
 backend/tests/docker/fixtures/**/README.md text diff
 backend/tests/docker/fixtures/**/SHA256SUMS text diff
+
+# Archived design masters and media: preserve supplied bytes on every checkout.
+design-assets/** -text
+design-assets/**/*.pdf binary
+design-assets/**/*.png binary
+design-assets/**/*.jpg binary
+design-assets/**/*.webp binary
+design-assets/**/*.ttf binary
+design-assets/**/*.mp4 binary
+design-assets/**/*.webm binary
+design-assets/**/*.mp3 binary
+design-assets/**/*.wav binary

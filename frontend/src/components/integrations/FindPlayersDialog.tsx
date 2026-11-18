@@ -1,3 +1,5 @@
+import { translateKnown, uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -29,6 +31,7 @@ const KIND_LABEL: Record<ScanHit['kind'], string> = { vlc: 'VLC (desktop)', vlc_
 
 /** Scan one private network for VLC/Kodi web interfaces and add what answers. */
 const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, onAdd }) => {
+  const tUi = useUiText();
   const { data: suggestion } = useScanDefault(open);
   const scan = useScanRemotePlayers();
   const [cidr, setCidr] = useState('');
@@ -50,32 +53,30 @@ const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, on
   const hits: ScanHit[] = scan.data?.hosts ?? [];
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" aria-labelledby="find-players-title">
-      <DialogTitle id="find-players-title">Find players</DialogTitle>
+      <DialogTitle id="find-players-title">{tUi("Find players")}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            Looks for desktop VLC and Kodi web interfaces on port 8080. Add VLC Android manually using its HTTPS address. {suggestion?.hint}
+            {tUi("Looks for desktop VLC and Kodi web interfaces on port 8080. Add VLC Android manually using its HTTPS address.")}{' '}{suggestion?.hint}
           </Typography>
           <Stack direction="row" spacing={1}>
             <TextField
-              label="Network"
+              label={tUi("Network")}
               value={cidr}
               onChange={(event) => setCidr(event.target.value)}
               placeholder="192.168.1.0/24"
               fullWidth
-              inputProps={{ 'aria-label': 'Network' }}
+              inputProps={{ 'aria-label': uiText("Network") }}
             />
             <Button variant="contained" onClick={() => void run()} disabled={!cidr.trim() || scan.isPending}>
-              {scan.isPending ? <CircularProgress size={18} /> : 'Scan'}
+              {scan.isPending ? <CircularProgress size={18} /> : tUi("Scan")}
             </Button>
           </Stack>
           {error ? <Alert severity="error">{error}</Alert> : null}
           {scan.data ? (
             hits.length === 0 ? (
               <Alert severity="info">
-                Nothing answered on port 8080 across {scan.data.scanned} addresses. Turn on the web interface in VLC (Preferences ›
-                Interface › Main interfaces › Web) or Kodi (Services › Control), then scan again.
-              </Alert>
+                {tUi("Nothing answered on port 8080 across")}{' '}{scan.data.scanned} {tUi("addresses. Turn on the web interface in VLC (Preferences › Interface › Main interfaces › Web) or Kodi (Services › Control), then scan again.")}</Alert>
             ) : (
               <List dense>
                 {hits.map((hit) => {
@@ -87,8 +88,7 @@ const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, on
                       secondaryAction={
                         known ? (
                           <Button size="small" onClick={() => onAdd({ host: hit.host, port: hit.port, kind: known })}>
-                            Add
-                          </Button>
+                            {tUi("Add")}</Button>
                         ) : null
                       }
                     >
@@ -98,7 +98,7 @@ const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, on
                             <span>
                               {hit.host}:{hit.port}
                             </span>
-                            <Chip size="small" label={KIND_LABEL[hit.kind]} />
+                            <Chip size="small" label={translateKnown(KIND_LABEL[hit.kind])} />
                           </Stack>
                         }
                         secondary={hit.hint}
@@ -112,7 +112,7 @@ const FindPlayersDialog: React.FC<FindPlayersDialogProps> = ({ open, onClose, on
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{tUi("Close")}</Button>
       </DialogActions>
     </Dialog>
   );

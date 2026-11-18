@@ -1,0 +1,11 @@
+/* zztream · identidad visual propuesta v1.0 */
+:root {
+  --zz-lime: #B6FF00; --zz-black: #080B09; --zz-white: #F5F7F3;
+  --zz-charcoal: #171D19; --zz-muted: #AFB8B0; --zz-line: #38433B;
+  --zz-font-display: "Barlow Condensed", sans-serif;
+  --zz-font-body: "Inter", sans-serif;
+  --zz-radius: 8px; --zz-space-unit: 8px;
+  --zz-space-2: 16px; --zz-space-3: 24px; --zz-space-4: 32px; --zz-space-6: 48px;
+  --zz-focus-width: 2px; --zz-touch-target: 44px; --zz-motion: 200ms;
+}
+@media (prefers-reduced-motion: reduce) { :root { --zz-motion: 0ms; } }

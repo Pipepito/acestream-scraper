@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { Alert,Box,Button,Stack,TextField,Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
-import ContentSection from '../layout/ContentSection';
+import React,{ useState } from 'react';
 import { MEDIA_SERVERS_QUERY_KEY } from '../../hooks/useMediaServers';
-import { PUBLIC_URL_QUERY_KEY, usePublicUrl } from '../../hooks/useSystemServices';
+import { useSettingDraft } from '../../hooks/useSettingDraft';
+import { PUBLIC_URL_QUERY_KEY,usePublicUrl } from '../../hooks/useSystemServices';
 import { useTunerStatus } from '../../hooks/useTuner';
+import { translateKnown,uiText } from '../../i18n/text';
+import { useUiText } from '../../i18n/useUiText';
 import { configService } from '../../services/configService';
 import type { TunerDenial } from '../../services/tunerService';
 import { getErrorMessage } from '../../utils/errorUtils';
 import { formatRelativeTime } from '../../utils/format';
+import ContentSection from '../layout/ContentSection';
 
 const SOURCE_LABEL = { setting: 'Setting', forwarded: 'Proxy headers', request: 'Request' } as const;
 
@@ -35,73 +38,73 @@ const denialTime = (denial: TunerDenial): string => {
 };
 
 export interface PublicAddressSectionProps {
-  notify: (message: string, severity: 'success' | 'error') => void;
+  notify: (message: string | (() => string), severity: 'success' | 'error') => void;
 }
 
 /** Where tuners, remote players and copied links reach this server. */
 const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) => {
+  const tUi = useUiText();
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = usePublicUrl();
   const { data: tuner } = useTunerStatus();
   const denial = newestDenial(tuner?.recent_denials ?? []);
-  const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
   const saved = data?.source === 'setting' ? data.url : '';
 
-  useEffect(() => setValue(saved), [saved]);
+  const draft = useSettingDraft(saved, '', saving);
+  const value = draft.value;
+  const setValue = draft.change;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     try {
       await configService.updatePublicBaseUrl(value.trim());
-      notify(value.trim() ? 'Public address saved.' : 'Public address cleared.', 'success');
+      draft.saved(value.trim());
+      notify(() => (value.trim() ? uiText("Public address saved.") : uiText("Public address cleared.")), 'success');
       await queryClient.invalidateQueries({ queryKey: PUBLIC_URL_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ['tuner'] });
       // The Plex cards paste absolute URLs built from this address; without
       // this they would keep the old ones until the next 30 s status poll.
       await queryClient.invalidateQueries({ queryKey: MEDIA_SERVERS_QUERY_KEY });
     } catch (err) {
-      notify(getErrorMessage(err), 'error');
+      notify(() => (getErrorMessage(err)), 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  if (error) return <ContentSection title="Public address">
-    <Alert severity="error" action={<Button color="inherit" onClick={() => void refetch()}>Retry</Button>}>
-      Could not load the public address: {getErrorMessage(error)}
+  if (error) return <ContentSection title={tUi("Public address")}>
+    <Alert severity="error" action={<Button color="inherit" onClick={() => void refetch()}>{tUi("Retry")}</Button>}>
+      {tUi("Could not load the public address:")}{' '}{getErrorMessage(error)}
     </Alert>
   </ContentSection>;
 
   return (
     <Box id="public-address">
       <ContentSection
-        title="Public address"
-        description="The address other devices use to reach this server. It goes into tuner, player and copied links."
+        title={tUi("Public address")}
+        description={tUi("The address other devices use to reach this server. It goes into tuner, player and copied links.")}
       >
         <Stack spacing={2}>
           <Typography variant="body2">
-            Currently <strong>{isLoading ? '…' : data?.url}</strong>
-            {data ? ` (${SOURCE_LABEL[data.source]})` : ''}
+            {tUi("Currently")}{' '}<strong>{isLoading ? '…' : data?.url}</strong>
+            {data ? tUi(" ({{value0}})", { value0: translateKnown(SOURCE_LABEL[data.source]) }) : ''}
           </Typography>
           {(data?.warnings ?? []).map((warning) => (
             <Alert key={warning} severity="warning">
-              {WARNING_TEXT[warning] ?? warning}
+              {translateKnown(WARNING_TEXT[warning] ?? warning)}
             </Alert>
           ))}
-          {tuner?.warnings.includes('TUNER_ALLOWLIST_INEFFECTIVE') ? <Alert severity="warning">{ALLOWLIST_INEFFECTIVE}</Alert> : null}
+          {tuner?.warnings.includes('TUNER_ALLOWLIST_INEFFECTIVE') ? <Alert severity="warning">{translateKnown(ALLOWLIST_INEFFECTIVE)}</Alert> : null}
           {denial ? (
             <Alert severity="warning">
-              Requests from {denial.client_ip} were denied {denialTime(denial)} ({denial.path}); add its network to TUNER_ALLOWED_NETWORKS if it is
-              yours.
-            </Alert>
+              {tUi("Requests from {{address}} were denied {{time}} ({{path}}); add its network to TUNER_ALLOWED_NETWORKS if it is yours.", { address: denial.client_ip, time: denialTime(denial), path: denial.path })}</Alert>
           ) : null}
           {tuner && tuner.overflow > 0 ? (
             <Alert severity="warning">
-              Plex stops saving channel maps at roughly 450-480 channels (it depends on channel number and name length). {tuner.overflow} channels
-              were left out; disable channels or lower the count.
-            </Alert>
+              {tUi("Plex stops saving channel maps at roughly 450-480 channels (it depends on channel number and name length).")}{' '}{tuner.overflow} {tUi("channels were left out; disable channels or lower the count.")}</Alert>
           ) : null}
           <Stack
             component="form"
@@ -109,21 +112,20 @@ const PublicAddressSection: React.FC<PublicAddressSectionProps> = ({ notify }) =
             spacing={1}
             alignItems={{ sm: 'flex-start' }}
             onSubmit={(event: React.FormEvent) => void save(event)}
-            aria-label="Public address form"
+            aria-label={tUi("Public address form")}
           >
             <TextField
               size="small"
               fullWidth
-              label="Public address"
-              placeholder="http://192.168.1.10:8000"
+              label={tUi("Public address")}
+              placeholder={tUi("http://192.168.1.10:8000")}
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              inputProps={{ 'aria-label': 'Public address' }}
-              helperText="Scheme and host, optionally a port. Leave empty to derive it from each request."
+              inputProps={{ 'aria-label': uiText("Public address") }}
+              helperText={tUi("Scheme and host, optionally a port. Leave empty to derive it from each request.")}
             />
             <Button type="submit" variant="contained" disabled={!data || saving || value.trim() === saved}>
-              Save
-            </Button>
+              {tUi("Save")}</Button>
           </Stack>
         </Stack>
       </ContentSection>

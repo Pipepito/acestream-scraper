@@ -31,13 +31,15 @@ def test_build_rejects_changed_markdown_or_version(tmp_path):
     shutil.copy(ROOT / 'version.txt', tmp_path)
     command = ['node', str(frontend / 'scripts/generate-changelog.js'), '--check']
     assert subprocess.run(command, capture_output=True).returncode == 0
-    source = frontend / 'changelog/v2.2.0.md'
+    selected_version = (tmp_path / 'version.txt').read_text().strip()
+    source = frontend / 'changelog' / f'{selected_version}.md'
     original = source.read_text()
     source.write_text(original + '\n- Test-only release note.\n')
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode != 0 and 'Changelog drift' in result.stderr
     source.write_text(original)
-    (tmp_path / 'version.txt').write_text('v2.3.0\n')
+    major, minor, patch = map(int, selected_version.removeprefix('v').split('.'))
+    (tmp_path / 'version.txt').write_text(f'v{major + 1}.{minor}.{patch}\n')
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode != 0 and 'must match version.txt' in result.stderr
 

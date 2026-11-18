@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 from app.services import hls_manifest, live_providers
 from app.services.stream_bitrate_service import SAMPLE_BYTES, verify_media_sample
-from app.utils.bounded_source import source_get
+from app.utils.bounded_source import source_get, source_get_following
 
 TIMEOUT = 10
 MAX_REDIRECTS = 5
@@ -14,15 +14,8 @@ MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 
 
 async def _get(url, headers, *, max_bytes=MAX_MANIFEST_BYTES, sample=False, media_limit=None):
-    deadline = asyncio.get_running_loop().time() + TIMEOUT
-    for _ in range(MAX_REDIRECTS + 1):
-        response = await source_get(url, timeout=deadline - asyncio.get_running_loop().time(),
-                                    headers=headers, max_bytes=max_bytes, sample=sample, media_limit=media_limit)
-        if response.status_code in (301, 302, 303, 307, 308) and response.headers.get('Location'):
-            url = urljoin(url, response.headers['Location'])
-            continue
-        return url, response
-    raise ValueError('Too many redirects')
+    return await source_get_following(url, budget=TIMEOUT, max_redirects=MAX_REDIRECTS, get=source_get,
+                                      headers=headers, max_bytes=max_bytes, sample=sample, media_limit=media_limit)
 
 
 def _first_uri(text):

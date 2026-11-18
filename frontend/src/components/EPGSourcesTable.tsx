@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import { responsiveTableSx } from '../styles/responsiveTable';
 import React from 'react';
 import {
@@ -17,7 +19,7 @@ import {
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeTime } from '../utils/format';
 import { EPGSource } from '../services/epgService';
 
 interface EPGSourcesTableProps {
@@ -34,56 +36,56 @@ const EPGSourcesTable: React.FC<EPGSourcesTableProps> = ({
   onRefreshSource,
   onEditSource,
   onDeleteSource,
-}) => (
+}) => { const tUi = useUiText(); return (
   <TableContainer component={Box} sx={responsiveTableSx}>
     <Table>
       <TableHead>
         <TableRow>
-          <TableCell>Name</TableCell>
-          <TableCell>URL</TableCell>
-          <TableCell>Status</TableCell>
-          <TableCell>Last Updated</TableCell>
-          <TableCell>Actions</TableCell>
+          <TableCell>{tUi("Name")}</TableCell>
+          <TableCell>{tUi("URL")}</TableCell>
+          <TableCell>{tUi("Status")}</TableCell>
+          <TableCell>{tUi("Last Updated")}</TableCell>
+          <TableCell>{tUi("Actions")}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
         {(sources || []).map((source) => (
           <TableRow key={source.id}>
-            <TableCell data-label="Name">{source.name}</TableCell>
+            <TableCell data-label={uiText("Name")}>{source.name}</TableCell>
             <TableCell data-label="URL">{source.url}</TableCell>
-            <TableCell data-label="Status">
+            <TableCell data-label={uiText("Status")}>
               {source.enabled ? (
-                <Chip label="Enabled" color="success" size="small" />
+                <Chip label={tUi("Enabled")} color="success" size="small" />
               ) : (
-                <Chip label="Disabled" color="default" size="small" />
+                <Chip label={tUi("Disabled")} color="default" size="small" />
               )}
               {source.error_count > 0 ? (
                 <Typography variant="caption" color="error.main" component="p" sx={{ mt: 0.5, maxWidth: 360, overflowWrap: 'anywhere' }}>
-                  {source.error_count} failed refresh{source.error_count === 1 ? '' : 'es'}
-                  {source.last_error ? ` · ${source.last_error}` : ''}
+                  {tUi("{{count}} failed refresh", { count: source.error_count })}
+                  {source.last_error ? tUi(" · {{value0}}", { value0: source.last_error }) : ''}
                 </Typography>
               ) : null}
             </TableCell>
-            <TableCell data-label="Last updated">
+            <TableCell data-label={uiText("Last updated")}>
               {source.last_updated ? (
-                formatDistanceToNow(new Date(source.last_updated), { addSuffix: true })
+                formatRelativeTime(source.last_updated)
               ) : (
-                'Never'
+                tUi('Never')
               )}
             </TableCell>
-            <TableCell data-label="Actions">
+            <TableCell data-label={uiText("Actions")}>
               <IconButton
                 color="primary"
                 onClick={() => onRefreshSource(source.id)}
                 disabled={refreshingSourceId === source.id}
-                aria-label={`Refresh source ${source.name}`}
+                aria-label={tUi("Refresh source {{value0}}", { value0: source.name })}
               >
                 <RefreshIcon />
               </IconButton>
-              <IconButton color="secondary" onClick={() => onEditSource(source)} aria-label={`Edit source ${source.name}`}>
+              <IconButton color="secondary" onClick={() => onEditSource(source)} aria-label={tUi("Edit source {{value0}}", { value0: source.name })}>
                 <EditIcon />
               </IconButton>
-              <IconButton color="error" onClick={() => onDeleteSource(source.id)} aria-label={`Delete source ${source.name}`}>
+              <IconButton color="error" onClick={() => onDeleteSource(source.id)} aria-label={tUi("Delete source {{value0}}", { value0: source.name })}>
                 <DeleteIcon />
               </IconButton>
             </TableCell>
@@ -92,13 +94,12 @@ const EPGSourcesTable: React.FC<EPGSourcesTableProps> = ({
         {sources && sources.length === 0 && (
           <TableRow>
             <TableCell colSpan={5} align="center">
-              No EPG sources found
-            </TableCell>
+              {tUi("No EPG sources found")}</TableCell>
           </TableRow>
         )}
       </TableBody>
     </Table>
   </TableContainer>
-);
+); };
 
 export default EPGSourcesTable;

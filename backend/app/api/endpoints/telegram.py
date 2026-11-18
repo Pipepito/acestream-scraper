@@ -15,17 +15,22 @@ from app.schemas.telegram import (TelegramLogin, TelegramCode, TelegramPassword,
 from app.schemas.extraction import ExtractionRecipe
 from app.services.telegram.manager import manager, threaded
 from app.services.telegram.extraction import PAIR_RECIPE
-from app.services.telegram.errors import TelegramActionError
+from app.services.telegram.errors import TelegramActionError, message_code
+
+
+def telegram_http_error(status_code: int, detail: str) -> HTTPException:
+    code = message_code(detail)
+    return HTTPException(status_code, detail, headers={'X-Error-Code': code} if code else None)
 
 
 async def require_telegram_admin(request: Request) -> None:
     await require_api_token(request)
     expected = get_settings().TELEGRAM_ADMIN_TOKEN.get_secret_value()
     if len(expected) < 32:
-        raise HTTPException(503, 'Telegram is disabled. Configure a Telegram admin token of at least 32 characters and a separate encryption key.')
+        raise telegram_http_error(503, 'Telegram is disabled. Configure a Telegram admin token of at least 32 characters and a separate encryption key.')
     supplied = request.headers.get('X-Telegram-Admin', '')
     if not secrets.compare_digest(supplied.encode(), expected.encode()):
-        raise HTTPException(403, 'Enter the Telegram admin token configured on this server.')
+        raise telegram_http_error(403, 'Enter the Telegram admin token configured on this server.')
     peer = request.scope.get('state', {}).get('peer', request.scope.get('client', ('', 0)))[0]
     try:
         local = ipaddress.ip_address(peer).is_loopback
@@ -33,10 +38,10 @@ async def require_telegram_admin(request: Request) -> None:
         local = False
     local = local and request.url.hostname in ('localhost', '127.0.0.1', '::1')
     if request.url.scheme != 'https' and not local:
-        raise HTTPException(403, 'Use HTTPS or a localhost connection for Telegram administration.')
+        raise telegram_http_error(403, 'Use HTTPS or a localhost connection for Telegram administration.')
     origin = request.headers.get('origin')
     if (origin and origin != f'{request.url.scheme}://{request.url.netloc}') or request.headers.get('sec-fetch-site') == 'cross-site':
-        raise HTTPException(403, 'Open Telegram settings from this application origin.')
+        raise telegram_http_error(403, 'Open Telegram settings from this application origin.')
 
 
 class PrivateRoute(APIRoute):
@@ -51,16 +56,16 @@ class PrivateRoute(APIRoute):
                     async for chunk in request.stream():
                         body.extend(chunk)
                         if len(body) > 128 * 1024:
-                            raise HTTPException(413, 'Telegram request is too large')
+                            raise telegram_http_error(413, 'Telegram request is too large')
                 request._body = bytes(body)
                 response = await handler(request)
                 response.headers['Cache-Control'] = 'no-store'
                 return response
             except RequestValidationError:
                 # FastAPI's default detail includes the submitted secret input.
-                raise HTTPException(422, 'Invalid Telegram input. Check the fields and limits.') from None
+                raise telegram_http_error(422, 'Invalid Telegram input. Check the fields and limits.') from None
             except TimeoutError:
-                raise HTTPException(408, 'Telegram request timed out; retry shortly.') from None
+                raise telegram_http_error(408, 'Telegram request timed out; retry shortly.') from None
         return guarded
 
 
@@ -72,25 +77,25 @@ async def operation(ignore_flood=False):
     try:
         await asyncio.wait_for(manager.lock.acquire(), 2)
     except TimeoutError:
-        raise HTTPException(409, 'Telegram is processing a batch. Try again shortly.') from None
+        raise telegram_http_error(409, 'Telegram is processing a batch. Try again shortly.') from None
     try:
         if manager.retry_at and not ignore_flood:
             from datetime import datetime, timezone
             if manager.retry_at > datetime.now(timezone.utc):
-                raise HTTPException(429, 'Telegram rate limit. Wait until the displayed retry time.')
+                raise telegram_http_error(429, 'Telegram rate limit. Wait until the displayed retry time.')
         async with asyncio.timeout(60):
             yield
     except HTTPException:
         raise
     except TelegramActionError as exc:
-        raise HTTPException(400, str(exc)) from None
+        raise telegram_http_error(400, str(exc)) from None
     except ValueError:
         # Application ValueErrors are user-facing, upstream failures are not.
         # Avoid reflecting arbitrary library messages or submitted secrets.
-        raise HTTPException(400, 'Telegram action could not complete. Check connection, chat access and source settings.') from None
+        raise telegram_http_error(400, 'Telegram action could not complete. Check connection, chat access and source settings.') from None
     except Exception as exc:
         manager.failure(exc)
-        raise HTTPException(400, manager.message) from None
+        raise telegram_http_error(400, manager.message) from None
     finally:
         manager.lock.release()
 
@@ -201,7 +206,7 @@ async def scan(source_id: int) -> dict[str, bool]:
         manager.require_connected()
         found = await threaded(repo.snapshot, source_id, manager.account['id'])
         if found is None or not found[0].enabled:
-            raise HTTPException(400, 'Enable an existing source before scanning')
+            raise telegram_http_error(400, 'Enable an existing source before scanning')
         manager.reconcile.add(source_id)
         manager.wake.set()
     return {'queued': True}

@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { Box, Chip, Stack, Typography } from '@mui/material';
 import { networkStatusLabel } from '../channels/NetworkStatusChip';
@@ -17,21 +18,22 @@ const dotColor = (stream: SourceStream) => stream.is_online === true ? 'success.
 
 /** The playing channel's streams as one visible row: the active one is filled, any other switches the source. */
 const SourceChips: React.FC<SourceChipsProps> = ({ streams, selectedId, onSelect }) => {
+  const tUi = useUiText();
   if (!streams.length) return null;
   return (
     <Stack spacing={0.5}>
-      <Typography variant="caption" color="text.secondary" id="player-sources-label">Sources</Typography>
-      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" role="group" aria-label="Sources">
+      <Typography variant="caption" color="text.secondary" id="player-sources-label">{tUi("Sources")}</Typography>
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" role="group" aria-label={tUi("Sources")}>
         {streams.map((stream, index) => {
           const selected = stream.id === selectedId;
           const name = stream.name || stream.id.slice(0, 8);
           const detail = [networkStatusLabel(stream.network_status), signalText(stream), stream.bitrate_bps ? formatBitrate(stream.bitrate_bps) : null].filter(Boolean).join(', ');
           return <Chip key={stream.id} clickable component="button" role="button" aria-pressed={selected}
-            aria-label={`Source ${index + 1}: ${name}, ${detail}`} title={detail}
+            aria-label={tUi("Source {{value0}}: {{value1}}, {{value2}}", { value0: index + 1, value1: name, value2: detail })} title={detail}
             color={selected ? 'primary' : 'default'} variant={selected ? 'filled' : 'outlined'}
             onClick={() => { if (!selected) onSelect(stream.id); }}
             icon={<Box component="span" aria-hidden sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dotColor(stream), ml: 1 }} />}
-            label={`${index + 1}. ${name}`} sx={{ maxWidth: '100%', '& .MuiChip-label': { overflowWrap: 'anywhere', whiteSpace: 'normal' } }} />;
+            label={tUi("{{value0}}. {{value1}}", { value0: index + 1, value1: name })} sx={{ maxWidth: '100%', '& .MuiChip-label': { overflowWrap: 'anywhere', whiteSpace: 'normal' } }} />;
         })}
       </Stack>
     </Stack>

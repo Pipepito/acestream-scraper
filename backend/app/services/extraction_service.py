@@ -6,11 +6,18 @@ from pathlib import Path
 import subprocess
 import sys
 import threading
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urlsplit
 import aiohttp
 from app.schemas.extraction import ExtractionRecipe, RecipePreview, MAX_SAMPLE_BYTES
 from app.utils.url_guard import validate_outbound_url, BlockedURLError
-from app.utils.outbound_http import source_session
+from app.utils.outbound_http import follow_redirects, source_session
+
+
+async def _check_hop(url: str) -> None:
+    parts = urlsplit(url)
+    if parts.username or parts.password:
+        raise ValueError('Source checks do not accept credentials in URLs')
+    await asyncio.to_thread(validate_outbound_url, url)
 
 _WORKERS = threading.BoundedSemaphore(2)
 _FETCHES = threading.BoundedSemaphore(2)
@@ -55,29 +62,17 @@ async def fetch_recipe_sample(url: str, url_type: str = 'auto') -> str:
         elif isinstance(url_object, ZeronetURL):
             current = url_object.get_internal_url(gateway_url=settings.ZERONET_URL)
         async with source_session(timeout=aiohttp.ClientTimeout(total=20)) as session:
-            for _ in range(6):
-                parts = urlsplit(current)
-                if parts.username or parts.password:
-                    raise ValueError('Source checks do not accept credentials in URLs')
-                await asyncio.to_thread(validate_outbound_url, current)
-                async with session.get(current, allow_redirects=False) as response:
-                    if response.status in (301, 302, 303, 307, 308):
-                        location = response.headers.get('Location')
-                        if not location:
-                            raise ValueError('Redirect has no destination')
-                        current = urljoin(current, location)
-                        continue
-                    response.raise_for_status()
-                    data = bytearray()
-                    async for chunk in response.content.iter_chunked(16384):
-                        data.extend(chunk)
-                        if len(data) > MAX_SAMPLE_BYTES:
-                            raise ValueError('Source exceeds 32 MiB; copy the channel section or use its data endpoint')
-                    try:
-                        return data.decode(response.charset or 'utf-8', errors='replace')
-                    except LookupError:
-                        return data.decode('utf-8', errors='replace')
-            raise ValueError('Too many redirects')
+            async with follow_redirects(session, current, check=_check_hop) as (_, response):
+                response.raise_for_status()
+                data = bytearray()
+                async for chunk in response.content.iter_chunked(16384):
+                    data.extend(chunk)
+                    if len(data) > MAX_SAMPLE_BYTES:
+                        raise ValueError('Source exceeds 32 MiB; copy the channel section or use its data endpoint')
+                try:
+                    return data.decode(response.charset or 'utf-8', errors='replace')
+                except LookupError:
+                    return data.decode('utf-8', errors='replace')
     except (aiohttp.ClientError, asyncio.TimeoutError, BlockedURLError):
         raise ValueError('Could not fetch the source. Check its address, access rules and availability.') from None
     finally:

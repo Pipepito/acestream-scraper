@@ -1,0 +1,821 @@
+{
+  "date": "2026-11-08",
+  "sourceBase": "2b55a46e",
+  "corrections": "Final repeat of the production application, including phone reorder layout and Access cancellation/fieldset fixes.",
+  "engine": "axe-core 4.14.0",
+  "browser": "Chromium 149.0.7827.55",
+  "scope": "21 production routes \u00d7 3 preset/language/theme/viewport combinations, owned synthetic 10,000-channel catalogue. Selected initial states only, not exhaustive dialogs or native AT.",
+  "beforeViolationInstances": 12,
+  "afterViolationInstances": 0,
+  "incompleteRuleInstances": 85,
+  "triage": {
+    "aria-valid-attr-value": "MUI closed Select aria-controls references a listbox mounted on opening. Needs interaction/native AT verification; not marked passed.",
+    "aria-prohibited-attr": "MUI tooltips label neutral wrappers around disabled controls. Actual accessible names and disabled-control explanation need manual review; retained as candidates.",
+    "color-contrast": "Scanner cannot resolve backgrounds for overlapping descendants/controls. Six-theme token ratios and sampled screenshots support review but do not turn all incomplete nodes into passes."
+  },
+  "cases": [
+    {
+      "route": "/",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 17
+      }
+    },
+    {
+      "route": "/",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 19
+      }
+    },
+    {
+      "route": "/",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 32
+      }
+    },
+    {
+      "route": "/tv-channels",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 3,
+        "color-contrast": 140
+      }
+    },
+    {
+      "route": "/tv-channels",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 3,
+        "color-contrast": 143
+      }
+    },
+    {
+      "route": "/tv-channels",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [
+        "aria-required-children"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-prohibited-attr": 25,
+        "aria-valid-attr-value": 3,
+        "color-contrast": 55
+      }
+    },
+    {
+      "route": "/recordings",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 6
+      }
+    },
+    {
+      "route": "/recordings",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 7
+      }
+    },
+    {
+      "route": "/recordings",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 19
+      }
+    },
+    {
+      "route": "/events",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [
+        "heading-order"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 7
+      }
+    },
+    {
+      "route": "/events",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [
+        "heading-order"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 8
+      }
+    },
+    {
+      "route": "/events",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [
+        "heading-order"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 20
+      }
+    },
+    {
+      "route": "/settings?tab=network",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 10
+      }
+    },
+    {
+      "route": "/settings?tab=network",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 11
+      }
+    },
+    {
+      "route": "/settings?tab=network",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 23
+      }
+    },
+    {
+      "route": "/settings?tab=access",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 11
+      }
+    },
+    {
+      "route": "/settings?tab=access",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 12
+      }
+    },
+    {
+      "route": "/settings?tab=access",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 25
+      }
+    },
+    {
+      "route": "/settings?tab=playback",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 10
+      }
+    },
+    {
+      "route": "/settings?tab=playback",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 11
+      }
+    },
+    {
+      "route": "/settings?tab=playback",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 25
+      }
+    },
+    {
+      "route": "/settings?tab=automation",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [
+        "heading-order"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 19
+      }
+    },
+    {
+      "route": "/settings?tab=automation",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [
+        "heading-order"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 20
+      }
+    },
+    {
+      "route": "/settings?tab=automation",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [
+        "heading-order"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 34
+      }
+    },
+    {
+      "route": "/settings?tab=links",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 11
+      }
+    },
+    {
+      "route": "/settings?tab=links",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [
+        "color-contrast"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 11
+      }
+    },
+    {
+      "route": "/settings?tab=links",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [
+        "color-contrast"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 25
+      }
+    },
+    {
+      "route": "/integrations/public-address",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 8
+      }
+    },
+    {
+      "route": "/integrations/public-address",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 8
+      }
+    },
+    {
+      "route": "/integrations/public-address",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 20
+      }
+    },
+    {
+      "route": "/integrations/web-player",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 7
+      }
+    },
+    {
+      "route": "/integrations/web-player",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 7
+      }
+    },
+    {
+      "route": "/integrations/web-player",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 19
+      }
+    },
+    {
+      "route": "/integrations/tv-casting",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 11
+      }
+    },
+    {
+      "route": "/integrations/tv-casting",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 12
+      }
+    },
+    {
+      "route": "/integrations/tv-casting",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 24
+      }
+    },
+    {
+      "route": "/integrations/remote-players",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 10
+      }
+    },
+    {
+      "route": "/integrations/remote-players",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 10
+      }
+    },
+    {
+      "route": "/integrations/remote-players",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 22
+      }
+    },
+    {
+      "route": "/integrations/media-servers",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 9
+      }
+    },
+    {
+      "route": "/integrations/media-servers",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 9
+      }
+    },
+    {
+      "route": "/integrations/media-servers",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 21
+      }
+    },
+    {
+      "route": "/connections/notifications",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 8
+      }
+    },
+    {
+      "route": "/connections/notifications",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 8
+      }
+    },
+    {
+      "route": "/connections/notifications",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 20
+      }
+    },
+    {
+      "route": "/system",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-prohibited-attr": 14,
+        "color-contrast": 9
+      }
+    },
+    {
+      "route": "/system",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-prohibited-attr": 14,
+        "color-contrast": 10
+      }
+    },
+    {
+      "route": "/system",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-prohibited-attr": 14,
+        "color-contrast": 22
+      }
+    },
+    {
+      "route": "/warp",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 5
+      }
+    },
+    {
+      "route": "/warp",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 5
+      }
+    },
+    {
+      "route": "/warp",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 18
+      }
+    },
+    {
+      "route": "/scraper",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 11
+      }
+    },
+    {
+      "route": "/scraper",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 13
+      }
+    },
+    {
+      "route": "/scraper",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 29
+      }
+    },
+    {
+      "route": "/epg",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 15
+      }
+    },
+    {
+      "route": "/epg",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 18
+      }
+    },
+    {
+      "route": "/epg",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "color-contrast": 30
+      }
+    },
+    {
+      "route": "/playlist",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 16
+      }
+    },
+    {
+      "route": "/playlist",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 16
+      }
+    },
+    {
+      "route": "/playlist",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 1,
+        "color-contrast": 28
+      }
+    },
+    {
+      "route": "/scraper/builder",
+      "preset": "lime",
+      "language": "es",
+      "theme": "dark",
+      "width": 320,
+      "beforeViolations": [
+        "landmark-unique"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 4,
+        "color-contrast": 30
+      }
+    },
+    {
+      "route": "/scraper/builder",
+      "preset": "coral",
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "beforeViolations": [
+        "landmark-unique"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 4,
+        "color-contrast": 30
+      }
+    },
+    {
+      "route": "/scraper/builder",
+      "preset": "cyan",
+      "language": "es",
+      "theme": "light",
+      "width": 1440,
+      "beforeViolations": [
+        "landmark-unique"
+      ],
+      "afterViolations": [],
+      "incomplete": {
+        "aria-valid-attr-value": 4,
+        "color-contrast": 43
+      }
+    }
+  ],
+  "applicationRevision": "e13a42ef"
+}

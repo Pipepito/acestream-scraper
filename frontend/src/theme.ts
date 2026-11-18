@@ -1,9 +1,14 @@
+import interFont from './assets/fonts/inter.woff2';
+import barlowFont from './assets/fonts/barlow-condensed.woff2';
+import { enUS, esES } from '@mui/material/locale';
 import { createTheme } from '@mui/material/styles';
+import { applyPreset } from './styles/presets';
+import type { InterfaceId } from './preferences/AppPreferences';
 import type { AppTokens } from './theme.d';
 
 export type ThemeMode = 'light' | 'dark';
 
-const VISIBLE_FOCUS_OUTLINE = '2px solid currentColor';
+const VISIBLE_FOCUS_OUTLINE = '3px solid currentColor';
 
 const sharedShellLayout = {
   navWidth: 264,
@@ -21,7 +26,7 @@ const sharedShellLayout = {
 };
 
 const fontFamily = [
-  '"IBM Plex Sans"',
+  '"Inter"',
   'system-ui',
   '-apple-system',
   'BlinkMacSystemFont',
@@ -76,7 +81,7 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
         bg: '#fff4e5',
         border: '#f5c27a',
         text: '#8a4b08',
-        icon: '#d97706',
+        icon: '#a85b04',
       },
       error: {
         bg: '#fdecec',
@@ -97,9 +102,10 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       primaryText: '#f7fffd',
       secondaryBg: '#dce9fb',
       secondaryText: '#0b5ed7',
-      dangerBg: '#d14343',
+      dangerBg: '#bd3434',
       dangerText: '#fff7f7',
       focusRing: 'rgba(11, 94, 215, 0.24)',
+      controlBorder: '#667c73',
       disabledBg: '#dbe4ec',
       disabledText: '#708191',
       accentWarm: '#dd8a42',
@@ -188,6 +194,7 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
       dangerBg: '#d86363',
       dangerText: '#2a0f10',
       focusRing: 'rgba(102, 166, 255, 0.3)',
+      controlBorder: '#91a69c',
       disabledBg: '#243543',
       disabledText: '#7c93a5',
       accentWarm: '#f0a84b',
@@ -211,13 +218,14 @@ const tokenSets: Record<ThemeMode, AppTokens> = {
   },
 };
 
-export const createAppTheme = (mode: ThemeMode) => {
+export const createAppTheme = (mode: ThemeMode, preset: InterfaceId = 'cyan', language: 'en' | 'es' = 'en') => {
+  const displayFont = preset === 'lime' ? `'Barlow Condensed', ${fontFamily}` : fontFamily;
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false;
 
-  const appTokens = {
+  const appTokens = applyPreset({
     ...tokenSets[mode],
     layout: {
       ...tokenSets[mode].layout,
@@ -231,21 +239,21 @@ export const createAppTheme = (mode: ThemeMode) => {
         ? tokenSets[mode].motion.durationReduced
         : tokenSets[mode].motion.durationStandard,
     },
-  };
+  }, mode, preset);
 
   return createTheme({
     appTokens,
     palette: {
       mode,
       primary: {
-        main: appTokens.action.primaryBg,
+        main: appTokens.action.secondaryText,
         dark: appTokens.action.primaryHover,
         light: mode === 'light' ? '#14b8a6' : '#5eead4',
-        contrastText: appTokens.action.primaryText,
+        contrastText: mode === 'light' ? '#ffffff' : appTokens.text.inverse,
       },
       secondary: {
-        main: mode === 'light' ? '#0b5ed7' : '#66a6ff',
-        contrastText: appTokens.text.inverse,
+        main: appTokens.action.secondaryText,
+        contrastText: mode === 'light' ? '#ffffff' : appTokens.text.inverse,
       },
       background: {
         default: appTokens.surface.canvas,
@@ -256,16 +264,20 @@ export const createAppTheme = (mode: ThemeMode) => {
         secondary: appTokens.text.secondary,
       },
       error: {
-        main: appTokens.status.error.icon,
+        main: mode === 'light' ? appTokens.status.error.text : appTokens.status.error.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
       warning: {
-        main: appTokens.status.warning.icon,
+        main: mode === 'light' ? appTokens.status.warning.text : appTokens.status.warning.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
       success: {
-        main: appTokens.status.success.icon,
+        main: mode === 'light' ? appTokens.status.success.text : appTokens.status.success.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
       info: {
-        main: appTokens.status.info.icon,
+        main: mode === 'light' ? appTokens.status.info.text : appTokens.status.info.icon,
+        contrastText: mode === 'light' ? '#ffffff' : '#10212f',
       },
     },
     shape: {
@@ -274,28 +286,28 @@ export const createAppTheme = (mode: ThemeMode) => {
     typography: {
       fontFamily,
       h1: {
-        fontFamily,
+        fontFamily: displayFont,
       },
       h2: {
-        fontFamily,
+        fontFamily: displayFont,
       },
       h3: {
-        fontFamily,
+        fontFamily: displayFont,
       },
       h4: {
-        fontFamily,
+        fontFamily: displayFont,
         fontWeight: 600,
         letterSpacing: '-0.02em',
       },
       h5: {
-        fontFamily,
+        fontFamily: displayFont,
       },
       h6: {
-        fontFamily,
+        fontFamily: displayFont,
       },
       body1: {
         fontFamily,
-        fontSize: '0.95rem',
+        fontSize: '1rem',
         lineHeight: 1.55,
       },
       body2: {
@@ -304,14 +316,14 @@ export const createAppTheme = (mode: ThemeMode) => {
         lineHeight: 1.45,
       },
       pageTitle: {
-        fontFamily,
+        fontFamily: displayFont,
         fontSize: 'clamp(1.75rem, 2.2vw, 2.35rem)',
         fontWeight: 700,
         lineHeight: 1.15,
         letterSpacing: '-0.03em',
       },
       sectionTitle: {
-        fontFamily,
+        fontFamily: displayFont,
         fontSize: '1rem',
         fontWeight: 600,
         lineHeight: 1.3,
@@ -319,13 +331,13 @@ export const createAppTheme = (mode: ThemeMode) => {
       },
       helperText: {
         fontFamily,
-        fontSize: '0.8125rem',
+        fontSize: '0.875rem',
         lineHeight: 1.45,
         color: appTokens.text.secondary,
       },
       statusMeta: {
         fontFamily,
-        fontSize: '0.75rem',
+        fontSize: '0.875rem',
         fontWeight: 500,
         lineHeight: 1.4,
         textTransform: 'uppercase',
@@ -333,14 +345,21 @@ export const createAppTheme = (mode: ThemeMode) => {
       },
       denseData: {
         fontFamily,
-        fontSize: '0.8125rem',
+        fontSize: '0.875rem',
         fontWeight: 500,
         lineHeight: 1.35,
       },
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: {
+        styleOverrides: () => [
+          `@font-face { font-family: Inter; src: url(${interFont}) format("woff2"); font-weight: 100 900; font-display: swap; }
+           @font-face { font-family: "Barlow Condensed"; src: url(${barlowFont}) format("woff2"); font-weight: 700; font-display: swap; }`,
+          {
+          ':focus-visible': { outline: VISIBLE_FOCUS_OUTLINE, outlineOffset: 3 },
+          '@media (prefers-reduced-motion: reduce)': { '*, *::before, *::after': { scrollBehavior: 'auto', animationDuration: '0s', transitionDuration: '0s' } },
+          '.MuiFormHelperText-root': { fontSize: '0.875rem' },
+
           '@media (max-width: 599.95px)': {
             '.MuiButton-root, .MuiIconButton-root, .MuiTab-root, .MuiListItemButton-root': { minHeight: 44 },
             '.MuiIconButton-root': { minWidth: 44 },
@@ -350,7 +369,8 @@ export const createAppTheme = (mode: ThemeMode) => {
             '.MuiDialogActions-root': { flexWrap: 'wrap', gap: 8 },
             '.MuiTablePagination-toolbar': { flexWrap: 'wrap', paddingLeft: 0, paddingRight: 0 },
           },
-        },
+          },
+        ],
       },
       MuiAppBar: {
         defaultProps: {
@@ -432,7 +452,7 @@ export const createAppTheme = (mode: ThemeMode) => {
             },
           },
           outlined: {
-            borderColor: appTokens.surface.border,
+            borderColor: appTokens.action.controlBorder,
             color: appTokens.text.primary,
             backgroundColor: appTokens.action.secondaryBg,
             '&:hover': {
@@ -440,6 +460,12 @@ export const createAppTheme = (mode: ThemeMode) => {
               backgroundColor: appTokens.surface.muted,
             },
           },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          notchedOutline: { borderColor: appTokens.action.controlBorder },
+          root: { '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: appTokens.text.secondary } },
         },
       },
       MuiAlert: {
@@ -484,5 +510,5 @@ export const createAppTheme = (mode: ThemeMode) => {
         },
       },
     },
-  });
+  }, language === 'es' ? esES : enUS);
 };

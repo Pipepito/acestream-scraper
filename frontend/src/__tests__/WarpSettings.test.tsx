@@ -60,7 +60,7 @@ it('retains edits when saving fails', async () => {
   renderSection(<WarpExclusionsSection />);
   await user.type(await screen.findByRole('textbox', { name: 'Hosts to exclude' }), 'example.com');
   await user.click(screen.getByRole('button', { name: 'Save and apply exclusions' }));
-  expect(await screen.findByText('Exclusions changed in another session. Reload before saving.')).toBeInTheDocument();
+  expect(await screen.findByText('WARP exclusions changed. Reload them before saving.')).toBeInTheDocument();
   expect(screen.getByRole('textbox', { name: 'Hosts to exclude' })).toHaveValue('example.com');
 });
 

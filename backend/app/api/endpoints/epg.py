@@ -369,7 +369,7 @@ def auto_map_channels(db: Session = Depends(get_db)):
         ) from exc
 
 
-@router.get("/xml")
+@router.get("/xml", response_class=Response, responses={200: {"content": {"application/xml": {}}}})
 def get_epg_xml(
     search_term: Optional[str] = None,
     favorites_only: bool = False,
@@ -406,7 +406,7 @@ def get_epg_xml(
     )
 
 
-@router.post("/xml")
+@router.post("/xml", response_class=Response, responses={200: {"content": {"application/xml": {}}}})
 def generate_epg_xml(
     request: EPGXmlGenerationRequest,
     db: Session = Depends(get_db)

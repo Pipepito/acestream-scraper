@@ -1,3 +1,4 @@
+import { uiText } from '../i18n/text';
 /**
  * API Client for interfacing with Acestream Scraper backend
  */
@@ -45,7 +46,7 @@ apiClient.interceptors.response.use(
     // Firefox may finish an XHR during document navigation with status 0 and an
     // empty body. Axios accepts status 0 for file URLs; our HTTP API must not.
     if (response.status === 0) throw new ApiError({ status: 0, kind: 'offline', canRetry: true,
-      code: 'API_CONNECTION_INTERRUPTED', message: 'The connection was interrupted. Try again.' });
+      code: 'API_CONNECTION_INTERRUPTED', message: uiText("The connection was interrupted. Try again.") });
     return response;
   },
   (error) => {

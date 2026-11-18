@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import { TextField } from '@mui/material';
 
@@ -12,7 +13,8 @@ export function validNewPassword(value: string): boolean {
 export default function NewPasswordField({ label, value, onChange }: {
   label: string; value: string; onChange: (value: string) => void;
 }) {
+  const t = useUiText();
   return <TextField required type="password" label={label} autoComplete="new-password"
     value={value} onChange={event => onChange(event.target.value)}
-    error={value.length > 0 && !validNewPassword(value)} helperText={PASSWORD_REQUIREMENT} />;
+    error={value.length > 0 && !validNewPassword(value)} helperText={t('Use 12–128 characters.')} />;
 }

@@ -1,3 +1,4 @@
+import { uiText } from '../i18n/text';
 /** @jest-environment jsdom */
 import catalogue from './catalogue.json';
 import { checkSample, extractPrepared, prepareHtml, validateRecipe } from './engine';
@@ -34,7 +35,7 @@ describe('portable recipe fixtures', () => {
   test('an unmatched optional capture is missing, not the whole match', () => {
     const recipe = validateRecipe(JSON.parse(JSON.stringify(catalogue[1].recipe)));
     recipe.fields.name.pattern = '(Missing)?Other';
-    const result = extractPrepared(recipe, JSON.stringify({ data: { channels: [{ title: 'Other', stream: { id: 'a'.repeat(40) } }] } }));
+    const result = extractPrepared(recipe, JSON.stringify({ data: { channels: [{ title: uiText("Other"), stream: { id: 'a'.repeat(40) } }] } }));
     expect(result.channels).toHaveLength(0);
     expect(result.invalid_count).toBe(1);
   });

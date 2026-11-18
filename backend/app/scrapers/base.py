@@ -14,6 +14,7 @@ from app.models.url_types import BaseURL
 from app.services.m3u_service import M3UService, is_m3u_source, url_ends_with_m3u
 from app.config.database import get_db
 from app.utils.url_guard import BlockedURLError
+from app.utils.stream_kind import is_acestream_id
 
 logger = logging.getLogger(__name__)
 
@@ -218,14 +219,14 @@ class BaseScraper(ABC):
         pairs = list(zip(lines[::2], lines[1::2]))
         if any(not re.fullmatch(r'[a-zA-Z0-9]{40}', channel_id)
                or len(name) > 200 or re.match(r'\w+://', name)
-               or re.fullmatch(r'[0-9a-fA-F]{40}', name)
+               or is_acestream_id(name)
                for name, channel_id in pairs):
             return []
         channels = []
         for name, channel_id in pairs:
             # A malformed hash in one otherwise structured row must not
             # discard the rest of the list or create an invalid channel.
-            if not re.fullmatch(r'[0-9a-fA-F]{40}', channel_id):
+            if not is_acestream_id(channel_id):
                 continue
             channel_id = channel_id.lower()
             if channel_id not in self.identified_ids:

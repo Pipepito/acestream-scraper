@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect } from 'react';
 import { Box, Chip, Link, Stack, Typography } from '@mui/material';
 import PageHeader from '../components/layout/PageHeader';
@@ -22,21 +24,21 @@ export function ReleaseNoteText({ text }: { text: string }) {
 }
 
 export default function Changelog() {
+  const tUi = useUiText();
   useEffect(markChangelogRead, []);
   return (
     <Box>
-      <PageHeader title="Changelog" subtitle="Changes by version, included with your installation." />
-      <StatusLine items={[{ label: 'Build notes', value: currentRelease.version }, { label: 'Versions', value: releases.length }]} />
+      <PageHeader title={tUi("Changelog")} subtitle={tUi("Changes by version, included with your installation.")} />
+      <StatusLine items={[{ label: uiText("Build notes"), value: currentRelease.version }, { label: uiText("Versions"), value: releases.length }]} />
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Notes for this build: {currentRelease.version}. Development builds may include changes before a stable release is published.
-      </Typography>
-      <Stack component="nav" aria-label="Release versions" direction="row" spacing={2} useFlexGap flexWrap="wrap" sx={{ mb: 3 }}>
+        {tUi("Notes for this build:")}{' '}{currentRelease.version}{tUi(". Development builds may include changes before a stable release is published.")}</Typography>
+      <Stack component="nav" aria-label={tUi("Release versions")} direction="row" spacing={2} useFlexGap flexWrap="wrap" sx={{ mb: 3 }}>
         {releases.map((release) => <Link key={release.version} href={`#${release.version}`} sx={{ py: 1 }}>{release.version}</Link>)}
       </Stack>
       {releases.map((release, index) => (
         <Box key={release.version} id={release.version} sx={{ scrollMarginTop: 88, mb: 3 }}>
           <ContentSection title={release.version} description={release.summary}
-            actions={index === 0 ? <Chip size="small" label="Included in this build" /> : undefined}>
+            actions={index === 0 ? <Chip size="small" label={tUi("Included in this build")} /> : undefined}>
             {release.sections.map((section) => (
               <Box key={section.title} sx={{ mt: 2 }}>
                 <Typography component="h3" variant="subtitle1" fontWeight={600}>{section.title}</Typography>
@@ -48,7 +50,7 @@ export default function Changelog() {
           </ContentSection>
         </Box>
       ))}
-      <Link href="https://github.com/Pipepito/acestream-scraper/releases" target="_blank" rel="noopener noreferrer">Published releases on GitHub (opens in a new tab)</Link>
+      <Link href="https://github.com/Pipepito/acestream-scraper/releases" target="_blank" rel="noopener noreferrer">{tUi("Published releases on GitHub (opens in a new tab)")}</Link>
     </Box>
   );
 }

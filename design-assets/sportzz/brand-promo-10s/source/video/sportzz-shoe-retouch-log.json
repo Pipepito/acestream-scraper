@@ -1,0 +1,69 @@
+[
+  {
+    "frame": 3,
+    "method": "near-black opening replaces untrackable blurred mark"
+  },
+  {
+    "frame": 4,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 73359
+  },
+  {
+    "frame": 5,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 62970
+  },
+  {
+    "frame": 6,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 59022
+  },
+  {
+    "frame": 7,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 57766
+  },
+  {
+    "frame": 8,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 58926
+  },
+  {
+    "frame": 9,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 59641
+  },
+  {
+    "frame": 10,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 61680
+  },
+  {
+    "frame": 11,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 61816
+  },
+  {
+    "frame": 12,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 63032
+  },
+  {
+    "frame": 13,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 62209
+  },
+  {
+    "frame": 14,
+    "method": "SIFT/RANSAC tracked mask + local inpainting",
+    "mask_pixels": 66295
+  },
+  {
+    "frame": 15,
+    "method": "editorial cut to focused eye avoids unstable final shoe geometry"
+  },
+  {
+    "frame": 16,
+    "method": "editorial cut to focused eye avoids unstable final shoe geometry"
+  }
+]

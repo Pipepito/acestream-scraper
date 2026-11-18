@@ -14,3 +14,15 @@ test('history selection stays creation-only and does not invalidate recent-messa
   await api.save(source);
   expect(post).toHaveBeenLastCalledWith('/v1/telegram/sources', source, expect.anything());
 });
+
+test('source updates project writable fields while preserving false, empty and null values', async () => {
+  const put = jest.spyOn(apiClient, 'put').mockResolvedValue({ data: {} });
+  const source = { name: 'Original name', chat_id: '-100123', topic_id: null, enabled: false,
+    sender_ids: [], include: '', bare_ids: false, recipe: null, message: 'Chat access lost',
+    message_code: 'TELEGRAM_CHAT_LOST', id: 1, imported_count: 8, state: 'error' };
+  await telegramService('private-admin').save(source, 1);
+  expect(put).toHaveBeenCalledWith('/v1/telegram/sources/1', {
+    name: 'Original name', chat_id: '-100123', topic_id: null, enabled: false,
+    sender_ids: [], include: '', bare_ids: false, recipe: null,
+  }, { headers: { 'X-Telegram-Admin': 'private-admin' } });
+});

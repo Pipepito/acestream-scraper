@@ -26,7 +26,7 @@ const initial: SetupState = {
 function renderSetup(node: React.ReactNode, mode: 'light' | 'dark' = 'light', path = '/') {
   return render(<ThemeProvider theme={createAppTheme(mode)}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><TestMemoryRouter initialEntries={[path]}>{node}</TestMemoryRouter></QueryClientProvider></ThemeProvider>);
 }
-beforeEach(() => { jest.resetAllMocks(); jest.mocked(scraperService.getURLs).mockResolvedValue([]); jest.mocked(epgService.getSources).mockResolvedValue([]); service.get.mockResolvedValue(initial); });
+beforeEach(() => { jest.resetAllMocks(); jest.mocked(scraperService.getURLs).mockResolvedValue([]); jest.mocked(scraperService.getProviders).mockResolvedValue([]); jest.mocked(epgService.getSources).mockResolvedValue([]); service.get.mockResolvedValue(initial); });
 
 it.each(['light', 'dark'] as const)('reviews and saves a draft with restart guidance in %s mode', async mode => {
   service.save.mockResolvedValue({ ...initial, runtime: { ...initial.runtime, PLAYER_MAX_SESSIONS: 5 }, setup_complete: true, restart_required: true });

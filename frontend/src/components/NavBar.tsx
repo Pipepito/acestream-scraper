@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import {
@@ -24,6 +25,8 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { getNavTitle, isNavItemSelected, navItems } from './layout/navItems';
 import { getShellLayout } from '../styles/layout';
 import { useAppThemeMode } from '../bootstrap/AppBootstrap';
+import { useTranslation } from 'react-i18next';
+import InterfaceSelector from './InterfaceSelector';
 import WhatsNewNotice from './WhatsNewNotice';
 
 interface NavBarProps {
@@ -33,6 +36,8 @@ interface NavBarProps {
 }
 
 const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, onToggleCollapsed }) => {
+  const tUi = useUiText();
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const location = useLocation();
   const theme = useTheme();
@@ -96,7 +101,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
             <ListItemIcon sx={{ color: isSelected ? theme.appTokens.action.secondaryText : theme.appTokens.text.muted }}>
               {item.icon}
             </ListItemIcon>
-            <ListItemText primary={item.text} />
+            <ListItemText primary={t(item.label)} />
           </ListItemButton>
         </ListItem>
       );
@@ -117,17 +122,13 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
     >
       <Toolbar>
         <Typography variant="sectionTitle" noWrap component="div" sx={{ color: theme.appTokens.text.primary }}>
-          Acestream Scraper
-        </Typography>
+          {tUi("Acestream Scraper")}</Typography>
       </Toolbar>
       <Divider sx={{ borderColor: theme.appTokens.shell.navBorder }} />
-      {(['Watch', 'Manage', 'Integrations', 'System'] as const).map((section) => <React.Fragment key={section}>
-        <List sx={{ py: 1 }} aria-label={section}>
-          <ListItem><Typography variant="overline" color="text.secondary">{section}</Typography></ListItem>
-          {renderNavItems(navItems.filter((item) => item.section === section))}
-        </List>
-        {section !== 'System' ? <Divider /> : null}
-      </React.Fragment>)}
+      <List sx={{ py: 2 }} aria-label={t('navigation')}>{renderNavItems(navItems)}</List>
+      <Divider />
+      <Button component={RouterLink} to="/warp" color="inherit" onClick={isPhone ? handleDrawerClose : undefined} sx={{ mx: 2, my: 1, justifyContent: 'flex-start', minHeight: 44 }}>{tUi("WARP")}</Button>
+      {isPhone ? <Button component="a" aria-label={tUi("Wiki (opens in a new tab)")} href="https://github.com/Pipepito/acestream-scraper/wiki" target="_blank" rel="noopener noreferrer" color="inherit" sx={{ mx: 2, minHeight: 44, justifyContent: 'flex-start' }}>{tUi("Wiki ↗")}</Button> : null}
       <Box sx={{ mt: 'auto', p: 2, borderTop: `1px solid ${theme.appTokens.shell.navBorder}` }}>
         <Button
           component="a"
@@ -138,12 +139,11 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
           color="inherit"
           fullWidth
           endIcon={<OpenInNewIcon />}
-          aria-label="Support on Ko-fi (opens in a new tab)"
+          aria-label={tUi("Support on Ko-fi (opens in a new tab)")}
           onClick={isPhone ? handleDrawerClose : undefined}
           sx={{ minHeight: 44 }}
         >
-          Support on Ko-fi
-        </Button>
+          {tUi("Support on Ko-fi")}</Button>
       </Box>
     </Box>
   );
@@ -165,15 +165,16 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
       >
         <Toolbar>
           {isPhone ? (
-            <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerOpen} sx={{ mr: 2 }}>
+            <IconButton color="inherit" aria-label={t('openNavigation')} edge="start" onClick={handleDrawerOpen} sx={{ mr: 2 }}>
               <MenuIcon />
             </IconButton>
           ) : null}
-          {isDesktop && onToggleCollapsed ? <IconButton color="inherit" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={onToggleCollapsed} edge="start" sx={{ mr: 2 }}><MenuIcon /></IconButton> : null}
+          {isDesktop && onToggleCollapsed ? <IconButton color="inherit" aria-label={collapsed ? tUi("Expand navigation") : tUi("Collapse navigation")} aria-expanded={!collapsed} onClick={onToggleCollapsed} edge="start" sx={{ mr: 2 }}><MenuIcon /></IconButton> : null}
           <Typography noWrap sx={{ minWidth: 0, fontWeight: 600 }}>{getNavTitle(location.pathname)}</Typography>
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 1 }, flexShrink: 0 }}>
+            <InterfaceSelector />
             <WhatsNewNotice />
-            <Button
+            {!isPhone ? <Button
               component="a"
               href="https://github.com/Pipepito/acestream-scraper/wiki"
               target="_blank"
@@ -182,15 +183,14 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
               color="inherit"
               size="small"
               endIcon={<OpenInNewIcon />}
-              aria-label="Wiki (opens in a new tab)"
-              sx={{ minHeight: 44 }}
+              aria-label={tUi("Wiki (opens in a new tab)")}
+              sx={{ minHeight: 44, display: { xs: 'none', sm: 'inline-flex' } }}
             >
-              Wiki
-            </Button>
+              {tUi("Wiki")}</Button> : null}
             <IconButton
               color="inherit"
               onClick={toggleMode}
-              aria-label={mode === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+              aria-label={mode === 'light' ? tUi("Switch to dark theme") : tUi("Switch to light theme")}
             >
               {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
             </IconButton>
@@ -200,7 +200,7 @@ const NavBar: React.FC<NavBarProps> = ({ drawerWidth = 264, collapsed = false, o
       <Box
         component="nav"
         sx={{ width: isDesktop && !collapsed ? drawerWidth : 0, flexShrink: isDesktop ? 0 : 1 }}
-        aria-label="navigation menu"
+        aria-label={tUi("navigation menu")}
       >
         {isPhone ? (
           <Drawer

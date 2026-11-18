@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import RecordButton from '../recordings/RecordButton';
 import React, { useState } from 'react';
 import { Alert } from '@mui/material';
@@ -16,6 +17,7 @@ interface ChannelPlayerDialogProps extends Omit<StreamPlayerDialogProps, 'extraA
 
 /** Preserve TV context when changing streams; a raw ID can discover its assigned channel. */
 const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
+  const tUi = useUiText();
   const [selectedId, setSelectedId] = useState(props.contentId);
   const stream = useAcestreamChannel(props.contentId ?? '', { enabled: !props.tvChannelId && Boolean(props.contentId), retry: false });
   const tv = useTVChannel(props.tvChannelId ?? stream.data?.tv_channel_id ?? 0);
@@ -25,7 +27,7 @@ const OpenChannelPlayer: React.FC<ChannelPlayerDialogProps> = (props) => {
     extraActions={<>{channel ? <RecordButton channelId={channel.id} channelName={channel.name} disabled={!channel.is_active || !channel.acestream_channels.some(stream => stream.is_active)} /> : null}{selectedId && !selectedId.startsWith('url:') ? <PlayOnMenu contentId={selectedId} title={channel?.name ?? props.title} /> : null}</>}
     schedule={channel ? <ChannelGuide channel={channel} now={now} /> : undefined}
     sources={channel ? <SourceChips streams={channel.acestream_channels.filter(source => !props.hideUnavailableSources || source.id === selectedId || (source.is_active !== false && source.is_online === true))} selectedId={selectedId} onSelect={setSelectedId} /> : undefined}
-    details={tv.isError ? <Alert severity="warning">Channel details are unavailable. You can still play this stream.</Alert> : undefined} />;
+    details={tv.isError ? <Alert severity="warning">{tUi("Channel details are unavailable. You can still play this stream.")}</Alert> : undefined} />;
 };
 
 const ChannelPlayerDialog: React.FC<ChannelPlayerDialogProps> = (props) => props.open

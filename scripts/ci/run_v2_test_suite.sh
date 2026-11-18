@@ -58,6 +58,10 @@ PYTHONPATH=backend "$BACKEND_PYTEST" -q backend/tests/docker/test_docs_contract.
 # in about a minute instead of after the complete backend suite.
 echo "Refreshing OpenAPI schema for codegen..."
 PYTHONPATH=backend backend/venv/bin/python backend/scripts/dump_openapi.py
+if ! git diff --exit-code -- backend/openapi.json; then
+  echo "ERROR: OpenAPI snapshot diverges from the application. Regenerate and commit backend/openapi.json."
+  exit 1
+fi
 
 echo "Running static frontend checks (generated API types, ESLint, TypeScript)..."
 (

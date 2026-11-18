@@ -43,7 +43,7 @@ def get_storage():
 
 
 @router.get('/diagnostics', response_class=Response,
-            responses={200: {'content': {'application/zip': {'schema': {'type': 'string', 'format': 'binary'}}}}},
+            responses={200: {'content': {'application/zip': {}}}},
             summary='Download recent runtime diagnostics')
 def download_diagnostics() -> Response:
     try:

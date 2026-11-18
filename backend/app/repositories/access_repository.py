@@ -20,6 +20,13 @@ def digest(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+class AccessConflict(ValueError):
+    """A stable conflict reason; retains ValueError compatibility for callers."""
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
 class AccessRepository:
     def __init__(self, path: Path | None = None):
         self.path = path or config_path(get_settings().DATABASE_URL).with_name('access.db')
@@ -100,7 +107,7 @@ class AccessRepository:
         with self.transaction() as db:
             row = db.execute('SELECT mode FROM access_state WHERE id=1').fetchone()
             if row['mode'] == 'accounts' or db.execute('SELECT 1 FROM users LIMIT 1').fetchone():
-                raise ValueError('User management has already been configured')
+                raise AccessConflict('ACCESS_ALREADY_CONFIGURED', 'User management has already been configured')
             if not enabled:
                 db.execute("UPDATE access_state SET mode='open' WHERE id=1")
                 return None
@@ -118,12 +125,12 @@ class AccessRepository:
         user_id = uuid4().hex
         with self.transaction() as db:
             if db.execute('SELECT count(*) FROM users').fetchone()[0] >= 100:
-                raise ValueError('Account limit reached')
+                raise AccessConflict('ACCESS_ACCOUNT_LIMIT', 'Account limit reached')
             try:
                 db.execute('INSERT INTO users VALUES (?, ?, ?, ?, 1, ?)',
                            (user_id, username.casefold(), password_hash, administrator, json.dumps(permissions)))
             except sqlite3.IntegrityError:
-                raise ValueError('That username is unavailable') from None
+                raise AccessConflict('ACCESS_USERNAME_UNAVAILABLE', 'That username is unavailable') from None
         return self.user_view(self.user(user_id=user_id))
 
     def update_user(self, user_id, update):
@@ -133,7 +140,7 @@ class AccessRepository:
                 raise LookupError('Account not found')
             if row['administrator'] and row['enabled'] and not (update.administrator and update.enabled):
                 if db.execute('SELECT count(*) FROM users WHERE administrator=1 AND enabled=1').fetchone()[0] <= 1:
-                    raise ValueError('Keep at least one enabled administrator')
+                    raise AccessConflict('ACCESS_LAST_ADMIN', 'Keep at least one enabled administrator')
             db.execute('UPDATE users SET administrator=?, enabled=?, permissions=? WHERE id=?',
                        (update.administrator, update.enabled, json.dumps(update.permissions), user_id))
             self._revoke(db, user_id)
@@ -203,7 +210,7 @@ class AccessRepository:
         result = dict(id=uuid4().hex, label=label, kind=kind, created_at=time.time())
         with self.transaction() as db:
             if db.execute('SELECT count(*) FROM credentials').fetchone()[0] >= 100:
-                raise ValueError('Credential limit reached; revoke an unused credential')
+                raise AccessConflict('ACCESS_CREDENTIAL_LIMIT', 'Credential limit reached; revoke an unused credential')
             db.execute('INSERT INTO credentials VALUES (?, ?, ?, ?, ?, ?)',
                        (result['id'], digest(token), user_id, label, kind, result['created_at']))
         return {**result, 'token': token}

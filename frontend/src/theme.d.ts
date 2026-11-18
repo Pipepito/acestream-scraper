@@ -55,6 +55,7 @@ export interface AppTokens {
     dangerBg: string;
     dangerText: string;
     focusRing: string;
+    controlBorder: string;
     disabledBg: string;
     disabledText: string;
     accentWarm: string;

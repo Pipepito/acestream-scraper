@@ -1,3 +1,4 @@
+from app.api.http_errors import coded_http_error
 from fastapi import APIRouter, Request, HTTPException, Response
 from app.schemas.cast import CastDevice, CastCapabilities, CastStart, CastStatus, CastCommand
 from app.api.endpoints.viewers import ViewerStatus, status_for
@@ -14,11 +15,12 @@ router = APIRouter(tags=['cast'])
 
 @router.get('/capabilities', response_model=CastCapabilities)
 def capabilities(request: Request):
-    allowed, message = True, ''
+    allowed, message, error_code = True, '', None
     try:
         require_server_cast(request)
     except HTTPException as error:
         allowed, message = False, error.detail
+        error_code = (error.headers or {}).get('X-Error-Code')
     policy = request.state.access_policy
     from app.config.settings import get_settings
     if request.state.access_mode != 'open':
@@ -26,7 +28,7 @@ def capabilities(request: Request):
     else:
         home_check = 'deployment' if get_settings().CAST_REQUIRE_HOME_NETWORK else 'off'
     return CastCapabilities(server_devices=allowed, compatibility_conversion=policy.compatibility_conversion,
-        media_url_configured=bool(media_base(request)), message=message,
+        media_url_configured=bool(media_base(request)), message=message, error_code=error_code,
         home_connection=home_client(request), media_url=media_base(request) if allowed else '', home_check=home_check)
 
 
@@ -84,7 +86,7 @@ async def start(payload: CastStart, request: Request):
     require_server_cast(request)
     require_permission(request, 'live')
     if not payload.device_id:
-        raise HTTPException(422, 'Select a TV')
+        raise coded_http_error(422, 'CAST_TV_REQUIRED', 'Select a TV')
     await cast_scanner.refresh_known(cast_service.discovery)
     try:
         policy = request.state.access_policy.model_copy(update={'cast_media_url': media_base(request)})
@@ -92,7 +94,7 @@ async def start(payload: CastStart, request: Request):
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(502, 'Could not start playback on the TV. Check receiver connectivity and stream compatibility.') from None
+        raise coded_http_error(502, 'CAST_START_FAILED', 'Could not start playback on the TV. Check receiver connectivity and stream compatibility.') from None
 
 
 @router.post('/browser', response_model=ViewerStatus)
@@ -111,5 +113,5 @@ async def command(cast_id: str, payload: CastCommand, request: Request):
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(502, 'The TV did not accept the command') from None
+        raise coded_http_error(502, 'CAST_COMMAND_FAILED', 'The TV did not accept the command') from None
     return Response(status_code=204)

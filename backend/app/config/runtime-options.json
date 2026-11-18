@@ -5,7 +5,7 @@
     "default": "",
     "label": "Playback engine address",
     "kind": "url",
-    "help": "Leave empty to use the bundled engine when enabled. Saved Settings \u2192 Playback takes precedence."
+    "help": "Leave empty to use the bundled engine when enabled. Saved Settings → Playback takes precedence."
   },
   {
     "name": "ACE_CHECK_ENGINE_URL",
@@ -21,7 +21,7 @@
     "default": 3,
     "label": "Maximum browser sessions",
     "kind": "integer",
-    "help": "",
+    "help": "Maximum simultaneous browser viewing sessions on this server.",
     "minimum": 1,
     "maximum": 100
   },
@@ -31,7 +31,7 @@
     "default": 45,
     "label": "Player startup timeout (seconds)",
     "kind": "integer",
-    "help": "",
+    "help": "How long browser playback may wait for a source to start, in seconds.",
     "minimum": 1,
     "maximum": 600
   },
@@ -41,7 +41,7 @@
     "default": "",
     "label": "Public address",
     "kind": "url",
-    "help": "Address players use to reach this app. Saved Integrations \u2192 Public address takes precedence."
+    "help": "Address players use to reach this app. Saved Integrations → Public address takes precedence."
   },
   {
     "name": "ALLOW_PRIVATE_SCRAPE_TARGETS",
@@ -169,7 +169,7 @@
     "default": true,
     "label": "Prefer IPv4 through WARP",
     "kind": "boolean",
-    "help": ""
+    "help": "Prefer IPv4 for WARP connections. This does not enable WARP by itself."
   },
   {
     "name": "ZERONET_URL",
@@ -177,7 +177,7 @@
     "default": "http://127.0.0.1:43110",
     "label": "ZeroNet gateway",
     "kind": "url",
-    "help": ""
+    "help": "HTTP address of the ZeroNet gateway as reached by this server."
   },
   {
     "name": "IPFS_GATEWAY_URL",
@@ -185,7 +185,7 @@
     "default": "http://127.0.0.1:8081",
     "label": "IPFS gateway",
     "kind": "url",
-    "help": ""
+    "help": "HTTP address of the IPFS gateway as reached by this server."
   },
   {
     "name": "SCRAPER_TIMEOUT",
@@ -193,7 +193,7 @@
     "default": 10,
     "label": "Source timeout (seconds)",
     "kind": "integer",
-    "help": "",
+    "help": "Timeout in seconds for ordinary source requests.",
     "minimum": 1,
     "maximum": 600
   },
@@ -203,7 +203,7 @@
     "default": 3,
     "label": "Source retries",
     "kind": "integer",
-    "help": "",
+    "help": "Retry setting for failed ordinary source requests.",
     "minimum": 0,
     "maximum": 20
   },
@@ -213,7 +213,7 @@
     "default": 20,
     "label": "ZeroNet timeout (seconds)",
     "kind": "integer",
-    "help": "",
+    "help": "Timeout in seconds for requests through the ZeroNet gateway.",
     "minimum": 1,
     "maximum": 600
   },
@@ -223,7 +223,7 @@
     "default": 5,
     "label": "ZeroNet retries",
     "kind": "integer",
-    "help": "",
+    "help": "Retry setting for failed ZeroNet source requests.",
     "minimum": 0,
     "maximum": 20
   },
@@ -233,7 +233,7 @@
     "default": 30,
     "label": "IPFS timeout (seconds)",
     "kind": "integer",
-    "help": "",
+    "help": "Timeout in seconds for requests through the IPFS gateway.",
     "minimum": 1,
     "maximum": 600
   },
@@ -243,7 +243,7 @@
     "default": 3,
     "label": "IPFS retries",
     "kind": "integer",
-    "help": "",
+    "help": "Retry setting for failed IPFS source requests.",
     "minimum": 0,
     "maximum": 20
   },
@@ -253,7 +253,7 @@
     "default": 30,
     "label": "Inactive-channel retention (days)",
     "kind": "integer",
-    "help": "",
+    "help": "Age in days used by scheduled cleanup for stale channels.",
     "minimum": 0,
     "maximum": 36500
   },
@@ -263,7 +263,7 @@
     "default": 30,
     "label": "Media-server refresh debounce (minutes)",
     "kind": "integer",
-    "help": "",
+    "help": "Minimum interval between automatic guide refreshes sent to media servers, in minutes.",
     "minimum": 0,
     "maximum": 10080
   },
@@ -273,7 +273,7 @@
     "default": 10,
     "label": "Engine status timeout (seconds)",
     "kind": "integer",
-    "help": "",
+    "help": "Timeout in seconds when checking the engine status.",
     "minimum": 1,
     "maximum": 600
   },

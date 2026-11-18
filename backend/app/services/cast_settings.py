@@ -1,7 +1,7 @@
 """Casting configuration is independent of whether accounts are enabled."""
+from app.api.http_errors import coded_http_error
 import ipaddress
 
-from fastapi import HTTPException
 from app.repositories.access_repository import AccessRepository, digest
 from app.schemas.access import CastSettings
 from app.services.access_service import (
@@ -14,7 +14,7 @@ from app.services.public_url_service import host_warnings, request_origin
 def require_cast_settings(request):
     if request.state.access_mode == 'open':
         if cast_home_required(request) and not home_client(request):
-            raise HTTPException(403, 'Open TV casting from your home network to change its settings.')
+            raise coded_http_error(403, 'CAST_SETTINGS_HOME_REQUIRED', 'Open TV casting from your home network to change its settings.')
         # Even an open installation must reject cross-site configuration writes.
         if request.method not in ('GET', 'HEAD'):
             require_csrf(request)
@@ -33,7 +33,7 @@ def controller(request):
         return user
     token = request.cookies.get(CSRF_COOKIE, '')
     if not valid_csrf(token):
-        raise HTTPException(403, 'Reload the application before controlling a TV.')
+        raise coded_http_error(403, 'CAST_RELOAD_REQUIRED', 'Reload the application before controlling a TV.')
     return {'id': 'local:' + digest(token), 'administrator': False}
 
 
@@ -61,13 +61,13 @@ def trust_home_connection(request):
         address = getattr(address, 'ipv4_mapped', None) or address
         network = str(ipaddress.ip_network(address))
     except ValueError:
-        raise HTTPException(409, 'The proxy did not provide a usable client address.') from None
+        raise coded_http_error(409, 'CAST_PROXY_ADDRESS_INVALID', 'The proxy did not provide a usable client address.') from None
     if not (address.is_global or any(address in ipaddress.ip_network(n) for n in DEFAULT_HOME_NETWORKS)) or not trusted_client(request, [network]):
-        raise HTTPException(409, 'The client address is hidden by a proxy or Docker gateway. Configure trusted forwarding before trusting this connection.')
+        raise coded_http_error(409, 'CAST_PROXY_TRUST_REQUIRED', 'The client address is hidden by a proxy or Docker gateway. Configure trusted forwarding before trusting this connection.')
     repo = AccessRepository()
     networks = list(request.state.access_policy.home_networks or DEFAULT_HOME_NETWORKS)
     if network not in networks and not home_client(request):
         if len(networks) >= 16:
-            raise HTTPException(409, 'Remove an old home network before adding another.')
+            raise coded_http_error(409, 'CAST_HOME_NETWORK_LIMIT', 'Remove an old home network before adding another.')
         networks.append(network)
     return cast_settings(repo.update_policy({'home_networks': networks}))

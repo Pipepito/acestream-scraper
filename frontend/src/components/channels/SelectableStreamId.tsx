@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React, { useRef } from 'react';
 import { Box, IconButton, InputBase, Tooltip } from '@mui/material';
 import { ContentCopy } from '@mui/icons-material';
@@ -11,6 +12,7 @@ interface Props {
 
 /** Select first: manual copying remains available when HTTP blocks clipboard access. */
 export default function SelectableStreamId({ id, networkStatus, onCopyId }: Props) {
+  const tUi = useUiText();
   const input = useRef<HTMLInputElement>(null);
   return (
     <Box sx={{ width: '100%', minWidth: 0 }} onClick={(event) => event.stopPropagation()}>
@@ -19,14 +21,14 @@ export default function SelectableStreamId({ id, networkStatus, onCopyId }: Prop
         inputRef={input}
         readOnly
         fullWidth
-        inputProps={{ 'aria-label': `Acestream ID ${id}`, spellCheck: false }}
+        inputProps={{ 'aria-label': tUi('Acestream ID {{id}}', { id }), spellCheck: false }}
         onFocus={(event) => event.target.select()}
         onClick={() => input.current?.select()}
         sx={{ fontFamily: 'monospace', fontSize: 12, '& input': { py: 0.5, userSelect: 'text' }, '&:focus-within': { outline: '2px solid', outlineColor: 'primary.main', borderRadius: 0.5 } }}
       />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        <Tooltip title="Copy ID · select the field to copy manually">
-          <IconButton size="small" aria-label={`copy acestream id ${id}`} onClick={() => {
+        <Tooltip title={tUi("Copy ID · select the field to copy manually")}>
+          <IconButton size="small" aria-label={tUi("copy acestream id {{value0}}", { value0: id })} onClick={() => {
             input.current?.focus();
             input.current?.select();
             onCopyId(id);

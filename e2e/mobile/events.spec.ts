@@ -75,7 +75,7 @@ for (const mode of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Preview events', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Save selected (0)', exact: true })).toBeDisabled();
     expect(applied).toBe(0);
-    await page.getByRole('checkbox', { name: `${fixture.title} · scheduled`, exact: true }).check();
+    await page.getByRole('checkbox', { name: `${fixture.title} · Scheduled`, exact: true }).check();
     await page.getByRole('button', { name: 'Save selected (1)', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Add events' })).toHaveCount(0);
     expect(applied).toBe(1);

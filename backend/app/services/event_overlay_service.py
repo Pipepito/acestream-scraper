@@ -123,7 +123,7 @@ class EventOverlayService:
                                    datetime.fromisoformat(p['starts_at']), datetime.fromisoformat(p['ends_at']))
         return digest(dict(payload=payload, revision=revision,
             affected=[dict(id=p.id, **programme(p), subtitle=p.subtitle, description=p.description,
-                           category=p.category, image_url=p.image_url) for p in base]))
+                            category=p.category, categories=p.categories, image_url=p.image_url) for p in base]))
 
     def remove(self, event_id, revision, broadcast_id):
         try:
@@ -160,16 +160,17 @@ class EventOverlayService:
                 if base.start_time < start:
                     # Detached DTOs avoid mutating SQLAlchemy instrumentation.
                     before = SimpleNamespace(**{field: getattr(base, field) for field in
-                        ('start_time', 'end_time', 'title', 'subtitle', 'description', 'category', 'image_url')})
+                         ('start_time', 'end_time', 'title', 'subtitle', 'description', 'category', 'categories', 'image_url')})
                     before.end_time = start
                     clipped.append(before)
                 if base.end_time > end:
                     after = SimpleNamespace(**{field: getattr(base, field) for field in
-                        ('start_time', 'end_time', 'title', 'subtitle', 'description', 'category', 'image_url')})
+                         ('start_time', 'end_time', 'title', 'subtitle', 'description', 'category', 'categories', 'image_url')})
                     after.start_time = end
                     clipped.append(after)
             clipped.append(SimpleNamespace(start_time=start, end_time=end, title=p['title'], subtitle=None,
                 description='Reviewed event overlay. End time confirmed by the operator.',
-                category=saved['context']['sport'] or None, image_url=None))
+                category=saved['context']['sport'] or None,
+                categories=[{'label': saved['context']['sport'], 'language': None}] if saved['context']['sport'] else [], image_url=None))
             result[key] = sorted(clipped, key=lambda row: row.start_time)
         return result

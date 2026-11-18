@@ -1065,7 +1065,7 @@ def test_now_next_returns_one_row_per_mapped_channel(client, seed_tv_channels, s
     other.epg_source_id, other.epg_id = None, None
     db_session.add_all([
         EPGProgram(epg_channel_id=epg.id, title='Earlier', start_time=now - timedelta(hours=3), end_time=now - timedelta(hours=2)),
-        EPGProgram(epg_channel_id=epg.id, title='Now', start_time=now - timedelta(minutes=10), end_time=now + timedelta(minutes=20)),
+        EPGProgram(epg_channel_id=epg.id, title='Now', image_url='https://example.invalid/programme.webp', start_time=now - timedelta(minutes=10), end_time=now + timedelta(minutes=20)),
         EPGProgram(epg_channel_id=epg.id, title='Next', start_time=now + timedelta(minutes=20), end_time=now + timedelta(minutes=50)),
         EPGProgram(epg_channel_id=epg.id, title='Tomorrow', start_time=now + timedelta(hours=20), end_time=now + timedelta(hours=21)),
     ])
@@ -1075,7 +1075,11 @@ def test_now_next_returns_one_row_per_mapped_channel(client, seed_tv_channels, s
     rows = {row['tv_channel_id']: row for row in response.json()}
     assert rows[tv.id]['epg_channel_id'] == epg.id
     assert rows[tv.id]['now']['title'] == 'Now' and rows[tv.id]['next']['title'] == 'Next'
+    assert rows[tv.id]['now']['image_url'] == 'https://example.invalid/programme.webp'
+    assert rows[tv.id]['next']['image_url'] is None
     assert other.id not in rows
+    assert client.get('/api/v1/tv-channels/now-next', params={'channel_ids': other.id}).json() == []
+    assert client.get('/api/v1/tv-channels/now-next', params={'channel_ids': tv.id}).json() == [rows[tv.id]]
     # A mapped channel without current programmes still appears, with empty slots.
     db_session.query(EPGProgram).delete()
     db_session.commit()

@@ -1,0 +1,92 @@
+{
+  "name": "ZZSTREAMS corrected uppercase identity",
+  "provider": "Magnific MCP",
+  "tool": "images_generate",
+  "model": "Google Nano Banana 2",
+  "model_slug": "imagen-nano-banana-2-flash",
+  "prompt": "Correct the brand name on this logo to exactly ZZSTREAMS in all capital letters. Preserve the cyan double-z symbol and cyan-and-ink flat identity. Replace the lowercase wordmark with a bold, highly legible uppercase wordmark reading ZZSTREAMS, including the S immediately after ZZ. Plain white background, one horizontal logo lockup, no additional text, no mockup, no shadows or gradients. Keep the symbol separate on the left, with generous clear space between symbol and wordmark. This is a logo for a streaming television app, preserving the calm, precise visual language of the reference.",
+  "reference": "First lowercase concept; original retained separately",
+  "requested_resolution": "1k",
+  "actual_dimensions": [
+    1376,
+    768
+  ],
+  "requested_aspect_ratio": "16:9",
+  "count": 1,
+  "credits_reported": 75,
+  "prior_generation_credits": 75,
+  "session_credits_reported": 150,
+  "authorized_session_cap": 200,
+  "original": "ZZSTREAMS-nano-banana-2-original-1k.png",
+  "display_copy": "ZZSTREAMS-logo-1k.png",
+  "seed": null,
+  "date": "2026-11-09",
+  "original_sha256": "36d8556f98437273c3613e0f9bbf32c51675eb1a10d4697ed54a2a2dee0d0781",
+  "derivation": "Local white-matte removal, separate symbol/wordmark crops, token-normalized flat fills and 1024px maximum PNG exports. Raster derivatives, not vector masters. No additional generation charge.",
+  "files": [
+    {
+      "file": "assets/zztreams/lockup-ink.png",
+      "dimensions": [
+        974,
+        116
+      ],
+      "sha256": "884d17186cfe721e4d002fb1275ef19d74d0ef821d1d5458e60a990f9dc8a1f4"
+    },
+    {
+      "file": "assets/zztreams/wordmark-ink.png",
+      "dimensions": [
+        741,
+        99
+      ],
+      "sha256": "c9b5339164b84bcf28feb89117c3550700f16f7abe77dddde7712f2375675204"
+    },
+    {
+      "file": "assets/zztreams/lockup-paper.png",
+      "dimensions": [
+        974,
+        116
+      ],
+      "sha256": "ae5e8aab4ccbcfffeb8902add51d0a432f58536fbf8986199b9b657834990e4d"
+    },
+    {
+      "file": "assets/zztreams/wordmark-paper.png",
+      "dimensions": [
+        741,
+        99
+      ],
+      "sha256": "fbc4dd4776d9d127d3adbc19a74ebd14ed753565c598073be7d99ab8ededd933"
+    },
+    {
+      "file": "assets/zztreams/symbol-cyan.png",
+      "dimensions": [
+        188,
+        116
+      ],
+      "sha256": "d7a102d329ac43f278c81575401d8a5dc66511b65408a81a7f1e4868ee9289b7"
+    },
+    {
+      "file": "assets/zztreams/symbol-ink.png",
+      "dimensions": [
+        188,
+        116
+      ],
+      "sha256": "2d5a60fd386b6ac1549fac10ae48c50379adb695781fc76100623e1f795636a7"
+    },
+    {
+      "file": "assets/zztreams/symbol-paper.png",
+      "dimensions": [
+        188,
+        116
+      ],
+      "sha256": "6f923dcfe63687600c47dbebea338aceefac9ce53f4991b768730829c08b2958"
+    },
+    {
+      "file": "assets/zztreams/logo-concept-1k.png",
+      "dimensions": [
+        1024,
+        572
+      ],
+      "sha256": "e5fc9e97614ea9b328f80a44df5abcbbf941e7700dfcb845cb503b444992d186"
+    }
+  ]
+}

@@ -92,6 +92,7 @@ def test_no_engine_does_not_launch_job(client, db_session, monkeypatch):
     assert result == {
         'checked': 0, 'skipped': 0, 'failed': 0,
         'message': 'No engine configured; status checks are disabled.',
+        'message_code': 'CHECK_ENGINE_NOT_CONFIGURED',
     }
 
 

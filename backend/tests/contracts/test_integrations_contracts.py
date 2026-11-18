@@ -125,8 +125,9 @@ def test_remote_player_probe_response_contract(alembic_client, remote_player_tra
     response = alembic_client.post("/api/v1/remote-players/test", json=_player_body())
     assert response.status_code == 200, response.text
     body = response.json()
-    assert set(body) == {"reachable", "authenticated", "version", "message", "hint", "tuner_access"}
+    assert set(body) == {"reachable", "authenticated", "version", "message", "hint", "reason", "tuner_access"}
     assert set(body["tuner_access"]) == {"addresses", "allowed"}
+    assert body["reason"] is None
 
 
 def test_scan_default_response_contract(alembic_client):

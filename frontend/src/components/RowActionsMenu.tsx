@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -22,11 +23,12 @@ export interface RowActionsMenuProps {
 
 /** The ⋯ menu for secondary row actions, with real text labels. */
 const RowActionsMenu: React.FC<RowActionsMenuProps> = ({ label, actions }) => {
+  const tUi = useUiText();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const close = () => setAnchor(null);
   return (
     <>
-      <Tooltip title="More actions">
+      <Tooltip title={tUi("More actions")}>
         <IconButton size="small" aria-label={label} aria-haspopup="menu" aria-expanded={Boolean(anchor)} onClick={(event) => setAnchor(event.currentTarget)}>
           <MoreHorizIcon fontSize="small" />
         </IconButton>

@@ -16,12 +16,16 @@ for (const mode of ['light', 'dark']) {
       const url = new URL(route.request().url());
       let data: unknown = { status: 'ready', phase: 'Ready to use', events: [] };
       if (url.pathname === '/api/v1/setup') data = { setup_complete: true, restart_required: false };
-      else if (url.pathname === '/api/v1/recordings') data = { total: 1, items: [row] };
+      else if (url.pathname === '/api/v1/recordings') {
+        const visible = url.searchParams.get('collection') === (stopped ? 'history' : 'upcoming');
+        data = { total: visible ? 1 : 0, items: visible ? [row] : [] };
+      }
       else if (url.pathname === '/api/v1/recordings/capabilities') data = { enabled: true, available: true };
       else if (url.pathname.endsWith('/stop')) { stopped = true; row = { ...row, state: 'partial', revision: 2 }; data = row; }
       await route.fulfill({ json: data });
     });
     await page.goto('/recordings');
+    await page.getByRole('tab', { name: 'Upcoming and active', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Recordings', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: row.snapshot.title })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -31,8 +35,10 @@ for (const mode of ['light', 'dark']) {
     await expect(page.getByLabel('End', { exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.getByRole('button', { name: 'Stop recording' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Stop recording', exact: true }).click();
     await expect.poll(() => stopped).toBe(true);
-    await expect(page.getByText('partial', { exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'History', exact: true }).click();
+    await expect(page.getByText('Partial', { exact: true })).toBeVisible();
     await page.screenshot({ path: test.info().outputPath(`recordings-${mode}.png`), fullPage: true });
     expect(errors).toEqual([]);
   });

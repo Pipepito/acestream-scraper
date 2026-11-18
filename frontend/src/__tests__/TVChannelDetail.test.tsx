@@ -1,7 +1,8 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within, waitFor, act } from '@testing-library/react';
+import { ApiError } from '../services/apiErrors';
 import TVChannelDetail from '../pages/TVChannelDetail';
 import { createAppTheme } from '../theme';
 import { TestMemoryRouter } from '../testUtils/router';
@@ -184,11 +185,11 @@ describe('TVChannelDetail', () => {
     });
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Add stream' }));
-    const firstCheckbox = screen.getByRole('checkbox', { name: 'Select acestream Arena Feed 2' });
+    const firstCheckbox = screen.getByRole('checkbox', { name: 'Select stream Arena Feed 2' });
     expect(screen.getByRole('button', { name: 'Assign Selected' })).toBeDisabled();
     fireEvent.click(firstCheckbox);
     expect(firstCheckbox).toBeChecked();
-    expect(screen.getByText('1 acestream selected for assignment.')).toBeInTheDocument();
+    expect(screen.getByText('1 stream selected for assignment.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Assign Selected' })).toBeEnabled();
   });
 
@@ -253,6 +254,8 @@ describe('TVChannelDetail', () => {
     fireEvent.click(await screen.findByRole('option', { name: 'Not set' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(mutateAsync).toHaveBeenLastCalledWith({ id: 7, updates: expect.objectContaining({ epg_source_id: null }) });
+    // The save finishes after the request: wait for the form to close before the test ends.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument());
   });
 
   it('removes the channel number when the field is emptied', async () => {
@@ -290,11 +293,11 @@ describe('TVChannelDetail', () => {
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add stream' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Select acestream Arena Feed 2' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select stream Arena Feed 2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Assign Selected' }));
 
     expect(mutateAsync).toHaveBeenCalledWith({ tvChannelId: 7, aceStreamId: 'ace-2' });
-    expect(await screen.findByText(/assigned 1 acestream source successfully/i)).toBeInTheDocument();
+    expect(await screen.findByText(/assigned 1 stream/i)).toBeInTheDocument();
   });
 
   it('confirms before removing a stream and reports success', async () => {
@@ -307,7 +310,7 @@ describe('TVChannelDetail', () => {
     expect(mutateAsync).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
 
-    expect(await screen.findByText(/removed acestream arena feed 1 successfully/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Removed Arena Feed 1 from this channel/i)).toBeInTheDocument();
     expect(mutateAsync).toHaveBeenCalledWith({ tvChannelId: 7, aceStreamId: 'ace-1' });
   });
 
@@ -354,7 +357,7 @@ describe('TVChannelDetail', () => {
       { id: 'ace-1', name: 'Primary', is_online: true },
       { id: 'ace-2', name: 'Backup', is_online: true },
     ];
-    const mutateAsync = jest.fn().mockRejectedValue(new Error('The stream list changed'));
+    const mutateAsync = jest.fn().mockRejectedValue(new ApiError({ message: 'The stream list changed', kind: 'validation', status: 409, canRetry: false }));
     mockUseReorderTVChannelAcestreams.mockReturnValue({ mutateAsync });
     mockUseTVChannel.mockReturnValue({ data: { ...baseChannel, acestream_channels: streams }, isLoading: false });
     renderPage();
@@ -372,6 +375,25 @@ describe('TVChannelDetail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByRole('button', { name: 'Save order' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Move Backup up' })).toBeDisabled();
+  });
+
+  it('preserves zero, sends blank as null, and guards a pending save against repeated submission', async () => {
+    let finish!: () => void;
+    const mutateAsync = jest.fn(() => new Promise<void>(resolve => { finish = resolve; }));
+    mockUseUpdateTVChannel.mockReturnValue({ mutateAsync });
+    mockUseTVChannel.mockReturnValue({ data: { ...baseChannel, channel_number: 0 }, isLoading: false });
+    renderPage();
+    expect(screen.getByText('Sports · Channel 0')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    const number = screen.getByLabelText('Channel number');
+    expect(number).toHaveValue(0);
+    fireEvent.change(number, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(mutateAsync).toHaveBeenCalledTimes(1);
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ updates: expect.objectContaining({ channel_number: null }) }));
+    await act(async () => finish());
+    await waitFor(() => expect(screen.queryByLabelText('Channel number')).not.toBeInTheDocument());
   });
 
 });

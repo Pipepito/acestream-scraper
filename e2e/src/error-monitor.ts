@@ -75,7 +75,7 @@ export class ErrorMonitor {
         // the evidence, but distinguish explicit browser cancellation from an
         // HTTP error, a transport failure, or an interrupted mutation.
         if (['GET', 'HEAD'].includes(failure.method)
-          && ['NS_BINDING_ABORTED', 'net::ERR_ABORTED', 'cancelled'].includes(failure.body)) {
+          && ['NS_BINDING_ABORTED', 'net::ERR_ABORTED', 'cancelled', 'Load request cancelled'].includes(failure.body)) {
           this.cancelledReads.push(failure);
         } else {
           this.apiFailures.push(failure);

@@ -141,7 +141,7 @@ Open **TV Channels**. A TV channel is the user-facing station in your playlist; 
 4. Set its EPG ID or link it from the EPG workflow.
 5. Use the **Favorite** star in the table or phone card. Edit **Number** and press Enter or leave the field to save; blank clears it.
 6. Search, Category, Status and Favorites stay visible. **Advanced filters** holds the remaining filters and shows an active count. Filters apply to the whole catalogue before pagination.
-7. Choose **Reorder channels** to see the complete catalogue. Drag the handles or use arrow/keyboard controls to preview consecutive numbers from 1. **Save order** commits the full order; **Cancel** leaves stored numbers unchanged. If another edit makes the inventory stale, reload it before trying again.
+7. Choose **Reorder channels** to see the complete catalogue. Drag the handles or use arrow/keyboard controls to preview consecutive numbers from 1. On a focused drag handle, **Home/End** focus the first/last channel and **Page Up/Page Down** move focus ten rows without changing order. **Save order** commits the full order; **Cancel** leaves stored numbers unchanged. If another edit makes the inventory stale, reload it before trying again.
 
 To fill existing TV channels from scraped streams, select **Auto-match streams**
 then **Find matches**. This checks all TV channels, including those outside the

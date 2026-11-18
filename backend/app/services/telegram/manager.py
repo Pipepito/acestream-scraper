@@ -4,7 +4,7 @@ Event notifications are hints: forward history is always read from the committed
 cursor. Queue overflow/reconnect reconciles the retained message window. No DB
 session survives an await. All upstream errors are translated into fixed copy.
 """
-from app.services.telegram.errors import TelegramActionError
+from app.services.telegram.errors import TelegramActionError, message_code
 
 import asyncio
 import hashlib
@@ -62,7 +62,7 @@ class Manager:
 
     def status(self) -> TelegramStatus:
         configured = len(get_settings().TELEGRAM_ADMIN_TOKEN.get_secret_value()) >= 32 and bool(get_settings().TELEGRAM_KEY_FILE)
-        return TelegramStatus(state=self.state if configured else 'disabled', message=self.message,
+        return TelegramStatus(state=self.state if configured else 'disabled', message=self.message, message_code=message_code(self.message),
             account_label=(self.account or {}).get('label', ''), queue_size=self.queue.qsize(), retry_at=self.retry_at)
 
     async def _vault(self) -> Vault:

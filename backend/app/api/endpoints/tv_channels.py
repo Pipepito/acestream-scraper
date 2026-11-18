@@ -3,7 +3,8 @@ API endpoints for TV channel management
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Annotated, List
+from datetime import datetime, timezone
 
 from app.config.database import get_db
 from app.services.tvchannel_service import TVChannelService, StaleEPGPreview
@@ -12,6 +13,11 @@ from app.schemas.tv_matching import TVMatchPreview, TVMatchApplyRequest, TVMatch
 from app.services.acestreamchannel_service import AcestreamChannelService
 from app.services.epg_match_service import EPGMatchService
 from app.services.stream_ranking import sort_streams_curated
+from app.schemas.tv_browse import TVBrowseFilters, TVInventory
+from app.schemas.categories import (CategoryView, CategoryInventory, CategoryPreviewRequest, CategorySuggestion,
+    CategoryApplyRequest, CategoryApplyResult, CategoryAssignment, CategoryCoverage)
+from app.services.category_service import CategoryService, category_view
+from app.services.category_taxonomy import CHANNEL_CATEGORIES
 from app.schemas.channel import (
     AcestreamChannelResponse,
     EPGMatchAnalysisRequest,
@@ -55,13 +61,73 @@ def apply_tv_matches(request: TVMatchApplyRequest, db: Session = Depends(get_db)
 
 
 @router.get("/now-next", response_model=List[TVChannelNowNext])
-def tv_channel_now_next(db: Session = Depends(get_db)) -> List[TVChannelNowNext]:
+def tv_channel_now_next(db: Session = Depends(get_db), channel_ids: list[int] = Query(default=[], max_length=100), as_of: datetime | None = None) -> List[TVChannelNowNext]:
     """Current and next programme for every active TV channel with a guide mapping, in one query window."""
-    return TVChannelService(db).now_next()
+    if as_of is not None and (as_of.utcoffset() is None or abs((as_of - datetime.now(timezone.utc)).total_seconds()) > 900):
+        raise HTTPException(422, 'Category reference expired or missing timezone; refresh the guide')
+    return TVChannelService(db).now_next(channel_ids=channel_ids or None, as_of=as_of)
+
+
+@router.get('/browse', response_model=TVChannelListResponse)
+def browse_tv_channels(filters: Annotated[TVBrowseFilters, Query()], db: Session = Depends(get_db)):
+    """Combine catalogue-wide filters, then sort and return a bounded page."""
+    try:
+        return TVChannelService(db).browse(filters)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.get('/category-definitions', response_model=list[CategoryView])
+def category_definitions():
+    return [category_view(item) for item in CHANNEL_CATEGORIES]
+
+
+@router.get('/categories', response_model=CategoryInventory)
+def category_inventory(filters: Annotated[TVBrowseFilters, Query()], db: Session = Depends(get_db)):
+    try:
+        return CategoryService(db).inventory(filters)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post('/category-suggestions/preview', response_model=list[CategorySuggestion])
+def preview_categories(request: CategoryPreviewRequest, db: Session = Depends(get_db)):
+    try:
+        return CategoryService(db).preview(request.channel_ids)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post('/category-suggestions/apply', response_model=CategoryApplyResult)
+def apply_categories(request: CategoryApplyRequest, db: Session = Depends(get_db)):
+    try:
+        return CategoryService(db).apply(request)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@router.put('/{channel_id}/category', response_model=TVChannelResponse)
+def assign_category(channel_id: int, request: CategoryAssignment, db: Session = Depends(get_db)):
+    try:
+        return CategoryService(db).assign(channel_id, request)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@router.get('/category-coverage', response_model=CategoryCoverage)
+def category_coverage(source_id: int | None = Query(None, gt=0), skip: int = Query(0, ge=0),
+                      limit: int = Query(100, ge=1, le=500), db: Session = Depends(get_db)):
+    return CategoryService(db).coverage(source_id, skip, limit)
+
+
+@router.get('/inventory', response_model=TVInventory)
+def tv_channel_inventory(db: Session = Depends(get_db)):
+    """Global filter choices/counts without loading the catalogue or its streams."""
+    return TVChannelService(db).inventory()
 
 
 @router.get("/", response_model=TVChannelListResponse)
-async def get_tv_channels(
+def get_tv_channels(
     skip: int = Query(0, alias="skip"),
     limit: int = Query(100, alias="limit"),
     page: int = Query(None, alias="page"),
@@ -142,7 +208,7 @@ def reorder_tv_channels(request: TVChannelReorderRequest, db: Session = Depends(
 
 
 @router.get("/{tv_channel_id}", response_model=TVChannelResponse)
-async def get_tv_channel(tv_channel_id: int, db: Session = Depends(get_db)):
+def get_tv_channel(tv_channel_id: int, db: Session = Depends(get_db)):
     """
     Get a specific TV channel by ID.
     """
@@ -202,7 +268,7 @@ async def create_tv_channel(tv_channel: TVChannelCreate, db: Session = Depends(g
             detail=f"TV Channel with name {tv_channel.name} already exists"
         )
 
-    return service.create_tv_channel(
+    row = service.create_tv_channel(
         name=tv_channel.name,
         logo_url=tv_channel.logo_url,
         description=tv_channel.description,
@@ -214,12 +280,14 @@ async def create_tv_channel(tv_channel: TVChannelCreate, db: Session = Depends(g
         epg_source_id=tv_channel.epg_source_id,
         channel_number=tv_channel.channel_number,
         is_active=tv_channel.is_active or True,
-        is_favorite=tv_channel.is_favorite or False
+        is_favorite=tv_channel.is_favorite or False,
+        category_origin='manual' if 'category' in tv_channel.model_fields_set else 'automatic'
     )
+    return row
 
 
 @router.put("/{tv_channel_id}", response_model=TVChannelResponse)
-async def update_tv_channel(
+def update_tv_channel(
     tv_channel_id: int,
     tv_channel_update: TVChannelUpdate,
     db: Session = Depends(get_db)
@@ -232,10 +300,14 @@ async def update_tv_channel(
     if not existing_channel:
         raise HTTPException(status_code=404, detail="TV Channel not found")
 
-    updated_channel = service.update_tv_channel(
-        tv_channel_id=tv_channel_id,
-        updates=tv_channel_update.model_dump(exclude_unset=True)
-    )
+    try:
+        updated_channel = service.update_tv_channel(
+            tv_channel_id=tv_channel_id,
+            updates=tv_channel_update.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(409, str(exc)) from exc
     return updated_channel
 
 

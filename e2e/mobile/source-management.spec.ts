@@ -27,12 +27,12 @@ for (const theme of ['light', 'dark']) {
     });
     await page.route('**/api/v1/tv-channels/**', route => route.fulfill({ json: { items: [], total: 0 } }));
     await page.goto('/scraper');
-    await page.getByRole('button', { name: 'Add URL', exact: true }).click();
+    await page.getByRole('button', { name: 'Add source', exact: true }).click();
     await page.getByRole('combobox', { name: 'Built-in provider' }).click();
     await page.getByRole('option', { name: 'Atresmedia' }).click();
-    await expect(page.getByRole('textbox', { name: 'URL', exact: true })).toHaveValue('https://www.atresplayer.com');
+    await expect(page.getByRole('textbox', { name: 'Channel source link', exact: true })).toHaveValue('https://www.atresplayer.com');
     await page.getByRole('textbox', { name: 'Friendly name (optional)' }).fill('Living room broadcaster with a long descriptive name');
-    await page.getByRole('button', { name: 'Add', exact: true }).focus();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add source', exact: true }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     expect(writes).toEqual([expect.objectContaining({ name: 'Living room broadcaster with a long descriptive name', url_type: 'broadcaster' })]);

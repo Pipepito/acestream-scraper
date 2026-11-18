@@ -1,0 +1,47 @@
+# Current-source reconciliation — review 03
+
+> Review 06 is the current design-only continuation: [package](README.md), [simplified ownership](before-after-map.md), [shared presets](shared-foundations-06.md), [graphics](asset-selection-06.md) and [new evidence](verification-review-06.md). Earlier closure/implementation-next language and historical passing counts do not authorize application work or establish current acceptance.
+
+Review 06 final recheck (7 November 2026): `develop` remains `cf952afc6b4489c02b7a675ff3d634cc13d98e0b`. `main` advanced independently to `180f544c140f2f0361c386ebd395dcf366ae343d`, merging that develop revision; `git diff` reports no `backend/` or `frontend/` differences between them. The design branch retains its older application base. No application changes were merged into it. The live-installation observations below are historical, not a new live validation.
+
+> Review 04 update (7 November 2026): [expanded composed coverage](coverage-review-04.md), [workflow fields/interactions](workflow-specification.md), [current verification](verification-review-04.md) and [task refinements](task-refinements-04.md) supersede historical composition gaps. Prior live defects remain open. No user approval or application implementation is implied.
+
+The final publication check found that develop advanced during this audit to [cf952afc6b4489c02b7a675ff3d634cc13d98e0b](https://github.com/Pipepito/acestream-scraper/commit/cf952afc6b4489c02b7a675ff3d634cc13d98e0b), merging PR #313. The local application/design base remains 7ccf16d. The design branch is intentionally not rebased or merged with implementation work. Source changes were inspected with git diff/show; no new application build or runtime was started.
+
+At the final read-only live check, the new online-only explanation and offline-cleanup form were absent. This distinguishes the observed installation from the new source; it does not establish its exact commit. Keep the 49-case survey attached to the installation actually inspected.
+
+## Changed workflows and design consequences
+
+| Current addition | Source evidence / preservation requirement | Design ownership and remaining work |
+| --- | --- | --- |
+| Live TV availability | [LiveTV.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/pages/LiveTV.tsx): online enabled streams by default in TV and stream modes, availability=all escape, 30-second catalogue/selected-channel refresh. Active selection/player identity survives filtering/refresh. | #319. Include “Online only / Solo con señal verificada” with explanation of last observation, not a current guarantee. Preserve Show all channels and distinguish filtered-empty from no catalogue. Old viewing boards are not a specification of these new controls. |
+| Similar stream-to-TV name suggestions | [TVAutoMatchDialog.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVAutoMatchDialog.tsx): similar names opt-in, reasons, filter-aware bulk exact selection, one TV target per stream. No preselection. | #320. This is stream-to-TV matching, not EPG guide assignment. Do not extend fuzzy suggestions into exact guide/event automation. Compose expanded ambiguous rows and selection spanning pages/filter changes. |
+| Manual/Search Add and Link | [TVChannelLinkField.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/TVChannelLinkField.tsx), [AddAndLinkDialog.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/search/AddAndLinkDialog.tsx). Shared searchable number/name/country/category picker; import and association commit together; conflicting assignment preserved. | #320/#321. Reuse this real shared component. “Add and link / Añadir y vincular” is different from source Save then queue import. Include unresolved/excluded/conflict/catalogue-unavailable states and phone modal. |
+| Offline retention | [OfflineCleanupFields.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/settings/OfflineCleanupFields.tsx) and [service](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/backend/app/services/offline_cleanup_service.py). Opt-in separate section Save, preview writes nothing; 500-per-run limit; repeated confirmed offline evidence and a check within 24 hours; enabled recoverable scraper sources only; recent playback protects; viewing/recording defers. No migration backfill. | #318/#320/#321/#322. Canonical editor: Settings → Background updates → Offline stream cleanup, contextual link from Streams/Sources. Distinguish hide from delete and preview from authorization. Dedicated composed settings/impact/pending/error/history screens remain pending. |
+| Tuner hiding control | [MediaServersSection.tsx](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/frontend/src/components/integrations/MediaServersSection.tsx): hide_unusable now has UI and explanatory text. | #322. Preserve opt-in and existing playlist override; hiding deletes nothing. Do not describe it as an API-only capability. |
+
+## Added field specification
+
+Defaults/ranges are taken from [OfflineCleanupConfig and ScheduleAnchors](https://github.com/Pipepito/acestream-scraper/blob/cf952afc6b4489c02b7a675ff3d634cc13d98e0b/backend/app/schemas/config.py), not synthetic values. These are saved application settings; the unchanged 47-option deployment/runtime inventory does not include them.
+
+| Key | EN / proposed ES | Default and bounds | Effect / disclosure |
+| --- | --- | --- | --- |
+| offline_cleanup.enabled | Automatically remove long-offline streams / Eliminar automáticamente emisiones sin señal durante varios días | false | Staged section Save enables future scheduled deletion; hiding in Live TV is independent. |
+| offline_cleanup.offline_days | Offline for at least (days) / Sin señal durante al menos (días) | 14; integer 1–365 | Eligible only after new confirmed evidence, repeated checks and recent check. Unknown/checker errors do not age into proof of offline. |
+| offline_cleanup.interval_days | Run every (days) / Ejecutar cada (días) | 7; integer 1–90 | Maintenance FIFO; deferred while watching/recording, retried at next scheduled run. Do not promise immediate retry. |
+| offline_cleanup.remove_linked | Also remove streams linked to TV channels / Eliminar también emisiones vinculadas a canales de TV | false | TV channels/guides remain; removed stream links and preference order are lost. Rediscovery may need manual rematching. Explicit consequence review required. |
+| offline_cleanup.rescrape | Update affected sources after cleanup / Actualizar las fuentes afectadas tras la limpieza | true | Rediscovered streams return unchecked. Report cleanup success separately from refresh failures; no promise of permanent deletion. |
+| schedule_anchors.offline_stream_cleanup | Offline cleanup start time / Hora de inicio de limpieza de emisiones | null or HH:MM; existing timezone/DST rules | Separate schedule-anchor transaction from cleanup settings. Show both saved effects; no fictional atomic Save. |
+| live availability | Online only / Solo con señal verificada | Default on; availability=all disables filter | URL state, not deletion or check-scope configuration. Keep selected playback. |
+| matching include_similar | Include similar names for review / Incluir nombres parecidos para revisar | false | Explicit suggestions, never automated guide assignment. Source identity and reasons remain visible. |
+| manual/import tv_channel_id | Link to TV channel / Vincular a canal de TV | Optional for manual add; required in Add and Link | Existing channel identity, not translated display text. Conflict preserves original assignment. |
+
+Preview copy: “Up to 500 streams qualify in this batch. The job checks again when it runs.” / “Hasta 500 emisiones cumplen los criterios en este lote. La tarea volverá a comprobarlos al ejecutarse.” Preserve the API's limit: a bounded count is not necessarily the whole eligible catalogue. Empty preview can mean insufficient recent evidence, not that everything is online.
+
+## Effect on previous findings and coverage
+
+Route patterns, navigation destinations, generated runtime metadata, recording initializer, guide-export slider component, TV-channel pagination/filter page and theme are unchanged across this merge. The original defect dispositions therefore remain attached to their live evidence; no finding is called resolved merely because related features shipped elsewhere.
+
+R02 gains availability/filter-empty/refresh continuity; R05/R06 gain reviewed similar-name matching and manual linked add; R10 gains Add and Link; R18 gains tuner hide UI; R20 gains cleanup queue/outcome; R22/S02 gains retention fields and anchor. The dialog inventory gains the Search Add and Link modal and the expanded matching review. Unique composed variants and post-merge live testing remain pending in the same ten issues.
+
+The separately authored PR #313 audit's 16/20 score used a narrower scope and did not measure contrast. It neither supersedes the fresh measured contrast evidence nor provides a comparable before/after score. Its behavior improvements should be preserved. No claims about its current CI/deployment status are made here.

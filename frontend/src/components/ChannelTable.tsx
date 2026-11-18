@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useMemo, useState } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
 import { Alert, Box, Chip, Snackbar, Tooltip, Typography } from '@mui/material';
@@ -13,11 +14,11 @@ import { formatDateTime } from '../utils/formatters';
 
 const INLINE_SAVE_FAILURE_MESSAGE = 'The channel could not be updated. Try again.';
 
-const ChannelTableEmptyOverlay = () => (
+const ChannelTableEmptyOverlay = () => { const tUi = useUiText(); return (
   <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 3, px: 2 }}>
-    <EmptyState title="No channels to show" description="Adjust your filters or add a channel to start monitoring stream health." />
+    <EmptyState title={tUi("No channels to show")} description={tUi("Adjust your filters or add a channel to start monitoring stream health.")} />
   </Box>
-);
+); };
 
 export interface ChannelTableProps extends ChannelActionHandlers {
   channels: AcestreamChannel[];
@@ -55,13 +56,14 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
   onToggleTVFavorite,
   onDelete,
 }) => {
+  const tUi = useUiText();
   const [error, setError] = useState<string | null>(null);
 
   const columns = useMemo<GridColDef[]>(
     () => [
       {
         field: 'name',
-        headerName: 'Channel',
+        headerName: tUi('Channel'),
         flex: 1,
         minWidth: 220,
         editable: true,
@@ -72,17 +74,17 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
                 {params.row.name}
               </Typography>
               <Typography component="span" variant="body2" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {params.row.group || 'No group'}
-                {params.row.tv_channel_name ? ` · TV: ${params.row.tv_channel_name}` : ''}
+                {params.row.group || tUi('No group')}
+                {params.row.tv_channel_name ? tUi(" · TV: {{value0}}", { value0: params.row.tv_channel_name }) : ''}
               </Typography>
             </Box>
-            {params.row.is_active === false ? <Chip label="Hidden" size="small" variant="outlined" sx={{ minWidth: 72 }} /> : null}
+            {params.row.is_active === false ? <Chip label={tUi("Hidden")} size="small" variant="outlined" sx={{ minWidth: 72 }} /> : null}
           </Box>
         ),
       },
       {
         field: 'id',
-        headerName: 'ID',
+        headerName: tUi('ID'),
         minWidth: 300,
         flex: 1,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
@@ -91,30 +93,30 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       },
       {
         field: 'is_online',
-        headerName: 'Signal',
+        headerName: tUi('Signal'),
         width: 180,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <OnlineChip isOnline={params.row.is_online} />,
       },
       {
         field: 'stream_stats',
-        headerName: 'Stream statistics',
+        headerName: tUi('Stream statistics'),
         width: 280,
         sortable: false,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => <StreamStatistics channel={params.row} />,
       },
       {
         field: 'last_checked',
-        headerName: 'Last checked',
+        headerName: tUi('Last checked'),
         width: 130,
         renderCell: (params: GridRenderCellParams<AcestreamChannel>) => (
-          <Tooltip title={params.row.last_checked ? formatDateTime(params.row.last_checked) : 'Never checked'}>
+          <Tooltip title={params.row.last_checked ? formatDateTime(params.row.last_checked) : tUi("Never checked")}>
             <span>{formatRelativeTime(params.row.last_checked)}</span>
           </Tooltip>
         ),
       },
       {
         field: 'actions',
-        headerName: 'Actions',
+        headerName: tUi('Actions'),
         width: 140,
         sortable: false,
         filterable: false,
@@ -135,13 +137,13 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
         ),
       },
     ],
-    [checkingStatus, onAssignTV, onCheckStatus, onCopyId, onDelete, onEdit, onOpenTV, onPlay, onPlayOn, onToggleHidden, onToggleTVFavorite]
+    [tUi, checkingStatus, onAssignTV, onCheckStatus, onCopyId, onDelete, onEdit, onOpenTV, onPlay, onPlayOn, onToggleHidden, onToggleTVFavorite]
   );
 
   const NoRowsOverlay = hasActiveFilters
     ? () => (
         <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 3, px: 2 }}>
-          <EmptyState title="No channels match the current filters" description="Adjust or clear the filters to see more channels." />
+          <EmptyState title={tUi("No channels match the current filters")} description={tUi("Adjust or clear the filters to see more channels.")} />
         </Box>
       )
     : ChannelTableEmptyOverlay;
@@ -151,7 +153,7 @@ const ChannelTable: React.FC<ChannelTableProps> = ({
       {error ? (
         <Snackbar open autoHideDuration={5000} onClose={() => setError(null)}>
           <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
-            {error}
+            {tUi(INLINE_SAVE_FAILURE_MESSAGE)}
           </Alert>
         </Snackbar>
       ) : null}

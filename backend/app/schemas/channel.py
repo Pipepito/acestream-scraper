@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.media import AudioTrack
+from app.schemas.epg import EPGCategoryObservation
 from app.services.stream_ranking import sort_streams_curated
 
 
@@ -105,6 +106,7 @@ class TVChannelUpdate(BaseModel):
     logo_url: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
+    expected_category_revision: Optional[int] = Field(None, ge=0)
     country: Optional[str] = None
     language: Optional[str] = None
     website: Optional[str] = None
@@ -124,6 +126,10 @@ class TVChannelResponse(TVChannelBase):
     updated_at: datetime
     is_active: bool
     is_favorite: bool
+    category_origin: str = 'legacy'
+    category_revision: int = 0
+    category_id: str = 'uncategorized'
+    epg_logo_url: Optional[str] = None
     acestream_channels: List[AcestreamChannelResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
@@ -338,6 +344,9 @@ class GuideSlot(BaseModel):
     title: str
     start: datetime
     end: datetime
+    image_url: Optional[str] = None
+    categories: List['EPGCategoryObservation'] = Field(default_factory=list)
+    genre_ids: List[str] = Field(default_factory=list)
 
 
 class TVChannelNowNext(BaseModel):

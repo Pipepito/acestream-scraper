@@ -1,3 +1,4 @@
+import { uiText } from '../../i18n/text';
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { useChannelGroups, usePlaylistChannelSummary } from '../../hooks/usePlaylists';
 import { useBaseUrls } from '../../hooks/useBaseUrls';
@@ -55,7 +56,7 @@ export function usePlaylistLink(): PlaylistLink {
   }, [namedBaseUrls, loadingBaseUrls, baseUrlsError, selectedBaseUrlId]);
   const relayPattern = buildPublicUrl('/tuner/channel/{tv_channel_id}.ts', publicUrl?.url).replace('%7Btv_channel_id%7D', '{tv_channel_id}');
   const selectedFormat: PlaylistFormat | undefined = selectedBaseUrlId === 'tv-relay'
-    ? { name: 'TV channel relay (automatic failover)', pattern: relayPattern }
+    ? { name: uiText('TV channel relay (automatic failover)'), pattern: relayPattern }
     : namedBaseUrls.find(entry => selectedBaseUrlId === '' ? entry.is_default : entry.id === selectedBaseUrlId);
 
   const isRelay = managed || Boolean(selectedFormat?.pattern?.includes('{tv_channel_id}'));
@@ -73,12 +74,12 @@ export function usePlaylistLink(): PlaylistLink {
   const createLink = async () => {
     setCreatingLink(true); setLinkError('');
     try { const link = await accessService.playlistLink(); setPlaybackToken(new URL(link.url).searchParams.get('token') ?? ''); }
-    catch { setLinkError('Could not create a playback credential. Check Settings → Access.'); }
+    catch { setLinkError(uiText('Could not create a playback credential. Check Settings → Access.')); }
     finally { setCreatingLink(false); }
   };
   const onlineHelp = summary
-    ? `${summary.online} of ${summary.total_channels} channels are online right now`
-    : 'Channels the last status check found online';
+    ? uiText('{{online}} of {{total}} channels are online right now', { online: summary.online, total: summary.total_channels })
+    : uiText("Channels the last status check found online");
 
   return { managed, filters, setFilters, search, setSearch, selectedBaseUrlId, setSelectedBaseUrlId, namedBaseUrls, loadingBaseUrls,
     baseUrlsError: Boolean(baseUrlsError), channelGroups, loadingGroups, selectedFormat, isRelay, playlistUrl, absolutePlaylistUrl,

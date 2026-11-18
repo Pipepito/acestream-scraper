@@ -1,0 +1,40 @@
+{
+  "provider": "unsplash",
+  "license": "Unsplash License (free)",
+  "license_url": "https://unsplash.com/license",
+  "category": "formula-1",
+  "photo_title": "blue and yellow f 1 car on road",
+  "photo_id": "d6UCfbY3zMc",
+  "photo_url": "https://unsplash.com/photos/blue-and-yellow-f-1-car-on-road-d6UCfbY3zMc?utm_source=sportzz&utm_medium=referral",
+  "photo_author": "Paolo Feser",
+  "photo_author_url": "https://unsplash.com/@paoloficasso?utm_source=sportzz&utm_medium=referral",
+  "local_cover": "cover.webp",
+  "local_poster": "poster.webp",
+  "local_video": "background.mp4",
+  "image_id": "photo-1622401976173-a0b80c12fbd1",
+  "note": "Manually selected on unsplash.com and downloaded for local hosting. Not Unsplash+.",
+  "variants": {
+    "cover": "cover.webp",
+    "cover_480": "cover-480.webp",
+    "cover_960": "cover-960.webp",
+    "cover_1600": "cover-1600.webp",
+    "poster": "poster.webp",
+    "background_mp4": "background.mp4",
+    "background_webm": "background.webm"
+  },
+  "alternates": [
+    {
+      "file": "alternate-1.webp",
+      "photo_title": "Formula 1 race car speeding on track",
+      "photo_id": "jLZzWgJtRXs",
+      "photo_url": "https://unsplash.com/photos/formula-1-race-car-speeding-on-track-jLZzWgJtRXs?utm_source=sportzz&utm_medium=referral",
+      "photo_author": "Todd Jiang",
+      "photo_author_url": "https://unsplash.com/@toddjiang?utm_source=sportzz&utm_medium=referral",
+      "image_id": "photo-1758607210268-e9aaffab4618",
+      "provider": "unsplash",
+      "license": "Unsplash License (free)",
+      "license_url": "https://unsplash.com/license",
+      "note": "Manually selected on unsplash.com and downloaded for local hosting. Not Unsplash+."
+    }
+  ]
+}

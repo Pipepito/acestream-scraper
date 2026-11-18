@@ -1,0 +1,168 @@
+{
+  "brand": "SPORTZZ",
+  "runs": [
+    {
+      "id": "PHOTO-01",
+      "prompt": "Create a premium cinematic editorial sports photograph. Two professional track athletes sprinting at full speed on a modern athletics track at night. Authentic biomechanics and powerful movement under professional stadium floodlights. Main athlete in right half, second slightly behind creating competitive depth. Left third relatively dark and calm suitable for later text placement. Small electric lime sportswear details, no glowing elements. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "PHOTO-02",
+      "prompt": "Two professional football players competing for possession during an intense match, convincing ball control and football technique, detailed grass, professional stadium evening atmosphere. Players occupy right and central sections; preserve dark negative space on left for later interface overlays. Plain unbranded kits, without numbers. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "PHOTO-03",
+      "prompt": "A professional basketball athlete performing an explosive jump toward the hoop during a competitive game. Convincing biomechanics, ball control, physical intensity. Authentic indoor basketball arena, realistic distant crowd, directional stadium lighting, detailed court surface, natural photographic grain. Unbranded plain sportswear. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "PHOTO-04",
+      "prompt": "A professional female tennis athlete striking a powerful forehand during a high-level clay court match. Realistic racket geometry with fine accurate strings, a single believable tennis ball, precise sporting technique and natural anatomy. Detailed clay and subtle dust, professional court environment with atmospheric evening stadium lighting. Athlete slightly to one side, visually calm secondary area. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "rejected",
+      "credits": 75
+    },
+    {
+      "id": "PHOTO-04",
+      "prompt": "Premium realistic editorial tennis action photograph. A professional female tennis player striking a powerful forehand on an EMPTY PRIVATE clay practice court at dusk. Absolutely NO advertising boards, NO banners, NO logos, NO branding and NO lettering ANYWHERE. Background only blank plain dark charcoal windscreen fencing, softly blurred empty seats and a few realistic court floodlights. Realistic detailed racket and strings, believable single tennis ball in front of racket, correct forehand sporting technique and realistic human anatomy. Athlete on right, calm dark area on left. Natural skin and unbranded plain dark navy clothing. Credible clay dust, deep charcoal shadows retaining detail, controlled highlights and cinematic photographic grain. This is fictional practice, not a real competition. Wide 16:9. No text, numbers, sponsors, tournament marks, watermark, neon or fake broadcast graphics.",
+      "attempt": 2,
+      "status": "accepted",
+      "credits": 75,
+      "reason": "Rejected first attempt: invented advertising on background boards."
+    },
+    {
+      "id": "PHOTO-05",
+      "prompt": "A professional generic unbranded prototype racing car taking a fast corner on a modern closed race track. Authentic vehicle geometry, convincing tires, precise track details, realistic speed, controlled panning motion blur. Dramatic credible natural late-afternoon light, deep dark tones, subtle reflections. No recognizable manufacturer design or racing team identity; plain charcoal bodywork with a tiny lime accent, no numbers. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "PHOTO-06",
+      "prompt": "An elite female swimmer during a powerful butterfly stroke in an indoor competition pool. Realistic human anatomy with both arms symmetrical above water, accurate technique, believable water dynamics and droplets. Stadium lights reflecting naturally on authentic blue water. Front three-quarter sports camera viewpoint showing the swimmer in the right-center and the lane ropes clearly. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "PHOTO-07",
+      "prompt": "Professional road cyclists climbing during a mountain stage. Authentic exertion and cycling posture, accurate bicycle diamond-frame geometry with two wheels per bike, credible hands gripping handlebar and feet on pedals. A small group on a believable paved winding road, subtle natural motion blur, directional sunlight, atmospheric mountain depth. Plain charcoal and muted athletic clothing, no teams or sponsor designs. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "PHOTO-08",
+      "prompt": "Large professional football stadium at night viewed from a dynamic elevated perspective. Realistic floodlights, accurately marked pitch, plausible crowd and architecture, natural cinematic depth. Central playing area visible, darker architectural regions and sky suitable for later text overlays. No flags, advertising lettering or scoreboard. Stadium atmosphere, not a concert. Premium editorial sports photography for SPORTZZ. Realistic anatomy and sporting technique, natural skin and fabric, credible sporting environment, deep charcoal shadows retaining detail, controlled highlights, restrained natural color, sophisticated professional light. Restrained lime details only if natural. Wide horizontal 16:9. No text, letters, numbers, logos, team crests, identifiable teams, sponsorship, watermarks, scoreboards, fake broadcast graphics, neon glow, science fiction, decorative particles or video game appearance. Not a depiction of any real event.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-01",
+      "prompt": "Professional thin-bezel desktop monitor on a minimal matte black desk, three-quarter hardware angle but screen almost frontal in a dark architectural studio. Wide 16:9. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "rejected",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-01",
+      "prompt": "One single premium desktop COMPUTER MONITOR seen from the FRONT. The front DISPLAY faces the camera, entirely visible as a large nearly frontal flat horizontal dark neutral blank rectangle. Camera centered in front of the screen at screen height. NOT a rear view, NOT a monitor back, NOT multiple monitors. Simple thin unbranded black bezel, one elegant stand on minimal matte charcoal desk. No other screens, no keyboard, no clutter. Nearly frontal with only 3 degrees of perspective, exact screen compositing usability is more important than drama. Dark charcoal architectural studio, restrained tiny lime ambient accent, soft controlled realistic product light. Entire front monitor and stand visible, even dark grey screen with absolutely no interface, text, logo, letters, brands, watermark or obstructing reflections. Premium commercial photorealistic studio photograph, wide horizontal 16:9.",
+      "attempt": 2,
+      "status": "accepted",
+      "credits": 75,
+      "reason": "Rejected first attempt: rear-facing monitor cannot accept a UI screenshot."
+    },
+    {
+      "id": "MOCKUP-02",
+      "prompt": "Modern professional black laptop in a refined dark studio. Screen open almost vertical, near frontal, evenly blank dark neutral. Visible realistic keyboard with unmarked keys, realistic aluminum finish and restrained reflections. Wide 16:9. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-03",
+      "prompt": "One premium black smartphone upright, complete device visible and perfectly flat blank front screen. Close to frontal with extremely slight three-quarter depth. Matte black studio background, precise hardware proportions, elegant shadows. Portrait 4:5. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-04",
+      "prompt": "One premium black tablet in landscape orientation, complete device visible, nearly frontal flat blank screen, minimal dark studio and matte surfaces with controlled architectural lighting. Wide 16:9. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-05",
+      "prompt": "A large premium television as protagonist of a sophisticated contemporary dark living room. Nearly frontal perfectly rectangular completely blank television screen, dark furniture and textured charcoal materials, discreet lime ambient illumination. Credible interior architecture. Wide 16:9. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-06",
+      "prompt": "Refined commercial technology presentation of exactly three devices together: desktop monitor, upright modern smartphone and black landscape tablet. Clear separation between devices, NO overlapping screens. Every display blank flat near frontal prepared for exact UI compositing. Dark studio. Wide 16:9. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-07",
+      "prompt": "Cinematic professional sports broadcasting studio with one large clean rectangular blank dark broadcast display panel, nearly frontal. Professional camera and production equipment silhouettes to the sides, matte architectural surfaces, credible studio depth, restrained lime studio light. No people or sports graphics. Wide 16:9. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "MOCKUP-08",
+      "prompt": "Premium editorial flat lay physical kit: folded black technical sportswear, matte black accreditation credential, clean blank microphone flag, dark woven lanyard with vivid small lime details. ALL logo placement areas blank flat and unmarked ready for authentic vector artwork to be composited later. Realistic fabric fibers, precise metal plastic and microphone details, natural directional light on charcoal tabletop. Full objects in frame. Landscape 4:3. Premium photorealistic product photography for SPORTZZ visual asset library. Matte black and charcoal materials, realistic industrial geometry, precise edges, elegant controlled shadows, restrained electric lime ambient detail. Keep entire devices visible, every display must be completely blank evenly dark neutral, no interface, no screen content, no text, lettering, keyboard legends, numbers, logos, manufacturer branding or watermark. Screens flat and nearly frontal, no reflections obscuring replacement areas, ready for precise digital compositing.",
+      "attempt": 1,
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "GRAPHIC-03",
+      "prompt": "Create an extremely subtle dark charcoal material texture for a premium digital design system SPORTZZ. Fine natural matte surface, very restrained grain, almost imperceptible tonal variation, no large patterns, no visible objects, no lighting effects and no distracting details. Tileable texture, seamless edges, suitable for low-intensity backgrounds. Dark charcoal and black only. No text, no logo, no gradient, no artificial metallic shine. Perfect square seamless tile.",
+      "status": "accepted_with_local_tile_processing",
+      "credits": 75
+    },
+    {
+      "id": "GRAPHIC-04",
+      "prompt": "Create a cinematic dark abstract sports environment inspired by the atmosphere of a professional stadium at night for SPORTZZ. Very subtle structural silhouettes, controlled distant floodlight ambience, deep charcoal shadows, restrained natural green undertones and expansive negative space. Keep details intentionally low contrast to allow interface components and typography to remain fully readable. Premium editorial sports art direction. No athletes, no logos, no text, no generated advertising, no scoreboard, no artificial neon. Wide 16:9.",
+      "status": "accepted",
+      "credits": 75
+    },
+    {
+      "id": "GRAPHIC-05",
+      "prompt": "Create a sophisticated abstract sports motion background for SPORTZZ using carefully controlled diagonal forms inspired by an 18-degree directional cut measured from vertical. Suggest speed and athletic movement without depicting an actual sport. Deep black #080B09, charcoal #171D19 and extremely restrained electric lime #B6FF00 accents. Keep center and main text areas quiet. Premium high-end sports brand art direction, matte texture, restrained composition. No gradients, glowing neon, particles, text or logos. Wide 16:9.",
+      "status": "reference_only_reconstructed_to_exact_angle",
+      "credits": 75
+    },
+    {
+      "id": "ICON-REFERENCE",
+      "prompt": "Design an original production-quality outline SVG icon family sample for SPORTZZ, a premium sports streaming and technology brand. Exactly five independent icons in a single horizontal row separated with generous whitespace: home, search, settings gear, activity heartbeat, football soccer ball. Each icon on a precise 24x24 grid, consistent 1.75px black stroke, rounded caps and joins, transparent background, no fills except stroke geometry, balanced optical margins. Professional thin outline quality but completely original independent geometry; do not copy Font Awesome paths. Simple recognizable silhouettes, elegant negative space. Must work at 16,20,24,32 px. No letters, labels, typography, logo, colors, gradients, shadows, raster images or decorative frames. This SVG is a reference master only; five icons will be separated and normalized to currentColor SVG paths for production.",
+      "status": "reference_only_reconstructed_to_UI_spec",
+      "credits": 375
+    },
+    {
+      "id": "GRAPHIC-REFERENCE",
+      "prompt": "Original editable vector graphic construction study for SPORTZZ. On transparent background create two clearly separated groups: at left a seamless tile of very subtle equally spaced parallel diagonal lines at exactly 18 degrees from vertical; at right a set of four simple independent directional geometric cut shapes, all angled edges exactly 18 degrees from vertical, including a band, a slim parallelogram, a wide section divider and a corner accent. Refined athletic and technical geometry, clean paths, minimal low contrast charcoal strokes and restrained electric lime #B6FF00 shape accents. No letters, no logos, no gradients, no shadows, no raster embedded images. Do not imitate the SPORTZZ logo. This is a vector art direction reference for precise mathematical reconstruction.",
+      "status": "reference_only_reconstructed_to_exact_angle",
+      "credits": 375
+    }
+  ],
+  "model_raster": "Google Nano Banana 2",
+  "model_vector_reference": "Recraft v4 Pro Vector via Magnific",
+  "raster_resolution_requested": "2k",
+  "seed": "not specified",
+  "credits_total": 2325
+}

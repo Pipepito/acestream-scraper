@@ -152,20 +152,6 @@ class ChannelService:
         """
         return self.acestream_service.delete_channel(channel_id)
 
-    def check_channel_status(self, channel_id: str) -> Optional[AcestreamChannel]:
-        """
-        Check if a channel is online
-
-        Args:
-            channel_id: The acestream ID
-
-        Returns:
-            Updated channel or None if not found
-        """
-        # In a real implementation, this would check the acestream status
-        # For now, we'll just mark it as online
-        return self.acestream_service.check_channel_status(channel_id=channel_id, is_online=True)
-
     def check_all_channels_status(self) -> int:
         """
         Check status for all channels

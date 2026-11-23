@@ -35,17 +35,12 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.stream_url.isnot(None))
         return query
 
-    def get_tuner_streams(self, tv_channel_id: int, *, online_only: bool = False) -> List[AcestreamChannel]:
+    def get_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
         query = (self.db.query(AcestreamChannel)
                 .join(TVChannel, TVChannel.id == AcestreamChannel.tv_channel_id)
                 .filter(TVChannel.id == tv_channel_id, TVChannel.is_active.is_(True),
                         AcestreamChannel.is_active.is_(True)))
-        if online_only:
-            query = query.filter(AcestreamChannel.is_online.is_(True))
         return query.all()
-
-    def get_online_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
-        return self.get_tuner_streams(tv_channel_id, online_only=True)
 
     def get_tv_matching_inventory(self) -> tuple[list[TVChannel], list[AcestreamChannel]]:
         targets = self.db.query(TVChannel).order_by(TVChannel.id).all()
@@ -317,10 +312,6 @@ class ChannelRepository:
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
         """Get a TV channel by EPG ID"""
         return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).first()
-
-    def get_tv_channels_by_epg_id(self, epg_id: str) -> List[TVChannel]:
-        """Get all TV channels for an EPG ID."""
-        return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).order_by(TVChannel.id.asc()).all()
 
     def get_epg_channels_by_ids(self, epg_channel_ids: List[int]) -> List[EPGChannel]:
         """Get EPG channels by IDs preserving deterministic order."""

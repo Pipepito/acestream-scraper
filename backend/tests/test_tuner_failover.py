@@ -51,10 +51,11 @@ def test_online_sources_rank_by_measured_bitrate_with_unknown_last(db_session):
             is_online=online, is_active=active, bitrate_bps=bitrate))
     db_session.commit()
     service = TunerService(db_session)
-    assert service.online_stream_ids(tv.id) == ['b' * 40, 'a' * 40, 'f' * 40]
+    # online ones by bitrate with unknown last; then never checked / offline from an old check
+    assert service.relay_stream_ids(tv.id) == ['b' * 40, 'a' * 40, 'f' * 40, 'd' * 40, 'c' * 40]
     tv.is_active = False
     db_session.commit()
-    assert service.online_stream_ids(tv.id) == []
+    assert service.relay_stream_ids(tv.id) == []
 
 
 @pytest.mark.asyncio

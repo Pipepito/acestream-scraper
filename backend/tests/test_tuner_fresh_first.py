@@ -27,7 +27,7 @@ def test_a_recent_online_source_goes_before_an_older_higher_bitrate_one(db_sessi
     _stream(db_session, 'd', tv, 32_000_000, hours_ago=None)  # online, never dated
     db_session.commit()
     # Fresh ones by bitrate, then the stale and the undated ones by bitrate.
-    assert TunerService(db_session).online_stream_ids(tv.id) == ['c' * 40, 'b' * 40, 'd' * 40, 'a' * 40]
+    assert TunerService(db_session).relay_stream_ids(tv.id) == ['c' * 40, 'b' * 40, 'd' * 40, 'a' * 40]
 
 
 def test_without_dates_the_order_is_unchanged(db_session):
@@ -37,7 +37,7 @@ def test_without_dates_the_order_is_unchanged(db_session):
     for key, bitrate in (('a', 8_000_000), ('b', 16_000_000), ('f', None)):
         _stream(db_session, key, tv, bitrate, hours_ago=1)
     db_session.commit()
-    assert TunerService(db_session).online_stream_ids(tv.id) == ['b' * 40, 'a' * 40, 'f' * 40]
+    assert TunerService(db_session).relay_stream_ids(tv.id) == ['b' * 40, 'a' * 40, 'f' * 40]
 
 
 def test_the_limit_is_6_hours():

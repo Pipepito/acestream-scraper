@@ -92,7 +92,6 @@ class TunerSettings:
 class LineupEntry:
     guide_number: str
     guide_name: str
-    content_id: str
     tv_channel_id: int
     epg_id: Optional[str]
     epg_source_id: Optional[int]
@@ -177,11 +176,8 @@ class TunerService:
             )
         return generated
 
-    def online_stream_ids(self, tv_channel_id: int) -> List[str]:
-        return self.stream_ids(tv_channel_id, online_only=True)
-
-    def stream_ids(self, tv_channel_id: int, *, online_only: bool = False) -> List[str]:
-        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id, online_only=online_only)
+    def stream_ids(self, tv_channel_id: int) -> List[str]:
+        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id)
         valid = [stream for stream in streams if supported_tuner_stream(stream)]
         # Recently checked first, then by bitrate. A box that is only on now
         # and then keeps "online" from a session hours or days ago, and a
@@ -249,7 +245,7 @@ class TunerService:
                     lineup.renumbered.append(Renumbered(tv_channel_id=tv.id, name=tv.name, requested_number=requested, assigned_number=number))
             taken.add(number)
             lineup.entries.append(LineupEntry(
-                guide_number=str(number), guide_name=tv.name, content_id=best.id, tv_channel_id=tv.id,
+                guide_number=str(number), guide_name=tv.name, tv_channel_id=tv.id,
                 epg_id=tv.epg_id, epg_source_id=tv.epg_source_id, logo_url=tv.logo_url or best.logo, category=tv.category,
                 requested_number=requested,
             ))

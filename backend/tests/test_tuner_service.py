@@ -43,7 +43,9 @@ def test_settings_defaults_and_persisted_device_id(db_session):
 
 
 def test_lineup_best_stream_numbers_and_renumbering(db_session):
-    _tv(db_session, "Explicit 5", number=5, streams=[(False, None), (True, "logo")])
+    explicit = _tv(db_session, "Explicit 5", number=5, streams=[(False, None), (True, "logo")])
+    explicit.logo_url = None
+    db_session.commit()
     _tv(db_session, "Second explicit 5", number=5, streams=[(True, None)])
     seven = _tv(db_session, "No number", streams=[(True, None)])
     _tv(db_session, "Inactive", number=9, active=False, streams=[(True, None)])
@@ -52,11 +54,8 @@ def test_lineup_best_stream_numbers_and_renumbering(db_session):
     by_name = {e.guide_name: e for e in lineup.entries}
     assert list(by_name) == ["Explicit 5", "Second explicit 5", "No number"]
     assert by_name["Explicit 5"].guide_number == "5"
-    assert by_name["Explicit 5"].content_id.endswith("0" * 8) and by_name["Explicit 5"].content_id != ""
-    # best stream = online + logo
-    from app.models.models import AcestreamChannel
-    best = db_session.query(AcestreamChannel).filter(AcestreamChannel.id == by_name["Explicit 5"].content_id).one()
-    assert best.is_online and best.logo == "logo"
+    # the best stream (online + logo) lends its logo when the channel has none
+    assert by_name["Explicit 5"].logo_url == "logo"
     base = max(1000, 5 + 1)
     assert by_name["Second explicit 5"].guide_number != "5"
     assert by_name["No number"].guide_number == str(base + seven.id)

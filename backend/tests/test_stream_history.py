@@ -293,13 +293,13 @@ def test_checks_count_failures_and_a_working_check_brings_the_source_back(db_ses
     db_session.commit()
     repo = ChannelRepository(db_session)
     for _ in range(5):
-        repo.update_channel_status('a' * 40, False, 'no media', verified=True)
+        repo.update_channel_status('a' * 40, False, 'no media', network_status='not_found')
     repo.update_channel_status('a' * 40, False, 'engine timeout')       # not a real check
     row = db_session.query(AcestreamChannel).one()
     assert row.failed_checks == 5 and row.failing_since is not None
     later = datetime.now(timezone.utc) + timedelta(days=8)
     assert unusable_ids(db_session, [row], now=later) == {'a' * 40}
-    repo.update_channel_status('a' * 40, True, verified=True)
+    repo.update_channel_status('a' * 40, True)
     assert (row.failed_checks, row.failing_since) == (0, None) and row.last_worked_at is not None
     assert unusable_ids(db_session, [row], now=later) == set()
 

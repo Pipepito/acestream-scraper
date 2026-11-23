@@ -647,29 +647,25 @@ class ChannelRepository:
 
     @retry_database_write
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None,
-                              id_kind: Optional[str] = None, verified: bool = False) -> AcestreamChannel:
-        """Update the online status of a channel.
+                              id_kind: Optional[str] = None, http: bool = False) -> AcestreamChannel:
+        """Store the result of one status check.
 
-        ``verified`` marks the result of a real check: media found means the
-        source worked; none found is one more failed check in a row.
+        The caller reports what it saw (``is_online``, the engine's
+        ``network_status``, whether the source is ``http``); what that means
+        for the source's health is decided by ``source_health.record_check``.
         """
         channel = self.get_channel_by_id(channel_id)
         if not channel:
             return None
-        if verified:
-            from app.services.source_health import apply_check
-            apply_check(channel, is_online, datetime.now(timezone.utc))
+        from app.services.source_health import record_check
+        # One instant for the streak and for last_checked: the cleanup asks for a
+        # check after the streak began, i.e. a second one.
+        now = datetime.now(timezone.utc)
+        record_check(channel, is_online, network_status, now, http=http)
 
         channel.is_online = is_online
         channel.network_status = network_status
-        channel.last_checked = datetime.now(timezone.utc)
-        # Only a confirmed source lookup can start/continue an offline streak.
-        # Imports, timeouts and checker outages cannot age a stream into deletion.
-        if is_online is False and network_status in ('found', 'not_found'):
-            if channel.offline_since is None or channel.offline_since > channel.last_checked:
-                channel.offline_since = channel.last_checked
-        else:
-            channel.offline_since = None
+        channel.last_checked = now
         channel.check_error = error
         if stream_stats is not None:
             channel.stream_stats = stream_stats

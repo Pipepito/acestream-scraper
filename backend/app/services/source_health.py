@@ -3,7 +3,8 @@
 A source is the asset; a list is only where it was found, so nothing here
 looks at lists. Two kinds of fact reach this module:
 
-- a status check (``apply_check``): media found, or none found;
+- a status check (``record_check``): media found, or none found, with its
+  class (engine lookup answered, HTTP, or inconclusive);
 - a viewing through the relay (``apply_worked``) that played.
 
 From them a source is *working* (it worked recently, or has not failed
@@ -11,8 +12,11 @@ enough to say otherwise) or *discarded*: ``DISCARD_FAILED_CHECKS`` real checks
 in a row found no media AND it has not worked for ``DISCARD_DAYS`` (counted
 from when it began failing if it never worked). Both, because a server that
 is on now and then can make a week one check, and five checks can fall in one
-afternoon. A discarded source is still checked, after every other source and
-at most every ``DISCARDED_RECHECK_DAYS``; the first check with media or the
+afternoon. A discarded source goes last in the relay's order, is hidden
+when a list asks to hide unusable sources, and is the only kind the cleanup
+deletes, once its streak of failures is ``offline_days`` old (``removable``).
+It is still checked, after every other source and at most every
+``DISCARDED_RECHECK_DAYS``; the first check with media or the
 first viewing brings it back.
 
 The functions take any object with the ``last_worked_at``, ``failed_checks``
@@ -55,14 +59,27 @@ def apply_worked(stream, at: datetime) -> None:
     stream.failing_since = None
 
 
-def apply_check(stream, online: bool, now: datetime) -> None:
-    """Record one real check (see ``is_real_check``)."""
+def _apply_check(stream, online: bool, now: datetime) -> None:
+    """Record one real check (see ``is_real_check``); ``record_check`` is the entry point."""
     if online:
         apply_worked(stream, now)
         return
     stream.failed_checks = (stream.failed_checks or 0) + 1
     if stream.failing_since is None:
         stream.failing_since = now
+
+
+def record_check(stream, online: bool, network_status: Optional[str], now: datetime, *, http: bool = False) -> bool:
+    """Take the fact of one status check and write everything derived from it.
+
+    The checker only says what it saw (media or not, what the engine's lookup
+    answered, whether the source is HTTP); whether that counts is decided
+    here. Returns whether it counted.
+    """
+    if not is_real_check(online, network_status, http=http):
+        return False
+    _apply_check(stream, online, now)
+    return True
 
 
 def discarded(stream, now: datetime) -> bool:
@@ -75,6 +92,25 @@ def discarded(stream, now: datetime) -> bool:
     if since is None or _aware(since) > now + FUTURE_TOLERANCE:
         return False
     return now - _aware(since) >= timedelta(days=DISCARD_DAYS)
+
+
+def removable(stream, now: datetime, offline_days: int) -> bool:
+    """The cleanup may delete this source: it is discarded and its streak of
+    failed checks began at least offline_days calendar days ago."""
+    started = getattr(stream, 'failing_since', None)
+    return (started is not None and discarded(stream, now)
+            and _aware(started) <= now - timedelta(days=offline_days))
+
+
+def removable_clause(now: datetime, offline_days: int):
+    """``removable`` as an SQL filter on ``AcestreamChannel``."""
+    from sqlalchemy import and_, func
+
+    from app.models.models import AcestreamChannel as A
+    since = func.coalesce(A.last_worked_at, A.failing_since)
+    return and_(A.failed_checks >= DISCARD_FAILED_CHECKS,
+                since <= now - timedelta(days=DISCARD_DAYS),
+                A.failing_since <= now - timedelta(days=offline_days))
 
 
 def due_for_check(stream, last_checked: Optional[datetime], now: datetime) -> bool:

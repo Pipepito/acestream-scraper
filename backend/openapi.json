@@ -968,18 +968,6 @@
             "description": "Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence",
             "title": "Network Status"
           },
-          "offline_since": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Offline Since"
-          },
           "source_url": {
             "anyOf": [
               {

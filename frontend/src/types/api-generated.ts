@@ -5348,8 +5348,6 @@ export interface components {
              * @description Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence
              */
             network_status?: ("found" | "not_found" | "unknown") | null;
-            /** Offline Since */
-            offline_since?: string | null;
             /** Source Url */
             source_url?: string | null;
             /**

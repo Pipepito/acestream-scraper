@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect
 
 from app.models.models import AcestreamChannel, ScrapedURL, TVChannel
 from app.repositories.channel_repository import ChannelRepository
@@ -14,20 +14,30 @@ from app.services.tv_matching_service import normalize_name, similar_name_score
 from migration_test_utils import database_url_for, upgrade_to_revision
 
 
-def test_offline_streak_requires_confirmed_checks_and_resets(db_session):
+def test_the_repository_only_stores_what_the_checker_saw_and_health_decides(db_session):
     channel = AcestreamChannel(id='a' * 40, name='Stream', is_online=False)
     db_session.add(channel)
     db_session.commit()
     repository = ChannelRepository(db_session)
     repository.update_channel_status(channel.id, False, 'Request timeout')
-    assert channel.offline_since is None
+    assert (channel.failed_checks, channel.failing_since) == (0, None)
     repository.update_channel_status(channel.id, False, 'No packets', network_status='found')
-    first = channel.offline_since
-    assert first is not None
+    first = channel.failing_since
+    assert first is not None and channel.failed_checks == 1
+    # The streak starts at the very check that is stored, so a later check must come after it.
+    assert channel.last_checked == first
     repository.update_channel_status(channel.id, False, 'Not found', network_status='not_found')
-    assert channel.offline_since == first
+    assert channel.failing_since == first and channel.failed_checks == 2
     repository.update_channel_status(channel.id, True, network_status='found')
-    assert channel.offline_since is None
+    assert (channel.failed_checks, channel.failing_since) == (0, None)
+
+
+def test_an_http_check_counts_without_an_engine_lookup(db_session):
+    channel = AcestreamChannel(id='url:' + 'a' * 40, name='Stream', stream_url='https://example.com/a.m3u8')
+    db_session.add(channel)
+    db_session.commit()
+    ChannelRepository(db_session).update_channel_status(channel.id, False, 'HTTP 404', http=True)
+    assert channel.failed_checks == 1 and channel.failing_since is not None
 
 
 def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(db_session, monkeypatch):
@@ -38,30 +48,31 @@ def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(d
     db_session.flush()
     def stream(key, **changes):
         values = dict(id=key * 40, name=key, source_url=source.url, is_online=False,
-                      network_status='found', offline_since=now - timedelta(days=20),
+                      network_status='found', failed_checks=6, failing_since=now - timedelta(days=20),
                       last_checked=now - timedelta(hours=1))
         values.update(changes)
         row = AcestreamChannel(**values)
         db_session.add(row)
         return row
     stream('a')
-    stream('b', is_online=True)
-    stream('c', offline_since=None)
+    stream('b', is_online=True, failed_checks=0, failing_since=None)
+    stream('c', failing_since=None)
     stream('d', last_checked=now - timedelta(days=2))
     stream('e', tv_channel_id=tv.id)
     stream('f', source_url=None)
-    stream('1', network_status='unknown')
+    stream('1', network_status='unknown')                                                         # last check inconclusive: still counts
     stream('2', last_checked=now + timedelta(days=1))
-    stream('3', offline_since=now - timedelta(days=1))
-    stream('4')
-    from app.models.stream_attempts import StreamAttempt
-    db_session.add(StreamAttempt(content_id='4' * 40, outcome='ok', seconds=120, created_at=now - timedelta(hours=2)))
+    stream('3', failing_since=now - timedelta(days=1))
+    stream('4', last_worked_at=now - timedelta(hours=2), failed_checks=0, failing_since=None)    # played since
+    stream('5', failed_checks=4)                                                                  # not discarded
+    stream('6', last_worked_at=now - timedelta(days=3))                                           # worked this week
+    stream('7', network_status='unknown', stream_url='https://example.com/a.m3u8')                # HTTP: counts too
     db_session.commit()
     service = OfflineCleanupService(db_session)
     assert service.run()['status'] == 'disabled'
     config = OfflineCleanupConfig(enabled=True, rescrape=True)
-    assert service.preview(config).eligible_streams == 1
-    assert db_session.query(AcestreamChannel).count() == 10
+    assert service.preview(config).eligible_streams == 3
+    assert db_session.query(AcestreamChannel).count() == 13
     service.save(config)
     monkeypatch.setattr('app.services.viewing.watching', lambda: 'web player')
     assert service.run()['status'] == 'deferred'
@@ -70,24 +81,28 @@ def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(d
     monkeypatch.setattr('app.services.scraper_service.ScraperService.scrape_url', scrape)
     from app.services.task_service import task_service
     monkeypatch.setattr(task_service.shutdown_event, 'is_set', lambda: False)
-    assert service.run() == {'deleted': 1, 'rescraped': 1, 'rescrape_failures': 0}
+    assert service.run() == {'deleted': 3, 'rescraped': 1, 'rescrape_failures': 0}
     scrape.assert_awaited_once_with(source.url, source.url_type)
     assert db_session.get(AcestreamChannel, 'a' * 40) is None
+    assert db_session.get(AcestreamChannel, '7' * 40) is None
+    assert db_session.get(AcestreamChannel, '1' * 40) is None
+    assert db_session.get(AcestreamChannel, '5' * 40) is not None and db_session.get(AcestreamChannel, '6' * 40) is not None
     assert db_session.get(TVChannel, tv.id) is not None
     assert db_session.get(AcestreamChannel, 'e' * 40).tv_channel_id == tv.id
 
 
-def test_cleanup_schema_upgrade_keeps_unknown_age(tmp_path):
+def test_the_second_streak_column_is_gone_after_the_upgrade_and_comes_back_on_downgrade(tmp_path):
+    from migration_test_utils import downgrade_to_revision
     path = tmp_path / 'offline.db'
-    upgrade_to_revision(path, '20261102_1200')
+    upgrade_to_revision(path, '20261113_1400')
     engine = create_engine(database_url_for(path))
-    with engine.begin() as connection:
-        connection.execute(text("INSERT INTO acestream_channels (id, name, is_online) VALUES ('old', 'Old offline', 0)"))
-    upgrade_to_revision(path, 'head')
     try:
         assert 'offline_since' in {column['name'] for column in inspect(engine).get_columns('acestream_channels')}
-        with engine.connect() as connection:
-            assert connection.execute(text("SELECT offline_since FROM acestream_channels WHERE id='old'")).scalar() is None
+        upgrade_to_revision(path, 'head')
+        assert 'offline_since' not in {column['name'] for column in inspect(engine).get_columns('acestream_channels')}
+        downgrade_to_revision(path, '20261113_1400')
+        columns = {column['name']: column for column in inspect(engine).get_columns('acestream_channels')}
+        assert columns['offline_since']['nullable'] is True
     finally:
         engine.dispose()
 
@@ -96,8 +111,8 @@ def test_cleanup_recognizes_normalized_sources_and_protects_disabled_sources(db_
     now = datetime.now(timezone.utc)
     source = ScrapedURL(url='http://127.0.0.1:43110/example/playlist', url_type='auto', enabled=True)
     row = AcestreamChannel(id='9' * 40, name='Normalized source', source_url='zero://example/playlist',
-                           is_online=False, network_status='not_found',
-                           offline_since=now - timedelta(days=20), last_checked=now - timedelta(hours=1))
+                           is_online=False, network_status='not_found', failed_checks=6,
+                           failing_since=now - timedelta(days=20), last_checked=now - timedelta(hours=1))
     db_session.add_all([source, row])
     db_session.commit()
     service = OfflineCleanupService(db_session)

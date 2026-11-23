@@ -997,10 +997,10 @@ Live TV defaults to online enabled streams and refreshes its catalogue every
 scope or stored activity. Similar TV-name hints are explicit review only; exact
 identity matching used by automation remains unchanged. Manual/Search Add and Link
 must commit import and association together and preserve conflicting assignments.
-Offline cleanup is opt-in, FIFO-scheduled and bounded to 500 recoverable AceStreams
+Offline cleanup is opt-in, FIFO-scheduled and bounded to 500 streams (HTTP included)
 per run. It deletes only sources `source_health.removable` accepts (discarded,
 with a failure streak `offline_days` old, HTTP included; one streak,
-`failing_since`), requires a check within 24 hours, preserves linked streams by
+`failing_since`), requires a real check within 24 hours (a timeout protects), preserves linked streams by
 default and defers while viewing/recording. See `wiki/Usage.md#remove-long-offline-streams`.
 
 

@@ -9,7 +9,9 @@ NOW = datetime(2026, 11, 13, 12, 0, tzinfo=timezone.utc)
 
 
 class Source:
-    def __init__(self, failed_checks=0, last_worked_at=None, failing_since=None):
+    def __init__(self, failed_checks=0, last_worked_at=None, failing_since=None,
+                 is_online=False, network_status='not_found', stream_url=None):
+        self.is_online, self.network_status, self.stream_url = is_online, network_status, stream_url
         self.failed_checks = failed_checks
         self.last_worked_at = last_worked_at
         self.failing_since = failing_since
@@ -128,9 +130,10 @@ def test_record_check_with_media_marks_the_source_as_working():
 OFFLINE_DAYS = 14
 
 
-def _gone(days_failing, failed=5, worked_days_ago=None):
+def _gone(days_failing, failed=5, worked_days_ago=None, **last_check):
     return Source(failed_checks=failed, failing_since=NOW - timedelta(days=days_failing),
-                  last_worked_at=None if worked_days_ago is None else NOW - timedelta(days=worked_days_ago))
+                  last_worked_at=None if worked_days_ago is None else NOW - timedelta(days=worked_days_ago),
+                  **last_check)
 
 
 @pytest.mark.parametrize('source, removable_now', [
@@ -140,6 +143,9 @@ def _gone(days_failing, failed=5, worked_days_ago=None):
     (_gone(30, worked_days_ago=3), False),       # worked within the discard window
     (_gone(30, worked_days_ago=8), True),
     (Source(failed_checks=5), False),            # no streak start: unknown age
+    (_gone(30, network_status='unknown'), False),    # the last check was a timeout: says nothing
+    (_gone(30, network_status='found'), True),
+    (_gone(30, network_status='unknown', stream_url='https://example.com/a.m3u8'), True),   # HTTP always counts
 ])
 def test_removable_is_discarded_with_a_streak_of_offline_days(source, removable_now):
     from app.services.source_health import removable
@@ -153,14 +159,19 @@ def test_removable_python_and_sql_say_the_same(db_session):
              (_gone(30, worked_days_ago=8), 5), (Source(failed_checks=5), 6),
              (Source(failed_checks=9, failing_since=NOW + timedelta(days=30)), 7),
              (Source(failed_checks=9, failing_since=NOW - timedelta(days=40),
-                     last_worked_at=NOW + timedelta(days=30)), 8)]
+                     last_worked_at=NOW + timedelta(days=30)), 8),
+             (_gone(30, network_status='unknown'), 9),
+             (_gone(30, network_status=None), 'a'),
+             (_gone(30, network_status='unknown', stream_url='https://example.com/a.m3u8'), 'b')]
     for source, n in cases:
         db_session.add(AcestreamChannel(id=str(n) * 40, name=str(n), failed_checks=source.failed_checks,
-                                        failing_since=source.failing_since, last_worked_at=source.last_worked_at))
+                                        failing_since=source.failing_since, last_worked_at=source.last_worked_at,
+                                        is_online=source.is_online, network_status=source.network_status,
+                                        stream_url=source.stream_url))
     db_session.commit()
     sql = {row.id for row in db_session.query(AcestreamChannel).filter(removable_clause(NOW, OFFLINE_DAYS))}
     python = {row.id for row in db_session.query(AcestreamChannel).all() if removable(row, NOW, OFFLINE_DAYS)}
-    assert sql == python == {'1' * 40, '5' * 40}
+    assert sql == python == {'1' * 40, '5' * 40, 'b' * 40}
 
 
 def test_the_relay_puts_discarded_sources_after_the_degraded_ones():

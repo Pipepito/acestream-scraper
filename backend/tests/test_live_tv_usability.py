@@ -60,7 +60,7 @@ def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(d
     stream('d', last_checked=now - timedelta(days=2))
     stream('e', tv_channel_id=tv.id)
     stream('f', source_url=None)
-    stream('1', network_status='unknown')                                                         # last check inconclusive: still counts
+    stream('1', network_status='unknown')                                                         # last check inconclusive: protected
     stream('2', last_checked=now + timedelta(days=1))
     stream('3', failing_since=now - timedelta(days=1))
     stream('4', last_worked_at=now - timedelta(hours=2), failed_checks=0, failing_since=None)    # played since
@@ -71,7 +71,7 @@ def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(d
     service = OfflineCleanupService(db_session)
     assert service.run()['status'] == 'disabled'
     config = OfflineCleanupConfig(enabled=True, rescrape=True)
-    assert service.preview(config).eligible_streams == 3
+    assert service.preview(config).eligible_streams == 2
     assert db_session.query(AcestreamChannel).count() == 13
     service.save(config)
     monkeypatch.setattr('app.services.viewing.watching', lambda: 'web player')
@@ -81,11 +81,11 @@ def test_cleanup_is_opt_in_previewed_and_only_removes_observed_offline_sources(d
     monkeypatch.setattr('app.services.scraper_service.ScraperService.scrape_url', scrape)
     from app.services.task_service import task_service
     monkeypatch.setattr(task_service.shutdown_event, 'is_set', lambda: False)
-    assert service.run() == {'deleted': 3, 'rescraped': 1, 'rescrape_failures': 0}
+    assert service.run() == {'deleted': 2, 'rescraped': 1, 'rescrape_failures': 0}
     scrape.assert_awaited_once_with(source.url, source.url_type)
     assert db_session.get(AcestreamChannel, 'a' * 40) is None
     assert db_session.get(AcestreamChannel, '7' * 40) is None
-    assert db_session.get(AcestreamChannel, '1' * 40) is None
+    assert db_session.get(AcestreamChannel, '1' * 40) is not None
     assert db_session.get(AcestreamChannel, '5' * 40) is not None and db_session.get(AcestreamChannel, '6' * 40) is not None
     assert db_session.get(TVChannel, tv.id) is not None
     assert db_session.get(AcestreamChannel, 'e' * 40).tv_channel_id == tv.id

@@ -94,23 +94,35 @@ def discarded(stream, now: datetime) -> bool:
     return now - _aware(since) >= timedelta(days=DISCARD_DAYS)
 
 
+def _last_check_says_something(stream):
+    return is_real_check(getattr(stream, 'is_online', None), getattr(stream, 'network_status', None),
+                         http=getattr(stream, 'stream_url', None) is not None)
+
+
 def removable(stream, now: datetime, offline_days: int) -> bool:
-    """The cleanup may delete this source: it is discarded and its streak of
-    failed checks began at least offline_days calendar days ago."""
+    """The cleanup may delete this source: it is discarded, its streak of
+    failed checks began at least ``offline_days`` days ago, and its last check
+    was a real one (a timeout or an engine outage protects it).
+
+    Reference form of the rule: the cleanup filters in SQL with
+    ``removable_clause``, and a test keeps the two in agreement."""
     started = getattr(stream, 'failing_since', None)
     return (started is not None and discarded(stream, now)
-            and _aware(started) <= now - timedelta(days=offline_days))
+            and _aware(started) <= now - timedelta(days=offline_days)
+            and _last_check_says_something(stream))
 
 
 def removable_clause(now: datetime, offline_days: int):
     """``removable`` as an SQL filter on ``AcestreamChannel``."""
-    from sqlalchemy import and_, func
+    from sqlalchemy import and_, func, or_
 
     from app.models.models import AcestreamChannel as A
     since = func.coalesce(A.last_worked_at, A.failing_since)
     return and_(A.failed_checks >= DISCARD_FAILED_CHECKS,
                 since <= now - timedelta(days=DISCARD_DAYS),
-                A.failing_since <= now - timedelta(days=offline_days))
+                A.failing_since <= now - timedelta(days=offline_days),
+                or_(A.stream_url.isnot(None), A.is_online.is_(True),
+                    A.network_status.in_(('found', 'not_found'))))
 
 
 def due_for_check(stream, last_checked: Optional[datetime], now: datetime) -> bool:

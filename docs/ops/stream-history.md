@@ -52,7 +52,8 @@ recent offline results stay excluded. Within each group, sources rank by
   online.
 
 - a *discarded* source (see below) goes after the demoted ones. It is still
-  tried, never dropped.
+  tried, never dropped, unless its last check found it offline less than 6
+  hours ago: then it is skipped like any recently offline source.
 
 Saved preferences still come first, so an operator can always override the
 ranking for a channel.
@@ -72,7 +73,8 @@ source changes nothing. The rule lives in `app/services/source_health.py`. A sou
 - `failed_checks` is 5 or more: five status checks in a row found no media.
   Only real checks count (an HTTP check, or an engine check whose lookup
   answered found or not found); a timeout or an engine outage says nothing
-  about the source.
+  about the source. An HTTP check that reaches no verdict (a timeout, an
+  encrypted stream) is not stored as a check at all.
 - It has not worked for 7 days: `last_worked_at` (a check with media, or a
   relay attempt that ended `ok` or `handover`), or `failing_since` when it
   never worked. A time in the future discards nothing.
@@ -84,7 +86,8 @@ week; the first check with media or the first viewing brings it back.
 
 The offline stream cleanup asks the same module (`removable`): it deletes only
 discarded sources whose run of failed checks began at least `offline_days`
-ago (`failing_since`), HTTP sources included.
+ago (`failing_since`) and whose last check was a real one, HTTP sources
+included.
 
 Migration `20261113_1400` adds the three columns. It fills `last_worked_at`
 from sources online at their last check and from `ok`/`handover` attempts;

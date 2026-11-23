@@ -51,6 +51,9 @@ recent offline results stay excluded. Within each group, sources rank by
   history and at least 10 sources of its list are known with fewer than 20%
   online.
 
+- a *discarded* source (see below) goes after the demoted ones. It is still
+  tried, never dropped.
+
 Saved preferences still come first, so an operator can always override the
 ranking for a channel.
 
@@ -78,6 +81,10 @@ Both, because a server that is on now and then can make 7 days a single check,
 and 5 checks can fall in one afternoon. A discarded source stays in the
 database and is still checked, after every other source and at most once a
 week; the first check with media or the first viewing brings it back.
+
+The offline stream cleanup asks the same module (`removable`): it deletes only
+discarded sources whose run of failed checks began at least `offline_days`
+ago (`failing_since`), HTTP sources included.
 
 Migration `20261113_1400` adds the three columns. It fills `last_worked_at`
 from sources online at their last check and from `ok`/`handover` attempts;

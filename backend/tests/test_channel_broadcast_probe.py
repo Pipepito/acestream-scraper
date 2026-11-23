@@ -4,7 +4,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.models.models import AcestreamChannel
+from app.repositories.settings_repository import SettingsRepository
 from app.services.channel_status_service import ChannelStatusService, SustainedGrowth, GROWTH_CONFIRM_BYTES
+from app.services.engine_probe import read_ready, read_start
+from fake_probe_engine import ENGINE, FakeProbeEngine, session_answer, stat_answer
 
 LIVE_GROWTH = GROWTH_CONFIRM_BYTES + 1
 MB = 1_000_000
@@ -16,23 +19,48 @@ def isolated_queue(monkeypatch):
     monkeypatch.setattr('app.services.channel_status_service.probe_queue', ProbeQueue(cooldown=0, outage_backoff=0))
 
 
+def use_engines(db_session, monkeypatch, *, playback=ENGINE, checker='', timeout='0.015'):
+    from app.config.settings import settings
+    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', checker)
+    repo = SettingsRepository(db_session)
+    repo.set_setting(repo.ACE_ENGINE_URL, playback)
+    repo.set_setting(repo.ACESTREAM_CHECK_TIMEOUT, timeout)
+
+
 @pytest.fixture
-def probe(db_session):
-    service = ChannelStatusService(db_session)
-    service._get_engine_url = lambda: 'http://engine.test:6878'
-    service._get_timeout = lambda: 0.015
-    service._engine_ready = AsyncMock(return_value=True)
+def engine():
+    return FakeProbeEngine()
+
+
+@pytest.fixture
+def probe(db_session, monkeypatch, engine):
+    use_engines(db_session, monkeypatch)
+    service = ChannelStatusService(db_session, probe_engine=engine)
     service.channel_repository = MagicMock()
     return service
 
 
-def session_response():
-    return {'response': {
-        'is_live': 1,
-        'playback_url': 'http://127.0.0.1:6878/ace/r/hash/session',
-        'stat_url': 'http://127.0.0.1:6878/ace/stat/hash/session',
-        'command_url': 'http://127.0.0.1:6878/ace/cmd/hash/session',
-    }, 'error': None}
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    async def sleep(self, seconds):
+        self.now += max(seconds, 0.001)
+
+
+@pytest.fixture
+def clock(monkeypatch):
+    clock = FakeClock()
+    monkeypatch.setattr('app.services.channel_status_service._clock', clock)
+    monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', clock.sleep)
+    return clock
+
+
+def growing():
+    return [stat_answer(downloaded=100), stat_answer(downloaded=100 + LIVE_GROWTH)]
 
 
 @pytest.mark.asyncio
@@ -42,8 +70,8 @@ def session_response():
     {'response': {'is_live': 1, 'peers': 12}},
     {'response': None},
 ])
-async def test_metadata_and_errors_do_not_mean_online(probe, payload):
-    probe._fetch_engine_response = AsyncMock(return_value=(200, payload, None))
+async def test_metadata_and_errors_do_not_mean_online(probe, engine, payload):
+    engine.start_script = [(200, payload)]
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
     assert result['is_online'] is False
     probe.channel_repository.update_channel_status.assert_called_once()
@@ -52,79 +80,63 @@ async def test_metadata_and_errors_do_not_mean_online(probe, payload):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("dedicated", [False, True])
-async def test_media_packets_confirm_broadcast_and_stop_session(probe, monkeypatch, dedicated):
-    engine_url = "http://checker.test:6880" if dedicated else "http://engine.test:6878"
-    if dedicated:
-        from app.config.settings import settings
-        monkeypatch.setattr(settings, "ACE_CHECK_ENGINE_URL", engine_url)
-        probe._get_engine_url = ChannelStatusService._get_engine_url.__get__(probe)
+async def test_media_packets_confirm_broadcast_and_stop_session(db_session, monkeypatch, dedicated):
+    engine_url = "http://checker.test:6880" if dedicated else ENGINE
+    use_engines(db_session, monkeypatch, checker=engine_url if dedicated else '')
+    engine = FakeProbeEngine(stats=growing())
+    probe = ChannelStatusService(db_session, probe_engine=engine)
+    probe.channel_repository = MagicMock()
     monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
     media_probe = AsyncMock(return_value={'signal_verified': True})
     monkeypatch.setattr('app.services.channel_status_service.probe_media', media_probe)
-    probe._fetch_engine_response = AsyncMock(side_effect=[
-        (200, session_response(), None),
-        (200, {'response': {'status': 'dl', 'downloaded': 100}}, None),
-        (200, {'response': {'status': 'dl', 'downloaded': 100 + LIVE_GROWTH}}, None),
-        (200, {'response': 'ok'}, None),
-    ])
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), identifier='infohash', persist=False)
     assert result['is_online'] is True
     assert result['network_status'] == 'found'
-    media_probe.assert_awaited_once_with(engine_url, f'{engine_url}/ace/r/hash/session', timeout=probe._get_timeout())
-    calls = probe._fetch_engine_response.call_args_list
-    assert calls[0].args[1]['infohash'] == 'a' * 40
-    assert 'method' not in calls[0].args[1]
-    assert calls[1].args[0] == f'{engine_url}/ace/stat/hash/session'
-    assert calls[-1].args[:2] == (f'{engine_url}/ace/cmd/hash/session', {'method': 'stop'})
+    assert engine.requested_url == engine_url
+    media_probe.assert_awaited_once_with(engine_url, f'{engine_url}/ace/r/hash/session', timeout=0.015)
+    assert [call[:2] for call in engine.asked('open')] == [('a' * 40, 'infohash')]
+    assert engine.asked('stats')[0][0] == f'{engine_url}/ace/stat/hash/session'
+    assert engine.stopped == [f'{engine_url}/ace/cmd/hash/session']
     probe.channel_repository.update_channel_status.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_cached_total_and_peers_never_confirm_broadcast(probe):
-    calls = []
-
-    async def fetch(url, params, timeout):
-        calls.append((url, params))
-        if '/getstream' in url:
-            return 200, session_response(), None
-        return 200, {'response': {'status': 'dl', 'downloaded': 100, 'peers': 10, 'is_live': 1}}, None
-
-    probe._fetch_engine_response = fetch
+async def test_cached_total_and_peers_never_confirm_broadcast(probe, engine):
+    engine.stats_script = [(200, {'response': {'status': 'dl', 'downloaded': 100, 'peers': 10, 'is_live': 1}})]
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
     assert result['is_online'] is False
-    assert calls[-1][1] == {'method': 'stop'}
+    assert engine.stopped == [f'{ENGINE}/ace/cmd/hash/session']
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('error', [asyncio.TimeoutError(), asyncio.CancelledError(), ValueError('invalid JSON')])
-async def test_session_cleanup_on_timeout_cancellation_and_failure(probe, error):
-    probe._fetch_engine_response = AsyncMock(side_effect=[
-        (200, session_response(), None), error, (200, {'response': 'ok'}, None),
-    ])
+async def test_session_cleanup_on_timeout_cancellation_and_failure(probe, engine, error):
+    engine.stats_script = [error]
     channel = AcestreamChannel(id='a' * 40, name='Example')
     if isinstance(error, asyncio.CancelledError):
         with pytest.raises(asyncio.CancelledError):
             await probe.check_channel_status(channel)
     else:
         assert (await probe.check_channel_status(channel))['is_online'] is False
-    assert probe._fetch_engine_response.call_args.args[1] == {'method': 'stop'}
+    assert engine.stopped == [f'{ENGINE}/ace/cmd/hash/session']
 
 
 @pytest.mark.parametrize('url', ['http://evil.test/private', 'http://engine/ace/stat/../private', 'file:///etc/passwd'])
 def test_session_links_cannot_escape_engine_routes(url):
-    assert ChannelStatusService._session_url('http://engine:6878', url, 'stat') is None
+    start = read_start('http://engine:6878', 'a' * 40, 200, {'response': {'stat_url': url, 'command_url': url, 'playback_url': url}})
+    assert (start.session.stat_url, start.session.command_url, start.session.playback_url) == (None, None, None)
+    assert not start.session.verifiable
 
 
 @pytest.mark.asyncio
-async def test_probe_player_ids_are_unique_between_service_instances(db_session):
+async def test_probe_player_ids_are_unique_between_service_instances(db_session, monkeypatch):
+    use_engines(db_session, monkeypatch)
     ids = []
     for _ in range(2):
-        service = ChannelStatusService(db_session)
-        service._get_engine_url = lambda: 'http://engine:6878'
-        service._engine_ready = AsyncMock(return_value=True)
-        service._fetch_engine_response = AsyncMock(return_value=(200, {'error': 'not found'}, None))
+        engine = FakeProbeEngine(start=(200, {'error': 'not found'}))
+        service = ChannelStatusService(db_session, probe_engine=engine)
         await service.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), persist=False)
-        ids.append(service._fetch_engine_response.call_args.args[1]['pid'])
+        ids.append(engine.asked('open')[0][2])
     assert ids[0] != ids[1]
 
 
@@ -133,66 +145,111 @@ async def test_downloads_without_verified_media_are_not_online(probe, monkeypatc
     monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
     for metadata in [None, {'signal_verified': False, 'bitrate_bps': None, 'audio_tracks': []}, {'signal_verified': True, 'bitrate_bps': 8_000_000, 'audio_tracks': [{'index': 0, 'language': 'spa'}]}]:
         monkeypatch.setattr('app.services.channel_status_service.probe_media', AsyncMock(return_value=metadata))
-        probe._fetch_engine_response = AsyncMock(side_effect=[
-            (200, session_response(), None),
-            (200, {'response': {'status': 'dl', 'downloaded': 100}}, None),
-            (200, {'response': {'status': 'dl', 'downloaded': 100 + LIVE_GROWTH}}, None),
-            (200, {'response': 'ok'}, None),
-        ])
+        engine = FakeProbeEngine(stats=growing())
+        probe.probe_engine = engine
         result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
         assert result['is_online'] is bool(metadata and metadata['signal_verified'])
         assert result['network_status'] == 'found'
         assert probe.channel_repository.update_channel_status.call_args.kwargs['bitrate_bps'] == (metadata['bitrate_bps'] if metadata else None)
         assert probe.channel_repository.update_channel_status.call_args.kwargs['audio_tracks'] == (metadata['audio_tracks'] if metadata else None)
+        assert len(engine.stopped) == 1
 
 
 @pytest.mark.asyncio
-async def test_probes_use_distinct_pids_but_timeout_retry_reuses_pid(probe):
-    probe._fetch_engine_response = AsyncMock(side_effect=[
-        asyncio.TimeoutError(), (500, None, None), (500, None, None),
-    ])
+async def test_probes_use_distinct_pids_but_timeout_retry_reuses_pid(probe, engine):
+    engine.start_script = [asyncio.TimeoutError(), (500, None), (500, None)]
     channel = AcestreamChannel(id='a' * 40, name='Example')
     await probe.check_channel_status(channel, persist=False)
     await probe.check_channel_status(channel, persist=False)
-    params = [call.args[1] for call in probe._fetch_engine_response.call_args_list]
-    assert len(params[0]['pid']) == 32
-    assert params[0]['pid'] == params[1]['pid']
-    assert params[0]['pid'] != params[2]['pid']
+    opens = engine.asked('open')
+    pids = [call[2] for call in opens]
+    assert len(pids[0]) == 32
+    assert pids[0] == pids[1]
+    assert pids[0] != pids[2]
+    # The retry doubles the start timeout.
+    assert [call[3] for call in opens] == [0.015, 0.03, 0.015]
 
 
 @pytest.mark.asyncio
-async def test_active_relay_is_not_probed_or_marked_offline(probe):
+async def test_active_relay_is_not_probed_or_marked_offline(probe, engine):
     from app.services.stream_relay import relay_registry
     channel = AcestreamChannel(id='a' * 40, name='Example', is_online=True)
     claim = relay_registry.open(channel.id, 'test')
-    probe._fetch_engine_response = AsyncMock()
     try:
         result = await probe.check_channel_status(channel)
         assert result['status'] == 'skipped'
         assert result['is_online'] is True
-        probe._fetch_engine_response.assert_not_called()
+        assert engine.calls == []
         probe.channel_repository.update_channel_status.assert_not_called()
     finally:
         relay_registry.close(claim.id)
 
 
 @pytest.mark.asyncio
-async def test_playback_started_during_probe_prevents_stop_and_status_overwrite(probe):
+async def test_playback_started_during_probe_prevents_stop_and_status_overwrite(probe, engine):
     from app.services.stream_relay import relay_registry
     channel = AcestreamChannel(id='a' * 40, name='Example', is_online=True)
     claim = None
-    async def fetch(url, params, timeout):
+
+    def start(*_args):
         nonlocal claim
-        if '/ace/getstream' in url:
-            claim = relay_registry.open(channel.id, 'test')
-            return 200, session_response(), None
-        if '/ace/stat/' in url:
-            return 200, {'response': {'status': 'error'}}, None
-        pytest.fail('Must not stop the source now owned by playback')
-    probe._fetch_engine_response = fetch
+        claim = relay_registry.open(channel.id, 'test')
+        return 200, session_answer()
+
+    engine.start_script = [start]
+    engine.stats_script = [stat_answer(status='error')]
     try:
         assert (await probe.check_channel_status(channel))['status'] == 'skipped'
+        # The app now plays the source: its session is left to the engine.
+        assert engine.stopped == []
         probe.channel_repository.update_channel_status.assert_not_called()
+    finally:
+        if claim:
+            relay_registry.close(claim.id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('owner', ['nobody', 'playback lease', 'app relay'])
+async def test_probe_session_is_given_back_by_source_ownership(probe, engine, owner):
+    """Stopped when nobody plays the source; parked for the final playback stop
+    while a lease holds it; left to the engine while the app plays it."""
+    import httpx
+    from app.services.engine_client import EngineClient
+    from app.services.playback_ownership import source_ownership
+    from app.services.stream_relay import relay_registry
+    channel = AcestreamChannel(id='a' * 40, name='Example')
+    probe_stop = f'{ENGINE}/ace/cmd/hash/session'
+    played = []
+
+    def playback_engine(request):
+        played.append(str(request.url))
+        return httpx.Response(200, json={'response': {
+            'playback_url': f'{ENGINE}/ace/r/hash/viewer', 'stat_url': f'{ENGINE}/ace/stat/hash/viewer',
+            'command_url': f'{ENGINE}/ace/cmd/hash/viewer'}, 'error': None})
+
+    client = EngineClient(ENGINE, client=httpx.Client(transport=httpx.MockTransport(playback_engine)))
+    viewer = client.start(channel.id) if owner == 'playback lease' else None
+    claim = None
+
+    def start(*_args):
+        nonlocal claim
+        if owner == 'app relay':
+            claim = relay_registry.open(channel.id, 'test')
+        return 200, session_answer()
+
+    engine.start_script = [start]
+    engine.stats_script = [stat_answer(status='stopped')]
+    try:
+        await probe.check_channel_status(channel, persist=False)
+        if owner == 'nobody':
+            assert engine.stopped == [probe_stop]
+        elif owner == 'app relay':
+            assert engine.stopped == []
+        else:
+            assert engine.stopped == []
+            assert [parked.command_url for parked in source_ownership(ENGINE, channel.id).parked] == [probe_stop]
+            client.stop(viewer)
+            assert played[1:] == [f'{ENGINE}/ace/cmd/hash/viewer?method=stop', f'{probe_stop}?method=stop']
     finally:
         if claim:
             relay_registry.close(claim.id)
@@ -221,48 +278,40 @@ async def test_probe_limit_and_same_source_serialization(probe, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_engine_recovery_precedes_channel_start(probe, monkeypatch):
-    events = []
-    readiness = iter([False, False, True, True])
-    async def ready(url):
-        events.append('health')
-        return next(readiness)
-    async def fetch(*args):
-        events.append('stream')
-        return 200, {'error': 'no peers'}, None
-    probe._engine_ready = ready
-    probe._fetch_engine_response = fetch
-    monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', AsyncMock())
+async def test_engine_recovery_precedes_channel_start(probe, engine, clock):
+    engine.ready_script = [False, False, True, True]
+    engine.start_script = [(200, {'error': 'no peers'})]
     await probe.check_channel_status(AcestreamChannel(id='b' * 40, name='Example'))
-    assert events[:4] == ['health', 'health', 'health', 'stream']
+    assert [call[0] for call in engine.calls][:4] == ['ready', 'ready', 'ready', 'open']
+    # Polled every two seconds.
+    assert clock.now == pytest.approx(4.0)
 
 
 @pytest.mark.asyncio
-async def test_engine_down_preserves_last_known_status(probe):
-    probe._wait_for_engine = AsyncMock(return_value=False)
-    probe._fetch_engine_response = AsyncMock()
+async def test_engine_down_preserves_last_known_status(probe, engine, clock):
+    engine.ready_script = [False]
     result = await probe.check_channel_status(AcestreamChannel(id='c' * 40, name='Example', is_online=True))
     assert result['status'] == 'skipped'
     assert result['is_online'] is True
-    probe._fetch_engine_response.assert_not_called()
+    assert engine.asked('open') == []
+    # Waited about a minute for the engine to come back.
+    assert 60.0 <= clock.now < 62.0
     probe.channel_repository.update_channel_status.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_engine_crash_during_probe_does_not_mark_channel_offline(probe):
-    probe._engine_ready = AsyncMock(side_effect=[True, False])
-    probe._fetch_engine_response = AsyncMock(side_effect=ConnectionError())
+async def test_engine_crash_during_probe_does_not_mark_channel_offline(probe, engine):
+    engine.ready_script = [True, False]
+    engine.start_script = [ConnectionError()]
     result = await probe.check_channel_status(AcestreamChannel(id='d' * 40, name='Example', is_online=True))
     assert result['status'] == 'skipped'
     probe.channel_repository.update_channel_status.assert_not_called()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize('payload,expected', [({'result': {'version': {}}}, True), ({'response': {}}, False), ({'result': None}, False), ({'error': 'starting'}, False)])
-async def test_readiness_requires_engine_status_response(probe, payload, expected):
-    probe._fetch_engine_response = AsyncMock(return_value=(200, payload, None))
-    assert await ChannelStatusService._engine_ready(probe, 'http://engine.test:6878') is expected
-    assert probe._fetch_engine_response.call_args.args[0].endswith('/server/api')
+def test_readiness_requires_engine_status_response(payload, expected):
+    assert read_ready(200, payload) is expected
+    assert read_ready(503, None) is False
 
 
 @pytest.mark.asyncio
@@ -273,8 +322,8 @@ async def test_readiness_requires_engine_status_response(probe, payload, expecte
     (404, None, 'unknown'),  # an absent API route is not an absent content ID
     (500, None, 'unknown'),
 ])
-async def test_lookup_failure_is_separate_from_signal(probe, http_status, payload, expected):
-    probe._fetch_engine_response = AsyncMock(return_value=(http_status, payload, None))
+async def test_lookup_failure_is_separate_from_signal(probe, engine, http_status, payload, expected):
+    engine.start_script = [(http_status, payload)]
     result = await probe.check_channel_status(AcestreamChannel(id='f' * 40, name='Example'))
     assert result['network_status'] == expected
     assert result['is_online'] is False
@@ -293,16 +342,14 @@ def test_catalogue_upsert_does_not_claim_or_overwrite_signal(db_session):
 
 
 @pytest.mark.asyncio
-async def test_dedicated_checker_down_never_falls_back_to_playback(db_session, monkeypatch):
-    from app.config.settings import settings
-    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', 'http://checker.test:6879')
-    service = ChannelStatusService(db_session)
+async def test_dedicated_checker_down_never_falls_back_to_playback(db_session, monkeypatch, clock):
+    use_engines(db_session, monkeypatch, checker='http://checker.test:6879')
+    engine = FakeProbeEngine(ready=False)
+    service = ChannelStatusService(db_session, probe_engine=engine)
     service.channel_repository = MagicMock()
-    service._wait_for_engine = AsyncMock(return_value=False)
-    service._fetch_engine_response = AsyncMock()
     result = await service.check_channel_status(AcestreamChannel(id='f' * 40, name='Example'))
-    service._wait_for_engine.assert_awaited_once_with('http://checker.test:6879')
-    service._fetch_engine_response.assert_not_awaited()
+    assert engine.requested_url == 'http://checker.test:6879'
+    assert engine.asked('open') == []
     service.channel_repository.update_channel_status.assert_not_called()
     assert result['status'] == 'skipped'
 
@@ -319,19 +366,15 @@ def test_probe_endpoint_uses_explicit_route_or_saved_engine(db_session, monkeypa
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('verified', [True, False])
-async def test_outpace_idle_lease_reads_media_and_releases(probe, monkeypatch, verified):
-    start = session_response()
-    start['response']['playback_session_id'] = 'session'
-    idle = {'status': 'idle', 'downloaded': 0, 'client_session_id': -1, 'playback_session_id': 'session'}
-    probe._fetch_engine_response = AsyncMock(side_effect=[
-        (200, start, None), (200, {'response': idle}, None), (200, {'response': 'ok'}, None),
-    ])
+async def test_outpace_idle_lease_reads_media_and_releases(probe, engine, monkeypatch, verified):
+    engine.start_script = [(200, session_answer(playback_session_id='session'))]
+    engine.stats_script = [stat_answer(status='idle', downloaded=0, client_session_id=-1, playback_session_id='session')]
     sample = AsyncMock(return_value={'signal_verified': verified})
     monkeypatch.setattr('app.services.channel_status_service.probe_media', sample)
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Test'), persist=False)
     assert result['is_online'] is verified
-    sample.assert_awaited_once_with('http://engine.test:6878', 'http://engine.test:6878/ace/r/hash/session', timeout=0.015)
-    assert probe._fetch_engine_response.call_args.args[:2] == ('http://engine.test:6878/ace/cmd/hash/session', {'method': 'stop'})
+    sample.assert_awaited_once_with(ENGINE, f'{ENGINE}/ace/r/hash/session', timeout=0.015)
+    assert engine.stopped == [f'{ENGINE}/ace/cmd/hash/session']
 
 
 # Engine stat series measured 2026-11-12 (seconds, status, MB downloaded).
@@ -368,40 +411,24 @@ def test_sustained_growth_tells_live_from_a_prebuffer_handover(series, expected,
     assert at <= by
 
 
-class FakeClock:
-    def __init__(self):
-        self.now = 0.0
-
-    def __call__(self):
-        return self.now
-
-    async def sleep(self, seconds):
-        self.now += max(seconds, 0.001)
-
-
 def engine_replaying(series, clock):
-    async def fetch(url, params, timeout):
-        if '/getstream' in url:
-            return 200, session_response(), None
-        if params.get('method') == 'stop':
-            return 200, {'response': 'ok'}, None
+    def stats(_session, _timeout):
         current = [row for row in series if row[0] <= clock.now + 1] or series[:1]
         _t, status, mb = current[-1]
-        return 200, {'response': {'status': status, 'downloaded': int(mb * MB)}}, None
-    return fetch
+        return stat_answer(status=status, downloaded=int(mb * MB))
+    return FakeProbeEngine(stats=stats)
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('series, online', [(STALLED, False), (SLOW_HANDOVER, False), (LIVE, True), (SLOW_LIVE, True)])
-async def test_stalled_sources_are_offline_even_with_media_in_the_handover(probe, monkeypatch, series, online):
-    clock = FakeClock()
-    monkeypatch.setattr('app.services.channel_status_service._clock', clock)
-    monkeypatch.setattr('app.services.channel_status_service.asyncio.sleep', clock.sleep)
+async def test_stalled_sources_are_offline_even_with_media_in_the_handover(probe, db_session, monkeypatch, clock, series, online):
     media_probe = AsyncMock(return_value={'signal_verified': True})  # the handover carries real A/V
     monkeypatch.setattr('app.services.channel_status_service.probe_media', media_probe)
-    probe._get_timeout = lambda: 10.0
-    probe._fetch_engine_response = engine_replaying(series, clock)
+    use_engines(db_session, monkeypatch, timeout='10')
+    engine = engine_replaying(series, clock)
+    probe.probe_engine = engine
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'), persist=False)
     assert result['is_online'] is online
     assert media_probe.await_count == (1 if online else 0)
     assert clock.now < 10.0 + 25.0 + 25.0
+    assert len(engine.stopped) == 1

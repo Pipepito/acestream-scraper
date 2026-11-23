@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import Mock
 import pytest
 
 
@@ -56,14 +56,14 @@ async def test_no_engine_does_not_probe_or_change_results(db_session, monkeypatc
     from app.models.models import AcestreamChannel
     repo = SettingsRepository(db_session)
     repo.set_setting(repo.ACE_ENGINE_URL, '')
-    service = ChannelStatusService(db_session)
-    fetch = AsyncMock()
-    monkeypatch.setattr(service, '_fetch_engine_response', fetch)
+    from fake_probe_engine import FakeProbeEngine
+    engine = FakeProbeEngine()
+    service = ChannelStatusService(db_session, probe_engine=engine)
     channel = AcestreamChannel(id='a' * 40, name='Test', is_online=True)
     result = await service.check_channel_status(channel)
     assert result['status'] == 'skipped'
     assert channel.is_online is True
-    fetch.assert_not_called()
+    assert engine.calls == []
 
 
 def test_no_engine_does_not_launch_job(client, db_session, monkeypatch):

@@ -987,7 +987,7 @@ source. Migration `20261102_1200` follows `20261103_1200`. The opt-in tuner
 setting `hide_unusable` (off by default; playlist URLs may override it) leaves
 out discarded sources (5 failed checks in a row and 7 days without working;
 lists do not count) and clearly bad ones; discarded sources are tried last by the
-relay, rechecked last, weekly, and return when they work. See `docs/ops/stream-history.md`.
+relay, rechecked last, weekly, and return when they work. A viewing of 120 s or more (`ok`, `ended`, `stall`) counts as the source working; one the source cut also counts as one failed check (`source_health.record_viewing`). See `docs/ops/stream-history.md`.
 
 
 ## Live TV availability and offline retention

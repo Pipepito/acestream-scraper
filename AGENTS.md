@@ -923,8 +923,9 @@ history. Saved preferences stay first; engine outages do not count against a
 source. Migration `20261102_1200` follows `20261103_1200`. The opt-in tuner
 setting `hide_unusable` (off by default; playlist URLs may override it) leaves
 the stale and clearly bad ones out of the lineup and M3U playlists, never for
-a mostly offline list alone; discarded sources go last in the relay order. See
-`docs/ops/stream-history.md`.
+a mostly offline list alone; discarded sources go last in the relay order. A viewing of 120 s or more
+(`ok`, `ended`, `stall`) counts as the source working; one the source cut also counts as one failed check
+(`source_health.record_viewing`). See `docs/ops/stream-history.md`.
 
 
 ## Live TV availability and offline retention

@@ -304,20 +304,32 @@ def test_checks_count_failures_and_a_working_check_brings_the_source_back(db_ses
     assert unusable_ids(db_session, [row], now=later) == set()
 
 
-@pytest.mark.parametrize('outcome, back', [('ok', True), ('handover', True), ('no_data', False), ('stall', False)])
-def test_the_relay_playing_a_source_brings_it_back(db_session, outcome, back):
+@pytest.mark.parametrize('outcome, seconds, final, failed', [
+    ('ok', 120, False, 0),          # a checkpoint of a long viewing: it worked
+    ('ok', 3600, True, 0),          # the user left
+    ('ended', 120, True, 1),        # worked, then the source ended: one failed check
+    ('stall', 900, True, 1),
+    ('ok', 119, True, 5),           # too short: for or against nothing
+    ('handover', 3600, True, 5),
+    ('ended', 60, True, 5),
+    ('jumpy', 3600, True, 5),
+    ('no_data', 500, True, 5),
+])
+def test_the_writer_passes_the_viewing_to_the_health_rule(db_session, outcome, seconds, final, failed):
     tv = _channel(db_session)
     _stream(db_session, 'a', tv)
     db_session.flush()
     _discard(db_session, 'a')
     db_session.commit()
     recorder = _recorder_on(db_session)
-    recorder.record('A' * 40, tv.id, outcome, seconds=40)
+    recorder.record('A' * 40, tv.id, outcome, seconds=seconds, attempt=object(), final=final)
     recorder.flush()
     db_session.expire_all()
     row = db_session.query(AcestreamChannel).one()
-    assert (row.failed_checks == 0) is back
-    assert (row.failing_since is None) is back
+    assert row.failed_checks == failed
+    assert (row.failing_since is None) is (failed == 0)
+    if failed == 1:
+        assert row.failing_since == NOW
 
 
 def test_a_source_that_kept_jumping_back_ranks_below_one_that_played_cleanly():
@@ -436,3 +448,18 @@ def test_source_worked_migration_fills_in_from_checks_and_viewings(tmp_path):
     engine = create_engine(database_url_for(path))
     assert 'failed_checks' not in {c['name'] for c in inspect(engine).get_columns('acestream_channels')}
     engine.dispose()
+
+
+def test_the_checkpoints_of_a_viewing_and_its_cut_end_count_one_failure(db_session):
+    tv = _channel(db_session)
+    _stream(db_session, 'a', tv)
+    db_session.commit()
+    recorder = _recorder_on(db_session)
+    viewing = object()
+    for seconds in (30, 60, 120):
+        recorder.record('a' * 40, tv.id, 'ok', seconds=seconds, attempt=viewing, final=False)
+    recorder.record('a' * 40, tv.id, 'stall', seconds=150, attempt=viewing)
+    recorder.flush()
+    db_session.expire_all()
+    row = db_session.query(AcestreamChannel).one()
+    assert row.failed_checks == 1 and row.last_worked_at is not None

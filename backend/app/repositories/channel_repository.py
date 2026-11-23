@@ -673,16 +673,17 @@ class ChannelRepository:
         self.db.refresh(channel)
         return channel
 
-    def mark_worked(self, channel_id: str, at: Optional[datetime] = None) -> bool:
-        """The relay played this source: it works, whatever the last check said."""
+    def record_viewing(self, channel_id: str, outcome: str, seconds: Optional[float],
+                       at: Optional[datetime] = None, *, final: bool = True) -> bool:
+        """The relay recorded a viewing: ``source_health.record_viewing`` decides what it means."""
         channel = (self.db.query(AcestreamChannel)
                    .filter(func.lower(AcestreamChannel.id) == channel_id.lower()).first())
         if channel is None:
             return False
-        from app.services.source_health import apply_worked
-        apply_worked(channel, at or datetime.now(timezone.utc))
+        from app.services.source_health import record_viewing
+        counted = record_viewing(channel, outcome, seconds, at or datetime.now(timezone.utc), final=final)
         self.db.commit()
-        return True
+        return counted
 
     def check_all_channels_status(self) -> int:
         """Check status for all active channels"""

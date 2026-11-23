@@ -5,7 +5,9 @@ looks at lists. Two kinds of fact reach this module:
 
 - a status check (``record_check``): media found, or none found, with its
   class (engine lookup answered, HTTP, or inconclusive);
-- a viewing through the relay (``apply_worked``) that played.
+- a viewing through the relay (``record_viewing``): one of at least
+  ``VIEWING_MIN_SECONDS`` counts as working, and if the source cut it, as one
+  failed check after that.
 
 From them a source is *working* (it worked recently, or has not failed
 enough to say otherwise) or *discarded*: ``DISCARD_FAILED_CHECKS`` real checks
@@ -31,8 +33,14 @@ from typing import Optional
 DISCARD_FAILED_CHECKS = 5
 DISCARD_DAYS = 7
 DISCARDED_RECHECK_DAYS = 7
-# Relay outcomes that prove the source plays.
-WORKED_OUTCOMES = frozenset({'ok', 'handover'})
+# A viewing through the relay says something about the source only if it lasted
+# this long, and only with these outcomes: the user left (``ok``), the source
+# ended (``ended``) or went silent (``stall``). ``jumpy``, ``handover`` and
+# anything that never played say nothing.
+VIEWING_MIN_SECONDS = 120
+VIEWING_OUTCOMES = frozenset({'ok', 'ended', 'stall'})
+# Of those, the ones where the source, not the user, cut the viewing.
+VIEWING_CUT_OUTCOMES = frozenset({'ended', 'stall'})
 # A time this far ahead of now was written by a clock that ran ahead.
 FUTURE_TOLERANCE = timedelta(minutes=5)
 
@@ -79,6 +87,30 @@ def record_check(stream, online: bool, network_status: Optional[str], now: datet
     if not is_real_check(online, network_status, http=http):
         return False
     _apply_check(stream, online, now)
+    return True
+
+
+def viewing_counts(outcome: str, seconds: Optional[float]) -> bool:
+    """Whether a viewing record says anything about the source."""
+    return outcome in VIEWING_OUTCOMES and (seconds or 0) >= VIEWING_MIN_SECONDS
+
+
+def record_viewing(stream, outcome: str, seconds: Optional[float], at: datetime, *, final: bool = True) -> bool:
+    """Take one record of a viewing (a checkpoint or its end) and write what follows.
+
+    It worked (``apply_worked``) when it lasted ``VIEWING_MIN_SECONDS`` or more
+    with an outcome of ``VIEWING_OUTCOMES``; any such record may say so, it is
+    idempotent. If the viewing ended because the source was cut (``ended``,
+    ``stall``) the *final* record also counts as one failed check, so a source
+    that keeps dying after two minutes is not kept alive by those two minutes.
+    Shorter viewings, ``jumpy`` and ``handover`` count neither way.
+    """
+    if not viewing_counts(outcome, seconds):
+        return False
+    apply_worked(stream, at)
+    if final and outcome in VIEWING_CUT_OUTCOMES:
+        stream.failed_checks = 1
+        stream.failing_since = at
     return True
 
 

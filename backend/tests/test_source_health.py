@@ -209,3 +209,45 @@ def test_a_check_dated_in_the_future_never_counts_as_fresh_for_the_relay():
                             last_checked=NOW + timedelta(minutes=3), failed_checks=0, failing_since=None,
                             last_worked_at=None)
     assert relay_order([ahead], {}, NOW) == ['a' * 40]
+
+
+# --- viewings ------------------------------------------------------------------
+
+@pytest.mark.parametrize('outcome, seconds, worked, failed', [
+    ('ok', 120, True, 0),
+    ('ok', 119.9, False, 5),
+    ('ended', 120, True, 1),
+    ('stall', 600, True, 1),
+    ('ended', 30, False, 5),
+    ('jumpy', 3600, False, 5),
+    ('handover', 3600, False, 5),
+    ('no_data', 600, False, 5),
+    ('ok', None, False, 5),
+])
+def test_a_viewing_of_two_minutes_counts_and_a_cut_source_counts_as_one_failure(outcome, seconds, worked, failed):
+    from app.services.source_health import record_viewing
+    source = Source(failed_checks=5, failing_since=NOW - timedelta(days=30))
+    at = NOW + timedelta(hours=1)
+    assert record_viewing(source, outcome, seconds, at) is worked
+    assert (source.last_worked_at == at) is worked
+    assert source.failed_checks == failed
+    assert source.failing_since == (at if failed == 1 else None if failed == 0 else NOW - timedelta(days=30))
+
+
+def test_a_viewing_that_worked_and_was_cut_is_not_discarded():
+    from app.services.source_health import record_viewing
+    source = Source(failed_checks=9, failing_since=NOW - timedelta(days=30))
+    record_viewing(source, 'stall', 300, NOW)
+    assert not discarded(source, NOW + timedelta(days=30))
+
+
+def test_only_the_final_record_of_a_viewing_adds_the_failure():
+    from app.services.source_health import record_viewing
+    source = Source(failed_checks=0)
+    for seconds in (30, 60, 120):
+        record_viewing(source, 'ok', seconds, NOW, final=False)
+    assert (source.failed_checks, source.last_worked_at) == (0, NOW)
+    record_viewing(source, 'ended', 300, NOW, final=False)      # never sent today, but it must not count
+    assert source.failed_checks == 0
+    record_viewing(source, 'stall', 150, NOW, final=True)
+    assert (source.failed_checks, source.failing_since) == (1, NOW)

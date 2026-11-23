@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, Iterable, Optional
 
-from app.services.source_health import FUTURE_TOLERANCE, WORKED_OUTCOMES, discarded
+from app.services.source_health import FUTURE_TOLERANCE, discarded, viewing_counts
 
 logger = logging.getLogger(__name__)
 
@@ -204,10 +204,10 @@ class StreamHistoryRecorder:
                 db = self._session_factory()
                 try:
                     repo = StreamAttemptRepository(db)
-                    if outcome in WORKED_OUTCOMES:
+                    if viewing_counts(outcome, seconds):
                         # Sources are kept for working, not for being published.
                         from app.repositories.channel_repository import ChannelRepository
-                        ChannelRepository(db).mark_worked(content_id, at)
+                        ChannelRepository(db).record_viewing(content_id, outcome, seconds, at, final=final)
                     row_id = self._rows.pop(attempt, None) if final else self._rows.get(attempt)
                     if row_id is not None and repo.update(row_id, outcome, seconds=seconds) is not None:
                         continue

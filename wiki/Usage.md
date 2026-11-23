@@ -341,8 +341,9 @@ and the stream has not worked for 7 days) and the run of failures must have
 begun at least the minimum offline age ago, counted in 24-hour periods from the
 first failed check. The latest check must be within 24 hours, after that
 first failure, and a real one (an HTTP check, or an engine lookup that answered
-found or not found; a timeout protects the stream). A check with media or a successful tuner viewing ends the run,
-so a stream that plays is never removed. Imports, checker outages, skipped
+found or not found; a timeout protects the stream). A check with media or a viewing of two minutes or more ends the run,
+so a stream that plays is never removed; a viewing the source cut also counts
+as one new failed check. Imports, checker outages, skipped
 probes and HTTP checks that time out do not count as failed checks. Existing streams begin counting after
 upgrading; no earlier age is inferred. Background checks retain their
 playback/recording protection and configured scope, even when Live TV hides a

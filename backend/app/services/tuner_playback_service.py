@@ -233,8 +233,8 @@ def source_readers(engine: EngineClient | None, client_label: str, *, registry: 
     ``relay_http_stream``, looked up on each call."""
     return SourceReaders(
         EngineReader(engine, client_label, registry=registry, client_factory=client_factory,
-                     open_stream=relay_engine_stream),
-        HttpReader(open_stream=relay_http_stream))
+                     open_stream=lambda *args, **kwargs: relay_engine_stream(*args, **kwargs)),
+        HttpReader(open_stream=lambda *args, **kwargs: relay_http_stream(*args, **kwargs)))
 
 
 async def relay_ranked_streams(

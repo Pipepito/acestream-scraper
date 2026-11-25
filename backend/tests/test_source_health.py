@@ -251,3 +251,24 @@ def test_only_the_final_record_of_a_viewing_adds_the_failure():
     assert source.failed_checks == 0
     record_viewing(source, 'stall', 150, NOW, final=True)
     assert (source.failed_checks, source.failing_since) == (1, NOW)
+
+
+def test_a_recent_viewing_outweighs_a_recent_offline_check_in_the_relay_order():
+    """A check that finds no media right after the relay let the source go
+    must not keep the source that just played out of the relay for hours: it
+    is tried after the online ones. Without a viewing in the window, or with
+    one dated in the future, a recent offline check still leaves it out."""
+    from types import SimpleNamespace
+
+    from app.services.stream_ranking import relay_order
+
+    def row(key, online, checked_hours_ago, worked_hours_ago=None):
+        return SimpleNamespace(id=key * 40, is_online=online, stream_order=None, bitrate_bps=0,
+                               last_checked=NOW - timedelta(hours=checked_hours_ago),
+                               last_worked_at=None if worked_hours_ago is None else NOW - timedelta(hours=worked_hours_ago))
+    streams = [row('a', False, 1, worked_hours_ago=1.01),   # played, then a check said offline
+               row('b', True, 1),
+               row('c', False, 1, worked_hours_ago=30),     # played long ago
+               row('d', False, 1),                          # never played
+               row('e', False, 1, worked_hours_ago=-2)]     # clock ran ahead
+    assert relay_order(streams, {}, NOW) == ['b' * 40, 'a' * 40]

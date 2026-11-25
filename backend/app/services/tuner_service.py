@@ -192,7 +192,8 @@ class TunerService:
     def relay_stream_ids(self, tv_channel_id: int) -> List[str]:
         """Saved preferences first among eligible sources; otherwise online and checked recently;
         online from an old check; then never checked, or offline from an old
-        check. Only a source found offline recently is left out.
+        check. Only a source found offline recently is left out, unless it also
+        played recently.
 
         When a box that is only on now and then is switched on for a match,
         every status is hours or days old, and the source that is live tonight may be the one the

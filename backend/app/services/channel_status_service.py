@@ -3,18 +3,18 @@ Service for checking Acestream channel status
 """
 import asyncio
 import logging
-import aiohttp
 import math
-import re
-from urllib.parse import urlparse
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any, Optional
+from typing import Any, Callable, Dict, List, Optional
 from sqlalchemy.orm import Session
 
 from app.config.database_retry import run_database_write
 from app.models.models import AcestreamChannel
 from app.repositories.channel_repository import ChannelRepository
+from app.services.engine_client import EngineSession
+from app.services.engine_probe import AiohttpProbeEngine, ProbeEngine, ProbeSession, ProbeStart, StatsRefused, StatsUnreadable
+from app.services.playback_ownership import release_session, source_ownership
 from app.services.stream_bitrate_service import probe_media
 from app.services.stream_stats import stream_stats_sample
 from app.services.probe_queue import ProbePriority, probe_queue
@@ -122,9 +122,15 @@ def channels_in_check_order(db: Session, *, http_only: bool = False, now: Option
 class ChannelStatusService:
     """Service for checking Acestream channel status via engine API"""
 
-    def __init__(self, db: Session):
+    # How the check reaches an engine URL (the ProbeEngine seam). Replace it
+    # with staticmethod(...) on the class, or pass probe_engine= per instance.
+    probe_engine = staticmethod(AiohttpProbeEngine)
+
+    def __init__(self, db: Session, probe_engine: Optional[Callable[[str], ProbeEngine]] = None):
         """Initialize with database session"""
         self.db = db
+        if probe_engine is not None:
+            self.probe_engine = probe_engine
         self.channel_repository = ChannelRepository(db)
         from app.repositories.settings_repository import SettingsRepository
         self.settings_repo = SettingsRepository(db)
@@ -144,49 +150,18 @@ class ChannelStatusService:
             return float(self.timeout)
         return min(value, 120.0) if math.isfinite(value) and value > 0 else float(self.timeout)
 
-    async def _fetch_engine_response(self, status_url: str, params: Dict[str, str], timeout: float):
-        """Query the engine once. Returns (http_status, parsed_json_or_None,
-        parse_error_message_or_None). Raises asyncio.TimeoutError on timeout."""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                status_url,
-                params=params,
-                timeout=aiohttp.ClientTimeout(total=timeout),
-                allow_redirects=False,
-            ) as response:
-                if response.status != 200:
-                    return response.status, None, None
-                try:
-                    return response.status, await response.json(), None
-                except Exception as e:
-                    return response.status, None, f"Invalid response format: {str(e)}"
-
     def _get_engine_url(self) -> str:
         from app.services.check_engine_config_service import CheckEngineConfigService
         return engine_base_url(CheckEngineConfigService(self.settings_repo).effective_url())
 
-    @staticmethod
-    def _session_url(engine_url: str, value: Any, kind: str) -> Optional[str]:
-        """Keep session requests on the configured engine, including remote engines
-        which advertise localhost URLs. Never follow arbitrary upstream targets.
-        """
-        if not isinstance(value, str):
-            return None
-        path = urlparse(value).path
-        if not re.fullmatch(rf"/ace/{kind}/(?:cid:[a-fA-F0-9]{{40}}|[a-zA-Z0-9_-]+)/[a-zA-Z0-9_-]+", path):
-            return None
-        return f"{engine_url}{path}"
-
-    async def _verify_broadcast(self, engine_url: str, data: Dict[str, Any], timeout: float, channel_id: str = "", *, observation: Optional[dict] = None):
-        response = data.get('response')
-        if not isinstance(response, dict):
+    async def _verify_broadcast(self, engine: ProbeEngine, start: ProbeStart, timeout: float, channel_id: str = "", *, observation: Optional[dict] = None):
+        session = start.session
+        if session is None:
             return False, 'Invalid response format', None
-        stat_url = self._session_url(engine_url, response.get('stat_url'), 'stat')
-        command_url = self._session_url(engine_url, response.get('command_url'), 'cmd')
         try:
-            if data.get('error'):
+            if start.error:
                 return False, 'Engine could not start the stream', None
-            if not stat_url or not command_url:
+            if not session.verifiable:
                 return False, 'Engine did not provide a verifiable playback session', None
             deadline = _clock() + timeout
             # A source still prebuffering at the configured timeout gets the
@@ -205,11 +180,11 @@ class ChannelStatusService:
                     if gaining_seen and growth.base is not None:
                         return False, 'Stream stalled after its prebuffer', None
                     return False, 'No broadcast data received before timeout', None
-                http_status, stats, parse_error = await self._fetch_engine_response(stat_url, {}, remaining)
-                if http_status != 200 or parse_error or not isinstance(stats, dict):
+                try:
+                    state = await engine.stats(session, remaining)
+                except StatsUnreadable:
                     return False, 'Could not read stream statistics', None
-                state = stats.get('response')
-                if stats.get('error') or not isinstance(state, dict):
+                except StatsRefused:
                     return False, 'Engine could not read stream statistics', None
                 sample = stream_stats_sample(state)
                 if sample is not None and observation is not None:
@@ -218,9 +193,9 @@ class ChannelStatusService:
                     observation.update(sample)
                 # Outpace starts the source only when its tokenized TS lease is read.
                 # An idle lease is not evidence either way until we sample its media.
-                token = stat_url.rsplit('/', 1)[-1]
+                token = session.stat_token
                 lazy_reader = (state.get('status') == 'idle' and state.get('client_session_id') == -1
-                               and state.get('playback_session_id') == response.get('playback_session_id') == token)
+                               and state.get('playback_session_id') == session.playback_session_id == token)
                 if not lazy_reader and state.get('status') in ('error', 'err', 'idle', 'stopped'):
                     return False, 'Stream is not broadcasting', None
                 downloaded = state.get('downloaded')
@@ -236,30 +211,29 @@ class ChannelStatusService:
                     if sustained is False:
                         return False, 'Stream stalled after its prebuffer', None
                     if sustained or lazy_reader:
-                        playback_url = self._session_url(engine_url, response.get('playback_url'), 'r')
-                        media = None if self._in_use(channel_id) else await probe_media(engine_url, playback_url, timeout=timeout)
+                        media = None if self._in_use(channel_id) else await probe_media(engine.engine_url, session.playback_url, timeout=timeout)
                         if media and media.get('signal_verified') is True:
                             return True, 'Media signal verified', media
                         return False, 'ID found, but no media signal verified before timeout', media
                 await asyncio.sleep(min(1.0, max(0, deadline - _clock())))
         finally:
-            if command_url:
+            if session.command_url:
                 try:
-                    await asyncio.to_thread(self._release_probe, engine_url, channel_id, command_url)
+                    await asyncio.to_thread(self._give_back, engine, session)
                 except Exception:
                     logger.warning('Could not stop channel status probe session')
 
-    def _release_probe(self, engine_url, channel_id, command_url):
-        # Hold the same source lock as EngineClient.start/final stop. A probe
-        # finishing after playback started is parked for the final lease release.
-        from app.services.playback_ownership import source_ownership
-        from app.services.engine_client import EngineSession
-        source = source_ownership(engine_url, channel_id)
-        with source.lock:
-            if source.leases:
-                source.parked.append(EngineSession(channel_id, '', '', '', command_url, True))
-            elif not self._in_use(channel_id):
-                asyncio.run(self._fetch_engine_response(command_url, {'method': 'stop'}, 3.0))
+    def _give_back(self, engine: ProbeEngine, session: ProbeSession) -> None:
+        # Same source lock as EngineClient.start and its final stop. A probe
+        # finishing after playback started is parked for the final lease
+        # release; one the app is otherwise playing is left to the engine.
+        handle = EngineSession(session.content_id, '', '', '', session.command_url, True)
+
+        def stop() -> None:
+            if not self._in_use(session.content_id):
+                asyncio.run(engine.stop(session))
+
+        release_session(source_ownership(engine.engine_url, session.content_id), handle, stop)
 
     def _recording_reserved(self):
         from app.services.recording_coordinator import recording_coordinator
@@ -371,22 +345,12 @@ class ChannelStatusService:
             'error': error,
         }
 
-    async def _engine_ready(self, engine_url: str) -> bool:
-        try:
-            status, data, error = await self._fetch_engine_response(
-                f"{engine_url}/server/api",
-                {'api_version': '3', 'method': 'get_status'}, 3.0,
-            )
-            return status == 200 and not error and isinstance(data, dict) and isinstance(data.get('result'), dict) and not data.get('error')
-        except (aiohttp.ClientError, asyncio.TimeoutError):
-            return False
-
-    async def _wait_for_engine(self, engine_url: str) -> bool:
-        deadline = asyncio.get_running_loop().time() + 60.0
+    async def _wait_for_engine(self, engine: ProbeEngine) -> bool:
+        deadline = _clock() + 60.0
         while True:
-            if await self._engine_ready(engine_url):
+            if await engine.ready():
                 return True
-            remaining = deadline - asyncio.get_running_loop().time()
+            remaining = deadline - _clock()
             if remaining <= 0:
                 return False
             await asyncio.sleep(min(2.0, remaining))
@@ -404,42 +368,40 @@ class ChannelStatusService:
         online = False
         media = None
         observation = {}
-        engine_url = None
+        engine = None
         network_status = 'unknown'
         try:
             engine_url = self._get_engine_url()
             if not engine_url:
                 return self._skipped_result(channel)
-            if not await self._wait_for_engine(engine_url):
+            engine = self.probe_engine(engine_url)
+            if not await self._wait_for_engine(engine):
                 return self._engine_unavailable_result(channel)
             if self._in_use(channel.id) or self._recording_reserved():
                 return self._skipped_result(channel)
-            status_url = f"{engine_url}/ace/getstream"
-            params = {identifier: channel.id, 'format': 'json', 'pid': uuid4().hex}
+            pid = uuid4().hex
             timeout = self._get_timeout()
             try:
-                http_status, data, parse_error = await self._fetch_engine_response(status_url, params, timeout)
+                start = await engine.open_probe(channel.id, identifier, pid, timeout)
             except asyncio.TimeoutError:
                 logger.warning('Channel probe start timed out; retrying once channel_id=%s', channel.id)
-                if not await self._wait_for_engine(engine_url):
+                if not await self._wait_for_engine(engine):
                     return self._engine_unavailable_result(channel)
                 if self._in_use(channel.id):
                     return self._skipped_result(channel)
-                http_status, data, parse_error = await self._fetch_engine_response(status_url, params, timeout * 2)
-            if isinstance(data, dict):
-                error_text = str(data.get('error') or '').strip().lower()
+                start = await engine.open_probe(channel.id, identifier, pid, timeout * 2)
+            if start.readable:
+                error_text = str(start.error or '').strip().lower()
                 if error_text in {'not found', 'content not found', 'content id not found', 'unknown content id'}:
                     network_status = 'not_found'
-                elif not data.get('error') and isinstance(data.get('response'), dict):
-                    response = data['response']
-                    if self._session_url(engine_url, response.get('stat_url'), 'stat') and self._session_url(engine_url, response.get('command_url'), 'cmd'):
-                        network_status = 'found'
-            if http_status != 200:
-                message = f'HTTP {http_status}'
-            elif parse_error or not isinstance(data, dict):
+                elif not start.error and start.session is not None and start.session.verifiable:
+                    network_status = 'found'
+            if start.http_status != 200:
+                message = f'HTTP {start.http_status}'
+            elif not start.readable:
                 message = 'Invalid response format'
             else:
-                online, message, media = await self._verify_broadcast(engine_url, data, timeout, channel.id, observation=observation)
+                online, message, media = await self._verify_broadcast(engine, start, timeout, channel.id, observation=observation)
                 if network_status == 'not_found':
                     message = 'Engine reports this content ID was not found'
         except asyncio.TimeoutError:
@@ -449,7 +411,7 @@ class ChannelStatusService:
             logger.warning('Channel broadcast probe failed channel_id=%s', channel.id)
         if self._in_use(channel.id):
             return self._skipped_result(channel)
-        if not online and (not engine_url or not await self._engine_ready(engine_url)):
+        if not online and (engine is None or not await engine.ready()):
             return self._engine_unavailable_result(channel)
         check_time = datetime.now(timezone.utc)
         error = None if online else message

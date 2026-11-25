@@ -8,12 +8,14 @@ back as "not found", which reads like a dead stream rather than a wrong key.
 already tells the two apart. These tests fix the part that was missing: that
 the answer is written down, so the next probe does not have to guess.
 """
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 from app.models.models import AcestreamChannel
+from app.repositories.settings_repository import SettingsRepository
 from app.services.channel_status_service import ChannelStatusService
+from fake_probe_engine import FakeProbeEngine
 
 
 @pytest.fixture(autouse=True)
@@ -23,11 +25,13 @@ def isolated_queue(monkeypatch):
 
 
 @pytest.fixture
-def probe(db_session):
-    service = ChannelStatusService(db_session)
-    service._get_engine_url = lambda: 'http://engine.test:6878'
-    service._get_timeout = lambda: 0.015
-    service._engine_ready = AsyncMock(return_value=True)
+def probe(db_session, monkeypatch):
+    from app.config.settings import settings
+    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', '')
+    repo = SettingsRepository(db_session)
+    repo.set_setting(repo.ACE_ENGINE_URL, 'http://engine.test:6878')
+    repo.set_setting(repo.ACESTREAM_CHECK_TIMEOUT, '0.015')
+    service = ChannelStatusService(db_session, probe_engine=FakeProbeEngine())
     service.channel_repository = MagicMock()
     return service
 
@@ -44,7 +48,7 @@ def found_response():
 @pytest.mark.asyncio
 @pytest.mark.parametrize('identifier', ['id', 'infohash'])
 async def test_a_recognised_id_records_which_parameter_worked(probe, identifier):
-    probe._fetch_engine_response = AsyncMock(return_value=(200, found_response(), None))
+    probe.probe_engine.start_script = [(200, found_response())]
     result = await probe.check_channel_status(
         AcestreamChannel(id='a' * 40, name='Example'), identifier=identifier)
     assert result['id_kind'] == identifier
@@ -54,8 +58,7 @@ async def test_a_recognised_id_records_which_parameter_worked(probe, identifier)
 @pytest.mark.asyncio
 async def test_a_not_found_lookup_records_nothing(probe):
     """The key was not recognised, so it says nothing about which kind it is."""
-    probe._fetch_engine_response = AsyncMock(
-        return_value=(200, {'error': 'content id not found'}, None))
+    probe.probe_engine.start_script = [(200, {'error': 'content id not found'})]
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
     assert result['id_kind'] is None
     assert probe.channel_repository.update_channel_status.call_args.kwargs['id_kind'] is None
@@ -64,7 +67,7 @@ async def test_a_not_found_lookup_records_nothing(probe):
 @pytest.mark.asyncio
 async def test_an_unreadable_answer_records_nothing(probe):
     """A broken reply is not evidence either: it must not overwrite what is known."""
-    probe._fetch_engine_response = AsyncMock(return_value=(500, None, 'boom'))
+    probe.probe_engine.start_script = [(500, None)]
     result = await probe.check_channel_status(AcestreamChannel(id='a' * 40, name='Example'))
     assert result['id_kind'] is None
 
@@ -72,8 +75,7 @@ async def test_an_unreadable_answer_records_nothing(probe):
 @pytest.mark.asyncio
 async def test_what_is_already_known_survives_a_failed_probe(probe):
     """The channel was identified before; today's failure must not erase it."""
-    probe._fetch_engine_response = AsyncMock(
-        return_value=(200, {'error': 'content id not found'}, None))
+    probe.probe_engine.start_script = [(200, {'error': 'content id not found'})]
     channel = AcestreamChannel(id='a' * 40, name='Example')
     channel.id_kind = 'infohash'
     result = await probe.check_channel_status(channel)

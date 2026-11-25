@@ -13,7 +13,9 @@ import pytest
 
 from app.models.models import AcestreamChannel
 from app.services import http_stream_check, live_providers
+from app.repositories.settings_repository import SettingsRepository
 from app.services.channel_status_service import ChannelStatusService
+from fake_probe_engine import FakeProbeEngine
 
 MEDIA = (Path(__file__).parent / "docker/fixtures/sample-h264-ac3.m2ts").read_bytes()
 
@@ -27,13 +29,13 @@ def isolated_queue(monkeypatch):
 
 @pytest.fixture
 def probe(db_session, monkeypatch):
-    service = ChannelStatusService(db_session)
-    service._get_engine_url = lambda: 'http://engine.test:6878'
-    service._get_timeout = lambda: 0.015
-    service._engine_ready = AsyncMock(return_value=True)
+    from app.config.settings import settings
+    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', '')
+    repo = SettingsRepository(db_session)
+    repo.set_setting(repo.ACE_ENGINE_URL, 'http://engine.test:6878')
+    repo.set_setting(repo.ACESTREAM_CHECK_TIMEOUT, '0.015')
     # If anyone asks the engine, it shows: it answers "not found".
-    service._fetch_engine_response = AsyncMock(
-        return_value=(200, {'response': None, 'error': 'not found'}, None))
+    service = ChannelStatusService(db_session, probe_engine=FakeProbeEngine(start=(200, {'response': None, 'error': 'not found'})))
     service.channel_repository = MagicMock()
     monkeypatch.setattr('app.services.channel_status_service.run_database_write',
                         AsyncMock(side_effect=lambda fn, *a, **k: fn(*a, **k)))
@@ -50,7 +52,7 @@ def _iptv(**kw):
 async def test_engine_is_not_asked(probe, monkeypatch):
     monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(True, None)))
     await probe.check_channel_status(_iptv(is_online=True))
-    probe._fetch_engine_response.assert_not_awaited()
+    assert probe.probe_engine.calls == []
 
 
 @pytest.mark.asyncio
@@ -84,7 +86,7 @@ async def test_http_viewing_does_not_prevent_verified_status_refresh(probe, monk
     probe._recent_result = lambda *args: None
     monkeypatch.setattr(http_stream_check, 'check', AsyncMock(return_value=(verified, None)))
     await probe.check_channel_status(_iptv())
-    probe._fetch_engine_response.assert_not_awaited()
+    assert probe.probe_engine.calls == []
     if verified is None:
         probe.channel_repository.update_channel_status.assert_not_called()
     else:
@@ -102,7 +104,7 @@ async def test_nothing_written_without_persist(probe, monkeypatch):
 async def test_acestream_still_goes_to_engine(probe):
     ace = AcestreamChannel(id='1' * 40, name='Canal', is_online=None)
     await probe.check_channel_status(ace)
-    probe._fetch_engine_response.assert_awaited()
+    assert probe.probe_engine.asked('open')
 
 
 # --- the HTTP check itself ---------------------------------------------------

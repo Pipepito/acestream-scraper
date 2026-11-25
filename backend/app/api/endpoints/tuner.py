@@ -16,6 +16,7 @@ import re
 from dataclasses import asdict
 from typing import List
 
+import anyio
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
@@ -435,10 +436,14 @@ async def tuner_channel(tv_channel_id: int, request: Request):
     except BaseException as exc:
         tuner_playback_service.end_opening(key, shared)
         monitor.cancel()
-        await asyncio.gather(monitor, return_exceptions=True)
         tuner_probe_service.stop_channel(tv_channel_id)
-        if iterator is not None:
-            await iterator.aclose()
+        # A cancelled request stays cancelled at every later await (anyio's
+        # cancellation is level-triggered): without the shield, the first
+        # await here raises again and the rest of the cleanup never runs.
+        with anyio.CancelScope(shield=True):
+            await asyncio.gather(monitor, return_exceptions=True)
+            if iterator is not None:
+                await iterator.aclose()
         if engine is not None:
             engine.close()
         relay_registry.close(claim.id)
@@ -463,9 +468,10 @@ async def tuner_channel(tv_channel_id: int, request: Request):
         finally:
             tuner_playback_service.end_opening(key, shared)
             monitor.cancel()
-            await asyncio.gather(monitor, return_exceptions=True)
             tuner_probe_service.stop_channel(tv_channel_id)
-            await iterator.aclose()
+            with anyio.CancelScope(shield=True):
+                await asyncio.gather(monitor, return_exceptions=True)
+                await iterator.aclose()
 
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 

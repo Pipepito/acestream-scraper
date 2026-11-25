@@ -107,7 +107,6 @@ def test_acestream_channels_schema_includes_runtime_last_seen(tmp_path):
             'stream_url',
             'stream_headers',
             'last_checked',
-            'offline_since',
             'last_worked_at',
             'failed_checks',
             'failing_since',

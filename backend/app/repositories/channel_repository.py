@@ -35,17 +35,12 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.stream_url.isnot(None))
         return query
 
-    def get_tuner_streams(self, tv_channel_id: int, *, online_only: bool = False) -> List[AcestreamChannel]:
+    def get_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
         query = (self.db.query(AcestreamChannel)
                 .join(TVChannel, TVChannel.id == AcestreamChannel.tv_channel_id)
                 .filter(TVChannel.id == tv_channel_id, TVChannel.is_active.is_(True),
                         AcestreamChannel.is_active.is_(True)))
-        if online_only:
-            query = query.filter(AcestreamChannel.is_online.is_(True))
         return query.all()
-
-    def get_online_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
-        return self.get_tuner_streams(tv_channel_id, online_only=True)
 
     def get_tv_matching_inventory(self) -> tuple[list[TVChannel], list[AcestreamChannel]]:
         targets = self.db.query(TVChannel).order_by(TVChannel.id).all()
@@ -317,10 +312,6 @@ class ChannelRepository:
     def get_tv_channel_by_epg_id(self, epg_id: str) -> Optional[TVChannel]:
         """Get a TV channel by EPG ID"""
         return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).first()
-
-    def get_tv_channels_by_epg_id(self, epg_id: str) -> List[TVChannel]:
-        """Get all TV channels for an EPG ID."""
-        return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).order_by(TVChannel.id.asc()).all()
 
     def get_epg_channels_by_ids(self, epg_channel_ids: List[int]) -> List[EPGChannel]:
         """Get EPG channels by IDs preserving deterministic order."""
@@ -647,29 +638,25 @@ class ChannelRepository:
 
     @retry_database_write
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None,
-                              id_kind: Optional[str] = None, verified: bool = False) -> AcestreamChannel:
-        """Update the online status of a channel.
+                              id_kind: Optional[str] = None, http: bool = False) -> AcestreamChannel:
+        """Store the result of one status check.
 
-        ``verified`` marks the result of a real check: media found means the
-        source worked; none found is one more failed check in a row.
+        The caller reports what it saw (``is_online``, the engine's
+        ``network_status``, whether the source is ``http``); what that means
+        for the source's health is decided by ``source_health.record_check``.
         """
         channel = self.get_channel_by_id(channel_id)
         if not channel:
             return None
-        if verified:
-            from app.services.source_health import apply_check
-            apply_check(channel, is_online, datetime.now(timezone.utc))
+        from app.services.source_health import record_check
+        # One instant for the streak and for last_checked: the cleanup asks for a
+        # check after the streak began, i.e. a second one.
+        now = datetime.now(timezone.utc)
+        record_check(channel, is_online, network_status, now, http=http)
 
         channel.is_online = is_online
         channel.network_status = network_status
-        channel.last_checked = datetime.now(timezone.utc)
-        # Only a confirmed source lookup can start/continue an offline streak.
-        # Imports, timeouts and checker outages cannot age a stream into deletion.
-        if is_online is False and network_status in ('found', 'not_found'):
-            if channel.offline_since is None or channel.offline_since > channel.last_checked:
-                channel.offline_since = channel.last_checked
-        else:
-            channel.offline_since = None
+        channel.last_checked = now
         channel.check_error = error
         if stream_stats is not None:
             channel.stream_stats = stream_stats
@@ -686,16 +673,17 @@ class ChannelRepository:
         self.db.refresh(channel)
         return channel
 
-    def mark_worked(self, channel_id: str, at: Optional[datetime] = None) -> bool:
-        """The relay played this source: it works, whatever the last check said."""
+    def record_viewing(self, channel_id: str, outcome: str, seconds: Optional[float],
+                       at: Optional[datetime] = None, *, final: bool = True) -> bool:
+        """The relay recorded a viewing: ``source_health.record_viewing`` decides what it means."""
         channel = (self.db.query(AcestreamChannel)
                    .filter(func.lower(AcestreamChannel.id) == channel_id.lower()).first())
         if channel is None:
             return False
-        from app.services.source_health import apply_worked
-        apply_worked(channel, at or datetime.now(timezone.utc))
+        from app.services.source_health import record_viewing
+        counted = record_viewing(channel, outcome, seconds, at or datetime.now(timezone.utc), final=final)
         self.db.commit()
-        return True
+        return counted
 
     def check_all_channels_status(self) -> int:
         """Check status for all active channels"""

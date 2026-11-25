@@ -68,7 +68,6 @@ def test_future_timestamp_does_not_outrank_verified_recent_source(db_session):
     tv = seed(db_session, [("a", True, NOW + timedelta(days=1), 100),
                            ("b", True, NOW - timedelta(minutes=1), 1)])
     service = TunerService(db_session)
-    assert service.online_stream_ids(tv.id) == ["b" * 40, "a" * 40]
     assert service.relay_stream_ids(tv.id) == ["b" * 40, "a" * 40]
 
 

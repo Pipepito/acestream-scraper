@@ -52,9 +52,6 @@ class AcestreamChannelService:
     def delete_channel(self, channel_id: str) -> bool:
         return self.repository.delete_channel(channel_id)
 
-    def check_channel_status(self, channel_id: str) -> Optional[AcestreamChannel]:
-        return self.repository.update_channel_status(channel_id=channel_id, is_online=True)
-
     def check_all_channels_status(self) -> int:
         return self.repository.check_all_channels_status()
 

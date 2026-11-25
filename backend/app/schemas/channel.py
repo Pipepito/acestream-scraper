@@ -65,7 +65,6 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     network_status: Optional[Literal["found", "not_found", "unknown"]] = Field(None, description="Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence")
     id_kind: Optional[Literal["id", "infohash"]] = Field(None, description="Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet")
     last_checked: Optional[datetime] = None
-    offline_since: Optional[datetime] = None
     check_error: Optional[str] = None
     stream_stats: Optional[StreamStats] = None
     audio_tracks: Optional[List[AudioTrack]] = Field(None, description="Audio tracks found at the last successful media probe; null means unknown")

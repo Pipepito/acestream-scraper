@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Iterable, List, Mapping, TypeVar
 
+from app.services.source_health import discarded
+
 T = TypeVar("T")
 
 
@@ -73,7 +75,8 @@ def relay_order(streams: Iterable, history: Mapping, now: datetime) -> List[str]
     must not keep the source that just played out of the relay for hours.
     It is tried with the never-checked ones. Within each group a source that
     played before goes first, then the higher bitrate; a demoted source goes
-    after every group, never dropped.
+    after every group, and a discarded one (``source_health.discarded``)
+    after the demoted; neither is dropped.
     """
     fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
     ranked = []
@@ -88,6 +91,8 @@ def relay_order(streams: Iterable, history: Mapping, now: datetime) -> List[str]
         past = history.get(stream.id.lower())
         if past is not None and past.demoted:
             bucket = 3
+        if discarded(stream, now):
+            bucket = 4
         score = past.score if past is not None else 0.5
         ranked.append((*preference_key(stream), bucket, -score, -(getattr(stream, "bitrate_bps", None) or 0),
                        stream.id.lower()))

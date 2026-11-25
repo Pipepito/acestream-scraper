@@ -123,7 +123,6 @@ class AcestreamChannel(Base):
     # after the engine has confirmed it. NULL means "not probed yet".
     id_kind = Column(String(16), nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
-    offline_since = Column(UtcDateTime(), nullable=True)
     # Sources are the assets, lists only where they were found (13-11): whether a
     # source is kept depends on whether it works, not on who still publishes it.
     # Last time a check brought media or a relay attempt played it.

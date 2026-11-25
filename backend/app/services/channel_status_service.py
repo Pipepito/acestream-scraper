@@ -18,18 +18,10 @@ from app.services.playback_ownership import release_session, source_ownership
 from app.services.stream_bitrate_service import probe_media
 from app.services.stream_stats import stream_stats_sample
 from app.services.probe_queue import ProbePriority, probe_queue
-from app.services.source_health import is_real_check
+from app.services.source_health import FUTURE_TOLERANCE
 from app.utils.engine_url import engine_base_url
 
 logger = logging.getLogger(__name__)
-
-
-
-# A check dated more than this into the future was written while the clock was
-# wrong: a box that boots with a date weeks ahead and corrects it minutes later
-# (seen 2026-09-27 and 2026-11-02) stamps its first checks in the future, and
-# those sources then counted as just checked until the real date caught up.
-FUTURE_CHECK_TOLERANCE = timedelta(minutes=5)
 
 
 # A source whose broadcaster has stopped still answers: the engine hands over
@@ -86,7 +78,7 @@ def _from_the_future(checked: Optional[datetime], now: datetime) -> bool:
         return False
     if checked.tzinfo is None:
         checked = checked.replace(tzinfo=timezone.utc)
-    return checked > now + FUTURE_CHECK_TOLERANCE
+    return checked > now + FUTURE_TOLERANCE
 
 
 def channels_in_check_order(db: Session, *, http_only: bool = False, now: Optional[datetime] = None) -> List[str]:
@@ -340,7 +332,7 @@ class ChannelStatusService:
             result.update(message=error, error=error)
             return result
         if persist:
-            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, verified=is_real_check(online, http=True))
+            await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, http=True)
         return {
             'channel_id': channel.id,
             'id_kind': channel.id_kind,
@@ -431,8 +423,7 @@ class ChannelStatusService:
         if persist:
             await run_database_write(self.channel_repository.update_channel_status, channel.id, online, error, bitrate_bps=media.get("bitrate_bps") if media else None,
                 audio_tracks=media.get("audio_tracks") if media else None, network_status=network_status,
-                stream_stats=observation or None, id_kind=id_kind,
-                verified=is_real_check(online, network_status))
+                stream_stats=observation or None, id_kind=id_kind)
         return {
             'channel_id': channel.id,
             'id_kind': id_kind or channel.id_kind,

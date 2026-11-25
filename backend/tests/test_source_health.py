@@ -3,13 +3,15 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.services.source_health import apply_check, apply_worked, discarded, due_for_check, is_real_check
+from app.services.source_health import apply_worked, discarded, due_for_check, is_real_check, record_check
 
 NOW = datetime(2026, 11, 13, 12, 0, tzinfo=timezone.utc)
 
 
 class Source:
-    def __init__(self, failed_checks=0, last_worked_at=None, failing_since=None):
+    def __init__(self, failed_checks=0, last_worked_at=None, failing_since=None,
+                 is_online=False, network_status='not_found', stream_url=None):
+        self.is_online, self.network_status, self.stream_url = is_online, network_status, stream_url
         self.failed_checks = failed_checks
         self.last_worked_at = last_worked_at
         self.failing_since = failing_since
@@ -30,9 +32,9 @@ def test_only_checks_that_reached_the_source_count(online, network_status, http,
 def test_failed_checks_add_up_and_one_with_media_resets_them():
     source = Source()
     for minute in range(3):
-        apply_check(source, False, NOW + timedelta(minutes=minute))
+        record_check(source, False, 'not_found', NOW + timedelta(minutes=minute))
     assert (source.failed_checks, source.failing_since) == (3, NOW)
-    apply_check(source, True, NOW + timedelta(hours=1))
+    record_check(source, True, 'found', NOW + timedelta(hours=1))
     assert (source.failed_checks, source.failing_since, source.last_worked_at) == (0, None, NOW + timedelta(hours=1))
 
 
@@ -99,6 +101,156 @@ def test_the_relay_order_is_a_pure_function_of_streams_history_and_now():
     history = {'c' * 40: SimpleNamespace(score=0.9, demoted=False),
                'f' * 40: SimpleNamespace(score=0.1, demoted=True)}
     assert relay_order(streams, history, NOW) == [k * 40 for k in 'gbacef']
+
+
+# --- one writer of facts ------------------------------------------------------
+
+@pytest.mark.parametrize('online, network_status, http, counted', [
+    (False, 'unknown', False, False),     # a timeout says nothing
+    (False, 'not_found', False, True),
+    (False, 'unknown', True, True),       # an HTTP check always counts
+])
+def test_record_check_decides_by_itself_whether_the_check_was_real(online, network_status, http, counted):
+    from app.services.source_health import record_check
+    source = Source()
+    assert record_check(source, online, network_status, NOW, http=http) is counted
+    assert source.failed_checks == (1 if counted else 0)
+    assert (source.failing_since is not None) is counted
+
+
+def test_record_check_with_media_marks_the_source_as_working():
+    from app.services.source_health import record_check
+    source = Source(failed_checks=4, failing_since=NOW - timedelta(days=3))
+    assert record_check(source, True, 'unknown', NOW) is True
+    assert (source.failed_checks, source.failing_since, source.last_worked_at) == (0, None, NOW)
+
+
+# --- removal (the cleanup asks the same module) ---------------------------------
+
+OFFLINE_DAYS = 14
+
+
+def _gone(days_failing, failed=5, worked_days_ago=None, **last_check):
+    return Source(failed_checks=failed, failing_since=NOW - timedelta(days=days_failing),
+                  last_worked_at=None if worked_days_ago is None else NOW - timedelta(days=worked_days_ago),
+                  **last_check)
+
+
+@pytest.mark.parametrize('source, removable_now', [
+    (_gone(14), True),                           # exactly offline_days
+    (_gone(13, ), False),                        # discarded but the streak is too young
+    (_gone(30, failed=4), False),                # not enough failed checks
+    (_gone(30, worked_days_ago=3), False),       # worked within the discard window
+    (_gone(30, worked_days_ago=8), True),
+    (Source(failed_checks=5), False),            # no streak start: unknown age
+    (_gone(30, network_status='unknown'), False),    # the last check was a timeout: says nothing
+    (_gone(30, network_status='found'), True),
+    (_gone(30, network_status='unknown', stream_url='https://example.com/a.m3u8'), True),   # HTTP always counts
+])
+def test_removable_is_discarded_with_a_streak_of_offline_days(source, removable_now):
+    from app.services.source_health import removable
+    assert removable(source, NOW, OFFLINE_DAYS) is removable_now
+
+
+def test_removable_python_and_sql_say_the_same(db_session):
+    from app.models.models import AcestreamChannel
+    from app.services.source_health import removable, removable_clause
+    cases = [(_gone(14), 1), (_gone(13), 2), (_gone(30, failed=4), 3), (_gone(30, worked_days_ago=3), 4),
+             (_gone(30, worked_days_ago=8), 5), (Source(failed_checks=5), 6),
+             (Source(failed_checks=9, failing_since=NOW + timedelta(days=30)), 7),
+             (Source(failed_checks=9, failing_since=NOW - timedelta(days=40),
+                     last_worked_at=NOW + timedelta(days=30)), 8),
+             (_gone(30, network_status='unknown'), 9),
+             (_gone(30, network_status=None), 'a'),
+             (_gone(30, network_status='unknown', stream_url='https://example.com/a.m3u8'), 'b')]
+    for source, n in cases:
+        db_session.add(AcestreamChannel(id=str(n) * 40, name=str(n), failed_checks=source.failed_checks,
+                                        failing_since=source.failing_since, last_worked_at=source.last_worked_at,
+                                        is_online=source.is_online, network_status=source.network_status,
+                                        stream_url=source.stream_url))
+    db_session.commit()
+    sql = {row.id for row in db_session.query(AcestreamChannel).filter(removable_clause(NOW, OFFLINE_DAYS))}
+    python = {row.id for row in db_session.query(AcestreamChannel).all() if removable(row, NOW, OFFLINE_DAYS)}
+    assert sql == python == {'1' * 40, '5' * 40, 'b' * 40}
+
+
+def test_the_relay_puts_discarded_sources_after_the_degraded_ones():
+    from types import SimpleNamespace
+
+    from app.services.stream_ranking import relay_order
+
+    def row(key, **extra):
+        values = dict(id=key * 40, is_online=None, stream_order=None, bitrate_bps=0, last_checked=None,
+                      failed_checks=0, failing_since=None, last_worked_at=None)
+        return SimpleNamespace(**{**values, **extra})
+    gone = row('a', failed_checks=5, failing_since=NOW - timedelta(days=30), bitrate_bps=99_000_000)
+    degraded = row('b')
+    fine = row('c')
+    history = {'b' * 40: SimpleNamespace(score=0.1, demoted=True)}
+    assert relay_order([gone, degraded, fine], history, NOW) == ['c' * 40, 'b' * 40, 'a' * 40]
+
+
+def test_a_discarded_source_that_is_also_demoted_stays_last_and_is_not_dropped():
+    from types import SimpleNamespace
+
+    from app.services.stream_ranking import relay_order
+    gone = SimpleNamespace(id='a' * 40, is_online=None, stream_order=None, bitrate_bps=0, last_checked=None,
+                           failed_checks=5, failing_since=NOW - timedelta(days=30), last_worked_at=None)
+    assert relay_order([gone], {'a' * 40: SimpleNamespace(score=0.0, demoted=True)}, NOW) == ['a' * 40]
+
+
+def test_a_check_dated_in_the_future_never_counts_as_fresh_for_the_relay():
+    """The relay's freshness window has no clock tolerance: an offline check 3 minutes ahead is not
+    "recent", so the source is still tried."""
+    from types import SimpleNamespace
+
+    from app.services.stream_ranking import relay_order
+    ahead = SimpleNamespace(id='a' * 40, is_online=False, stream_order=None, bitrate_bps=0,
+                            last_checked=NOW + timedelta(minutes=3), failed_checks=0, failing_since=None,
+                            last_worked_at=None)
+    assert relay_order([ahead], {}, NOW) == ['a' * 40]
+
+
+# --- viewings ------------------------------------------------------------------
+
+@pytest.mark.parametrize('outcome, seconds, worked, failed', [
+    ('ok', 120, True, 0),
+    ('ok', 119.9, False, 5),
+    ('ended', 120, True, 1),
+    ('stall', 600, True, 1),
+    ('ended', 30, False, 5),
+    ('jumpy', 3600, False, 5),
+    ('handover', 3600, False, 5),
+    ('no_data', 600, False, 5),
+    ('ok', None, False, 5),
+])
+def test_a_viewing_of_two_minutes_counts_and_a_cut_source_counts_as_one_failure(outcome, seconds, worked, failed):
+    from app.services.source_health import record_viewing
+    source = Source(failed_checks=5, failing_since=NOW - timedelta(days=30))
+    at = NOW + timedelta(hours=1)
+    assert record_viewing(source, outcome, seconds, at) is worked
+    assert (source.last_worked_at == at) is worked
+    assert source.failed_checks == failed
+    assert source.failing_since == (at if failed == 1 else None if failed == 0 else NOW - timedelta(days=30))
+
+
+def test_a_viewing_that_worked_and_was_cut_is_not_discarded():
+    from app.services.source_health import record_viewing
+    source = Source(failed_checks=9, failing_since=NOW - timedelta(days=30))
+    record_viewing(source, 'stall', 300, NOW)
+    assert not discarded(source, NOW + timedelta(days=30))
+
+
+def test_only_the_final_record_of_a_viewing_adds_the_failure():
+    from app.services.source_health import record_viewing
+    source = Source(failed_checks=0)
+    for seconds in (30, 60, 120):
+        record_viewing(source, 'ok', seconds, NOW, final=False)
+    assert (source.failed_checks, source.last_worked_at) == (0, NOW)
+    record_viewing(source, 'ended', 300, NOW, final=False)      # never sent today, but it must not count
+    assert source.failed_checks == 0
+    record_viewing(source, 'stall', 150, NOW, final=True)
+    assert (source.failed_checks, source.failing_since) == (1, NOW)
 
 
 def test_a_recent_viewing_outweighs_a_recent_offline_check_in_the_relay_order():

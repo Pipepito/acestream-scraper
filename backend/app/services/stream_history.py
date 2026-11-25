@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, Iterable, Optional
 
-from app.services.source_health import WORKED_OUTCOMES, discarded
+from app.services.source_health import FUTURE_TOLERANCE, discarded, viewing_counts
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +51,8 @@ BAD_EVIDENCE = 2.0
 BAD_SCORE = 0.25
 PRUNE_EVERY = 500
 # A row written with a clock that ran ahead (a box switched on before its clock
-# synchronised) says nothing reliable about when it happened: it is ignored
-# instead of counting as the most recent attempt.
-FUTURE_TOLERANCE = timedelta(minutes=5)
+# synchronised) is ignored instead of counting as the most recent attempt
+# (``source_health.FUTURE_TOLERANCE``).
 # An attempt that played counts as more evidence the longer it played: one more
 # attempt's worth per PLAYED_SECONDS_PER_ATTEMPT, up to MAX_PLAYED_WEIGHT.
 PLAYED_SECONDS_PER_ATTEMPT = 1800.0
@@ -90,6 +89,11 @@ def _aware(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
+def bad_history(score: float, evidence: float) -> bool:
+    """Its own recent playback is clearly bad."""
+    return evidence >= BAD_EVIDENCE and score < BAD_SCORE
+
+
 def score_sources(streams: Iterable, attempts, list_health: Dict[str, tuple[int, int]],
                   now: datetime) -> Dict[str, SourceScore]:
     """Pure ranking: ``streams`` are rows with ``id``, ``source_url`` and
@@ -118,9 +122,9 @@ def score_sources(streams: Iterable, attempts, list_health: Dict[str, tuple[int,
         # protects the source.
         stale = (last_seen is not None and _aware(last_seen) <= now + FUTURE_TOLERANCE
                  and now - _aware(last_seen) > timedelta(days=STALE_DAYS))
-        bad_history = evidence >= BAD_EVIDENCE and score < BAD_SCORE
+        bad = bad_history(score, evidence)
         dead_list = (evidence == 0.0 and size >= DEAD_LIST_MIN_SOURCES and online / size < DEAD_LIST_SHARE)
-        scores[cid] = SourceScore(score=score, evidence=evidence, demoted=stale or bad_history or dead_list)
+        scores[cid] = SourceScore(score=score, evidence=evidence, demoted=stale or bad or dead_list)
     return scores
 
 
@@ -149,7 +153,7 @@ def unusable_ids(db, streams, now: Optional[datetime] = None) -> set[str]:
     for stream in streams:
         cid = stream.id.lower()
         past = scores.get(cid)
-        bad = past is not None and past.evidence >= BAD_EVIDENCE and past.score < BAD_SCORE
+        bad = past is not None and bad_history(past.score, past.evidence)
         if bad or discarded(stream, now):
             unusable.add(cid)
     return unusable
@@ -200,10 +204,10 @@ class StreamHistoryRecorder:
                 db = self._session_factory()
                 try:
                     repo = StreamAttemptRepository(db)
-                    if outcome in WORKED_OUTCOMES:
+                    if viewing_counts(outcome, seconds):
                         # Sources are kept for working, not for being published.
                         from app.repositories.channel_repository import ChannelRepository
-                        ChannelRepository(db).mark_worked(content_id, at)
+                        ChannelRepository(db).record_viewing(content_id, outcome, seconds, at, final=final)
                     row_id = self._rows.pop(attempt, None) if final else self._rows.get(attempt)
                     if row_id is not None and repo.update(row_id, outcome, seconds=seconds) is not None:
                         continue

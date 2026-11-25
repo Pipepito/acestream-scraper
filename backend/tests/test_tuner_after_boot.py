@@ -73,6 +73,5 @@ def test_manual_preferences_override_automatic_ranking_but_keep_safety_filters(d
     db_session.commit()
     service = TunerService(db_session)
     assert service.relay_stream_ids(tv.id) == ['b' * 40, 'a' * 40]
-    assert service.online_stream_ids(tv.id) == ['b' * 40, 'a' * 40]
     playback.record_source_failure('b' * 40)
     assert playback.prefer_recovered_sources(service.relay_stream_ids(tv.id)) == ['a' * 40, 'b' * 40]

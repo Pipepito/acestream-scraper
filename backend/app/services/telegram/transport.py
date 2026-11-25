@@ -143,6 +143,35 @@ class Transport:
         # crowded out by other topics. General (1) has no thread: it stays chat-wide.
         return {'reply_to': topic_id} if topic_id and topic_id != 1 else {}
 
+    async def channel_state(self, entity: Any) -> int | None:
+        """The channel's update counter (pts); None for a chat that has none of its own."""
+        if not isinstance(entity, types.Channel):
+            return None
+        return (await self.client(functions.channels.GetFullChannelRequest(entity))).full_chat.pts
+
+    async def changes(self, entity: Any, pts: int) -> tuple[int | None, set[int], bool]:
+        """(counter now, IDs created, edited or deleted since ``pts``, too many to list).
+
+        One request per hundred changes instead of rereading every retained message.
+        """
+        changed: set[int] = set()
+        for _ in range(5):
+            diff = await self.client(functions.updates.GetChannelDifferenceRequest(
+                channel=entity, filter=types.ChannelMessagesFilterEmpty(), pts=pts, limit=100, force=True))
+            if isinstance(diff, types.updates.ChannelDifferenceTooLong):
+                return getattr(diff.dialog, 'pts', None), changed, True
+            if isinstance(diff, types.updates.ChannelDifference):
+                changed.update(m.id for m in diff.new_messages)
+                for update in diff.other_updates:
+                    if isinstance(update, (types.UpdateEditChannelMessage, types.UpdateEditMessage)):
+                        changed.add(update.message.id)
+                    elif isinstance(update, (types.UpdateDeleteChannelMessages, types.UpdateDeleteMessages)):
+                        changed.update(update.messages)
+            pts = diff.pts
+            if diff.final or isinstance(diff, types.updates.ChannelDifferenceEmpty):
+                return pts, changed, False
+        return pts, changed, True
+
     async def recent(self, entity: Any, limit: int, topic_id: int | None = None) -> list[Any]:
         return [message async for message in self.client.iter_messages(entity, limit=limit, **self._thread(topic_id))]
 

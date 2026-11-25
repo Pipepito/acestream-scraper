@@ -23,6 +23,7 @@ from typing import Callable, Dict, Optional
 import requests
 
 from app.config.settings import settings
+from app.utils.engine_url import ENGINE_VERSION_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -154,11 +155,11 @@ class SystemServicesService:
         return ProbeResult(False, f"{url} answered HTTP {response.status_code}")
 
     def _probe_engine(self, base_url: str) -> ProbeResult:
-        result = self._probe_http(f"{base_url}/webui/api/service?method=get_version")
+        result = self._probe_http(f"{base_url}{ENGINE_VERSION_PATH}")
         if not result.ok:
             return result
         try:
-            payload = self._get(f"{base_url}/webui/api/service?method=get_version").json()
+            payload = self._get(f"{base_url}{ENGINE_VERSION_PATH}").json()
             info = payload.get("result") or {}
             version = info.get("version")
             platform = info.get("platform")

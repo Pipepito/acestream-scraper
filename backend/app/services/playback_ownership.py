@@ -9,7 +9,7 @@ from __future__ import annotations
 from _thread import RLock
 from dataclasses import dataclass, field
 from threading import Lock, Timer
-from typing import Optional
+from typing import Callable, Optional
 from weakref import WeakSet, WeakValueDictionary
 
 import httpx
@@ -50,3 +50,25 @@ def source_ownership(engine_url: str, content_id: str) -> SourceOwnership:
             source = SourceOwnership()
             _sources[key] = source
         return source
+
+
+def release_session(source: SourceOwnership, session, stop: Callable[[], None],
+                    lease: Optional[PlaybackLease] = None) -> None:
+    """Give a direct-engine session back to its source.
+
+    Under the source lock that also serializes starts: ``lease`` is released
+    exactly once; while any other lease still plays the source, the session is
+    parked and stopped with the source's final stop (a stop with any PID can
+    end the session being watched). Otherwise ``stop`` runs, still under the
+    lock, and decides how the source ends.
+    """
+    with source.lock:
+        if lease is not None:
+            if lease.released:
+                return
+            lease.released = True
+            source.leases.discard(lease)
+        if source.leases:
+            source.parked.append(session)
+            return
+        stop()

@@ -21,8 +21,8 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.repositories.settings_repository import SettingsRepository
 from app.schemas.config import PlaybackRouting
-from app.services.playback_ownership import PlaybackLease, source_ownership
-from app.utils.engine_url import engine_base_url
+from app.services.playback_ownership import PlaybackLease, release_session, source_ownership
+from app.utils.engine_url import ENGINE_API_PATH, ENGINE_START_PATH, engine_base_url
 from app.utils.stream_kind import is_acestream_id
 
 logger = logging.getLogger(__name__)
@@ -160,7 +160,7 @@ class EngineClient:
             raise EngineUnavailableError("Content ID resolution requires an AceStream engine")
         try:
             response = self._client.get(
-                f"{self.engine_url}/server/api",
+                f"{self.engine_url}{ENGINE_API_PATH}",
                 params={"api_version": 3, "method": "get_content_id", "infohash": infohash.lower()},
                 timeout=START_TIMEOUT,
             )
@@ -180,7 +180,7 @@ class EngineClient:
         if self.use_acexy:
             # Acexy owns multiplexing and engine sessions. Reading/closing this
             # stream is its lifecycle; never send JSON/start/stop or a PID.
-            url = str(httpx.URL(f"{self.engine_url}/ace/getstream", params={"id": content_id}))
+            url = str(httpx.URL(f"{self.engine_url}{ENGINE_START_PATH}", params={"id": content_id}))
             return EngineSession(content_id, "", url, "", "", True, managed_by_acexy=True)
         source = source_ownership(self.engine_url, content_id)
         remaining = _remaining_start_seconds(startup_deadline)
@@ -214,7 +214,7 @@ class EngineClient:
     def _start_direct(self, content_id: str, pid: str, lease: PlaybackLease, startup_deadline: Optional[float]) -> EngineSession:
         remaining = _remaining_start_seconds(startup_deadline)
         body = self._get_json(
-            f"{self.engine_url}/ace/getstream",
+            f"{self.engine_url}{ENGINE_START_PATH}",
             params={"id": content_id, "pid": pid, "format": "json"},
             timeout=httpx.Timeout(remaining, connect=min(START_TIMEOUT.connect, remaining)),
         )
@@ -245,20 +245,12 @@ class EngineClient:
             # Compatibility for injected clients / pre-existing session handles.
             self._stop_direct(session)
             return
-        lease = session.lease
-        source = lease.source
-        with source.lock:
-            if lease.released:
-                return
-            lease.released = True
-            source.leases.discard(lease)
-            if source.leases:
-                # Another client still plays this source: its session stays
-                # until then, and is stopped with the source's final stop.
-                # Dropped here, it was never stopped at all (Kodi's two GETs
-                # overlapping).
-                source.parked.append(session)
-                return
+        source = session.lease.source
+
+        def final_stop() -> None:
+            # Last lease of the source (another client's session is parked
+            # by release_session and stopped here; dropped, it was never
+            # stopped at all: Kodi's two GETs overlapping).
             if linger_seconds <= 0:
                 self._stop_direct(session)
                 _stop_parked(source, self._client)
@@ -267,6 +259,8 @@ class EngineClient:
             timer.daemon = True
             source.pending_stop = timer
             timer.start()
+
+        release_session(source, session, final_stop, lease=session.lease)
 
     def _stop_direct(self, session: EngineSession) -> None:
         _send_stop(self._client, session)

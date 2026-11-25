@@ -6,7 +6,7 @@ import threading
 import time
 import httpx
 
-from app.utils.engine_url import engine_base_url
+from app.utils.engine_url import ENGINE_API_PATH, engine_base_url
 from app.utils.stream_kind import is_acestream_id
 
 PAGE_SIZE = 100
@@ -137,7 +137,7 @@ class SearchCatalogueClient:
                 ENGINE_SLOTS.release()
 
     def resolve(self, infohash):
-        payload = self.get('/server/api', {'api_version': 3, 'method': 'get_content_id', 'infohash': infohash})
+        payload = self.get(ENGINE_API_PATH, {'api_version': 3, 'method': 'get_content_id', 'infohash': infohash})
         result = payload.get('result') if isinstance(payload, dict) and not payload.get('error') else None
         cid = result.get('content_id') if isinstance(result, dict) else None
         if not isinstance(cid, str) or not is_acestream_id(cid):

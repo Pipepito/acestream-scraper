@@ -6,6 +6,7 @@ import pytest
 from app.models.models import AcestreamChannel
 from app.services.channel_status_service import ChannelStatusService
 from app.services.stream_stats import stream_stats_sample
+from fake_probe_engine import FakeProbeEngine
 
 
 @pytest.mark.parametrize('value', [None, True, False, '12', -1, float('nan'), float('inf'), {}, 10**400])
@@ -44,6 +45,16 @@ def test_migration_preserves_rows_and_fresh_schema(tmp_path):
     engine.dispose()
 
 
+
+def use_engine(db_session, monkeypatch, timeout='10'):
+    from app.config.settings import settings
+    from app.repositories.settings_repository import SettingsRepository
+    monkeypatch.setattr(settings, 'ACE_CHECK_ENGINE_URL', '')
+    repo = SettingsRepository(db_session)
+    repo.set_setting(repo.ACE_ENGINE_URL, 'http://engine:6878')
+    repo.set_setting(repo.ACESTREAM_CHECK_TIMEOUT, timeout)
+
+
 @pytest.mark.asyncio
 async def test_probe_persists_atomic_latest_sample_and_api_exposes_it(db_session, client, monkeypatch):
     from app.repositories.channel_repository import ChannelRepository
@@ -54,15 +65,13 @@ async def test_probe_persists_atomic_latest_sample_and_api_exposes_it(db_session
     channel = AcestreamChannel(id='a' * 40, name='Stats stream')
     db_session.add(channel)
     db_session.commit()
-    service = ChannelStatusService(db_session)
-    service._get_engine_url = lambda: 'http://engine:6878'
-    service._engine_ready = AsyncMock(return_value=True)
-    service._fetch_engine_response = AsyncMock(side_effect=[
-        (200, {'response': {'stat_url': '/ace/stat/a/b', 'command_url': '/ace/cmd/a/b', 'playback_url': '/ace/r/a/b'}}, None),
-        (200, {'response': {'status': 'dl', 'downloaded': 100, 'peers': 12, 'speed_down': 900, 'speed_up': 10}}, None),
-        (200, {'response': {'status': 'dl', 'downloaded': 100 + 5 * 1024 * 1024, 'peers': 0, 'speed_down': 0}}, None),
-        (200, {'response': 'ok'}, None),
-    ])
+    use_engine(db_session, monkeypatch)
+    service = ChannelStatusService(db_session, probe_engine=FakeProbeEngine(
+        start=(200, {'response': {'stat_url': '/ace/stat/a/b', 'command_url': '/ace/cmd/a/b', 'playback_url': '/ace/r/a/b'}}),
+        stats=[
+            (200, {'response': {'status': 'dl', 'downloaded': 100, 'peers': 12, 'speed_down': 900, 'speed_up': 10}}),
+            (200, {'response': {'status': 'dl', 'downloaded': 100 + 5 * 1024 * 1024, 'peers': 0, 'speed_down': 0}}),
+        ]))
     result = await service.check_channel_status(channel)
     db_session.refresh(channel)
     assert channel.stream_stats == result['stream_stats']
@@ -77,7 +86,10 @@ async def test_probe_persists_atomic_latest_sample_and_api_exposes_it(db_session
     previous = dict(channel.stream_stats)
     ChannelRepository(db_session).update_channel_status(channel.id, False, 'No sample')
     assert channel.stream_stats == previous  # its original age remains visible
-    service._wait_for_engine = AsyncMock(return_value=False)
+    service.probe_engine = FakeProbeEngine(ready=False)
+    # Each reading of the clock is a minute later: the wait gives up at once.
+    ticks = iter(range(0, 10_000, 61))
+    monkeypatch.setattr('app.services.channel_status_service._clock', lambda: next(ticks))
     skipped = await service.check_channel_status(channel, persist=False)
     assert skipped['status'] == 'skipped'
     assert skipped['stream_stats'] == previous
@@ -86,17 +98,12 @@ async def test_probe_persists_atomic_latest_sample_and_api_exposes_it(db_session
 
 
 @pytest.mark.asyncio
-async def test_peers_without_transfer_are_sampled_but_not_online(db_session):
+async def test_peers_without_transfer_are_sampled_but_not_online(db_session, monkeypatch):
     channel = AcestreamChannel(id='b' * 40, name='No transfer')
-    service = ChannelStatusService(db_session)
-    service._get_engine_url = lambda: 'http://engine:6878'
-    service._engine_ready = AsyncMock(return_value=True)
-    service._get_timeout = lambda: 0.01
-    async def fetch(url, params, timeout):
-        if '/getstream' in url:
-            return 200, {'response': {'stat_url': '/ace/stat/a/b', 'command_url': '/ace/cmd/a/b'}}, None
-        return 200, {'response': {'status': 'dl', 'downloaded': 100, 'peers': 10, 'speed_down': 0}}, None
-    service._fetch_engine_response = fetch
+    use_engine(db_session, monkeypatch, timeout='0.01')
+    service = ChannelStatusService(db_session, probe_engine=FakeProbeEngine(
+        start=(200, {'response': {'stat_url': '/ace/stat/a/b', 'command_url': '/ace/cmd/a/b'}}),
+        stats=(200, {'response': {'status': 'dl', 'downloaded': 100, 'peers': 10, 'speed_down': 0}})))
     result = await service._check_channel_status(channel, persist=False)
     assert result['is_online'] is False
     assert result['stream_stats']['peers'] == 10

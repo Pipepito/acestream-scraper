@@ -3,7 +3,9 @@ import os
 import requests
 from typing import Dict, Any
 from app.config.settings import settings
-from app.utils.engine_url import engine_base_url
+from app.utils.engine_url import (
+    ENGINE_API_PATH, ENGINE_NETWORK_STATUS_QUERY, ENGINE_STATUS_QUERY, ENGINE_VERSION_PATH, engine_base_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +52,8 @@ class AcestreamStatusService:
             return {"enabled": False, "is_internal": False, "engine_url": "", "available": False,
                     "message": "No playback engine configured. An engine is optional."}
         try:
-            status_url = f"{self.engine_url}/server/api?api_version=3&method=get_status"
-            network_url = f"{self.engine_url}/server/api?api_version=3&method=get_network_connection_status"
+            status_url = f"{self.engine_url}{ENGINE_API_PATH}?{ENGINE_STATUS_QUERY}"
+            network_url = f"{self.engine_url}{ENGINE_API_PATH}?{ENGINE_NETWORK_STATUS_QUERY}"
             timeout = self._get_timeout()
             status_response = self._probe(status_url, timeout)
             network_response = self._probe(network_url, timeout)
@@ -62,7 +64,7 @@ class AcestreamStatusService:
                 version = status.get('version') or {}
                 if not version and isinstance(status.get('active_sessions'), int):
                     # Outpace exposes version information separately from session counts.
-                    info = self._probe(f"{self.engine_url}/webui/api/service?method=get_version", timeout)
+                    info = self._probe(f"{self.engine_url}{ENGINE_VERSION_PATH}", timeout)
                     if info.ok:
                         version = info.json().get('result') or {}
                 engine_version = version.get('version', 'Unknown')

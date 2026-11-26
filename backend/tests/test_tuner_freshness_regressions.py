@@ -84,12 +84,12 @@ def test_recent_unknown_remains_eligible_but_inactive_invalid_and_duplicates_do_
 
 
 def test_recent_relay_failure_still_overrides_freshness(alembic_db_session):
-    from app.api.endpoints.tuner import _channel_candidates
+    from app.services.channel_session import relay_candidates
     from app.services.tuner_playback_service import record_source_failure
     tv = seed(alembic_db_session, [("a", True, NOW, 100),
                                    ("b", True, NOW - timedelta(days=1), 1)])
     record_source_failure("a" * 40)
-    assert _channel_candidates(tv.id) == ["b" * 40, "a" * 40]
+    assert relay_candidates(tv.id) == ["b" * 40, "a" * 40]
 
 
 @pytest.mark.parametrize("all_recent_offline", [False, True])

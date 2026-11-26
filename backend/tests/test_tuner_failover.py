@@ -24,7 +24,7 @@ def remux_test_transport(monkeypatch):
         finally:
             await source.aclose()
     monkeypatch.setattr('app.services.tuner_playback_service.remux_source', identity)
-    monkeypatch.setattr('app.api.endpoints.tuner.ffmpeg_binary', lambda: '/test/ffmpeg')
+    monkeypatch.setattr('app.services.channel_session.ffmpeg_binary', lambda: '/test/ffmpeg')
 
 
 async def collect_until_exhausted(iterator):
@@ -256,60 +256,41 @@ async def test_refresh_wait_stays_inside_startup_budget(monkeypatch):
     assert registry.count_active() == 0
 
 
-def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_client, alembic_db_session, monkeypatch):
-    from app.api.endpoints import tuner
+@pytest.mark.asyncio
+async def test_channel_get_starts_quiet_refresh_and_recovers_offline_source(alembic_db_session):
+    from types import SimpleNamespace
     from app.config.database import SessionLocal
     from app.models.models import AcestreamChannel, TVChannel
-    from app.services.tuner_network import get_tuner_gate
-    from app.services.stream_relay import relay_registry
-    from app.config.settings import get_settings
-    monkeypatch.setenv('TUNER_ALLOWED_NETWORKS', '*')
-    get_settings.cache_clear()
-    get_tuner_gate.cache_clear()
-    try:
-        tv = TVChannel(name='Recoverable', is_active=True)
-        alembic_db_session.add(tv)
-        alembic_db_session.flush()
-        cid = 'b' * 40
-        alembic_db_session.add(AcestreamChannel(id=cid, name='Backup', tv_channel_id=tv.id,
-                                              is_active=True, is_online=False))
-        alembic_db_session.commit()
-        def refresh(channel_id):
-            assert channel_id == tv.id
-            with SessionLocal() as db:
-                db.get(AcestreamChannel, cid).is_online = True
-                db.commit()
-            return None
-        start = Mock(side_effect=refresh)
-        monkeypatch.setattr(tuner.tuner_probe_service, 'start', start)
-        engine = Mock()
-        monkeypatch.setattr(tuner, '_engine', lambda: engine)
-        async def relay(_engine, content_id, *args, **kwargs):
-            assert content_id == cid
-            yield b'recovered video'
-        async def ranked(_engine, _ids, _label, claim, *, candidate_provider, **kwargs):
-            # Releases its tuner slot like the real relay's finally: a claim
-            # left open is «someone watching» for every later test.
-            try:
-                candidates, _ = await candidate_provider()
-                assert candidates == [cid]
-                yield b'recovered video'
-                engine.close()
-            finally:
-                relay_registry.close(claim.id)
-        monkeypatch.setattr(tuner, 'relay_ranked_streams', ranked)
-        url = f'/tuner/channel/{tv.id}.ts'
-        assert alembic_client.head(url).status_code == 200
-        start.assert_not_called()
-        response = alembic_client.get(url)
-        assert response.status_code == 200
-        assert response.content == b'recovered video'
-        start.assert_called_once_with(tv.id)
-        engine.close.assert_called_once()
-    finally:
-        monkeypatch.undo()
-        get_settings.cache_clear()
-        get_tuner_gate.cache_clear()
+    from app.services.channel_session import ChannelSession, relay_candidates
+    from fake_source_reader import FakeReader, environment
+    tv = TVChannel(name='Recoverable', is_active=True)
+    alembic_db_session.add(tv)
+    alembic_db_session.flush()
+    cid = 'b' * 40
+    alembic_db_session.add(AcestreamChannel(id=cid, name='Backup', tv_channel_id=tv.id,
+                                          is_active=True, is_online=False))
+    alembic_db_session.commit()
+
+    def refresh(channel_id):
+        assert channel_id == tv.id
+        with SessionLocal() as db:
+            db.get(AcestreamChannel, cid).is_online = True
+            db.commit()
+        return None
+    start = Mock(side_effect=refresh)
+    registry = RelayRegistry()
+    reader = FakeReader({cid: [b'recovered video', 10]})
+    session = ChannelSession(tv.id, '127.0.0.1', environment(
+        reader, candidates=relay_candidates, registry=registry,
+        probes=SimpleNamespace(start=start, stop_channel=Mock())))
+    await session.check()                     # what a HEAD does
+    start.assert_not_called()
+    stream = await session.start()
+    assert await anext(stream) == b'recovered video'
+    start.assert_called_once_with(tv.id)
+    await stream.aclose()
+    assert reader.opened == [cid] and reader.closed
+    assert registry.count_active() == 0
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('ending', ['eof', 'stalled'])
@@ -356,35 +337,25 @@ async def test_long_lived_source_gets_new_recovery_budget(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_channel_monitor_repeats_only_while_response_is_open(monkeypatch):
-    from starlette.requests import Request
-    from app.api.endpoints import tuner
+    from types import SimpleNamespace
+    from app.services import channel_session
+    from fake_source_reader import FakeReader, environment
     registry = RelayRegistry()
-    monkeypatch.setattr(tuner, 'relay_registry', registry)
-    monkeypatch.setattr(tuner, '_channel_candidates', lambda *args, **kwargs: ['one'])
-    monkeypatch.setattr(tuner, '_tuner_count', lambda: 1)
-    engine = Mock()
-    monkeypatch.setattr(tuner, '_engine', lambda: engine)
-    monkeypatch.setattr(tuner, 'SOURCE_REFRESH_SECONDS', .01)
+    monkeypatch.setattr(channel_session, 'SOURCE_REFRESH_SECONDS', .01)
     refresh = Mock(return_value=None)
-    monkeypatch.setattr(tuner.tuner_probe_service, 'start', refresh)
-    async def relay(_engine, _candidates, _label, claim, **kwargs):
-        try:
-            yield b'video'
-            await asyncio.Event().wait()
-        finally:
-            registry.close(claim.id)
-            engine.close()
-    monkeypatch.setattr(tuner, 'relay_ranked_streams', relay)
-    response = await tuner.tuner_channel(1, Request({'type': 'http', 'method': 'GET', 'client': ('127.0.0.1', 1)}))
-    assert await anext(response.body_iterator) == b'video'
+    reader = FakeReader({'one': [b'video', 10]})
+    stream = await channel_session.ChannelSession(1, '127.0.0.1', environment(
+        reader, candidates=['one'], registry=registry, budget_seconds=30,
+        probes=SimpleNamespace(start=refresh, stop_channel=Mock()))).start()
+    assert await anext(stream) == b'video'
     await asyncio.sleep(.03)
     assert refresh.call_count >= 2
-    await response.body_iterator.aclose()
+    await stream.aclose()
     calls = refresh.call_count
     await asyncio.sleep(.03)
     assert refresh.call_count == calls
     assert registry.count_active() == 0
-    engine.close.assert_called_once()
+    assert reader.closed
 
 
 @pytest.mark.asyncio

@@ -174,6 +174,19 @@ async def test_start_timeout_retries_once_with_the_same_pid(db_session, media, m
 
 
 @pytest.mark.asyncio
+async def test_a_session_opened_by_two_timed_out_starts_is_asked_for_again_and_stopped(db_session, media, monkeypatch):
+    async with FakeEngine() as engine:
+        engine.start = [1.0, 1.0, engine.session('late')]
+        await service(db_session, engine.url, timeout='0.2', monkeypatch=monkeypatch).check_channel_status(
+            channel(), persist=False)
+
+    starts = [query for path, query in engine.requests if path == '/ace/getstream']
+    assert len(starts) == 3
+    assert starts[0] == starts[1] == starts[2]
+    assert any(path == f'/ace/cmd/{CID}/late' for path in engine.paths())
+
+
+@pytest.mark.asyncio
 async def test_engine_waking_up_is_waited_for(db_session, media, monkeypatch):
     async with FakeEngine() as engine:
         engine.status = [503, {'result': {}}]

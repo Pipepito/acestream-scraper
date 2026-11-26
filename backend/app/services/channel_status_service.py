@@ -235,6 +235,25 @@ class ChannelStatusService:
 
         release_session(source_ownership(engine.engine_url, session.content_id), handle, stop)
 
+    async def _reclaim(self, engine: ProbeEngine, content_id: str, identifier: str, pid: str, timeout: float) -> None:
+        """Give back a session the check opened but never heard about.
+
+        The engine creates the session even when the start request times out,
+        and keeps it downloading with no reader until it gives up on it.
+        Asking again with the same PID returns that session at once, so it is
+        given back like any other (and ignored if there is none to return).
+        """
+        try:
+            start = await engine.open_probe(content_id, identifier, pid, timeout)
+        except Exception:
+            logger.warning('Could not reclaim an unanswered probe session channel_id=%s', content_id)
+            return
+        if start.session is not None and start.session.command_url:
+            try:
+                await asyncio.to_thread(self._give_back, engine, start.session)
+            except Exception:
+                logger.warning('Could not stop channel status probe session')
+
     def _recording_reserved(self):
         from app.services.recording_coordinator import recording_coordinator
         from app.services.check_engine_config_service import CheckEngineConfigService
@@ -381,15 +400,23 @@ class ChannelStatusService:
                 return self._skipped_result(channel)
             pid = uuid4().hex
             timeout = self._get_timeout()
+            # A start the check got no usable answer to may still have opened a
+            # session, which nobody would stop.
+            unanswered = True
             try:
-                start = await engine.open_probe(channel.id, identifier, pid, timeout)
-            except asyncio.TimeoutError:
-                logger.warning('Channel probe start timed out; retrying once channel_id=%s', channel.id)
-                if not await self._wait_for_engine(engine):
-                    return self._engine_unavailable_result(channel)
-                if self._in_use(channel.id):
-                    return self._skipped_result(channel)
-                start = await engine.open_probe(channel.id, identifier, pid, timeout * 2)
+                try:
+                    start = await engine.open_probe(channel.id, identifier, pid, timeout)
+                except asyncio.TimeoutError:
+                    logger.warning('Channel probe start timed out; retrying once channel_id=%s', channel.id)
+                    if not await self._wait_for_engine(engine):
+                        return self._engine_unavailable_result(channel)
+                    if self._in_use(channel.id):
+                        return self._skipped_result(channel)
+                    start = await engine.open_probe(channel.id, identifier, pid, timeout * 2)
+                unanswered = start.http_status == 200 and not start.readable
+            finally:
+                if unanswered:
+                    await self._reclaim(engine, channel.id, identifier, pid, timeout)
             if start.readable:
                 error_text = str(start.error or '').strip().lower()
                 if error_text in {'not found', 'content not found', 'content id not found', 'unknown content id'}:

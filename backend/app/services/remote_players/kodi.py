@@ -67,7 +67,7 @@ class KodiDriver:
             props = self._rpc("Application.GetProperties", {"properties": ["version"]}) or {}
         except PlayerAuthError as exc:
             return PlayerProbe(
-                reachable=True, authenticated=False, version=None, message=str(exc), hint=str(exc)
+                reachable=True, authenticated=False, version=None, message=str(exc), hint=str(exc), reason=exc.kind
             )
         version = props.get("version") or {}
         version_text = f"{version.get('major')}.{version.get('minor')}" if version else None

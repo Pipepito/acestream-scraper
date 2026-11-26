@@ -331,6 +331,7 @@ def test_open_mode_env_enforces_home_gate(access_client, monkeypatch):
         capabilities = remote.get('/api/v1/cast/capabilities').json()
         assert capabilities['server_devices'] is False
         assert capabilities['home_check'] == 'deployment'
+        assert capabilities['error_code'] == 'CAST_HOME_REQUIRED'
         assert remote.get('/api/v1/cast/devices').status_code == 403
         assert remote.get('/api/v1/cast/settings').status_code == 403
     finally:
@@ -508,3 +509,33 @@ def test_docker_lan_needs_no_browser_approval_and_discovers_server_lan(access_cl
         assert client.get('/api/v1/cast/capabilities').json()['server_devices'] is True
     finally:
         client.close()
+
+
+def test_account_errors_have_stable_codes_without_changing_legacy_details(access_client):
+    client, _ = access_client
+    response = client.post('/api/v1/auth/login', json={'username': 'owner', 'password': 'not a password'})
+    assert response.status_code == 409
+    assert response.headers['X-Error-Code'] == 'ACCESS_ACCOUNTS_DISABLED'
+    assert response.json() == {'detail': 'User management is not enabled'}
+    enable(client)
+    response = client.put('/api/v1/auth/password', json={
+        'current_password': 'wrong password', 'password': 'replacement long password',
+        'password_confirmation': 'replacement long password'})
+    assert response.status_code == 403
+    assert response.headers['X-Error-Code'] == 'ACCESS_CURRENT_PASSWORD_INVALID'
+    assert response.json() == {'detail': 'Current password is incorrect'}
+    client.headers['X-CSRF-Token'] = 'invalid'
+    response = client.put('/api/v1/auth/password', json={})
+    assert response.status_code == 403
+    assert response.headers['X-Error-Code'] == 'ACCESS_CSRF_REQUIRED'
+    assert response.headers['Cache-Control'] == 'no-store'
+
+
+def test_coded_error_retains_retry_headers_and_http_exception_compatibility():
+    from fastapi import HTTPException
+    from app.api.http_errors import coded_http_error
+    error = coded_http_error(429, 'ACCESS_VERIFICATION_BUSY', 'Alternative server wording', headers={'Retry-After': '2'})
+    assert isinstance(error, HTTPException)
+    assert error.status_code == 429
+    assert error.detail == 'Alternative server wording'
+    assert error.headers == {'Retry-After': '2', 'X-Error-Code': 'ACCESS_VERIFICATION_BUSY'}

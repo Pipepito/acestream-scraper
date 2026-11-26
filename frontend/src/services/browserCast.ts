@@ -3,7 +3,8 @@ import apiClient from './apiClient';
 import { castService, type CastStart } from './castService';
 import { ApiError } from './apiErrors';
 
-const castError = (message: string) => new ApiError({ message, status: 409, kind: 'unknown', canRetry: false, code: 'CAST_UNAVAILABLE' });
+// Each failure carries a code the error catalogue translates; a code it does not know shows generic copy instead of this message.
+const castError = (message: string, code: string) => new ApiError({ message, status: 409, kind: 'unknown', canRetry: false, code });
 
 interface CastMedia { media: { contentId: string }; }
 interface CastSession { loadMedia: (request: unknown) => Promise<void>; getMediaSession: () => CastMedia | null; }
@@ -40,23 +41,23 @@ export function loadBrowserCast(): Promise<boolean> {
 
 export async function startBrowserCast(payload: CastStart): Promise<void> {
   const target = window as CastWindow;
-  if (!target.cast || !target.chrome?.cast) throw castError('This browser does not support Google Cast.');
+  if (!target.cast || !target.chrome?.cast) throw castError('This browser does not support Google Cast.', 'CAST_BROWSER_UNSUPPORTED');
   const context = target.cast.framework.CastContext.getInstance();
   // Called directly from the user's button press, before asynchronous server work.
   await context.requestSession();
   const session = context.getCurrentSession();
-  if (!session) throw castError('No TV was selected.');
+  if (!session) throw castError('No TV was selected.', 'CAST_NO_TV_SELECTED');
   const viewer = await castService.browser(payload);
   const headers = { 'X-Viewer-Token': viewer.control_token ?? '' };
   try {
     const deadline = Date.now() + 60000;
     let ready = viewer;
     while (!ready.hls_ready && Date.now() < deadline) {
-      if (ready.state === 'error' || ready.state === 'stopped') throw castError('The stream could not start.');
+      if (ready.state === 'error' || ready.state === 'stopped') throw castError('The stream could not start.', 'CAST_STREAM_START_FAILED');
       await new Promise(resolve => window.setTimeout(resolve, 1000));
       ready = (await apiClient.get(`/v1/viewers/${viewer.id}`, { headers })).data;
     }
-    if (!ready.hls_ready) throw castError('Stream preparation timed out.');
+    if (!ready.hls_ready) throw castError('Stream preparation timed out.', 'CAST_PREPARATION_TIMEOUT');
     const url = new URL(viewer.playlist_url, window.location.href).href;
     const info = new target.chrome.cast.media.MediaInfo(url, 'application/vnd.apple.mpegurl');
     info.streamType = target.chrome.cast.media.StreamType.LIVE;

@@ -2,10 +2,12 @@
 import asyncio
 import hashlib
 import json
-import re
 import threading
 import time
 import httpx
+
+from app.utils.engine_url import ENGINE_API_PATH, engine_base_url
+from app.utils.stream_kind import is_acestream_id
 
 PAGE_SIZE = 100
 MAX_PAGES = 10
@@ -15,7 +17,6 @@ MAX_STORAGE_BYTES = 8 * 1024 * 1024
 RUN_SECONDS = 120
 REQUEST_SECONDS = 10
 ENGINE_SLOTS = threading.BoundedSemaphore(2)
-HEX_ID = re.compile(r'^[a-fA-F0-9]{40}$')
 
 
 class CatalogueReadError(Exception):
@@ -53,7 +54,7 @@ def flatten_results(payload, limit=MAX_CANDIDATES):
             name = row.get('name', item.get('name', 'Unnamed Channel'))
             if isinstance(name, (int, float)) and not isinstance(name, bool):
                 name = str(name)
-            if not isinstance(ih, str) or not HEX_ID.fullmatch(ih) or not isinstance(name, str) or not name.strip():
+            if not isinstance(ih, str) or not is_acestream_id(ih) or not isinstance(name, str) or not name.strip():
                 invalid += 1
                 continue
             categories = item.get('categories', [])
@@ -81,12 +82,9 @@ def flatten_results(payload, limit=MAX_CANDIDATES):
 
 class SearchCatalogueClient:
     def __init__(self, engine_url, *, deadline=None, shutdown=None, transport=None):
-        if not (engine_url or '').strip():
+        self.url = engine_base_url(engine_url)
+        if not self.url:
             raise CatalogueReadError('SEARCH_ENGINE_UNCONFIGURED')
-        engine_url = engine_url.strip()
-        if '://' not in engine_url:
-            engine_url = 'http://' + engine_url
-        self.url = engine_url.rstrip('/')
         self.deadline = deadline or time.monotonic() + RUN_SECONDS
         self.shutdown = shutdown
         self.transport = transport
@@ -139,10 +137,10 @@ class SearchCatalogueClient:
                 ENGINE_SLOTS.release()
 
     def resolve(self, infohash):
-        payload = self.get('/server/api', {'api_version': 3, 'method': 'get_content_id', 'infohash': infohash})
+        payload = self.get(ENGINE_API_PATH, {'api_version': 3, 'method': 'get_content_id', 'infohash': infohash})
         result = payload.get('result') if isinstance(payload, dict) and not payload.get('error') else None
         cid = result.get('content_id') if isinstance(result, dict) else None
-        if not isinstance(cid, str) or not HEX_ID.fullmatch(cid):
+        if not isinstance(cid, str) or not is_acestream_id(cid):
             raise CatalogueReadError('unresolved')
         return cid.lower()
 

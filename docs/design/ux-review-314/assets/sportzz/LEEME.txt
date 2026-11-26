@@ -1,0 +1,13 @@
+SPORTZZ - KIT DE IDENTIDAD / V1.0 / 27.10.2026
+
+Originales aportados: Group.svg (logotipo) y Exclude.svg (isotipo).
+Las variantes mantienen sus trazados, sin redibujar.
+
+Paleta: #B6FF00 / #080B09 / #F5F7F3 / #171D19.
+Fuentes: Barlow Condensed 600-700 e Inter 400-600.
+Se incluyen fuentes originales y licencias SIL OFL 1.1.
+Los PNG conservan transparencia. Los SVG son los maestros.
+
+Las imagenes de Magnific son visuales de concepto, no documentos de produccion ni evidencia de eventos reales. Pueden reinterpretar detalles del logo; producir siempre desde los SVG.
+Los mockups no definen funciones o contenidos contratados del producto.
+Para imprenta, confirmar tinta y perfil con el proveedor: el verde electrico no se reproduce igual en CMYK.

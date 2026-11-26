@@ -52,6 +52,12 @@ def for_stream_url(stream_url: str) -> Optional[ModuleType]:
     return None
 
 
+def serves_manifest(stream_url: str) -> bool:
+    """The provider's master only answers the address that resolved it, so
+    /live/ serves the manifest instead of redirecting to it (SERVE_MANIFEST)."""
+    return bool(getattr(for_stream_url(stream_url), 'SERVE_MANIFEST', False))
+
+
 def playlist(provider: ModuleType) -> str:
     """The provider's channels as an M3U list the normal import reads."""
     lines = ['#EXTM3U']

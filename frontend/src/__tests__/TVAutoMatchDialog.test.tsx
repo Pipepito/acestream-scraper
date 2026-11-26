@@ -13,7 +13,7 @@ function setup() {
   render(<QueryClientProvider client={client}><TVAutoMatchDialog onClose={jest.fn()} /></QueryClientProvider>);
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => jest.resetAllMocks());
 
 test('groups exact stations, starts unselected and submits only selected streams', async () => {
   preview.mockResolvedValue({ tv_channels: 2, unassigned_streams: 3, ambiguous_streams: 1, unmatched_streams: 0, candidates: [
@@ -41,7 +41,7 @@ test('shows empty analysis and supports retry after errors', async () => {
   preview.mockRejectedValueOnce(new Error('Unable to analyze')).mockResolvedValueOnce({ tv_channels: 0, unassigned_streams: 0, ambiguous_streams: 0, unmatched_streams: 0, candidates: [] });
   setup();
   fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent(/Unable to analyze/);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong. Try again.');
   fireEvent.click(screen.getByRole('button', { name: 'Find matches' }));
   expect(await screen.findByText(/No matches found/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Assign selected (0)' })).toBeDisabled();

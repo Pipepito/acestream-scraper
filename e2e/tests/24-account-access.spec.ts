@@ -65,7 +65,13 @@ async function accountLifecycle({ page }: { page: Page }) {
     await page.goto('/integrations/tv-casting');
     await expect(page.getByRole('heading', { level: 1, name: 'TV casting' })).toBeVisible();
     await page.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' }).check();
-    await page.getByRole('button', { name: 'Advanced connection settings' }).click();
+    const advancedSettings = page.getByRole('button', { name: 'Advanced connection settings' });
+    await advancedSettings.click();
+    // Wait for the accordion's actual expansion before scrolling to its fields.
+    // Firefox can otherwise click a clipped checkbox while its ancestor moves.
+    await expect.poll(() => advancedSettings.evaluate(element =>
+      element.parentElement!.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length,
+    )).toBe(0);
     await page.getByLabel('Application address for TVs').fill('http://192.168.23.10:8000/');
     await page.getByLabel('Allowed home networks').fill('192.168.23.12/24');
     await page.getByRole('checkbox', { name: /Allow accounts with casting permission/ }).check();

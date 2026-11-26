@@ -40,7 +40,7 @@ test('manual UI actions deliver one webhook each through the built backend', asy
   const origin = `http://${host}:${address.port}`;
   const source = `${origin}/source.m3u`;
   try {
-    await page.goto('/settings?tab=automation');
+    await page.goto('/connections/notifications');
     const section = page.getByRole('region', { name: 'Notifications', exact: true });
     await section.getByRole('textbox', { name: 'Webhook URL' }).fill(`${origin}/message?token=private`);
     await section.getByRole('button', { name: 'Save', exact: true }).click();

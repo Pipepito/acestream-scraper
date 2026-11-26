@@ -207,3 +207,22 @@ def test_a_check_dated_in_the_future_is_not_recent(db_session):
     since = now - timedelta(minutes=1)
     assert service._recent_result("f" * 40, since) is None
     assert service._recent_result("r" * 40, since)["status"] == "skipped"
+
+
+def _discarded(db, cid, last_checked):
+    _stream(db, cid, last_checked=last_checked)
+    db.flush()
+    row = db.query(AcestreamChannel).filter_by(id=cid).one()
+    row.failed_checks = 5
+    row.failing_since = T0 - timedelta(days=30)
+
+
+def test_a_discarded_source_goes_last_and_only_once_a_week(db_session):
+    """Discarded sources are still checked, so they can come back, but they
+    must not take the place of the ones that may work (13-11)."""
+    _discarded(db_session, "d" * 40, last_checked=T0 - timedelta(days=8))
+    _discarded(db_session, "w" * 40, last_checked=T0 - timedelta(days=2))
+    _stream(db_session, "a" * 40, last_checked=T0 - timedelta(hours=2))
+    _stream(db_session, "n" * 40)
+    db_session.commit()
+    assert channels_in_check_order(db_session) == ["n" * 40, "a" * 40, "d" * 40]

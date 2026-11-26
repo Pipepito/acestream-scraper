@@ -35,6 +35,9 @@ Preferred patterns to use unless the workflow has a strong reason not to:
 
 ## Minimum Review Matrix
 
+- [ ] Verify Lime, Coral/navy and Immersive using the same controller and requests.
+- [ ] Verify EN/ES and retain original names, values and machine identifiers.
+- [ ] Switch interface/theme/language during a dirty form, pending result and open dialog without losing state or focus; include active media when relevant.
 - [ ] Verify light theme and dark theme rendering for the touched UI.
 - [ ] Verify one mobile width and one desktop width.
 - [ ] Verify one keyboard path for the primary action flow.
@@ -42,7 +45,7 @@ Preferred patterns to use unless the workflow has a strong reason not to:
 
 ## Page Skeleton (since 2026-09-02)
 
-- `PageHeader` (title = nav label, at most one subtitle sentence, primary `actions`, secondary `overflowActions`) → `StatusLine` of measured facts → `ContentSection`s. No hero blocks, no "next step" prose, no repeated summaries.
+- Administration uses `PageHeader` (title = nav label, at most one subtitle sentence, primary `actions`, secondary `overflowActions`) → `StatusLine` of measured facts → `ContentSection`s. Watch's approved image composition is a documented presentation exception; do not add decorative hero blocks to management editors. Empty/error states provide a relevant next action without repeating summaries.
 - Row actions: at most two visible icon buttons, the rest in `RowActionsMenu` ("More actions for X"). Destructive actions confirm through `useConfirm()`; never `window.confirm`.
 - Copy: plain words a non-technical user recognises (no "stage", "pipeline", "downstream", "momentum"); relative times via `formatRelativeTime`; units via `formatBitrate`; status chips with fixed widths so rows line up.
 - Phones: tables become card lists under 900 px (`ChannelCardList`), header actions collapse, filters sit above the list they filter.

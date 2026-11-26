@@ -13,10 +13,10 @@ import anyio
 import httpx
 
 from app.services.engine_client import EngineClient, EngineRefusedError, EngineUnavailableError
+from app.services.source_reader import Attempt, EngineReader, HttpReader, SourceReader, SourceReaders
 from app.services.stream_relay import EngineStreamError, RelayInfo, RelayRegistry, relay_engine_stream, relay_registry
 from app.services.tuner_remux import remux_source, compatible_audio_source
 from app.services.tuner_http_source import relay_http_stream
-from app.utils.stream_kind import stream_kind
 from app.services.ts_clock import ClockWatch, watch_clock
 
 STARTUP_BUDGET_SECONDS = 45.0
@@ -226,6 +226,16 @@ def resume_order(content_ids: list[str], previous: ChannelOpening) -> tuple[list
     return first + rest, deadline if first else None, failed
 
 
+def source_readers(engine: EngineClient | None, client_label: str, *, registry: RelayRegistry = relay_registry,
+                   client_factory: Callable[..., httpx.AsyncClient] | None = None) -> SourceReaders:
+    """The real readers: the engine for AceStream IDs, FFmpeg for HTTP sources.
+    They open sources through this module's ``relay_engine_stream`` and
+    ``relay_http_stream``, looked up on each call."""
+    return SourceReaders(
+        EngineReader(engine, client_label, registry=registry, client_factory=client_factory,
+                     open_stream=lambda *args, **kwargs: relay_engine_stream(*args, **kwargs)),
+        HttpReader(open_stream=lambda *args, **kwargs: relay_http_stream(*args, **kwargs)))
+
 
 async def relay_ranked_streams(
     engine: EngineClient | None, content_ids: list[str], client_label: str, claim: RelayInfo,
@@ -244,6 +254,7 @@ async def relay_ranked_streams(
     last_resort_provider: Callable[[], Awaitable[list[str]]] | None = None,
     last_resort_now: bool = False,
     tv_channel_id: int | None = None,
+    reader: SourceReader | None = None,
 ) -> AsyncIterator[bytes]:
     """Retry startup failures; midstream transcoding recovery is explicit opt-in.
 
@@ -258,7 +269,12 @@ async def relay_ranked_streams(
     to start. ``last_resort_provider`` gives every source of the channel,
     offline ones included: when the candidates run out, the ones not tried yet
     are tried within what is left of the budget, LAST_RESORT_SECONDS each.
+
+    ``reader`` reads each source's bytes; without one, the engine (``engine``,
+    ``client_factory``) and FFmpeg for HTTP sources. It is closed at the end.
     """
+    if reader is None:
+        reader = source_readers(engine, client_label, registry=registry, client_factory=client_factory)
     # The tuner settings when the route passes them; the module defaults otherwise.
     attempt_seconds = ATTEMPT_SECONDS if attempt_seconds is None else attempt_seconds
     startup_budget_seconds = STARTUP_BUDGET_SECONDS if startup_budget_seconds is None else startup_budget_seconds
@@ -328,19 +344,14 @@ async def relay_ranked_streams(
                     resume_deadline = None
                 if opening is not None:
                     opening.current, opening.current_deadline = content_id, attempt_deadline
-                is_http = stream_kind(content_id) == 'http'
+                route = reader.route(content_id)
+                is_http = route == 'http'
+                attempt = Attempt(claim=claim, startup_deadline=attempt_deadline, read_seconds=wait,
+                                  stop_linger=stop_linger,
+                                  plex_compatible_audio=plex_compatible_audio and not experimental_transcoding)
 
                 async def source():
-                    if is_http:
-                        upstream = relay_http_stream(content_id, claim, startup_deadline=attempt_deadline,
-                            plex_compatible_audio=plex_compatible_audio and not experimental_transcoding)
-                    else:
-                        if engine is None:
-                            raise EngineUnavailableError('Acestream Engine URL is not configured')
-                        upstream = relay_engine_stream(engine, content_id, client_label, registry=registry,
-                            client_factory=client_factory, claim=claim, release_claim=False,
-                            stop_linger=stop_linger, read_seconds=wait,
-                            startup_deadline=attempt_deadline)
+                    upstream = reader.read(content_id, attempt)
                     try:
                         async for chunk in upstream:
                             yield chunk
@@ -429,7 +440,7 @@ async def relay_ranked_streams(
                     logger.info(
                         'TV relay source ended content_id=%s reason=%s phase=%s route=%s experimental_transcoding=%s',
                         content_id, reason, 'streaming' if first_at is not None else 'starting',
-                        'http' if is_http else 'acexy' if engine is not None and engine.use_acexy else 'direct', experimental_transcoding,
+                        route, experimental_transcoding,
                     )
                 finally:
                     if outcome is None and first_at is not None:
@@ -468,5 +479,4 @@ async def relay_ranked_streams(
         raise EngineStreamError('No source could sustain TV channel playback within the recovery budget')
     finally:
         registry.close(claim.id)
-        if engine is not None:
-            engine.close()
+        reader.close()

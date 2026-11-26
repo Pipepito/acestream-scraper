@@ -141,7 +141,7 @@ Open **TV Channels**. A TV channel is the user-facing station in your playlist; 
 4. Set its EPG ID or link it from the EPG workflow.
 5. Use the **Favorite** star in the table or phone card. Edit **Number** and press Enter or leave the field to save; blank clears it.
 6. Search, Category, Status and Favorites stay visible. **Advanced filters** holds the remaining filters and shows an active count. Filters apply to the whole catalogue before pagination.
-7. Choose **Reorder channels** to see the complete catalogue. Drag the handles or use arrow/keyboard controls to preview consecutive numbers from 1. **Save order** commits the full order; **Cancel** leaves stored numbers unchanged. If another edit makes the inventory stale, reload it before trying again.
+7. Choose **Reorder channels** to see the complete catalogue. Drag the handles or use arrow/keyboard controls to preview consecutive numbers from 1. On a focused drag handle, **Home/End** focus the first/last channel and **Page Up/Page Down** move focus ten rows without changing order. **Save order** commits the full order; **Cancel** leaves stored numbers unchanged. If another edit makes the inventory stale, reload it before trying again.
 
 To fill existing TV channels from scraped streams, select **Auto-match streams**
 then **Find matches**. This checks all TV channels, including those outside the
@@ -335,13 +335,19 @@ choose the minimum offline age (1–365 days, default 14) and repeat interval
 cleanup** shows the current eligible count without writing anything. The actual
 job rechecks eligibility and appears in System status with its run result.
 
-Only AceStreams from enabled configured scraper sources qualify. They must have
-an observed offline streak, at least two confirmed checks and a latest confirmed
-offline check within 24 hours. Recent successful tuner playback also protects a stream. An online result clears the streak; an inconclusive
-lookup clears it too. Imports, unknown status, checker outages and skipped probes
-do not establish an offline age. Existing streams begin tracking after upgrading;
-no historical age is inferred. Background checks retain their playback/recording
-protection and configured scope, even when Live TV hides a stream.
+Only streams from enabled configured scraper sources qualify, HTTP ones
+included. They must be *discarded* (five real checks in a row found no media
+and the stream has not worked for 7 days) and the run of failures must have
+begun at least the minimum offline age ago, counted in 24-hour periods from the
+first failed check. The latest check must be within 24 hours, after that
+first failure, and a real one (an HTTP check, or an engine lookup that answered
+found or not found; a timeout protects the stream). A check with media or a viewing of two minutes or more ends the run,
+so a stream that plays is never removed; a viewing the source cut also counts
+as one new failed check. Imports, checker outages, skipped
+probes and HTTP checks that time out do not count as failed checks. Existing streams begin counting after
+upgrading; no earlier age is inferred. Background checks retain their
+playback/recording protection and configured scope, even when Live TV hides a
+stream.
 
 Linked streams stay by default. **Also remove streams linked to TV channels**
 keeps the TV channels/guides but removes the stream associations and priority

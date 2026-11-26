@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.media import AudioTrack
+from app.schemas.epg import EPGCategoryObservation
 from app.services.stream_ranking import sort_streams_curated
 
 
@@ -64,7 +65,6 @@ class AcestreamChannelResponse(AcestreamChannelBase):
     network_status: Optional[Literal["found", "not_found", "unknown"]] = Field(None, description="Last engine ID lookup: found, explicitly not found, or inconclusive; not proof of permanent network existence")
     id_kind: Optional[Literal["id", "infohash"]] = Field(None, description="Which getstream parameter the engine accepted for this id; null means it has not been confirmed yet")
     last_checked: Optional[datetime] = None
-    offline_since: Optional[datetime] = None
     check_error: Optional[str] = None
     stream_stats: Optional[StreamStats] = None
     audio_tracks: Optional[List[AudioTrack]] = Field(None, description="Audio tracks found at the last successful media probe; null means unknown")
@@ -105,6 +105,7 @@ class TVChannelUpdate(BaseModel):
     logo_url: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
+    expected_category_revision: Optional[int] = Field(None, ge=0)
     country: Optional[str] = None
     language: Optional[str] = None
     website: Optional[str] = None
@@ -124,6 +125,10 @@ class TVChannelResponse(TVChannelBase):
     updated_at: datetime
     is_active: bool
     is_favorite: bool
+    category_origin: str = 'legacy'
+    category_revision: int = 0
+    category_id: str = 'uncategorized'
+    epg_logo_url: Optional[str] = None
     acestream_channels: List[AcestreamChannelResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
@@ -338,6 +343,9 @@ class GuideSlot(BaseModel):
     title: str
     start: datetime
     end: datetime
+    image_url: Optional[str] = None
+    categories: List['EPGCategoryObservation'] = Field(default_factory=list)
+    genre_ids: List[str] = Field(default_factory=list)
 
 
 class TVChannelNowNext(BaseModel):

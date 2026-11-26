@@ -65,12 +65,13 @@ for (const mode of ['light', 'dark']) {
       }
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: test.info().outputPath(`${slug}-${mode}.png`), fullPage: true, animations: 'disabled' });
-      const menu = page.getByRole('button', { name: 'open drawer' });
+      const menu = page.getByRole('button', { name: 'Open navigation' });
       if (await menu.isVisible()) await menu.click();
-      const group = page.getByRole('list', { name: 'Integrations', exact: true });
-      await expect(group.getByRole('link')).toHaveCount(6);
-      await expect(group.getByRole('link', { name: title, exact: true })).toHaveAttribute('aria-current', 'page');
-      await group.getByRole('link', { name: 'Public address', exact: true }).click();
+      const group = page.getByRole('list', { name: 'Main navigation', exact: true });
+      await expect(group.getByRole('link')).toHaveCount(7);
+      await expect(group.getByRole('link', { name: slug === 'telegram' ? 'Channels' : 'Connections', exact: true })).toHaveAttribute('aria-current', 'page');
+      await group.getByRole('link', { name: 'Connections', exact: true }).click();
+      await page.getByRole('link', { name: 'Public address →', exact: true }).click();
       await expect(page).toHaveURL(/\/integrations\/public-address$/);
       await expect(page.getByRole('heading', { level: 1, name: 'Public address' })).toBeVisible();
       await page.waitForLoadState('networkidle');

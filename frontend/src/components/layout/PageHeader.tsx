@@ -1,3 +1,4 @@
+import { useUiText } from '../../i18n/useUiText';
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -25,6 +26,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   overflowActions,
   wideActionsAlignment = 'end',
 }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const layout = theme.appTokens.layout.shell;
   const isPhone = useMediaQuery(`(max-width:${layout.phoneMaxWidth}px)`);
@@ -34,7 +36,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   const overflow = overflowActions && overflowActions.length > 0 ? overflowActions : null;
   const overflowNode = overflow
     ? isPhone
-      ? <RowActionsMenu label="More actions" actions={overflow} />
+      ? <RowActionsMenu label={tUi("More actions")} actions={overflow} />
       : overflow.map((action) => (
           <Button key={action.label} variant="outlined" onClick={action.onClick} disabled={action.disabled} startIcon={action.icon} color={action.danger ? 'error' : undefined}>
             {action.label}

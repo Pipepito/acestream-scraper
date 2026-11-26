@@ -19,7 +19,7 @@ import { startupService } from '../services/startupService';
 
 jest.mock('../services/accessService', () => ({ ...jest.requireActual('../services/accessService'), accessService: {
   users: jest.fn(), policy: jest.fn(), savePolicy: jest.fn(), credentials: jest.fn(), sessions: jest.fn(),
-  createUser: jest.fn(), status: jest.fn(), bootstrap: jest.fn(), password: jest.fn(), login: jest.fn(), logout: jest.fn(),
+  disable: jest.fn(), createUser: jest.fn(), status: jest.fn(), bootstrap: jest.fn(), password: jest.fn(), login: jest.fn(), logout: jest.fn(),
 } }));
 jest.mock('../services/startupService', () => ({ startupService: { status: jest.fn() } }));
 jest.mock('../services/castService', () => ({ castService: { capabilities: jest.fn(), devices: jest.fn(), sessions: jest.fn(), start: jest.fn(), command: jest.fn() } }));
@@ -226,4 +226,57 @@ test('sign-in accepts the same Unicode password length as password creation', as
   fireEvent.change(password, { target: { value: '😀'.repeat(128) } });
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   await waitFor(() => expect(accessService.login).toHaveBeenCalledWith('owner', '😀'.repeat(128)));
+});
+
+test('password failures retain fields and translate again when the language changes', async () => {
+  const i18next = (await import('i18next')).default;
+  (accessService.password as jest.Mock).mockRejectedValue(new ApiError({ status: 403, kind: 'permission', canRetry: false, code: 'ACCESS_CURRENT_PASSWORD_INVALID', message: 'Server diagnostic' }));
+  wrapper(<PasswordForm />);
+  const current = screen.getByLabelText(/Current password/);
+  const next = screen.getByLabelText(/^New password/);
+  fireEvent.change(current, { target: { value: 'old long password' } });
+  fireEvent.change(next, { target: { value: 'new long password' } });
+  fireEvent.change(screen.getByLabelText(/Confirm new password/), { target: { value: 'new long password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
+  await screen.findByRole('alert');
+  try {
+    await act(async () => { await i18next.changeLanguage('es'); });
+    expect(screen.getByRole('alert')).toHaveTextContent(i18next.t('ACCESS_CURRENT_PASSWORD_INVALID', { ns: 'errors' }));
+    expect(current).toHaveValue('old long password');
+    expect(next).toHaveValue('new long password');
+    expect(accessService.password).toHaveBeenCalledTimes(1);
+  } finally { await act(async () => { await i18next.changeLanguage('en'); }); }
+});
+
+test('disabling accounts aborts administrative reads first and retains a rejected form', async () => {
+  const events: string[] = [];
+  const initial = { public_features: [], public_playlists: false, local_iptv: false, local_networks: [] };
+  (accessService.users as jest.Mock).mockResolvedValue([]);
+  (accessService.credentials as jest.Mock).mockResolvedValue([]);
+  (accessService.sessions as jest.Mock).mockResolvedValue([]);
+  (accessService.policy as jest.Mock).mockReset().mockImplementationOnce((signal: AbortSignal) => new Promise((_resolve, reject) => {
+    events.push('read');
+    signal.addEventListener('abort', () => { events.push('aborted'); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+  })).mockResolvedValue(initial);
+  let rejectDisable!: (reason: Error) => void;
+  (accessService.disable as jest.Mock).mockImplementation(() => {
+    events.push('disable');
+    return new Promise((_resolve, reject) => { rejectDisable = reject; });
+  });
+  wrapper(<AccessSettings />, { ...pending, mode: 'accounts' });
+  await waitFor(() => expect(events).toEqual(['read']));
+  const password = screen.getByLabelText(/^Administrator password/);
+  const confirmation = screen.getByRole('checkbox', { name: 'I understand that account protection will be removed' });
+  fireEvent.change(password, { target: { value: 'synthetic test password' } });
+  fireEvent.click(confirmation);
+  fireEvent.click(screen.getByRole('button', { name: 'Disable user management' }));
+  await waitFor(() => expect(events).toEqual(['read', 'aborted', 'disable']));
+  expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled();
+  expect(accessService.policy).toHaveBeenCalledTimes(1);
+  await act(async () => rejectDisable(new ApiError({ status: 409, kind: 'unknown', canRetry: false, message: 'Synthetic conflict' })));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Disable user management' })).toBeEnabled());
+  expect(password).toHaveValue('synthetic test password');
+  expect(confirmation).toBeChecked();
+  expect(refresh).not.toHaveBeenCalled();
+  await waitFor(() => expect(accessService.policy).toHaveBeenCalledTimes(2));
 });

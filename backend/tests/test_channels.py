@@ -193,12 +193,9 @@ class TestChannelStatusEndpoints:
         from app.services.probe_queue import ProbeQueue
         # Exercise the actual queue, readiness and persistence without a live
         # engine or real recovery/cooldown waits in endpoint contract tests.
-        async def fetch(_self, url, params, timeout):
-            if url.endswith('/server/api'):
-                return 200, {'result': {'version': {}}}, None
-            assert url.endswith('/ace/getstream')
-            return 200, {'error': 'Stream unavailable', 'response': {}}, None
-        monkeypatch.setattr(ChannelStatusService, '_fetch_engine_response', fetch)
+        from fake_probe_engine import FakeProbeEngine
+        monkeypatch.setattr(ChannelStatusService, 'probe_engine', staticmethod(
+            lambda url: FakeProbeEngine(url, start=(200, {'error': 'Stream unavailable', 'response': {}}))))
         monkeypatch.setattr('app.services.channel_status_service.probe_queue', ProbeQueue(cooldown=0, outage_backoff=0))
 
     def test_check_channel_status(self, client, seed_channels):
@@ -239,10 +236,16 @@ class TestChannelStatusEndpoints:
         from app.services.channel_status_service import ChannelStatusService
         channel = seed_channels[0]
         before = (channel.is_online, channel.last_checked)
-        monkeypatch.setattr(ChannelStatusService, '_wait_for_engine', AsyncMock(return_value=False))
+        from fake_probe_engine import FakeProbeEngine
+        engine = FakeProbeEngine(ready=False)
+        monkeypatch.setattr(ChannelStatusService, 'probe_engine', staticmethod(engine))
+        # Each reading of the clock is a minute later: the wait gives up at once.
+        ticks = iter(range(0, 10_000, 61))
+        monkeypatch.setattr('app.services.channel_status_service._clock', lambda: next(ticks))
         response = client.post(f'/api/v1/channels/{channel.id}/check_status')
         assert response.status_code == 200
         assert response.json()['status'] == 'skipped'
+        assert engine.asked('open') == []
         db_session.refresh(channel)
         assert (channel.is_online, channel.last_checked) == before
 

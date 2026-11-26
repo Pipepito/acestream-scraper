@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useUiText } from '../i18n/useUiText';
+import React, { useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -17,13 +18,15 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import type { ChannelUpdate } from '../types/channelTypes';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface BulkOperationsProps {
   open: boolean;
   onClose: () => void;
-  selectedChannels: any[];
-  onBulkEdit: (updates: any) => Promise<void>;
-  onBulkDelete: (ids: any[]) => Promise<void>; // Accepts array of IDs for bulk delete
+  selectedChannels: Array<{ id: string; name?: string }>;
+  onBulkEdit: (updates: ChannelUpdate) => Promise<void>;
+  onBulkDelete: (ids: string[]) => Promise<void>; // Accepts array of IDs for bulk delete
   onBulkActivate: (active: boolean) => Promise<void>;
 }
 
@@ -35,25 +38,23 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
   onBulkDelete,
   onBulkActivate
 }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const [editFields, setEditFields] = useState({
-    category: false,
-    country: false,
-    language: false,
+    group: false,
     is_active: false
   });
   const [editValues, setEditValues] = useState({
-    category: '',
-    country: '',
-    language: '',
+    group: '',
     is_active: true
   });
   const [mode, setMode] = useState<'edit'|'delete'|'activate'|null>(null);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
   const [error, setError] = useState<string|null>(null);
   const [success, setSuccess] = useState<string|null>(null);
-  const [operationResults, setOperationResults] = useState<{ id: any; status: 'pending'|'success'|'error'; message?: string }[]>([]);
+  const [operationResults, setOperationResults] = useState<{ id: string; status: 'pending'|'success'|'error'; message?: string }[]>([]);
   const [summary, setSummary] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
 
   const resetDialogState = () => {
@@ -84,45 +85,34 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
     }
   };
 
-  const runPerChannel = async (fn: (channel: any) => Promise<any>) => {
-    setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'pending' })));
-    setSummary({ success: 0, error: 0 });
+  const runSelection = async (operation: () => Promise<void>) => {
+    if (submitting.current) return;
+    submitting.current = true;
     setLoading(true);
     setError(null);
     setSuccess(null);
-    let success = 0, error = 0;
-    const results = await Promise.all(selectedChannels.map(async (ch) => {
-      try {
-        await fn(ch);
-        success++;
-        return { id: ch.id, status: 'success' as const };
-      } catch (err: any) {
-        error++;
-        const errorMsg = err?.message || 'Failed';
-        return { id: ch.id, status: 'error' as const, message: errorMsg };
-      }
-    }));
-    setOperationResults(results);
-    setSummary({ success, error });
-    setLoading(false);
-    if (error === 0) {
-      setSuccess('All operations completed successfully.');
-    } else {
-      setError(`${error} operation(s) failed, ${success} succeeded.`);
+    setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'pending' })));
+    try {
+      await operation();
+      setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'success' })));
+      setSummary({ success: selectedChannels.length, error: 0 });
+      setSuccess(tUi("All operations completed successfully."));
+    } catch (reason) {
+      const message = getErrorMessage(reason);
+      setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'error', message })));
+      setSummary({ success: 0, error: selectedChannels.length });
+      setError(tUi('{{failed}} operation(s) failed, 0 succeeded.', { failed: selectedChannels.length }));
+    } finally {
+      submitting.current = false;
+      setLoading(false);
     }
   };
 
   const handleBulkEdit = async () => {
-    const updates: any = {};
-    Object.keys(editFields).forEach(field => {
-      if (editFields[field as keyof typeof editFields]) {
-        updates[field] = editValues[field as keyof typeof editValues];
-      }
-    });
-
-    await runPerChannel(async (ch) => {
-      await onBulkEdit({ ...updates, id: ch.id });
-    });
+    const updates: ChannelUpdate = {};
+    if (editFields.group) updates.group = editValues.group;
+    if (editFields.is_active) updates.is_active = editValues.is_active;
+    await runSelection(() => onBulkEdit(updates));
   };
 
   const handleBulkDelete = async () => {
@@ -136,54 +126,48 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
       await onBulkDelete(selectedChannels.map(ch => ch.id));
       setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'success' as const })));
       setSummary({ success: selectedChannels.length, error: 0 });
-      setSuccess('All selected channels deleted successfully.');
-    } catch (err: any) {
+      setSuccess(tUi("All selected channels deleted successfully."));
+    } catch (err) {
       // If error, mark all as failed
-      setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'error' as const, message: err?.message || 'Bulk delete failed' })));
+      setOperationResults(selectedChannels.map(ch => ({ id: ch.id, status: 'error' as const, message: getErrorMessage(err) })));
       setSummary({ success: 0, error: selectedChannels.length });
-      setError(err?.message || 'Bulk delete failed');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
   const handleBulkActivate = async (active: boolean) => {
-    await runPerChannel(async () => {
-      await onBulkActivate(active);
-    });
+    await runSelection(() => onBulkActivate(active));
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={isPhone}>
-      <DialogTitle>Bulk Operations for {selectedChannels.length} Channels</DialogTitle>
+    <Dialog aria-labelledby="bulk-operations-title" open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={isPhone}>
+      <DialogTitle id="bulk-operations-title">{tUi("Bulk Operations for")}{' '}{selectedChannels.length} {' '}{tUi("Channels")}</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
         <Box mb={2}>
-          <Button variant="outlined" onClick={() => setMode('edit')} sx={{ mr: 1 }} disabled={loading}>Bulk Edit</Button>
-          <Button variant="outlined" color="error" onClick={() => setMode('delete')} sx={{ mr: 1 }} disabled={loading}>Bulk Delete</Button>
-          <Button variant="outlined" color="success" onClick={() => setMode('activate')} disabled={loading}>Bulk Activate/Deactivate</Button>
+          <Button variant="outlined" onClick={() => setMode('edit')} sx={{ mr: 1 }} disabled={loading}>{tUi("Bulk Edit")}</Button>
+          <Button variant="outlined" color="error" onClick={() => setMode('delete')} sx={{ mr: 1 }} disabled={loading}>{tUi("Bulk Delete")}</Button>
+          <Button variant="outlined" color="success" onClick={() => setMode('activate')} disabled={loading}>{tUi("Bulk Activate/Deactivate")}</Button>
         </Box>
         {mode === 'edit' && (
           <Box>
-            <Typography variant="subtitle1" gutterBottom>Select fields to update:</Typography>
+            <Typography variant="subtitle1" gutterBottom>{tUi("Select fields to update:")}</Typography>
             <FormGroup>
-              <FormControlLabel control={<Checkbox checked={editFields.category} onChange={() => handleFieldToggle('category')} />} label="Category" />
-              {editFields.category && <TextField name="category" label="Category" value={editValues.category} onChange={handleValueChange} fullWidth sx={{ mb: 2 }} />}
-              <FormControlLabel control={<Checkbox checked={editFields.country} onChange={() => handleFieldToggle('country')} />} label="Country" />
-              {editFields.country && <TextField name="country" label="Country" value={editValues.country} onChange={handleValueChange} fullWidth sx={{ mb: 2 }} />}
-              <FormControlLabel control={<Checkbox checked={editFields.language} onChange={() => handleFieldToggle('language')} />} label="Language" />
-              {editFields.language && <TextField name="language" label="Language" value={editValues.language} onChange={handleValueChange} fullWidth sx={{ mb: 2 }} />}
-              <FormControlLabel control={<Checkbox checked={editFields.is_active} onChange={() => handleFieldToggle('is_active')} />} label="Active Status" />
-              {editFields.is_active && <FormControlLabel control={<Switch checked={editValues.is_active} onChange={handleValueChange} name="is_active" color="primary" />} label="Active" />}
+              <Typography variant="body2" color="text.secondary">{tUi("These changes apply to streams. Edit TV channel category, country and language in TV Channels.")}</Typography>
+              <FormControlLabel control={<Checkbox checked={editFields.group} onChange={() => handleFieldToggle('group')} />} label={tUi("Group")} />
+              {editFields.group && <TextField name="group" label={tUi("Group")} value={editValues.group} onChange={handleValueChange} fullWidth sx={{ mb: 2 }} />}
+              <FormControlLabel control={<Checkbox checked={editFields.is_active} onChange={() => handleFieldToggle('is_active')} />} label={tUi("Active Status")} />
+              {editFields.is_active && <FormControlLabel control={<Switch checked={editValues.is_active} onChange={handleValueChange} name="is_active" color="primary" />} label={tUi("Active")} />}
             </FormGroup>
           </Box>
         )}
         {mode === 'delete' && (
           <Box>
             <Alert severity="warning" sx={{ mb: 2 }}>
-              Are you sure you want to delete {selectedChannels.length} channels? This action cannot be undone.
-            </Alert>
+              {tUi("Are you sure you want to delete")}{' '}{selectedChannels.length} {tUi("channels? This action cannot be undone.")}</Alert>
             <Box sx={{ maxHeight: 200, overflow: 'auto', mb: 2 }}>
               {selectedChannels.map(ch => (
                 <Typography key={ch.id} variant="body2">• {ch.name || ch.id}</Typography>
@@ -193,29 +177,29 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
         )}
         {mode === 'activate' && (
           <Box>
-            <Button variant="contained" color="success" onClick={() => handleBulkActivate(true)} disabled={loading} sx={{ mr: 1 }}>Activate All</Button>
-            <Button variant="contained" color="warning" onClick={() => handleBulkActivate(false)} disabled={loading}>Deactivate All</Button>
+            <Button variant="contained" color="success" onClick={() => handleBulkActivate(true)} disabled={loading} sx={{ mr: 1 }}>{tUi("Activate All")}</Button>
+            <Button variant="contained" color="warning" onClick={() => handleBulkActivate(false)} disabled={loading}>{tUi("Deactivate All")}</Button>
           </Box>
         )}
         {operationResults.length > 0 && (
           <Box mt={2}>
-            <Typography variant="subtitle2">Operation Results:</Typography>
+            <Typography variant="subtitle2">{tUi("Operation Results:")}</Typography>
             {operationResults.map(res => (
               <Box key={res.id} display="flex" alignItems="center" gap={1}>
-                <Typography variant="body2">Channel ID: {res.id}</Typography>
+                <Typography variant="body2">{tUi("Channel ID:")}{' '}{res.id}</Typography>
                 {res.status === 'pending' && <CircularProgress size={16} />}
-                {res.status === 'success' && <Typography color="success.main">Success</Typography>}
-                {res.status === 'error' && <Typography color="error.main">Error: {res.message}</Typography>}
+                {res.status === 'success' && <Typography color="success.main">{tUi("Success")}</Typography>}
+                {res.status === 'error' && <Typography color="error.main">{tUi("Error:")}{' '}{res.message}</Typography>}
               </Box>
             ))}
-            <Typography variant="body2" mt={1}>Success: {summary.success} | Failed: {summary.error}</Typography>
+            <Typography variant="body2" mt={1}>{tUi("Success:")}{' '}{summary.success} {' '}{tUi("| Failed:")}{' '}{summary.error}</Typography>
           </Box>
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} color="inherit" disabled={loading}>Cancel</Button>
-        {mode === 'edit' && <Button onClick={handleBulkEdit} color="primary" variant="contained" disabled={loading || Boolean(success)}>Update</Button>}
-        {mode === 'delete' && <Button onClick={handleBulkDelete} color="error" variant="contained" disabled={loading || Boolean(success)}>Delete</Button>}
+        <Button onClick={handleClose} color="inherit" disabled={loading}>{tUi("Cancel")}</Button>
+        {mode === 'edit' && <Button onClick={handleBulkEdit} color="primary" variant="contained" disabled={loading || Boolean(success) || !Object.values(editFields).some(Boolean)}>{tUi("Update")}</Button>}
+        {mode === 'delete' && <Button onClick={handleBulkDelete} color="error" variant="contained" disabled={loading || Boolean(success)}>{tUi("Delete")}</Button>}
       </DialogActions>
       {loading && <Box display="flex" justifyContent="center" alignItems="center" p={2}><CircularProgress /></Box>}
     </Dialog>

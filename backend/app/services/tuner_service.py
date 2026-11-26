@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import html
 import logging
-import re
 import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -18,8 +17,11 @@ from app.repositories.channel_repository import ChannelRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.services.epg_service import EPGService
 from app.services.stream_history import scores_for
-from app.services.stream_ranking import preference_key, sort_streams_curated
+from app.services.stream_ranking import (
+    FRESH_CHECK_HOURS, checked_since as _checked_since, preference_key, relay_order, sort_streams_curated,
+)
 from app.utils.m3u import m3u_attr
+from app.utils.stream_kind import is_acestream_id, is_http_id
 
 # libhdhomerun's device-id checksum table, verbatim.
 _LOOKUP = [0xA, 0x5, 0xF, 0x6, 0x7, 0xC, 0x1, 0xB, 0x9, 0x2, 0x8, 0xD, 0x4, 0x3, 0xE, 0x0]
@@ -33,9 +35,7 @@ MIN_START_SECONDS, MAX_START_SECONDS = 5, 180
 
 def supported_tuner_stream(stream: AcestreamChannel) -> bool:
     """Accept stored media identities, never arbitrary URLs supplied by clients."""
-    return bool(re.fullmatch(r"[0-9a-fA-F]{40}", stream.id) or (
-        re.fullmatch(r"url:[0-9a-f]{40}", stream.id) and stream.stream_url
-    ))
+    return bool(is_acestream_id(stream.id) or (is_http_id(stream.id) and stream.stream_url))
 
 
 class TunerDeviceIdError(RuntimeError):
@@ -92,7 +92,6 @@ class TunerSettings:
 class LineupEntry:
     guide_number: str
     guide_name: str
-    content_id: str
     tv_channel_id: int
     epg_id: Optional[str]
     epg_source_id: Optional[int]
@@ -114,21 +113,6 @@ class Lineup:
     entries: List[LineupEntry] = field(default_factory=list)
     renumbered: List[Renumbered] = field(default_factory=list)
     overflow: int = 0
-
-
-# A check older than this ranks a source after every fresher one when the
-# relay picks what to try first. The status check runs hourly by default.
-FRESH_CHECK_HOURS = 6
-
-
-def _checked_since(stream, since, until) -> bool:
-    checked = getattr(stream, "last_checked", None)
-    if checked is None:
-        return False
-    if checked.tzinfo is None:
-        checked = checked.replace(tzinfo=timezone.utc)
-    # A clock correction must not make an observation fresh indefinitely.
-    return since <= checked <= until
 
 
 class TunerService:
@@ -192,11 +176,8 @@ class TunerService:
             )
         return generated
 
-    def online_stream_ids(self, tv_channel_id: int) -> List[str]:
-        return self.stream_ids(tv_channel_id, online_only=True)
-
-    def stream_ids(self, tv_channel_id: int, *, online_only: bool = False) -> List[str]:
-        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id, online_only=online_only)
+    def stream_ids(self, tv_channel_id: int) -> List[str]:
+        streams = ChannelRepository(self.db).get_tuner_streams(tv_channel_id)
         valid = [stream for stream in streams if supported_tuner_stream(stream)]
         # Recently checked first, then by bitrate. A box that is only on now
         # and then keeps "online" from a session hours or days ago, and a
@@ -211,7 +192,8 @@ class TunerService:
     def relay_stream_ids(self, tv_channel_id: int) -> List[str]:
         """Saved preferences first among eligible sources; otherwise online and checked recently;
         online from an old check; then never checked, or offline from an old
-        check. Only a source found offline recently is left out.
+        check. Only a source found offline recently is left out, unless it also
+        played recently.
 
         When a box that is only on now and then is switched on for a match,
         every status is hours or days old, and the source that is live tonight may be the one the
@@ -221,25 +203,7 @@ class TunerService:
         """
         streams = [s for s in ChannelRepository(self.db).get_tuner_streams(tv_channel_id) if supported_tuner_stream(s)]
         now = datetime.now(timezone.utc)
-        fresh_since = now - timedelta(hours=FRESH_CHECK_HOURS)
-        # Playback history (stream_history): within each group, sources that
-        # played before go first; a demoted source goes after every group.
-        history = scores_for(self.db, streams, now)
-        ranked = []
-        for stream in streams:
-            fresh = _checked_since(stream, fresh_since, now)
-            if stream.is_online:
-                bucket = 0 if fresh else 1
-            elif stream.is_online is False and fresh:
-                continue
-            else:
-                bucket = 2
-            past = history.get(stream.id.lower())
-            if past is not None and past.demoted:
-                bucket = 3
-            score = past.score if past is not None else 0.5
-            ranked.append((*preference_key(stream), bucket, -score, -(stream.bitrate_bps or 0), stream.id.lower()))
-        return list(dict.fromkeys(row[-1] for row in sorted(ranked)))
+        return relay_order(streams, scores_for(self.db, streams, now), now)
 
     # --- lineup -------------------------------------------------------------
     def build_lineup(self) -> Lineup:
@@ -249,6 +213,7 @@ class TunerService:
         channels: List[TVChannel] = ChannelRepository(self.db).get_playlist_tv_channels()
         candidates = []
         gone: Set[str] = set()
+        from app.services.source_health import published_when_only_online
         if settings.hide_unusable:
             from app.services.stream_history import unusable_ids
             gone = unusable_ids(self.db, [s for tv in channels for s in tv.acestream_channels])
@@ -257,7 +222,7 @@ class TunerService:
                        and s.id.lower() not in gone]
             if not streams:
                 continue
-            if settings.only_online and not any(s.is_online for s in streams):
+            if settings.only_online and not any(published_when_only_online(s) for s in streams):
                 continue
             candidates.append((tv, sort_streams_curated(streams)[0]))
 
@@ -281,7 +246,7 @@ class TunerService:
                     lineup.renumbered.append(Renumbered(tv_channel_id=tv.id, name=tv.name, requested_number=requested, assigned_number=number))
             taken.add(number)
             lineup.entries.append(LineupEntry(
-                guide_number=str(number), guide_name=tv.name, content_id=best.id, tv_channel_id=tv.id,
+                guide_number=str(number), guide_name=tv.name, tv_channel_id=tv.id,
                 epg_id=tv.epg_id, epg_source_id=tv.epg_source_id, logo_url=tv.logo_url or best.logo, category=tv.category,
                 requested_number=requested,
             ))

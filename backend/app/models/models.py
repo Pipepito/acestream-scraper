@@ -123,7 +123,13 @@ class AcestreamChannel(Base):
     # after the engine has confirmed it. NULL means "not probed yet".
     id_kind = Column(String(16), nullable=True)
     last_checked = Column(UtcDateTime(), nullable=True)
-    offline_since = Column(UtcDateTime(), nullable=True)
+    # Sources are the assets, lists only where they were found (13-11): whether a
+    # source is kept depends on whether it works, not on who still publishes it.
+    # Last time a check brought media or a relay attempt played it.
+    last_worked_at = Column(UtcDateTime(), nullable=True)
+    # Checks in a row that found no media since then, and when that run started.
+    failed_checks = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    failing_since = Column(UtcDateTime(), nullable=True)
     check_error = Column(Text, nullable=True)
     audio_tracks = Column(JSON, nullable=True)
     bitrate_bps = Column(Integer, nullable=True)
@@ -195,6 +201,9 @@ class TVChannel(Base):
     logo_url = Column(String(2048), nullable=True)
     category = Column(String(255), nullable=True)
     country = Column(String(255), nullable=True)
+    category_origin = Column(String(32), nullable=False, default='legacy', server_default='legacy')
+    category_revision = Column(Integer, nullable=False, default=0, server_default='0')
+    category_evidence = Column(JSON, nullable=True)
     language = Column(String(255), nullable=True)
     website = Column(String(2048), nullable=True)
     epg_id = Column(String(255), nullable=True)
@@ -207,6 +216,11 @@ class TVChannel(Base):
       # Relationships
     acestream_channels = relationship("AcestreamChannel", back_populates="tv_channel")
     epg_source = relationship("EPGSource", back_populates="tv_channels")
+
+    @property
+    def category_id(self):
+        from app.services.category_taxonomy import channel_category
+        return channel_category(self.category).id
 
 
 class EPGChannelIdentity(Base):
@@ -261,6 +275,28 @@ class EPGProgram(Base):
 
     # Relationships
     epg_channel = relationship("EPGChannel", back_populates="programs")
+    category_observations = relationship('EPGProgramCategory', cascade='all, delete-orphan',
+                                        order_by='EPGProgramCategory.position', lazy='selectin')
+
+    @property
+    def categories(self):
+        if self.category_observations:
+            return [{'label': row.label, 'language': row.language} for row in self.category_observations]
+        return [{'label': self.category, 'language': None}] if self.category is not None else []
+
+    @property
+    def genre_ids(self):
+        from app.services.category_taxonomy import classify_genres
+        return classify_genres([item['label'] for item in self.categories])
+
+
+class EPGProgramCategory(Base):
+    __tablename__ = 'epg_program_categories'
+    __table_args__ = (Index('ix_epg_program_categories_label', 'label'),)
+    program_id = Column(Integer, ForeignKey('epg_programs.id', ondelete='CASCADE'), primary_key=True)
+    position = Column(Integer, primary_key=True)
+    label = Column(String(1024), nullable=False)
+    language = Column(String(50), nullable=True)
 
 
 class EPGStringMapping(Base):

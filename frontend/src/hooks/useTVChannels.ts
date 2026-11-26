@@ -1,7 +1,7 @@
 
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { TVChannel, TVChannelCreate, TVChannelUpdate, BatchAssignmentRequest } from '../types/tvChannelTypes';
-import { tvChannelService, TVChannelListFilters } from '../services/tvChannelService';
+import { tvChannelService, TVChannelListFilters, TVBrowseParams } from '../services/tvChannelService';
 
 export interface PaginatedTVChannels {
   items: TVChannel[];
@@ -25,10 +25,11 @@ export const useAllTVChannels = (skip = 0, limit = 100) => {
   });
 };
 
-export const useTVChannelCatalog = (filters?: TVChannelListFilters, refetchInterval?: number) => {
+export const useTVChannelCatalog = (filters?: TVChannelListFilters, refetchInterval?: number, enabled = true) => {
   return useQuery<TVChannel[]>({
     queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'catalog', { favorites: filters?.favorites ?? false, search: filters?.search ?? '' }],
     queryFn: () => tvChannelService.getCatalog(undefined, filters),
+    enabled,
     staleTime: 1000 * 60 * 5,
     refetchInterval,
     // Keep the previous list rendered while a filter change refetches, so
@@ -36,6 +37,30 @@ export const useTVChannelCatalog = (filters?: TVChannelListFilters, refetchInter
     placeholderData: keepPreviousData,
   });
 };
+
+/** Page/filter identity shares invalidation with all canonical channel editors. */
+export const useTVChannelPage = (params: TVBrowseParams, enabled = true) => useQuery({
+  queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'page', params],
+  queryFn: ({ signal }) => tvChannelService.browse(params, signal),
+  placeholderData: keepPreviousData,
+  staleTime: 30_000,
+  enabled,
+});
+
+export const useTVInventory = () => useQuery({
+  queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'inventory'], queryFn: tvChannelService.inventory, staleTime: 60_000,
+});
+
+export const useTVChannelPages = (params: TVBrowseParams, enabled = true) => useInfiniteQuery({
+  queryKey: [QUERY_KEYS.ALL_TV_CHANNELS, 'watch', params],
+  queryFn: ({ pageParam, signal }) => tvChannelService.browse({ ...params, skip: pageParam, limit: 50 }, signal),
+  initialPageParam: 0,
+  getNextPageParam: (last, pages) => {
+    const loaded = pages.reduce((count, page) => count + page.items.length, 0);
+    return last.items.length && loaded < last.total ? loaded : undefined;
+  },
+  enabled, refetchInterval: 30_000, staleTime: 30_000,
+});
 
 /**
  * Hook for fetching a single TV channel by ID

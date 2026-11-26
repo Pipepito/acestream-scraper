@@ -1,4 +1,5 @@
 """Default-deny management policy, including routes outside the versioned router."""
+from app.api.http_errors import coded_http_error
 import re
 from fastapi import HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
@@ -6,6 +7,7 @@ from starlette.responses import JSONResponse
 from app.repositories.access_repository import AccessRepository
 from app.services.access_service import request_user, require_csrf, playback_allowed, same_origin
 from app.utils.request_path import route_path
+from app.utils.stream_kind import ACESTREAM_ID_PATTERN, HTTP_ID_PATTERN
 
 # Complete playback exceptions; an unlisted route or method remains management.
 PLAYBACK_PATHS = {
@@ -17,7 +19,7 @@ PLAYBACK_PATHS = {
     '/tuner/discover.json', '/tuner/lineup.json', '/tuner/lineup_status.json',
     '/tuner/device.xml', '/tuner/guide.xml', '/tuner/playlist.m3u', '/tuner/epg.xml',
 }
-MEDIA_PATH = re.compile(r'^/(?:tuner/(?:stream/[0-9a-fA-F]{40}|source/url:[0-9a-f]{40}|channel/\d+)\.ts|live/[a-zA-Z0-9:_-]+(?:\.[a-z0-9]+)?)$')
+MEDIA_PATH = re.compile(rf'^/(?:tuner/(?:stream/{ACESTREAM_ID_PATTERN}|source/{HTTP_ID_PATTERN}|channel/\d+)\.ts|live/[a-zA-Z0-9:_-]+(?:\.[a-z0-9]+)?)$')
 PUBLIC_PATHS = {'GET': {'/api/v1/health', '/api/v1/auth/status'},
                 'POST': {'/api/v1/auth/login', '/api/v1/auth/bootstrap'}}
 DELEGATED = {
@@ -49,7 +51,7 @@ def authorize(request):
     path, method = route_path(request.scope), request.method
     media_read = method in ('GET', 'HEAD', 'OPTIONS') and re.fullmatch(r'/api/v1/viewers/[0-9a-f]{32}/media/[^/]+', path)
     if request.state.access_user and not getattr(request.state, 'header_authenticated', False) and not same_origin(request) and not media_read:
-        raise HTTPException(403, 'Open account resources from the application itself')
+        raise coded_http_error(403, 'ACCESS_RESOURCE_ORIGIN_REQUIRED', 'Open account resources from the application itself')
     if path in PUBLIC_PATHS.get('GET' if method == 'HEAD' else method, set()):
         return
     if path == '/api/v1/startup' and method in ('GET', 'HEAD'):
@@ -64,7 +66,7 @@ def authorize(request):
         return
     user = request.state.access_user
     if not user or not user['administrator']:
-        raise HTTPException(401 if not user else 403, 'Sign in as an administrator to access this resource')
+        raise coded_http_error(401 if not user else 403, 'ACCESS_ADMIN_LOGIN_REQUIRED', 'Sign in as an administrator to access this resource')
     if method not in ('GET', 'HEAD', 'OPTIONS') and not getattr(request.state, 'header_authenticated', False):
         require_csrf(request)
 
@@ -89,7 +91,7 @@ class AccessMiddleware:
             await JSONResponse({'detail': error.detail}, status_code=error.status_code, headers={'Cache-Control': 'no-store', **(error.headers or {})})(scope, receive, send)
             return
         except Exception:
-            await JSONResponse({'detail': 'Access storage is unavailable. Use local account recovery or restore its backup.'}, status_code=503, headers={'Cache-Control': 'no-store'})(scope, receive, send)
+            await JSONResponse({'detail': 'Access storage is unavailable. Use local account recovery or restore its backup.'}, status_code=503, headers={'Cache-Control': 'no-store', 'X-Error-Code': 'ACCESS_STORAGE_UNAVAILABLE'})(scope, receive, send)
             return
 
         if getattr(request.state, 'access_mode', 'open') == 'accounts' and path in PLAYBACK_PATHS and (path.endswith('/m3u') or path == '/playlist.m3u') and scope['method'] in ('GET', 'HEAD'):
@@ -98,7 +100,7 @@ class AccessMiddleware:
             try:
                 text = await run_in_threadpool(safe_playlist, request)
             except HTTPException as error:
-                await JSONResponse({'detail': error.detail}, status_code=error.status_code)(scope, receive, send)
+                await JSONResponse({'detail': error.detail}, status_code=error.status_code, headers={'Cache-Control': 'no-store', **(error.headers or {})})(scope, receive, send)
                 return
             await PlainTextResponse(text, media_type='application/x-mpegurl', headers={'Cache-Control': 'no-store'})(scope, receive, send)
             return

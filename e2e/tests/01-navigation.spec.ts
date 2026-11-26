@@ -1,26 +1,30 @@
 import { test, expect } from '../src/fixtures';
-import { NAV_ROUTES, type NavLabel } from '../src/pages/app-shell';
+import { NAV_ROUTES, NAV_HEADINGS, type NavLabel } from '../src/pages/app-shell';
 
 test.describe('navigation', () => {
-  test('every nav item opens its page and marks itself current; labels equal page titles', async ({ app, page }) => {
+  test('the seven destinations open their pages and keep WARP discoverable', async ({ app, page }) => {
     await app.goto('/');
-    await app.expectHeading('TV dashboard');
+    await app.expectHeading('Watch');
     const labels = await app.nav().getByRole('link').allInnerTexts();
-    expect(labels.map((l) => l.trim())).toEqual([...Object.keys(NAV_ROUTES), 'Support on Ko-fi']);
+    expect(labels.map((l) => l.trim())).toEqual([...Object.keys(NAV_ROUTES), 'WARP', 'Support on Ko-fi']);
     for (const [label, route] of Object.entries(NAV_ROUTES) as [NavLabel, string][]) {
       await app.navigate(label);
-      await app.expectHeading(label);
+      await app.expectHeading(NAV_HEADINGS[label]);
       await expect(page).toHaveURL(new RegExp(`${route.replace(/\//g, '\\/')}$`));
       await expect(app.nav().getByRole('link', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
     }
+    await app.nav().getByRole('link', { name: 'WARP', exact: true }).click();
+    await app.expectHeading('WARP');
+    await expect(app.nav().getByRole('link', { name: 'System', exact: true })).toHaveAttribute('aria-current', 'page');
   });
 
   test('old bookmarks redirect to the merged pages', async ({ app, page }) => {
     for (const [from, heading, url] of [
       ['/integrations', 'Public address', /\/integrations\/public-address$/],
-      ['/dashboard', 'TV dashboard', /\/$/],
+      ['/integrations/telegram', 'Telegram', /\/scraper\/telegram$/],
+      ['/dashboard', 'Watch', /\/$/],
       ['/health', 'System status', /\/system$/],
-      ['/stats', 'TV dashboard', /\/$/],
+      ['/stats', 'Watch', /\/$/],
       ['/channels', 'TV Channels', /\/tv-channels$/],
       ['/search-new', 'Search', /\/search$/],
       ['/epg/mappings', 'EPG', /\/epg\?tab=rules$/],
@@ -38,12 +42,12 @@ test.describe('navigation', () => {
     await app.goto('/this/route/does/not/exist');
     await app.expectHeading('Page not found');
     await page.getByRole('button', { name: 'Open Dashboard' }).click();
-    await app.expectHeading('TV dashboard');
+    await app.expectHeading('Watch');
   });
 
   test('theme toggle switches between light and dark and persists', async ({ app, page }) => {
     await app.goto('/');
-    await app.expectHeading('TV dashboard');
+    await app.expectHeading('Watch');
     await expect(app.themeToggle()).toHaveAttribute('aria-label', 'Switch to dark theme');
     await app.themeToggle().click();
     await expect(app.themeToggle()).toHaveAttribute('aria-label', 'Switch to light theme');

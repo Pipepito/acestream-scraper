@@ -3,7 +3,7 @@ Repository for channel data operations
 """
 from app.config.database_retry import retry_database_write
 from sqlalchemy import and_, func, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime, timezone
 
@@ -22,7 +22,9 @@ class ChannelRepository:
     def status_check_inventory(self, scope: str, *, http_only: bool = False):
         """Select active streams eligible for the next background pass."""
         query = (self.db.query(AcestreamChannel.id, AcestreamChannel.last_checked,
-                               AcestreamChannel.tv_channel_id, TVChannel.is_favorite)
+                               AcestreamChannel.tv_channel_id, TVChannel.is_favorite,
+                               AcestreamChannel.failed_checks, AcestreamChannel.last_worked_at,
+                               AcestreamChannel.failing_since)
                  .outerjoin(TVChannel, AcestreamChannel.tv_channel_id == TVChannel.id)
                  .filter(AcestreamChannel.is_active.is_(True)))
         if scope in ("assigned", "favorites"):
@@ -33,17 +35,12 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.stream_url.isnot(None))
         return query
 
-    def get_tuner_streams(self, tv_channel_id: int, *, online_only: bool = False) -> List[AcestreamChannel]:
+    def get_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
         query = (self.db.query(AcestreamChannel)
                 .join(TVChannel, TVChannel.id == AcestreamChannel.tv_channel_id)
                 .filter(TVChannel.id == tv_channel_id, TVChannel.is_active.is_(True),
                         AcestreamChannel.is_active.is_(True)))
-        if online_only:
-            query = query.filter(AcestreamChannel.is_online.is_(True))
         return query.all()
-
-    def get_online_tuner_streams(self, tv_channel_id: int) -> List[AcestreamChannel]:
-        return self.get_tuner_streams(tv_channel_id, online_only=True)
 
     def get_tv_matching_inventory(self) -> tuple[list[TVChannel], list[AcestreamChannel]]:
         targets = self.db.query(TVChannel).order_by(TVChannel.id).all()
@@ -104,8 +101,92 @@ class ChannelRepository:
         if favorites_only:
             query = query.filter(TVChannel.is_favorite.is_(True))
         total = query.count()
-        items = query.order_by(*self._tv_channel_ordering()).offset(skip).limit(limit).all()
+        items = query.options(selectinload(TVChannel.acestream_channels)).order_by(*self._tv_channel_ordering(), TVChannel.id).offset(skip).limit(limit).all()
         return items, total
+
+    def filtered_tv_query(self, filters):
+        from sqlalchemy import String, cast, select
+        stream_count = (select(func.count(AcestreamChannel.id))
+                        .where(AcestreamChannel.tv_channel_id == TVChannel.id)
+                        .correlate(TVChannel).scalar_subquery())
+        query = self.db.query(TVChannel)
+        if filters.search.strip():
+            # Literal substring, including '%' and '_'; never treat user text as SQL wildcards.
+            term = filters.search.strip().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+            pattern = f'%{term}%'
+            if filters.watchable:
+                text_fields = [TVChannel.name, TVChannel.category, cast(TVChannel.channel_number, String)]
+                query = query.filter(or_(*(column.ilike(pattern, escape='\\') for column in text_fields)))
+            else:
+                text_fields = [TVChannel.name, TVChannel.description, cast(TVChannel.channel_number, String), TVChannel.epg_id]
+                query = query.filter(or_(*(column.ilike(pattern, escape='\\') for column in text_fields),
+                    TVChannel.acestream_channels.any(or_(AcestreamChannel.name.ilike(pattern, escape='\\'), AcestreamChannel.id.ilike(pattern, escape='\\')))))
+        for name in ('category', 'country', 'language', 'is_active', 'is_favorite', 'epg_source_id'):
+            value = getattr(filters, name)
+            if value is not None and value != '':
+                query = query.filter(getattr(TVChannel, name) == value)
+        mapped = and_(TVChannel.epg_id.isnot(None), TVChannel.epg_id != '', TVChannel.epg_source_id.isnot(None))
+        if filters.epg:
+            query = query.filter(mapped if filters.epg == 'yes' else ~mapped)
+        if filters.streams:
+            query = query.filter(stream_count == 0 if filters.streams == 'none' else stream_count > (1 if filters.streams == 'multiple' else 0))
+        verified = TVChannel.acestream_channels.any(AcestreamChannel.is_online.is_(True))
+        if filters.signal == 'verified':
+            query = query.filter(verified)
+        elif filters.signal == 'unverified':
+            query = query.filter(stream_count > 0, ~verified)
+        elif filters.signal == 'unknown':
+            query = query.filter(stream_count > 0, ~TVChannel.acestream_channels.any(AcestreamChannel.is_online.isnot(None)))
+        if filters.number:
+            query = query.filter(TVChannel.channel_number.isnot(None) if filters.number == 'yes' else TVChannel.channel_number.is_(None))
+        for prefix, column in (('number', TVChannel.channel_number), ('streams', stream_count)):
+            lower, upper = getattr(filters, f'min_{prefix}'), getattr(filters, f'max_{prefix}')
+            if lower is not None:
+                query = query.filter(column >= lower)
+            if upper is not None:
+                query = query.filter(column <= upper)
+        for name in ('logo_url', 'website', 'description'):
+            value = getattr(filters, name)
+            if value:
+                present = func.length(func.trim(func.coalesce(getattr(TVChannel, name), ''))) > 0
+                query = query.filter(present if value == 'yes' else ~present)
+        if filters.watchable:
+            stream = AcestreamChannel.is_active.is_(True)
+            if filters.online_only:
+                stream = and_(stream, AcestreamChannel.is_online.is_(True))
+            query = query.filter(TVChannel.is_active.is_(True), TVChannel.acestream_channels.any(stream))
+        return query
+
+    def browse_tv_channels(self, filters, channel_ids=None):
+        from sqlalchemy import select
+        query = self.filtered_tv_query(filters)
+        if channel_ids is not None:
+            query = query.filter(TVChannel.id.in_(channel_ids))
+        stream_count = (select(func.count(AcestreamChannel.id))
+                        .where(AcestreamChannel.tv_channel_id == TVChannel.id)
+                        .correlate(TVChannel).scalar_subquery())
+        total = query.count()
+        if filters.sort == 'default':
+            ordering = (*self._tv_channel_ordering(), TVChannel.id)
+        else:
+            column = stream_count if filters.sort == 'acestream_channels' else getattr(TVChannel, filters.sort)
+            if filters.sort in ('name', 'category', 'language', 'country', 'logo_url'):
+                column = func.lower(func.coalesce(column, ''))
+            ordering = (column.desc() if filters.direction == 'desc' else column.asc(), TVChannel.id)
+        rows = query.options(selectinload(TVChannel.acestream_channels)).order_by(*ordering).offset(filters.skip).limit(filters.limit).all()
+        return rows, total
+
+    def tv_inventory(self):
+        from sqlalchemy import case
+        total, favorites, with_streams = self.db.query(func.count(TVChannel.id),
+            func.sum(case((TVChannel.is_favorite.is_(True), 1), else_=0)),
+            func.sum(case((TVChannel.acestream_channels.any(), 1), else_=0))).one()
+        values = self.db.query(TVChannel.category, TVChannel.country, TVChannel.language, TVChannel.epg_source_id).distinct().all()
+        return dict(total=total, favorites=favorites or 0, with_streams=with_streams or 0,
+                    categories=sorted({row[0] for row in values if row[0]}),
+                    countries=sorted({row[1] for row in values if row[1]}),
+                    languages=sorted({row[2] for row in values if row[2]}),
+                    epg_sources=sorted({row[3] for row in values if row[3] is not None}))
 
     @staticmethod
     def _tv_channel_ordering():
@@ -232,10 +313,6 @@ class ChannelRepository:
         """Get a TV channel by EPG ID"""
         return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).first()
 
-    def get_tv_channels_by_epg_id(self, epg_id: str) -> List[TVChannel]:
-        """Get all TV channels for an EPG ID."""
-        return self.db.query(TVChannel).filter(TVChannel.epg_id == epg_id).order_by(TVChannel.id.asc()).all()
-
     def get_epg_channels_by_ids(self, epg_channel_ids: List[int]) -> List[EPGChannel]:
         """Get EPG channels by IDs preserving deterministic order."""
         if not epg_channel_ids:
@@ -307,16 +384,8 @@ class ChannelRepository:
             query = query.filter(AcestreamChannel.group == group)
 
         if only_online:
-            # An HTTP stream not checked yet is unknown, and without this the
-            # default playlist (only_online=true) had NO HTTP channel at all
-            # until the next status pass. Unknown HTTP streams are published:
-            # a dead one fails in Kodi within seconds and leaves the remote
-            # responsive, which is not true of an acestream id waiting on the
-            # engine. Checked-dead ones are left out.
-            query = query.filter(or_(
-                AcestreamChannel.is_online.is_(True),
-                and_(AcestreamChannel.stream_url.isnot(None), AcestreamChannel.is_online.is_(None)),
-            ))
+            from app.services.source_health import published_when_only_online_clause
+            query = query.filter(published_when_only_online_clause())
 
         if include_groups and len(include_groups) > 0:
             query = query.filter(AcestreamChannel.group.in_(include_groups))
@@ -569,22 +638,25 @@ class ChannelRepository:
 
     @retry_database_write
     def update_channel_status(self, channel_id: str, is_online: bool, error: str = None, *, bitrate_bps: Optional[int] = None, audio_tracks: Optional[list] = None, network_status: str = "unknown", stream_stats: Optional[dict] = None,
-                              id_kind: Optional[str] = None) -> AcestreamChannel:
-        """Update the online status of a channel"""
+                              id_kind: Optional[str] = None, http: bool = False) -> AcestreamChannel:
+        """Store the result of one status check.
+
+        The caller reports what it saw (``is_online``, the engine's
+        ``network_status``, whether the source is ``http``); what that means
+        for the source's health is decided by ``source_health.record_check``.
+        """
         channel = self.get_channel_by_id(channel_id)
         if not channel:
             return None
+        from app.services.source_health import record_check
+        # One instant for the streak and for last_checked: the cleanup asks for a
+        # check after the streak began, i.e. a second one.
+        now = datetime.now(timezone.utc)
+        record_check(channel, is_online, network_status, now, http=http)
 
         channel.is_online = is_online
         channel.network_status = network_status
-        channel.last_checked = datetime.now(timezone.utc)
-        # Only a confirmed source lookup can start/continue an offline streak.
-        # Imports, timeouts and checker outages cannot age a stream into deletion.
-        if is_online is False and network_status in ('found', 'not_found'):
-            if channel.offline_since is None or channel.offline_since > channel.last_checked:
-                channel.offline_since = channel.last_checked
-        else:
-            channel.offline_since = None
+        channel.last_checked = now
         channel.check_error = error
         if stream_stats is not None:
             channel.stream_stats = stream_stats
@@ -600,6 +672,18 @@ class ChannelRepository:
         self.db.commit()
         self.db.refresh(channel)
         return channel
+
+    def record_viewing(self, channel_id: str, outcome: str, seconds: Optional[float],
+                       at: Optional[datetime] = None, *, final: bool = True) -> bool:
+        """The relay recorded a viewing: ``source_health.record_viewing`` decides what it means."""
+        channel = (self.db.query(AcestreamChannel)
+                   .filter(func.lower(AcestreamChannel.id) == channel_id.lower()).first())
+        if channel is None:
+            return False
+        from app.services.source_health import record_viewing
+        counted = record_viewing(channel, outcome, seconds, at or datetime.now(timezone.utc), final=final)
+        self.db.commit()
+        return counted
 
     def check_all_channels_status(self) -> int:
         """Check status for all active channels"""
@@ -635,13 +719,16 @@ class ChannelRepository:
                          epg_source_id: Optional[int] = None,
                          channel_number: Optional[int] = None,
                          is_active: bool = True,
-                         is_favorite: bool = False, *, commit: bool = True) -> TVChannel:
+                         is_favorite: bool = False, *, commit: bool = True,
+                         category_origin: str = 'automatic', category_evidence=None) -> TVChannel:
         """Create a new TV channel"""
         tv_channel = TVChannel(
             name=name,
             logo_url=logo_url,
             description=description,
             category=category,
+            category_origin=category_origin,
+            category_evidence=category_evidence,
             country=country,
             language=language,
             website=website,
@@ -661,10 +748,19 @@ class ChannelRepository:
 
     def update_tv_channel(self, tv_channel_id: int, updates: Dict[str, Any]) -> Optional[TVChannel]:
         """Update TV channel properties"""
+        updates = dict(updates)
+        expected = updates.pop('expected_category_revision', None)
+        if 'category' in updates:
+            from app.repositories.category_repository import CategoryRepository
+            CategoryRepository(self.db).claim(tv_channel_id, expected)
         tv_channel = self.get_tv_channel_by_id(tv_channel_id)
         if not tv_channel:
             return None
 
+        if 'category' in updates:
+            tv_channel.category_origin = 'manual'
+            tv_channel.category_revision += 1
+            tv_channel.category_evidence = None
         # Update fields from the dictionary
         for key, value in updates.items():
             if hasattr(tv_channel, key):

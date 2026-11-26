@@ -45,3 +45,32 @@ test('browser Cast declares MPEG-TS media and releases only its own receiver pla
     }
   }
 });
+
+test('browser Cast failures say what went wrong in the chosen language', async () => {
+  const { default: i18n } = await import('../i18n');
+  const { getAccessErrorMessage } = await import('../services/accessErrors');
+  const descriptors = ['cast', 'chrome'].map(key => [key, Object.getOwnPropertyDescriptor(window, key)] as const);
+  const restore = () => descriptors.forEach(([key, descriptor]) => {
+    if (descriptor) Object.defineProperty(window, key, descriptor);
+    else Reflect.deleteProperty(window, key);
+  });
+  try {
+    // A browser without the Cast SDK.
+    Reflect.deleteProperty(window, 'cast');
+    const unsupported = await startBrowserCast({ content_id: 'a'.repeat(40) }).catch((reason: unknown) => reason);
+    expect(getAccessErrorMessage(unsupported)).toBe('This browser does not support Google Cast.');
+
+    // The viewer closes the device picker without choosing a TV.
+    const context = { requestSession: jest.fn().mockResolvedValue(undefined), getCurrentSession: () => null };
+    Object.defineProperty(window, 'cast', { configurable: true, value: { framework: { CastContext: { getInstance: () => context } } } });
+    Object.defineProperty(window, 'chrome', { configurable: true, value: { cast: { media: {} } } });
+    const noTv = await startBrowserCast({ content_id: 'a'.repeat(40) }).catch((reason: unknown) => reason);
+    expect(getAccessErrorMessage(noTv)).toBe('No TV was selected.');
+    await i18n.changeLanguage('es');
+    expect(getAccessErrorMessage(unsupported)).toBe('Este navegador no es compatible con Google Cast.');
+    expect(getAccessErrorMessage(noTv)).toBe('No se ha seleccionado ningún televisor.');
+  } finally {
+    await i18n.changeLanguage('en');
+    restore();
+  }
+});

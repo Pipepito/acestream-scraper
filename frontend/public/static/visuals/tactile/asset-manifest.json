@@ -1,0 +1,1351 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "asset_id": "ace-art-film-drama-v1",
+      "artwork_key": "film-drama",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "8d9ea1f3fd964579c5ab45d8551479009c0d1d1a89c29f2b8d5eb41e5459b565",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-film-drama-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 4110,
+          "sha256": "d3dfdc5bb6b244c526e4ec5ba43469123b6fbc05dd39dffe0c7708470e8396a5"
+        },
+        {
+          "file": "ace-art-film-drama-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 9234,
+          "sha256": "c9391271e52e154d73f6e765953a03b777d93a192ea023bc5cf7ac48439a651e"
+        },
+        {
+          "file": "ace-art-film-drama-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 22928,
+          "sha256": "867a0ac640636b381f469e7ff32455c9ee92766bb65ee5a6634ace4420849be8"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: a handsome unbranded vintage twin-reel cinema projector in warm ivory, its lens projecting one soft warm cone of light toward the right. Two clearly circular film reels and a small curling film strip on the stage. A folded terracotta backdrop hints at a theatre curtain. A celebration of cinema and storytelling, not any particular film, no clapperboard writing.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/s7XY0DXl8e"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-documentary-v1",
+      "artwork_key": "documentary",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "bfa9075dd0084381670ed6caa21f2f3aa0c57aac659041db506e9683dfb8219f",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-documentary-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 4510,
+          "sha256": "91bbfb099a244033183294c81c3b6f7e08f5b7c2a4b104d3385d59f9903d8e09"
+        },
+        {
+          "file": "ace-art-documentary-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 12036,
+          "sha256": "9a7b8e4b2211492bdc8a2e1bb926095a166720879cce9e3b8001063d51fb9d2c"
+        },
+        {
+          "file": "ace-art-documentary-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 31854,
+          "sha256": "6a5350881c57f97f612c47fcd50f509815fa1ef65f318a4bc00f83bde4e750ed"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: an open blank ivory field journal, a large magnifying glass poised over a small fossil spiral, a single cut-paper fern and a quiet stack of geological rock layers. Arrange as one strong coherent exploration still life, suggesting observation, evidence, natural and human history rather than only wildlife. No writing on the pages, no maps or captions.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/rgDAn0mxtc"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-news-v1",
+      "artwork_key": "news",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "9623bac91dc47f03c0e27f9e12dcceff17138e2bb7bbe8985af8570298f22314",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-news-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 4030,
+          "sha256": "b622370fae7985688c0181cc1d196561c0c8dfc46ebe461212966c411be09537"
+        },
+        {
+          "file": "ace-art-news-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 9712,
+          "sha256": "64c4da77bb83706c0aade0cfdb182a78576fad20c6b26174564bd64cbeec3e66"
+        },
+        {
+          "file": "ace-art-news-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 25724,
+          "sha256": "9ec7f15349e7ca62d5424e41a81e03e222903be1c1f7a4e2c1d3f7dfdf72122c"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: an upright elegant unbranded broadcast microphone and a simple small globe with abstract continents on a rounded ivory stand. Two broad layered paper arcs behind them suggest a worldwide conversation, with a restrained coral accent. Credible calm current-affairs reporting, not a specific studio or broadcaster. No screens, charts, tickers, flags, labels or text.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/gOocVerSXO"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-children-v1",
+      "artwork_key": "children",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "e34669cc6ec93213cbe7b3d2cf623085919f22190035ada58882de2d52733129",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-children-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 3298,
+          "sha256": "cec51f4787724e6d74828583bbeb9f23dad0b9bb0c90ad2761734d07c79f397c"
+        },
+        {
+          "file": "ace-art-children-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 7738,
+          "sha256": "3468c1b763979005df5b85afae9571e38e7aef0a1adb4ca14157b7f86a7134a8"
+        },
+        {
+          "file": "ace-art-children-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 18316,
+          "sha256": "21e8f1b4c3f5877c3b9a0002d9413b9264e9a671d608fa7da26aae922c280c90"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: a delightful original folded-paper kite with a short curling ribbon, a small unbranded wooden rocking horse and three chunky geometric building blocks. A warmly imaginative sculptural world in ivory, coral and a small chartreuse accent, arranged as one compact bold silhouette. Suitable for broad children's programming, friendly but sophisticated, no faces, no alphabet blocks, no known characters, no implied safety or age rating.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/cpLFb1q0eP"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-entertainment-v1",
+      "artwork_key": "entertainment",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "be28efb40680536eb5776a0ad044cd289ce28a1cce7c7917c00da67766b70d56",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-entertainment-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 3988,
+          "sha256": "66aa2b58fc7e7d5e48d50555f243615dd8f6bdfcc3b2e082a8187d3044627004"
+        },
+        {
+          "file": "ace-art-entertainment-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 9940,
+          "sha256": "cf1a6b6dc478b5ce92291dfe92d2d903d13a732ab4c6ad66e44b847e6486d9d2"
+        },
+        {
+          "file": "ace-art-entertainment-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 24782,
+          "sha256": "0fc72af5f3e0b745951776c7313a2860af3bd166438d0504cd0e6fde6f722001"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: a miniature empty variety-show stage with three elegantly folded terracotta curtains, two warm ivory spotlights and a single small sculpted star resting on the stage. Broad entertainment, comedy and game shows, not music-specific. A simple bold composition with the subject in the central crop. No faces, masks, writing, scoreboards or show branding.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/cpLFKXT0eP"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-music-v1",
+      "artwork_key": "music",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "3a25399629d31b0960d00ff923299c85f311892c679ac011ae7ffcbff1b3c058",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-music-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 4186,
+          "sha256": "52fc5f51594f5c7b1c9763a8a9f1d59e27b56f5ed8a06026e00421b884ddab63"
+        },
+        {
+          "file": "ace-art-music-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 10522,
+          "sha256": "baa9816167e99667a2e6819b2ffeee3e6a489446684ab62baebca9626c5edbab"
+        },
+        {
+          "file": "ace-art-music-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 27044,
+          "sha256": "eeb4a2a0a54e94f0030349003227f3b539c58ac76d0203a76c76942f7566e1e5"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: a beautifully simplified ivory acoustic guitar resting diagonally beside a small terracotta hand drum, three curved paper ribbons behind them suggesting rhythm and dance. Clearly musical, with believable guitar strings and six tuning pegs. Keep the complete instrument within the central safe area. No musical notation, no text, no famous instruments or branding.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/EbAy65BuuO"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-lifestyle-v1",
+      "artwork_key": "lifestyle",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "bd08e19951e92a50258c63c4c8fad55b91ddcad9ffee2347dbda81107f908f1c",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0.15,
+        0.15,
+        0.85,
+        0.85
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-lifestyle-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 4014,
+          "sha256": "5927a683a8f85b8c7aa56610b6867eb644bc21b959e19b49e593f8c6ebcffe10"
+        },
+        {
+          "file": "ace-art-lifestyle-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 10038,
+          "sha256": "11185f90a58ea3211649d4c926254fba13b08d3dbd41e223db09cb571637c6b5"
+        },
+        {
+          "file": "ace-art-lifestyle-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 28070,
+          "sha256": "3757cb32259dc5467665323211157cb42c23fd50eebbf5583146466882268650"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: a warm ivory lounge chair beside a sculptural potted plant, a terracotta folded textile and a simple rounded ceramic cup. A compact elegantly arranged domestic still life communicating leisure, everyday living and practical hobbies. No people, no screens, no writing or brands, no sprawling furnished room.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/5j03GsyKxe"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-cooking-v1",
+      "artwork_key": "cooking",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "7f9faccb9d8419af270158cd52e6422edffb32771b07c82b932a7792dba6717d",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-cooking-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 2730,
+          "sha256": "f3226d24679ef46695c11c3a82f0b97c781190aa5ceb93d6f9a524d20d3b1383"
+        },
+        {
+          "file": "ace-art-cooking-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 6444,
+          "sha256": "3dc0f7743bbe1ed596eafc192517c8c14b928aa2ce4124c0ac7b003858c3c4c0"
+        },
+        {
+          "file": "ace-art-cooking-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 17228,
+          "sha256": "dcf7b30564249d87d5182bf2cea18a7ebafec5e5e087043e75d7b7910927df24"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: an ivory cooking bowl with a wooden spoon, one ripe terracotta-red tomato, a leaf of basil and a neatly folded cloth. Sculptural appetizing food and kitchen still life with large simple recognizable shapes, no steam obscuring the subject. No knives, writing, ingredient labels, branding or restaurant identity.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/VXgbrBcMMU"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-science-v1",
+      "artwork_key": "science",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "7a1135a68d3127bbeeef3b00a7b33b7e2e674866f43146459f55db6bd7d905bd",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-science-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 3020,
+          "sha256": "19b5d92171198ad0ec0198fbebb491697da356713c2752eea7bddb0581fe9981"
+        },
+        {
+          "file": "ace-art-science-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 7262,
+          "sha256": "9034a5f2c4500a6855c2109f0d51ee3512246742512ad07ac1413452893dacc3"
+        },
+        {
+          "file": "ace-art-science-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 17964,
+          "sha256": "c8f4ecbae6d872c9bd28406b42859ef454d9a95f3a0fe96a9c3a96a30b9e4c9f"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: a beautifully simplified ivory microscope with one eyepiece and one objective poised above its slide platform, beside a freestanding abstract orbital model made of three thin coral loops and one chartreuse sphere. Curiosity, science and learning. Clearly recognizable simple geometry, no screens, formulas, writing, laboratory labels or brand marks.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/huiUyHuvqL"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-culture-v1",
+      "artwork_key": "culture",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "f5dc7f0c8ece3dd7893c9d8eedb87aa03276aec05c5516673ed2a3715c1a948e",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-culture-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 3048,
+          "sha256": "898142fc9a77bcc4e73036fa01aa6798f60393e78bb1477e7524803b462f23fd"
+        },
+        {
+          "file": "ace-art-culture-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 7282,
+          "sha256": "d756aea59263cf7403195dc3e0d64f3bea6f1d2fd132cb510d49cf7e718be5b3"
+        },
+        {
+          "file": "ace-art-culture-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 19686,
+          "sha256": "b48e5f4f2326405bdcee174f0bca24732d1b3955df8431606ae1e2f28340bbab"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: an elegantly sculpted ivory amphora with two handles, one small terracotta abstract sculpture and an open blank art book arranged on a low gallery plinth. Suggest arts, culture and shared history without claiming any specific civilization or religion. No faces, inscriptions, sacred emblems, lettering, reproductions of famous artworks or museum branding.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/KLTRnOTkqp"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-travel-v1",
+      "artwork_key": "travel",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "7d9ac40a950f580ecaf04fb6a62b02248daa0a29470dcee8a69812362788cdb1",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-travel-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 2826,
+          "sha256": "5513d78b5a4d0f58431ceaf25ccfa7e2ffbed26addbd32166310bdd4e51196f6"
+        },
+        {
+          "file": "ace-art-travel-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 6388,
+          "sha256": "b1bfb86083bc153660a1ac588b894280b9e632f40b868b4e08cefca5a478edd5"
+        },
+        {
+          "file": "ace-art-travel-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 17286,
+          "sha256": "f697c08acd63fabe2d663b9961846a9d22609ef123768de9243673922f32e5cd"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: an unbranded rounded ivory suitcase with a simple handle, beside a terracotta architectural arch framing a tiny layered teal hill and warm sun disk. A compact sculptural metaphor for travel and discovering places, not any named landmark. No maps, passport writing, airline tags, flags or logos. Keep suitcase, arch and sun inside the central safe area.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/BhyjUqIoQR"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-sports-general-v1",
+      "artwork_key": "sports-general",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "f0310fb26de164c4110814443c6fa8799c71ce841445646f71439462ca1f6e49",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-sports-general-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 2622,
+          "sha256": "238117c9c2d6930528f4f56b96a3cb7a038802dc43f5a0156a3440bfcf0d1703"
+        },
+        {
+          "file": "ace-art-sports-general-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 5654,
+          "sha256": "093fed2a0a294f881673ab8436e9cc7a286ba76b2d09b87ccd7f8554d6e8867d"
+        },
+        {
+          "file": "ace-art-sports-general-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 15772,
+          "sha256": "a21f9bbfecb264e3d6014ed43b73c30635b53ce39a7b9133fd247114d5aca1ad"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: an unnumbered three-level winner's podium in ivory with a terracotta ribbon and a small simple sports whistle in the foreground. Generic sporting competition and sports discussion, intentionally no ball, stadium or sport-specific equipment. A strong clear sculptural silhouette. No medal inscriptions, numbers, flags, logos or real competition symbols.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/s7XYMihl8e"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-motorsport-v1",
+      "artwork_key": "motorsport",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "847a03e42d674d2d31dbdc863de8ac24efd2b99d26ce2db3eed8f8ea7c67b4bd",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-motorsport-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 3532,
+          "sha256": "cfee3f22110688a35225f149d5e2e56802e4cd79ef437f7508b1fbabc66b4247"
+        },
+        {
+          "file": "ace-art-motorsport-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 8456,
+          "sha256": "83d5616b9d32f12efb0aa0658b0152f87c6779d1b5e9f438707d8e74c2abbd2a"
+        },
+        {
+          "file": "ace-art-motorsport-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 22976,
+          "sha256": "66c67cc71536c18a3fcc10b477dd569ccc167a9a4a42f5f4f391d9bacec988d9"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: a single ivory full-face racing helmet with a dark teal visor, a dark rubber racing tyre leaning beside it and one sweeping terracotta track kerb behind. Motor racing broadly, usable for both cars and motorcycles, no vehicle depicted and no specific racing series implied. Clean believable helmet geometry, no sponsors, labels, numbers, chequered brand marks or logos.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/Cq2O6LpEEy"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    },
+    {
+      "asset_id": "ace-art-neutral-v1",
+      "artwork_key": "neutral",
+      "role": "generic category decoration; never actual programme image",
+      "intended_components": [
+        "proposed CategoryArtwork slot",
+        "ProgrammeArtwork sibling fallback (requires category data)"
+      ],
+      "distribution_status": "HOLD: AI-output public-repository redistribution terms unverified",
+      "source_dimensions": [
+        2752,
+        1536
+      ],
+      "source_sha256": "e09b37badf8bf43eb307be78493d6a869d43b67a6dee458eb2e71d5694c02f68",
+      "master_not_distributed": true,
+      "local_crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "focal_point": [
+        0.5,
+        0.5
+      ],
+      "safe_crop": {
+        "allowed_ratios": [
+          "16:9",
+          "2:1"
+        ],
+        "compact_3_to_1": "contain, never cover",
+        "square": "not approved; no square export"
+      },
+      "variants": [
+        {
+          "file": "ace-art-neutral-v1-320.webp",
+          "width": 320,
+          "height": 180,
+          "aspect_ratio": "16:9",
+          "bytes": 2872,
+          "sha256": "a1c0dce86ae3e58cff715b2f4c4bad036b1e06df17ac78f8857c28f0070a3899"
+        },
+        {
+          "file": "ace-art-neutral-v1-640.webp",
+          "width": 640,
+          "height": 360,
+          "aspect_ratio": "16:9",
+          "bytes": 6682,
+          "sha256": "4084c0000492ff7d6a12d0701f64cace0d65f774d829c9ac04aeefde2f6dbf82"
+        },
+        {
+          "file": "ace-art-neutral-v1-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "aspect_ratio": "16:9",
+          "bytes": 17960,
+          "sha256": "24138ec089df57eaa95483ecf43882c778c6c59a28e21089c5268dbc286ade2d"
+        }
+      ],
+      "encoding": {
+        "format": "WebP",
+        "quality": 80,
+        "method": 6,
+        "resample": "Lanczos",
+        "extra_exif": "not added"
+      },
+      "light_dark": "Same bytes in both themes. Border and opaque label panel use preset tokens; no baked tint.",
+      "accessibility": {
+        "decorative": true,
+        "alt": "",
+        "label": "Visible original category outside image; generic illustration disclosure nearby",
+        "no_image": "Keep text/actions and reserved box; solid muted background"
+      },
+      "loading": {
+        "loading": "lazy",
+        "decoding": "async",
+        "reserve_ratio": "16/9",
+        "failure": "single local fallback; no retry loop or runtime generation"
+      },
+      "generation": {
+        "provider": "Magnific MCP",
+        "model_name": "Google Nano Banana 2.1",
+        "model": "imagen-nano-banana-2-1",
+        "resolution": "2k",
+        "requested_aspect_ratio": "16:9",
+        "count": 1,
+        "quality": "provider default (no quality option in catalogue)",
+        "seed": "provider-selected; not supplied",
+        "references": [],
+        "date": "2026-11-08",
+        "prompt": "Create one horizontal 16:9 editorial category illustration for a television browsing app. Commissioned series called Tactile broadcast: sophisticated physical miniature still life made of matte painted wood, cut paper and subtly grained ceramic, photographed as an elegant dimensional illustration. Deep midnight teal background, warm ivory key subjects, muted terracotta coral, tiny chartreuse accents. Warm side light from upper left, cool soft fill, gentle realistic shadows, tactile restrained grain. Confident quiet composition, no toy-store clutter, not glossy plastic, not photorealistic programme footage. Main semantic subject centered at x=50%, y=50%, contained within the middle 55% width and middle 60% height, recognizable at 160px wide. Spacious uncluttered perimeter and subdued lower edge, suitable for 16:9 and 2:1 crops. No text, letters, numerals, labels, logos, watermarks, UI, frames, branded products, people, franchise characters or posters. Subject: three broad interleaved curved ribbons in matte ivory, terracotta and deep teal forming an open sculptural wave on a quiet stage, with one tiny chartreuse sphere. A balanced abstract welcoming composition with no genre-specific objects and no implied programme subject. This is a neutral category-unknown decoration, not a play button or a warning symbol. No screens, icons, question marks, text or logos.",
+        "credits": 65,
+        "creation_page": "https://www.magnific.com/app/creation/P3fdtcm42C"
+      },
+      "review": "Inspected actual downloaded master and contact sheet; final in-slot review in QA.md"
+    }
+  ],
+  "reused_assets": "../asset-manifest.json",
+  "terms": "RIGHTS.md"
+}

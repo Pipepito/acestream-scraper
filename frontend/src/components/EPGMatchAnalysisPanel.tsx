@@ -1,3 +1,5 @@
+import { uiText } from '../i18n/text';
+import { useUiText } from '../i18n/useUiText';
 import React from 'react';
 import {
   Alert,
@@ -26,15 +28,15 @@ interface EPGMatchAnalysisPanelProps {
 }
 
 const formatMatchLabel = (value?: string | null) => {
-  if (!value) return 'Unmatched';
+  if (!value) return uiText("Unmatched");
 
   const specialCases: Record<string, string> = {
-    xml_id_exact: 'XML ID exact',
-    name_exact: 'Name exact',
-    name_similarity: 'Name similarity',
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
+    xml_id_exact: uiText('XML ID exact'),
+    name_exact: uiText('Name exact'),
+    name_similarity: uiText('Name similarity'),
+    high: uiText('High'),
+    medium: uiText('Medium'),
+    low: uiText('Low'),
   };
 
   if (specialCases[value]) {
@@ -54,34 +56,30 @@ const EPGMatchAnalysisPanel: React.FC<EPGMatchAnalysisPanelProps> = ({
   filteredRows,
   selectedRowIds,
   onToggleRow,
-}) => (
+}) => { const tUi = useUiText(); return (
   <Box sx={{ p: 2, mb: 0, border: 1, borderColor: 'divider', borderRadius: 2 }}>
     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-      <Typography variant="body2">{analysis.summary.epg_channels_analyzed} analyzed</Typography>
-      <Typography variant="body2">{analysis.summary.matched_epg_channels} matched</Typography>
-      <Typography variant="body2">{analysis.summary.creatable_rows} creatable</Typography>
+      <Typography variant="body2">{analysis.summary.epg_channels_analyzed} {' '}{tUi("analyzed")}</Typography>
+      <Typography variant="body2">{analysis.summary.matched_epg_channels} {' '}{tUi("matched")}</Typography>
+      <Typography variant="body2">{analysis.summary.creatable_rows} {' '}{tUi("creatable")}</Typography>
     </Box>
 
     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
       <Button variant={matchFilter === 'all' ? 'contained' : 'outlined'} size="small" onClick={() => onMatchFilterChange('all')}>
-        All
-      </Button>
+        {tUi("All")}</Button>
       <Button variant={matchFilter === 'matched' ? 'contained' : 'outlined'} size="small" onClick={() => onMatchFilterChange('matched')}>
-        Matched
-      </Button>
+        {tUi("Matched")}</Button>
       <Button variant={matchFilter === 'unmatched' ? 'contained' : 'outlined'} size="small" onClick={() => onMatchFilterChange('unmatched')}>
-        Unmatched
-      </Button>
+        {tUi("Unmatched")}</Button>
       <Button variant={matchFilter === 'creatable' ? 'contained' : 'outlined'} size="small" onClick={() => onMatchFilterChange('creatable')}>
-        Creatable
-      </Button>
+        {tUi("Creatable")}</Button>
     </Box>
 
-    <Alert severity="info" sx={{ mb: 2 }}>Select only the matches you have reviewed. Similar names need particular care. To resolve competing guide sources, select a source and analyze again. Automatic matching is optional in Settings → Automation.</Alert>
-    {analysis.rows.some(row => (row.ambiguous_count ?? 0) > 0) ? <Alert severity="warning" sx={{ mb: 2 }}>Some streams match more than one guide channel equally well. They have not been selected or assigned.</Alert> : null}
-    {analysis.summary.matched_epg_channels === 0 ? <Alert severity="info" sx={{ mb: 2 }}>No matches met the current strictness.</Alert> : null}
+    <Alert severity="info" sx={{ mb: 2 }}>{tUi("Select only the matches you have reviewed. Similar names need particular care. To resolve competing guide sources, select a source and analyze again. Automatic matching is optional in Settings → Automation.")}</Alert>
+    {analysis.rows.some(row => (row.ambiguous_count ?? 0) > 0) ? <Alert severity="warning" sx={{ mb: 2 }}>{tUi("Some streams match more than one guide channel equally well. They have not been selected or assigned.")}</Alert> : null}
+    {analysis.summary.matched_epg_channels === 0 ? <Alert severity="info" sx={{ mb: 2 }}>{tUi("No matches met the current strictness.")}</Alert> : null}
     {analysis.rows.length === 0 ? (
-      <Typography>No guide channels are available. Add and refresh an EPG source first.</Typography>
+      <Typography>{tUi("No guide channels are available. Add and refresh an EPG source first.")}</Typography>
     ) : (
       <TableContainer component={Box} sx={{ overflowX: 'auto' }}>
         <Table size="small" sx={{
@@ -95,12 +93,12 @@ const EPGMatchAnalysisPanel: React.FC<EPGMatchAnalysisPanelProps> = ({
         }}>
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">Select</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Proposed streams</TableCell>
-              <TableCell>Match Type</TableCell>
-              <TableCell>Confidence</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell padding="checkbox">{tUi("Select")}</TableCell>
+              <TableCell>{tUi("Name")}</TableCell>
+              <TableCell>{tUi("Proposed streams")}</TableCell>
+              <TableCell>{tUi("Match Type")}</TableCell>
+              <TableCell>{tUi("Confidence")}</TableCell>
+              <TableCell>{tUi("Status")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -108,12 +106,12 @@ const EPGMatchAnalysisPanel: React.FC<EPGMatchAnalysisPanelProps> = ({
               const isSelected = selectedRowIds.includes(row.epg_channel_id);
               const isDisabled = !(row.can_apply ?? row.is_creatable);
               const statusLabel = row.existing_tv_channel_id
-                ? row.can_apply ? 'Add streams' : 'Existing channel preserved'
+                ? row.can_apply ? uiText("Add streams") : uiText("Existing channel preserved")
                 : row.candidate_count === 0
-                  ? (row.ambiguous_count ?? 0) > 0 ? 'Ambiguous' : 'No candidate'
+                  ? (row.ambiguous_count ?? 0) > 0 ? uiText("Ambiguous") : uiText("No candidate")
                   : row.is_creatable
-                    ? 'Creatable'
-                    : 'Skipped';
+                    ? uiText("Creatable")
+                    : uiText("Skipped");
 
               return (
                 <TableRow key={row.epg_channel_id} selected={isSelected}>
@@ -122,14 +120,14 @@ const EPGMatchAnalysisPanel: React.FC<EPGMatchAnalysisPanelProps> = ({
                       checked={isSelected}
                       disabled={isDisabled}
                       onChange={() => onToggleRow(row)}
-                      inputProps={{ 'aria-label': `select match row ${row.epg_channel_name}` }}
+                      inputProps={{ 'aria-label': uiText('select match row {{name}}', { name: row.epg_channel_name }) }}
                     />
                   </TableCell>
-                  <TableCell data-label="Guide channel"><Typography variant="body2">{row.epg_channel_name}</Typography><Typography variant="caption" color="text.secondary">{row.epg_source_name} · {row.epg_channel_xml_id}</Typography></TableCell>
-                  <TableCell data-label="Proposed streams">{row.candidates.map(candidate => <Typography key={candidate.acestream_channel_id} variant="body2">{candidate.name}</Typography>)}</TableCell>
-                  <TableCell data-label="Match type">{row.best_match_type ? formatMatchLabel(row.best_match_type) : 'No match'}</TableCell>
-                  <TableCell data-label="Confidence">{row.is_creatable && row.best_match_confidence ? formatMatchLabel(row.best_match_confidence) : '-'}</TableCell>
-                  <TableCell data-label="Status">
+                  <TableCell data-label={uiText("Guide channel")}><Typography variant="body2">{row.epg_channel_name}</Typography><Typography variant="caption" color="text.secondary">{row.epg_source_name} · {row.epg_channel_xml_id}</Typography></TableCell>
+                  <TableCell data-label={uiText("Proposed streams")}>{row.candidates.map(candidate => <Typography key={candidate.acestream_channel_id} variant="body2">{candidate.name}</Typography>)}</TableCell>
+                  <TableCell data-label={uiText("Match type")}>{row.best_match_type ? formatMatchLabel(row.best_match_type) : tUi("No match")}</TableCell>
+                  <TableCell data-label={uiText("Confidence")}>{row.is_creatable && row.best_match_confidence ? formatMatchLabel(row.best_match_confidence) : '-'}</TableCell>
+                  <TableCell data-label={uiText("Status")}>
                     <Chip
                       label={statusLabel}
                       color={row.is_creatable ? 'success' : row.existing_tv_channel_id ? 'default' : 'warning'}
@@ -142,8 +140,7 @@ const EPGMatchAnalysisPanel: React.FC<EPGMatchAnalysisPanelProps> = ({
             {filteredRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">
-                  No rows match this filter
-                </TableCell>
+                  {tUi("No rows match this filter")}</TableCell>
               </TableRow>
             ) : null}
           </TableBody>
@@ -151,6 +148,6 @@ const EPGMatchAnalysisPanel: React.FC<EPGMatchAnalysisPanelProps> = ({
       </TableContainer>
     )}
   </Box>
-);
+); };
 
 export default EPGMatchAnalysisPanel;

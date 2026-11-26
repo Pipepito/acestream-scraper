@@ -1,28 +1,13 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-export type NavLabel = 'Live TV' | 'Recordings' | 'WARP' | 'TV dashboard' | 'System status' | 'Events' | 'Changelog' | 'Scraper' | 'Search' | 'Acestream Channels' | 'TV Channels' | 'EPG' | 'Playlist' | 'Public address' | 'Web player' | 'TV casting' | 'Remote players' | 'Media servers' | 'Telegram' | 'Settings';
-
-export const NAV_ROUTES: Record<NavLabel, string> = {
-  'TV dashboard': '/',
-  'Live TV': '/live-tv',
-  Recordings: '/recordings',
-  Scraper: '/scraper',
-  Search: '/search',
-  'Acestream Channels': '/acestream-channels',
-  'TV Channels': '/tv-channels',
-  EPG: '/epg',
-  Events: '/events',
-  Playlist: '/playlist',
-  'Public address': '/integrations/public-address',
-  'Web player': '/integrations/web-player',
-  'TV casting': '/integrations/tv-casting',
-  'Remote players': '/integrations/remote-players',
-  'Media servers': '/integrations/media-servers',
-  Telegram: '/integrations/telegram',
-  'System status': '/system',
-  WARP: '/warp',
-  Settings: '/settings',
-  Changelog: '/changelog',
+export const NAV_ROUTES = {
+  Watch: '/', Recordings: '/recordings', Events: '/events', Channels: '/tv-channels',
+  Connections: '/connections', Settings: '/settings', System: '/system',
+} as const;
+export type NavLabel = keyof typeof NAV_ROUTES;
+export const NAV_HEADINGS: Record<NavLabel, string> = {
+  Watch: 'Watch', Recordings: 'Recordings', Events: 'Events', Channels: 'TV Channels',
+  Connections: 'Connections', Settings: 'Settings', System: 'System status',
 };
 
 /** Shell-level interactions shared by every page: navigation, regions, dialogs, MUI widgets. */

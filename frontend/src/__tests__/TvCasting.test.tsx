@@ -7,7 +7,7 @@ import { TestMemoryRouter } from '../testUtils/router';
 import { AccessContext } from '../components/access/AccessContext';
 import TvCasting from '../pages/integrations/TvCasting';
 import { castService } from '../services/castService';
-import { navItems } from '../components/layout/navItems';
+import { connectionLinks } from '../components/layout/SectionNavigation';
 
 jest.mock('../services/castService', () => ({ castService: {
   settings: jest.fn(), saveSettings: jest.fn(), capabilities: jest.fn(), devices: jest.fn(), discover: jest.fn(), trustHome: jest.fn(),
@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 test('has a dedicated menu entry and discovers TVs without account or address setup', async () => {
-  expect(navItems).toContainEqual(expect.objectContaining({ text: 'TV casting', path: '/integrations/tv-casting', section: 'Integrations' }));
+  expect(connectionLinks).toContainEqual({ label: 'tvsPlayers', to: '/integrations/tv-casting' });
   (castService.discover as jest.Mock).mockResolvedValue([{ id: 'tv', name: 'Living room', model: 'Android TV' }]);
   const view = renderPage();
   expect(screen.getByRole('heading', { level: 1, name: 'TV casting' })).toBeVisible();
@@ -99,5 +99,28 @@ test('deployment-enforced home check keeps the home copy', async () => {
   expect(await screen.findByText('Outside or unverified')).toBeVisible();
   expect(screen.getByText('Home-network check enforced by the deployment.')).toBeVisible();
   expect(screen.queryByText(/Anyone who can open this app/)).not.toBeInTheDocument();
+  view.unmount(); view.cache.clear();
+});
+
+test('keeps the settings editor mounted and requires saving its draft before trusting home', async () => {
+  (castService.capabilities as jest.Mock).mockResolvedValue({ server_devices: false, home_connection: false, message: 'Connection is unverified' });
+  (castService.saveSettings as jest.Mock).mockResolvedValue({ ...settings, compatibility_conversion: true });
+  (castService.trustHome as jest.Mock).mockResolvedValue({ ...settings, compatibility_conversion: true, home_networks: ['8.8.4.4/32'] });
+  const view = renderPage(true);
+  fireEvent.click(await screen.findByRole('button', { name: 'Advanced connection settings' }));
+  const field = screen.getByLabelText('Allowed home networks');
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'I am connected to my home network now' }));
+  const trust = screen.getByRole('button', { name: 'Trust this home connection' });
+  expect(trust).toBeDisabled();
+  expect(castService.trustHome).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Save casting settings' }));
+  await waitFor(() => expect(trust).toBeEnabled());
+  fireEvent.click(trust);
+  await waitFor(() => expect(field).toHaveValue('8.8.4.4/32'));
+  expect(screen.getByLabelText('Allowed home networks')).toBe(field);
+  expect(screen.getByRole('checkbox', { name: 'Offer H.264 compatibility conversion' })).toBeChecked();
+  expect(castService.saveSettings).toHaveBeenCalledTimes(1);
+  expect(castService.trustHome).toHaveBeenCalledTimes(1);
   view.unmount(); view.cache.clear();
 });

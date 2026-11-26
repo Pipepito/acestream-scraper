@@ -1,6 +1,7 @@
 import React from 'react';
 import { MenuItem, TextField } from '@mui/material';
 import { useEPGSources } from '../hooks/useEPG';
+import { useUiText } from '../i18n/useUiText';
 
 interface GuideSourceFieldProps {
   value: number | '' | null | undefined;
@@ -13,18 +14,19 @@ interface GuideSourceFieldProps {
  * alone does not say which guide is meant.
  */
 const GuideSourceField: React.FC<GuideSourceFieldProps> = ({ value, onChange }) => {
+  const tUi = useUiText();
   const { data: sources } = useEPGSources();
   return (
     <TextField
       select
       name="epg_source_id"
-      label="Guide source"
+      label={tUi("Guide source")}
       value={value ?? ''}
       onChange={onChange}
       fullWidth
-      helperText="The guide the EPG ID belongs to."
+      helperText={tUi("The guide the EPG ID belongs to.")}
     >
-      <MenuItem value="">Not set</MenuItem>
+      <MenuItem value="">{tUi("Not set")}</MenuItem>
       {(sources ?? []).map((source) => (
         <MenuItem key={source.id} value={source.id}>
           {source.name || source.url}

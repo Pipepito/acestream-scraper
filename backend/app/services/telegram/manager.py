@@ -4,7 +4,7 @@ Event notifications are hints: forward history is always read from the committed
 cursor. Queue overflow/reconnect reconciles the retained message window. No DB
 session survives an await. All upstream errors are translated into fixed copy.
 """
-from app.services.telegram.errors import TelegramActionError
+from app.services.telegram.errors import TelegramActionError, message_code
 
 import asyncio
 import hashlib
@@ -24,6 +24,11 @@ from app.services.telegram.vault import Vault
 
 
 _T = TypeVar("_T")
+
+# A chat lookup lists up to 500 dialogs; reuse it between batches.
+ENTITY_TTL_SECONDS = 300
+# Pause between batches of retained messages: each one is two Telegram requests.
+RECONCILE_PACE_SECONDS = 2.0
 
 
 async def threaded(function: Callable[..., _T], *args: Any) -> _T:
@@ -49,6 +54,9 @@ class Manager:
         self.reconcile = set()
         self.pending = {}
         self.chat_ids = set()
+        self.entities = {}
+        self.pts = {}  # chat -> update counter at the last check; survives reconnects
+        self.backlog = False
         self.last_reconcile = 0.0
         self.last_prune = 0.0
         self.wake = asyncio.Event()
@@ -62,7 +70,7 @@ class Manager:
 
     def status(self) -> TelegramStatus:
         configured = len(get_settings().TELEGRAM_ADMIN_TOKEN.get_secret_value()) >= 32 and bool(get_settings().TELEGRAM_KEY_FILE)
-        return TelegramStatus(state=self.state if configured else 'disabled', message=self.message,
+        return TelegramStatus(state=self.state if configured else 'disabled', message=self.message, message_code=message_code(self.message),
             account_label=(self.account or {}).get('label', ''), queue_size=self.queue.qsize(), retry_at=self.retry_at)
 
     async def _vault(self) -> Vault:
@@ -101,6 +109,8 @@ class Manager:
             self.pending.clear()
             self.reconcile.clear()
             self.chat_ids.clear()
+            self.entities.clear()
+            self.pts.clear()
             while not self.queue.empty():
                 self.queue.get_nowait()
             self.retry_at = None
@@ -208,6 +218,7 @@ class Manager:
         self.wake.set()
 
     async def disconnect(self) -> None:
+        self.entities.clear()
         if self.client:
             await self.client.disconnect()
             self.client = None
@@ -236,6 +247,7 @@ class Manager:
             await threaded(self.vault.remove)
         self.account = None
         self.pending.clear()
+        self.pts.clear()
         self.reconcile.clear()
         while not self.queue.empty():
             self.queue.get_nowait()
@@ -318,10 +330,43 @@ class Manager:
             return
         source, generation = snap
         try:
-            entity, _ = await self.client.member(source.chat_id)
+            entity = await self._entity(source.chat_id)
         except (ValueError, errors.UserNotParticipantError, errors.ChannelPrivateError):
             await threaded(repo.set_status, source.id, 'access_lost', 'Chat access lost. Rejoin in Telegram, then scan again.')
             return
+        try:
+            await self._read(source, generation, entity, hints)
+        except BaseException:
+            # A failed read may mean lost access: look the chat up again next time.
+            self.entities.pop(source.chat_id, None)
+            raise
+
+    async def _entity(self, chat_id: str) -> Any:
+        cached = self.entities.get(chat_id)
+        if cached and cached[1] > time.monotonic():
+            return cached[0]
+        entity, _ = await self.client.member(chat_id)
+        self.entities[chat_id] = (entity, time.monotonic() + ENTITY_TTL_SECONDS)
+        return entity
+
+    async def _changed(self, chat_id: str, entity: Any, retained: set[int]) -> set[int]:
+        """Retained IDs to read again. A channel keeps an update counter, so only
+        what changed since the last check; otherwise the whole retained window."""
+        pts = self.pts.get(chat_id)
+        if pts is not None:
+            now, changed, too_long = await self.client.changes(entity, pts)
+            if not too_long:
+                self.pts[chat_id] = now
+                return changed & retained
+            if now is not None:
+                self.pts[chat_id] = now
+                return retained
+        # Take the counter before reading, so changes made meanwhile show next time.
+        self.pts[chat_id] = await self.client.channel_state(entity)
+        return retained
+
+    async def _read(self, source: TelegramSource, generation: int, entity: Any,
+                    hints: list[tuple[str | None, int, bool]]) -> None:
         # Reconcile persisted observations on restart/overflow; chunked network
         # reads avoid unbounded Telegram batches. No whole message history stored.
         pending = self.pending.setdefault(source.id, set())
@@ -329,7 +374,7 @@ class Manager:
         pending.intersection_update(retained)
         pending.update(mid for chat, mid, _ in hints if chat == source.chat_id and mid in retained)
         if source.id in self.reconcile or '*' in self.reconcile:
-            pending.update(retained)
+            pending.update(await self._changed(source.chat_id, entity, retained))
             self.reconcile.discard(source.id)
         # At most 1000 retained IDs plus 512 event hints. Process ten per turn;
         # controls and other sources get the lock between these bounded batches.
@@ -342,7 +387,7 @@ class Manager:
                     return
                 pending.discard(mid)
         if pending:
-            self.wake.set()
+            self.backlog = True  # paced by run(), not an immediate wake
         messages = await self.client.after(entity, source.cursor, 10, source.topic_id)
         for raw in messages:
             if not await self.process(source, generation, normalize(raw, forum=getattr(entity, 'forum', False)), True):
@@ -424,6 +469,7 @@ class Manager:
                 if '*' in self.reconcile:
                     self.reconcile.update(source.id for source in sources)
                     self.reconcile.discard('*')
+                self.backlog = False
                 for source in sources:
                     async with self.lock:
                         if self.state != 'connected' or not self.client:
@@ -435,7 +481,7 @@ class Manager:
                             await threaded(repo.set_status, source.id, 'error', 'Extraction failed. Test the source recipe before retrying.')
                 self.message = ''
                 self.failures = 0
-                delay = 10
+                delay = RECONCILE_PACE_SECONDS if self.backlog else 10
                 await asyncio.sleep(0.25)
             except asyncio.CancelledError:
                 raise
@@ -443,7 +489,10 @@ class Manager:
                 delay = self.failure(exc)
                 if not self.retry_at:
                     self.retry_at = datetime.now(timezone.utc) + timedelta(seconds=delay)
-                self.reconcile.add('*')
+                # A flood wait loses no updates and keeps the pending batches:
+                # requeuing the whole window would restart the burst when it ends.
+                if not isinstance(exc, errors.FloodWaitError):
+                    self.reconcile.add('*')
 
 
 manager = Manager()

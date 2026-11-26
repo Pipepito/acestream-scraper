@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+  <title>ZZSTREAMS · workflow review</title>
+  <link rel="stylesheet" href="admin-prototype.css">
+  <link rel="stylesheet" href="workflow-prototype.css">
+  <link rel="stylesheet" href="presentation-presets.css">
+  <link rel="stylesheet" href="sportzz-tokens.css">
+  <link rel="stylesheet" href="sportzz-system.css">
+  <script src="workflow-data.js" defer></script>
+  <script src="workflow-engine.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div id="app"></div>
+  <div id="announce" role="status" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body"><h2 id="confirm-title"></h2><p id="confirm-body"></p><div class="actions"><button type="button" class="button" id="confirm-cancel">Cancel</button><button type="button" class="button danger" id="confirm-commit">Continue</button></div></dialog>
+  <dialog id="drawer" aria-label="Navigation"></dialog>
+<dialog id="appearance" aria-labelledby="appearance-title"><h2 id="appearance-title">Choose your interface</h2><div id="appearance-content"></div><button class="button primary" id="appearance-close">Done</button></dialog>
+</body>
+</html>

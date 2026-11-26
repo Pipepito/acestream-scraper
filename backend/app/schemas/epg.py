@@ -69,6 +69,11 @@ class EPGChannelListResponse(BaseModel):
     total: int
 
 
+class EPGCategoryObservation(BaseModel):
+    label: str
+    language: Optional[str] = None
+
+
 class EPGProgramBase(BaseModel):
     """Base model for EPG program"""
     epg_channel_id: int
@@ -78,6 +83,8 @@ class EPGProgramBase(BaseModel):
     subtitle: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
+    categories: List[EPGCategoryObservation] = Field(default_factory=list)
+    genre_ids: List[str] = Field(default_factory=list)
     image_url: Optional[str] = None
 
 

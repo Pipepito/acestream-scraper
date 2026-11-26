@@ -11,9 +11,9 @@ from urllib.parse import parse_qs, urldefrag, urljoin, urlsplit, urlunsplit
 from app.services.m3u_service import M3UService
 from app.services.live_providers import for_stream_url
 from app.utils.bounded_source import source_get
+from app.utils.stream_kind import is_acestream_id
 
 COMPATIBLE = frozenset({'acestream', 'hls', 'mpegts', 'resolver'})
-HEX_ID = re.compile(r'[0-9a-fA-F]{40}')
 
 
 @dataclass(frozen=True)
@@ -124,7 +124,7 @@ def classify(value, record, base):
         return 'invalid', None, None, 'Invalid stream URL'
     if value.lower().startswith('acestream://'):
         content_id = value[len('acestream://'):]
-        if HEX_ID.fullmatch(content_id):
+        if is_acestream_id(content_id):
             return 'acestream', content_id.lower(), None, 'AceStream; signal not checked'
         return 'invalid', None, None, 'AceStream ID must contain exactly 40 hexadecimal characters'
     if for_stream_url(value):
@@ -136,7 +136,7 @@ def classify(value, record, base):
         return 'unsupported', None, None, 'Unsupported scheme or URL credentials'
     if parsed.path == '/ace/getstream' and parsed.hostname in ('127.0.0.1', 'localhost', '::1') and parsed.port in (None, 6878):
         ids = parse_qs(parsed.query).get('id', [])
-        if len(ids) == 1 and HEX_ID.fullmatch(ids[0]):
+        if len(ids) == 1 and is_acestream_id(ids[0]):
             return 'acestream', ids[0].lower(), None, 'Engine URL normalized; uses configured playback route'
         return 'invalid', None, None, 'Engine URL has an invalid or ambiguous ID'
     import ipaddress

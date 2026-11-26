@@ -2,6 +2,50 @@
 export interface ReleaseNotes { version: string; summary: string; sections: Array<{ title: string; items: string[] }> }
 export const releases: ReleaseNotes[] = [
   {
+    "version": "v2.3.0",
+    "summary": "A redesigned interface in English and Spanish with three visual styles, simpler navigation, channel categories with On now browsing in Live TV and recordings organized into collections.",
+    "sections": [
+      {
+        "title": "Added",
+        "items": [
+          "Choose English or Spanish and the Lime, Coral/navy or Immersive cyan style from the Interface button, independently of the light or dark theme. Spanish browsers start in Spanish and every choice is remembered in the browser ([PR #325](https://github.com/Pipepito/acestream-scraper/pull/325)).",
+          "Browse Live TV by channel category or by what is on now. Search, Favorites only and Online only apply to the whole catalogue, and returning to the category grid does not stop the current player.",
+          "Give a TV channel a standard or custom category when editing it, and use Review channel categories to preview suggestions for the current page. Nothing is assigned until you select rows and apply them; manual and imported categories are protected.",
+          "Show the channel's guide icon, then a category illustration, when a channel has no logo of its own or the logo fails to load.",
+          "Organize recordings into Library, Upcoming and active, and History. Search and status filters apply to the whole collection, and the view, search, status and page are kept in the address so they can be bookmarked or shared.",
+          "Use the standalone extraction helper in English or Spanish without connecting it to an installation."
+        ]
+      },
+      {
+        "title": "Improved",
+        "items": [
+          "Navigate through Watch, Recordings, Events, Channels, Connections, Settings and System, with WARP still easy to find. Old bookmarks open the matching page.",
+          "Keep playback, unsaved forms and pending actions when changing language, theme or style.",
+          "Keep a form's unsaved changes when the page refreshes its data, and ask before leaving a page with unsaved changes.",
+          "Browse large channel catalogues and reorder the complete list with drag handles or keyboard controls while keeping rendering bounded. Home, End, Page Up and Page Down move through the list without changing the order.",
+          "Keep every programme category from the guide, in order, in schedules, XMLTV exports and new recordings.",
+          "Review clearer status, error and confirmation messages across both languages and themes.",
+          "Ask for confirmation before preparing an MP4 or AAC copy of a recording and before removing its protection."
+        ]
+      },
+      {
+        "title": "Fixed",
+        "items": [
+          "Open recording forms over private-network HTTP when secure-context UUID APIs are unavailable, without crashing the page or creating a recording before confirmation.",
+          "Keep phone reorder labels readable, clear obsolete administrative reads after disabling accounts, and serve application icons and manifest assets with their correct content types."
+        ]
+      },
+      {
+        "title": "Before upgrading",
+        "items": [
+          "Back up persistent configuration and the database. Startup applies one schema migration for channel categories (20261109_1300) using the existing backup and recovery process. Existing categories are preserved.",
+          "The interface opens in the Immersive cyan style. Language, style and theme are browser preferences: each browser or device keeps its own.",
+          "The Spanish translation and the three styles are new. When something reads wrong or looks broken, report it with the device, browser, language, theme, style and the steps you followed, leaving out credentials and private source details."
+        ]
+      }
+    ]
+  },
+  {
     "version": "v2.2.1",
     "summary": "Add MARCA event schedules, rolling automatic imports, shared EPG channels and free Pluto TV, Plex and Samsung TV Plus channels for Spain, with a WARP kill switch, steadier TV relay playback and stream checks that no longer trust a stalled source.",
     "sections": [

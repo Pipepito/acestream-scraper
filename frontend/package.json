@@ -9,15 +9,18 @@
     "@mui/material": "^5.14.13",
     "@mui/x-data-grid": "^6.16.2",
     "@tanstack/react-query": "^5.102.2",
+    "@tanstack/react-virtual": "3.14.26",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",
     "axios": "^1.21.0",
     "date-fns": "^2.30.0",
     "hls.js": "1.7.2",
+    "i18next": "27.0.1",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-i18next": "18.0.0",
     "react-router-dom": "^7.18.5"
   },
   "scripts": {
@@ -33,7 +36,10 @@
     "changelog": "node scripts/generate-changelog.js",
     "changelog:check": "node scripts/generate-changelog.js --check",
     "prebuild": "npm run changelog:check",
-    "prestart": "npm run changelog:check"
+    "prestart": "npm run changelog:check",
+    "recipes:messages": "node scripts/sync-recipe-messages.mjs",
+    "recipes:messages:check": "node scripts/sync-recipe-messages.mjs --check",
+    "prebuild:recipes": "npm run recipes:messages:check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

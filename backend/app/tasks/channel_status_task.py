@@ -54,7 +54,7 @@ def run_channel_status_task():
         http_only = not service._get_engine_url()
         channels = channels_in_check_order(db, http_only=http_only)
         if http_only and not channels:
-            return {"checked": 0, "skipped": 0, "failed": 0, "message": "No engine configured; status checks are disabled."}
+            return {"checked": 0, "skipped": 0, "failed": 0, "message": "No engine configured; status checks are disabled.", "message_code": "CHECK_ENGINE_NOT_CONFIGURED"}
         db.rollback()
         logger.info(f"Starting channel status update for {len(channels)} channels.")
 

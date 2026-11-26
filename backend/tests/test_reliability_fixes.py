@@ -114,9 +114,8 @@ class TestChannelStatusTimeouts:
     def _make_service(self, db_session):
         from app.services.channel_status_service import ChannelStatusService
 
-        from unittest.mock import AsyncMock
-        service = ChannelStatusService(db_session)
-        service._engine_ready = AsyncMock(return_value=True)
+        from fake_probe_engine import FakeProbeEngine
+        service = ChannelStatusService(db_session, probe_engine=FakeProbeEngine())
         service.settings_repo.set_setting(service.settings_repo.ACE_ENGINE_URL, "http://engine:6878")
         return service
 
@@ -157,16 +156,10 @@ class TestChannelStatusTimeouts:
         service = self._make_service(db_session)
         channel = self._make_channel(db_session)
 
-        attempts = []
-
-        async def fake_fetch(status_url, params, timeout):
-            attempts.append(timeout)
-            if len(attempts) == 1:
-                raise asyncio.TimeoutError()
-            return 200, {"response": {"is_live": 1}, "error": None}, None
-
-        service._fetch_engine_response = fake_fetch
+        engine = service.probe_engine
+        engine.start_script = [asyncio.TimeoutError(), (200, {"response": {"is_live": 1}, "error": None})]
         result = asyncio.run(service.check_channel_status(channel))
+        attempts = [call[3] for call in engine.asked("open")]
 
         # A successful metadata retry still does not prove an emission.
         assert result["is_online"] is False
@@ -178,10 +171,7 @@ class TestChannelStatusTimeouts:
         service = self._make_service(db_session)
         channel = self._make_channel(db_session)
 
-        async def always_timeout(status_url, params, timeout):
-            raise asyncio.TimeoutError()
-
-        service._fetch_engine_response = always_timeout
+        service.probe_engine.start_script = [asyncio.TimeoutError()]
         result = asyncio.run(service.check_channel_status(channel))
 
         assert result["is_online"] is False

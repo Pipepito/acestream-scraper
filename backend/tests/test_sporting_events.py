@@ -207,3 +207,20 @@ def test_apply_rechecks_inventory_limit_after_other_imports(client, monkeypatch)
         'selected_ids': [e['id'] for e in second['events']]})
     assert result.status_code == 409
     assert client.get('/api/v1/events').json()['total'] == 2
+
+
+@pytest.mark.parametrize(('change', 'reason'), [
+    ({'timezone': 'not-a-timezone'}, 'EVENT_TIMEZONE_INVALID'),
+    ({'timezone': 'Europe/Madrid', 'starts_at': '2026-10-25T02:30:00'}, 'EVENT_TIME_AMBIGUOUS'),
+])
+def test_validation_has_stable_reasons_without_private_input(client, change, reason):
+    payload = schedule()
+    payload['observations'][0].update(change)
+    response = client.post('/api/v1/events/preview', json=payload)
+    assert response.status_code == 422
+    issues = response.json()['detail']
+    assert any(issue['type'] == reason for issue in issues)
+    assert all(set(issue) == {'loc', 'msg', 'type'} for issue in issues)
+    assert 'private-fixture' not in response.text
+    assert 'https://guide.example/' not in response.text
+    assert client.get('/api/v1/events').json()['total'] == 0

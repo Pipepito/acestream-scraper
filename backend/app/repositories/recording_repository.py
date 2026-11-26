@@ -23,18 +23,32 @@ class RecordingRepository:
     def pending(self):
         return self.db.query(Recording).filter(Recording.state.in_(PENDING)).order_by(Recording.start_time, Recording.id).all()
 
-    def list(self, state=None, search=None, tv_channel_id=None):
+    def list(self, state=None, search=None, tv_channel_id=None, collection='all'):
         query = self.db.query(Recording)
+        if collection == 'upcoming':
+            query = query.filter(Recording.state.in_(PENDING))
+        elif collection == 'history':
+            query = query.filter(Recording.state.notin_(PENDING))
+        elif collection == 'library':
+            ready = select(RecordingArtifact.id).where(
+                RecordingArtifact.recording_id == Recording.id, RecordingArtifact.state == 'ready').exists()
+            query = query.filter(Recording.state.notin_((*PENDING, 'deleted', 'deleting')), ready)
         if state:
             query = query.filter(Recording.state == state)
         if search:
             query = query.filter(Recording.snapshot['title'].as_string().ilike('%' + search.replace('%', '\\%').replace('_', '\\_') + '%', escape='\\'))
         if tv_channel_id:
             query = query.filter(Recording.tv_channel_id == tv_channel_id)
-        return query.order_by(Recording.created_at.desc(), Recording.id)
+        return query.order_by(Recording.start_time, Recording.id) if collection == 'upcoming' else query.order_by(Recording.created_at.desc(), Recording.id)
 
     def files(self, rid):
-        return self.db.query(RecordingArtifact).outerjoin(RecordingAttempt, RecordingArtifact.attempt_id == RecordingAttempt.id).filter(RecordingArtifact.recording_id == rid).order_by(RecordingAttempt.ordinal.asc().nullslast(), RecordingArtifact.id).all()
+        return self.files_for([rid])
+
+    def files_for(self, recording_ids):
+        return self.db.query(RecordingArtifact).outerjoin(RecordingAttempt, RecordingArtifact.attempt_id == RecordingAttempt.id).filter(RecordingArtifact.recording_id.in_(recording_ids)).order_by(RecordingArtifact.recording_id, RecordingAttempt.ordinal.asc().nullslast(), RecordingArtifact.id).all()
+
+    def attempts_for(self, recording_ids):
+        return self.db.query(RecordingAttempt).filter(RecordingAttempt.recording_id.in_(recording_ids)).order_by(RecordingAttempt.recording_id, RecordingAttempt.ordinal).all()
 
     def attempts(self, rid):
         return self.db.query(RecordingAttempt).filter_by(recording_id=rid).order_by(RecordingAttempt.ordinal).all()

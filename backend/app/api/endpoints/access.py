@@ -1,11 +1,12 @@
 """Thin account endpoints with bounded credential parsing and redacted errors."""
+from app.api.http_errors import coded_http_error
 import asyncio
 import os
 import secrets
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
-from app.repositories.access_repository import AccessRepository, digest
+from app.repositories.access_repository import AccessRepository, AccessConflict, digest
 from app.schemas.access import (AccessStatus, AccountView, AccountCreate, AccountUpdate, Bootstrap,
     Credentials, PasswordChange, AccessPolicy, CredentialCreate, CredentialView, CredentialIssued, SessionView, DisableAccess)
 from app.services.access_service import (COOKIE, CSRF_COOKIE, csrf_token, require_csrf, secure_transport,
@@ -22,17 +23,17 @@ class AccessRoute(APIRoute):
                     async for chunk in request.stream():
                         body.extend(chunk)
                         if len(body) > 16384:
-                            raise HTTPException(413, 'Account request is too large')
+                            raise coded_http_error(413, 'ACCESS_REQUEST_TOO_LARGE', 'Account request is too large')
                     request._body = bytes(body)
                 return await handler(request)
             except RequestValidationError:
-                raise HTTPException(422, 'Invalid account fields. Check the required values and limits.') from None
+                raise coded_http_error(422, 'ACCESS_FIELDS_INVALID', 'Invalid account fields. Check the required values and limits.') from None
             except TimeoutError:
-                raise HTTPException(408, 'Account request timed out') from None
+                raise coded_http_error(408, 'ACCESS_REQUEST_TIMEOUT', 'Account request timed out') from None
             except LookupError:
-                raise HTTPException(404, 'Account resource not found') from None
+                raise coded_http_error(404, 'ACCESS_NOT_FOUND', 'Account resource not found') from None
             except ValueError as error:
-                raise HTTPException(409, str(error)) from None
+                raise coded_http_error(409, error.code if isinstance(error, AccessConflict) else 'ACCESS_CONFLICT', str(error)) from None
         return guarded
 
 
@@ -68,13 +69,13 @@ def bootstrap(data: Bootstrap, request: Request, response: Response):
     if not repo.path.exists():
         repo.initialize()
     if os.environ.get('API_TOKEN') and not legacy_matches(header_token(request)):
-        raise HTTPException(401, 'Enter the existing API token before changing access')
+        raise coded_http_error(401, 'ACCESS_LEGACY_TOKEN_REQUIRED', 'Enter the existing API token before changing access')
     if data.enabled:
         secure_transport(request)
         if os.environ.get('API_TOKEN') and not data.migrate_legacy_token:
-            raise HTTPException(409, 'Confirm migration: the old API token will grant playback only. Create replacement administrative credentials after signing in.')
+            raise coded_http_error(409, 'ACCESS_MIGRATION_CONFIRMATION', 'Confirm migration: the old API token will grant playback only. Create replacement administrative credentials after signing in.')
         if data.password != data.password_confirmation:
-            raise HTTPException(422, 'The passwords do not match')
+            raise coded_http_error(422, 'ACCESS_PASSWORD_MISMATCH', 'The passwords do not match')
         password_hash = hash_password(data.password.get_secret_value())
     else:
         password_hash = ''
@@ -92,10 +93,10 @@ def login(data: Credentials, request: Request, response: Response):
     limit_login(request)
     repo = AccessRepository()
     if repo.state()[0] != 'accounts':
-        raise HTTPException(409, 'User management is not enabled')
+        raise coded_http_error(409, 'ACCESS_ACCOUNTS_DISABLED', 'User management is not enabled')
     row = repo.user(username=data.username)
     if not verify_password(row['password_hash'] if row else None, data.password.get_secret_value()) or not row or not row['enabled']:
-        raise HTTPException(401, 'Invalid username or password')
+        raise coded_http_error(401, 'ACCESS_INVALID_CREDENTIALS', 'Invalid username or password')
     previous = request.cookies.get(COOKIE)
     if previous:
         repo.revoke_session(digest(previous))
@@ -114,15 +115,15 @@ def logout(request: Request, response: Response):
 def change_password(data: PasswordChange, request: Request, response: Response):
     user = getattr(request.state, 'access_user', None)
     if not user:
-        raise HTTPException(401, 'Sign in to change your password')
+        raise coded_http_error(401, 'ACCESS_LOGIN_REQUIRED', 'Sign in to change your password')
     secure_transport(request)
     limit_login(request)
     repo = AccessRepository()
     row = repo.user(user_id=user['id'])
     if not verify_password(row['password_hash'], data.current_password.get_secret_value()):
-        raise HTTPException(403, 'Current password is incorrect')
+        raise coded_http_error(403, 'ACCESS_CURRENT_PASSWORD_INVALID', 'Current password is incorrect')
     if data.password != data.password_confirmation:
-        raise HTTPException(422, 'The passwords do not match')
+        raise coded_http_error(422, 'ACCESS_PASSWORD_MISMATCH', 'The passwords do not match')
     repo.set_password(user['id'], hash_password(data.password.get_secret_value()))
     response.delete_cookie(COOKIE)
 
@@ -165,7 +166,7 @@ def disable(data: DisableAccess, request: Request, response: Response):
     limit_login(request)
     repo = AccessRepository()
     if not verify_password(repo.user(user_id=user['id'])['password_hash'], data.current_password.get_secret_value()):
-        raise HTTPException(403, 'Current password is incorrect')
+        raise coded_http_error(403, 'ACCESS_CURRENT_PASSWORD_INVALID', 'Current password is incorrect')
     repo.disable()
     response.delete_cookie(COOKIE)
 

@@ -1,0 +1,164 @@
+{
+  "revision": "e13a42ef",
+  "browser": "149.0.7827.55",
+  "cycles": [
+    {
+      "cycle": 0,
+      "heap": 14365580,
+      "dom": 1372
+    },
+    {
+      "cycle": 1,
+      "heap": 20864448,
+      "dom": 1373
+    },
+    {
+      "cycle": 2,
+      "heap": 26821160,
+      "dom": 1373
+    },
+    {
+      "cycle": 3,
+      "heap": 20783588,
+      "dom": 1373
+    },
+    {
+      "cycle": 4,
+      "heap": 20659248,
+      "dom": 1373
+    },
+    {
+      "cycle": 5,
+      "heap": 20877756,
+      "dom": 1373
+    },
+    {
+      "cycle": 6,
+      "heap": 27143388,
+      "dom": 1373
+    },
+    {
+      "cycle": 7,
+      "heap": 27308940,
+      "dom": 1373
+    },
+    {
+      "cycle": 8,
+      "heap": 27278104,
+      "dom": 1373
+    },
+    {
+      "cycle": 9,
+      "heap": 21453948,
+      "dom": 1373
+    },
+    {
+      "cycle": 10,
+      "heap": 21424468,
+      "dom": 1373
+    },
+    {
+      "cycle": 11,
+      "heap": 21458228,
+      "dom": 1373
+    },
+    {
+      "cycle": 12,
+      "heap": 21972396,
+      "dom": 1373
+    },
+    {
+      "cycle": 13,
+      "heap": 21959616,
+      "dom": 1373
+    },
+    {
+      "cycle": 14,
+      "heap": 21627956,
+      "dom": 1373
+    },
+    {
+      "cycle": 15,
+      "heap": 21700848,
+      "dom": 1373
+    },
+    {
+      "cycle": 16,
+      "heap": 21659000,
+      "dom": 1373
+    },
+    {
+      "cycle": 17,
+      "heap": 22317488,
+      "dom": 1373
+    },
+    {
+      "cycle": 18,
+      "heap": 22082204,
+      "dom": 1373
+    },
+    {
+      "cycle": 19,
+      "heap": 21515372,
+      "dom": 1373
+    },
+    {
+      "cycle": 20,
+      "heap": 21488156,
+      "dom": 1373
+    },
+    {
+      "cycle": 21,
+      "heap": 22087712,
+      "dom": 1373
+    },
+    {
+      "cycle": 22,
+      "heap": 22081712,
+      "dom": 1373
+    },
+    {
+      "cycle": 23,
+      "heap": 21714540,
+      "dom": 1373
+    },
+    {
+      "cycle": 24,
+      "heap": 21739624,
+      "dom": 1373
+    },
+    {
+      "cycle": 25,
+      "heap": 27563536,
+      "dom": 1373
+    },
+    {
+      "cycle": 26,
+      "heap": 21597524,
+      "dom": 1373
+    },
+    {
+      "cycle": 27,
+      "heap": 21770480,
+      "dom": 1373
+    },
+    {
+      "cycle": 28,
+      "heap": 21595032,
+      "dom": 1373
+    },
+    {
+      "cycle": 29,
+      "heap": 21944448,
+      "dom": 1373
+    },
+    {
+      "cycle": 30,
+      "heap": 21854104,
+      "dom": 1373
+    }
+  ],
+  "pageErrors": [],
+  "writes": [],
+  "method": "30 same-context reorder/keyboard/filter/scroll cycles, 31 CDP used-heap measurements after explicit collection. Warm caches may retain state; this is a bounded observation, not a universal leak claim."
+}

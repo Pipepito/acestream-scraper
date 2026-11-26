@@ -8,6 +8,7 @@ from app.schemas.channel_status import ChannelStatusResponse
 from app.services.search_service import SearchService
 from app.services.search_import_service import SearchImportService
 from app.services.config_service import ConfigService
+from app.utils.stream_kind import ACESTREAM_ID_PATTERN
 
 router = APIRouter(tags=["search"])
 
@@ -55,7 +56,7 @@ async def add_channel(
 
 @router.post("/{infohash}/check_status", response_model=ChannelStatusResponse)
 async def check_search_broadcast(
-    infohash: str = Path(..., pattern=r"^[0-9a-fA-F]{40}$"),
+    infohash: str = Path(..., pattern=rf"^{ACESTREAM_ID_PATTERN}$"),
     search_service: SearchService = Depends(get_search_service),
 ):
     """Verify a search result's broadcast without adding it to the inventory."""
@@ -64,7 +65,7 @@ async def check_search_broadcast(
 
 @router.post("/{infohash}/resolve", response_model=ResolvedSearchResult)
 async def resolve_search_result(
-    infohash: str = Path(..., pattern=r"^[0-9a-fA-F]{40}$"),
+    infohash: str = Path(..., pattern=rf"^{ACESTREAM_ID_PATTERN}$"),
     search_service: SearchService = Depends(get_search_service),
 ):
     """Resolve a catalogue result before saving it or opening the shared player."""

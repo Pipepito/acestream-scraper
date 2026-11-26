@@ -1,8 +1,10 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useId, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, MenuItem, FormControl, InputLabel, Select, Box, Alert, useMediaQuery
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { getErrorDetail } from '../utils/errorUtils';
 
 interface BatchAssignDialogProps {
   open: boolean;
@@ -13,6 +15,7 @@ interface BatchAssignDialogProps {
 }
 
 const BatchAssignDialog: React.FC<BatchAssignDialogProps> = ({ open, onClose, selectedChannels, groups, onAssign }) => {
+  const tUi = useUiText();
   const theme = useTheme();
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const groupLabelId = useId();
@@ -47,8 +50,8 @@ const BatchAssignDialog: React.FC<BatchAssignDialogProps> = ({ open, onClose, se
     try {
       await onAssign(group);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Batch assign failed');
+    } catch (err) {
+      setError(getErrorDetail(err) || tUi('Batch assign failed'));
     } finally {
       setLoading(false);
     }
@@ -56,28 +59,28 @@ const BatchAssignDialog: React.FC<BatchAssignDialogProps> = ({ open, onClose, se
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth fullScreen={isPhone}>
-      <DialogTitle>Batch Assign Group</DialogTitle>
+      <DialogTitle>{tUi("Batch Assign Group")}</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>Assigned successfully!</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{tUi("Assigned successfully!")}</Alert>}
         <Box mb={2}>
           <FormControl fullWidth>
-            <InputLabel id={groupLabelId}>Group</InputLabel>
+            <InputLabel id={groupLabelId}>{tUi("Group")}</InputLabel>
             <Select
               labelId={groupLabelId}
               value={group}
-              label="Group"
+              label={tUi("Group")}
               onChange={e => setGroup(e.target.value)}
             >
               {groups.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
             </Select>
           </FormControl>
         </Box>
-        <Box>Selected Channels: {selectedChannels.length}</Box>
+        <Box>{tUi("Selected Channels:")}{' '}{selectedChannels.length}</Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={loading}>{success ? 'Close' : 'Cancel'}</Button>
-        <Button onClick={handleAssign} variant="contained" disabled={loading || success || !group}>Assign</Button>
+        <Button onClick={handleClose} disabled={loading}>{success ? tUi("Close") : tUi("Cancel")}</Button>
+        <Button onClick={handleAssign} variant="contained" disabled={loading || success || !group}>{tUi("Assign")}</Button>
       </DialogActions>
     </Dialog>
   );

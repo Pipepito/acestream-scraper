@@ -81,7 +81,7 @@ it('previews folder matches and applies the checked rows', async () => {
   expect(screen.getByText('Already on Other TV')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Apply matches' }));
   await waitFor(() => expect(mocked.applyFolderMatches).toHaveBeenCalledWith(1, { assignments: [{ folder_id: 'live', tv_channel_id: 4 }, { folder_id: 'news', create: true }], reassign: false }));
-  expect(await screen.findByText('4 streams assigned across 2 folders.')).toBeVisible();
+  expect(await screen.findByText('Assigned across 2 folders: 4 streams.')).toBeVisible();
 });
 
 it.each(['light', 'dark'] as const)('reviews branches and imports through the API in %s mode', async (mode) => {
@@ -127,6 +127,8 @@ it('keeps partial refresh warnings and displays fetch errors', async () => {
   expect(await screen.findByText(/This is a partial catalogue/)).toBeVisible();
   expect(screen.getByText('Maximum folder depth reached')).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Discard preview' }));
+  const discard = await screen.findByRole('dialog', { name: 'Discard unsaved changes?' });
+  await user.click(within(discard).getByRole('button', { name: 'Discard changes' }));
   mocked.preview.mockRejectedValue(new ApiError({ message: 'Source unavailable', status: 422, kind: 'validation', canRetry: true }));
   await user.click(screen.getByRole('button', { name: 'Preview refresh' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Source unavailable');

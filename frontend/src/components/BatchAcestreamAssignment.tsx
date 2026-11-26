@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useState } from 'react';
 import { 
   Box, 
@@ -12,6 +13,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useBatchAssignAcestreams } from '../hooks/useTVChannels';
+import { getErrorDetail } from '../utils/errorUtils';
 
 interface BatchAcestreamAssignmentProps {
   open: boolean;
@@ -29,6 +31,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
   tvChannelId,
   tvChannelName
 }) => {
+  const tUi = useUiText();
   const [aceStreamIds, setAceStreamIds] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -45,7 +48,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
       .filter(id => id.length > 0);
     
     if (ids.length === 0) {
-      setError('No valid acestream IDs provided');
+      setError(tUi("No valid acestream IDs provided"));
       return;
     }
     
@@ -55,7 +58,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
         assignments: ids.map((id) => ({ tv_channel_id: tvChannelId, acestream_channel_id: id })),
       });
       
-      setSuccess(`Successfully associated ${result.success_count} acestreams. Failed to associate ${result.failure_count} acestreams.`);
+      setSuccess(`${tUi('Successfully associated {{count}} acestreams.', { count: result.success_count })} ${tUi('Failed to associate {{count}} acestreams.', { count: result.failure_count })}`);
       setAceStreamIds('');
       
       // Auto-close dialog after successful operation
@@ -65,21 +68,20 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
           setSuccess(null);
         }, 2000);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to associate acestreams');
+    } catch (err) {
+      setError(getErrorDetail(err) || tUi('Failed to associate acestreams'));
     }
   };
   
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Batch Associate Acestreams to {tvChannelName}
+        {tUi("Batch Associate Acestreams to")}{' '}{tvChannelName}
       </DialogTitle>
       <DialogContent>
         <Box my={2}>
           <Typography variant="body1" gutterBottom>
-            Enter multiple acestream IDs, separated by commas, spaces, or line breaks.
-          </Typography>
+            {tUi("Enter multiple acestream IDs, separated by commas, spaces, or line breaks.")}</Typography>
           
           {error && (
             <Alert severity="error" sx={{ my: 2 }} onClose={() => setError(null)}>
@@ -94,13 +96,13 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
           )}
           
           <TextField
-            label="Acestream IDs"
+            label={tUi("Acestream IDs")}
             multiline
             rows={6}
             value={aceStreamIds}
             onChange={(e) => setAceStreamIds(e.target.value)}
             fullWidth
-            placeholder="Enter acestream IDs here, e.g.:\nabc123def456\nxyz789\n..."
+            placeholder={tUi("Enter acestream IDs here, e.g.:\\nabc123def456\\nxyz789\\n...")}
             variant="outlined"
             sx={{ mt: 2 }}
           />
@@ -108,8 +110,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
+          {tUi("Cancel")}</Button>
         <Button 
           onClick={handleSubmit} 
           color="primary" 
@@ -119,7 +120,7 @@ const BatchAcestreamAssignment: React.FC<BatchAcestreamAssignmentProps> = ({
           {batchAssignMutation.isPending ? (
             <CircularProgress size={24} color="inherit" />
           ) : (
-            'Associate'
+            tUi('Associate')
           )}
         </Button>
       </DialogActions>

@@ -76,7 +76,7 @@ class VlcDriver:
             status = self._request()
         except PlayerAuthError as exc:
             return PlayerProbe(
-                reachable=True, authenticated=False, version=None, message=str(exc), hint=str(exc)
+                reachable=True, authenticated=False, version=None, message=str(exc), hint=str(exc), reason=exc.kind
             )
         return PlayerProbe(
             reachable=True,

@@ -1,0 +1,173 @@
+{
+  "browser": "149.0.7827.55",
+  "results": [
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 1,
+      "openSettledMs": 2980.8360840106616,
+      "longTasks": [
+        2004,
+        327,
+        1529,
+        227
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 745741660,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2809.7519170114538,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 20086296
+    },
+    {
+      "build": "after",
+      "revision": "e13a42ef",
+      "run": 1,
+      "openSettledMs": 852.8845420078142,
+      "longTasks": [],
+      "heap": 16100000,
+      "dom": 442,
+      "cdpHeapOpen": 14063836,
+      "renderedRows": 14,
+      "keyboardMoveMs": 33.359749999362975,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19821760
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 2,
+      "openSettledMs": 3033.170875001815,
+      "longTasks": [
+        2075,
+        345,
+        1484,
+        210
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 753037912,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2981.8097910028882,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 20233124
+    },
+    {
+      "build": "after",
+      "revision": "e13a42ef",
+      "run": 2,
+      "openSettledMs": 859.2884579993552,
+      "longTasks": [],
+      "heap": 42100000,
+      "dom": 442,
+      "cdpHeapOpen": 34881172,
+      "renderedRows": 14,
+      "keyboardMoveMs": 32.81350000179373,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19790788
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 3,
+      "openSettledMs": 3283.207999993465,
+      "longTasks": [
+        2182,
+        345,
+        1696,
+        338
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 745615388,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 3240.6333340040874,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 20104008
+    },
+    {
+      "build": "after",
+      "revision": "e13a42ef",
+      "run": 3,
+      "openSettledMs": 856.2717919994611,
+      "longTasks": [],
+      "heap": 35100000,
+      "dom": 442,
+      "cdpHeapOpen": 29236504,
+      "renderedRows": 14,
+      "keyboardMoveMs": 22.244082996621728,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19764116
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 4,
+      "openSettledMs": 3238.932082997053,
+      "longTasks": [
+        2080,
+        341,
+        1545,
+        234
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 750247420,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 2674.865791006596,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 20242312
+    },
+    {
+      "build": "after",
+      "revision": "e13a42ef",
+      "run": 4,
+      "openSettledMs": 858.4496250114171,
+      "longTasks": [],
+      "heap": 42100000,
+      "dom": 442,
+      "cdpHeapOpen": 34933044,
+      "renderedRows": 14,
+      "keyboardMoveMs": 28.616750001674518,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19853632
+    },
+    {
+      "build": "before",
+      "revision": "de78a0f9",
+      "run": 5,
+      "openSettledMs": 2944.9550839926815,
+      "longTasks": [
+        2048,
+        317,
+        1397,
+        216
+      ],
+      "heap": 793000000,
+      "dom": 150226,
+      "cdpHeapOpen": 752101820,
+      "renderedRows": 10000,
+      "keyboardMoveMs": 3183.942957999534,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 20208020
+    },
+    {
+      "build": "after",
+      "revision": "e13a42ef",
+      "run": 5,
+      "openSettledMs": 852.0248330023605,
+      "longTasks": [],
+      "heap": 42100000,
+      "dom": 442,
+      "cdpHeapOpen": 35006052,
+      "renderedRows": 14,
+      "keyboardMoveMs": 28.754082988598384,
+      "focusRetained": true,
+      "heapAfterCancelAndGC": 19801224
+    }
+  ],
+  "pageErrors": [],
+  "writes": [],
+  "method": "Frozen before/after SPAs served by the common final backend. Five alternating samples per build with identical 10000-channel inventories. Open timing includes 500ms idle. Runtime.getHeapUsage is precise CDP usedSize; collectGarbage follows Cancel. No API writes. Concurrent host validation may affect timing."
+}

@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { UnsavedChangesProvider } from '../components/UnsavedChanges';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,46 +8,17 @@ import App from '../App';
 import StartupGate from '../components/StartupGate';
 import AccessGate from '../components/access/AccessGate';
 import { createAppTheme, type ThemeMode } from '../theme';
-
-const APP_THEME_MODE_STORAGE_KEY = 'app-theme-mode';
-
-const isThemeMode = (value: string | null): value is ThemeMode => value === 'light' || value === 'dark';
-
-const getSystemThemeMode = (): ThemeMode => {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return 'light';
-  }
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-};
-
-const getInitialThemeMode = (): ThemeMode => {
-  if (typeof window === 'undefined') {
-    return 'light';
-  }
-
-  const storedMode = window.localStorage.getItem(APP_THEME_MODE_STORAGE_KEY);
-
-  if (isThemeMode(storedMode)) {
-    return storedMode;
-  }
-
-  return getSystemThemeMode();
-};
-
-const hasStoredThemeMode = (): boolean => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  return isThemeMode(window.localStorage.getItem(APP_THEME_MODE_STORAGE_KEY));
-};
+import { AppPreferencesProvider, useAppPreferences } from '../preferences/AppPreferences';
 
 type AppThemeModeValue = {
   mode: ThemeMode;
   setMode: React.Dispatch<React.SetStateAction<ThemeMode>>;
   toggleMode: () => void;
 };
+
+const router = createBrowserRouter([{ path: '*', element: (
+  <AccessGate><StartupGate><UnsavedChangesProvider><App /></UnsavedChangesProvider></StartupGate></AccessGate>
+) }]);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,23 +43,13 @@ export const useAppThemeMode = () => {
   return context;
 };
 
-const AppBootstrap: React.FC = () => {
-  const [mode, setMode] = React.useState<ThemeMode>(() => getInitialThemeMode());
-  const [hasExplicitPreference, setHasExplicitPreference] = React.useState<boolean>(() => hasStoredThemeMode());
-  const theme = React.useMemo(() => createAppTheme(mode), [mode]);
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || !hasExplicitPreference) {
-      return;
-    }
-
-    window.localStorage.setItem(APP_THEME_MODE_STORAGE_KEY, mode);
-  }, [hasExplicitPreference, mode]);
-
+const ApplicationProviders: React.FC = () => {
+  const preferences = useAppPreferences();
+  const { mode, setPreference } = preferences;
+  const theme = React.useMemo(() => createAppTheme(mode, preferences.interface, preferences.language), [mode, preferences.interface, preferences.language]);
   const handleSetMode = React.useCallback<React.Dispatch<React.SetStateAction<ThemeMode>>>((value) => {
-    setHasExplicitPreference(true);
-    setMode(value);
-  }, []);
+    setPreference('mode', typeof value === 'function' ? value(mode) : value);
+  }, [mode, setPreference]);
 
   const controller = React.useMemo<AppThemeModeValue>(
     () => ({
@@ -103,13 +65,12 @@ const AppBootstrap: React.FC = () => {
       <AppThemeModeContext.Provider value={controller}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <BrowserRouter>
-            <AccessGate><StartupGate><App /></StartupGate></AccessGate>
-          </BrowserRouter>
+          <RouterProvider router={router} />
         </ThemeProvider>
       </AppThemeModeContext.Provider>
     </QueryClientProvider>
   );
 };
 
+const AppBootstrap = () => <AppPreferencesProvider><ApplicationProviders /></AppPreferencesProvider>;
 export default AppBootstrap;

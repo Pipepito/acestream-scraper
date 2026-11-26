@@ -46,7 +46,7 @@ test.describe('TV channels', () => {
     await expect(detail.summary()).toContainText('0 streams');
     await expect(detail.summary()).toContainText('EPG: not mapped');
     await detail.addStream(stream.name, [stream.name]);
-    await detail.expectAlert(/Assigned 1 acestream source/);
+    await detail.expectAlert('Assigned 1 stream successfully.');
     await expect(detail.summary()).toContainText('1 stream');
     await expect(detail.streams()).toContainText(stream.name);
     const after = await api.getTvChannel(tvChannel.id);
@@ -94,7 +94,7 @@ test.describe('TV channels', () => {
     const detail = new TVChannelDetailPage(page);
     await detail.open(tvChannel.id, spec.name);
     await detail.removeStream(stream.name);
-    await detail.expectAlert(/Removed acestream .* successfully/);
+    await detail.expectAlert(`Removed ${stream.name} from this channel.`);
     await expect(detail.summary()).toContainText('0 streams');
     expect((await api.getTvChannel(tvChannel.id)).acestream_channels).toHaveLength(0);
 

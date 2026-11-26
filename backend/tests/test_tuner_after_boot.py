@@ -46,13 +46,13 @@ def test_a_source_found_offline_recently_is_not_tried(db_session):
 
 
 def test_the_route_uses_this_order(db_session, monkeypatch):
-    from app.api.endpoints import tuner
+    from app.services import channel_session
     tv = _channel(db_session)
     _stream(db_session, 'a', tv, online=False, hours_ago=70)
     db_session.commit()
-    monkeypatch.setattr(tuner, 'SessionLocal', lambda: db_session)
+    monkeypatch.setattr(channel_session, 'SessionLocal', lambda: db_session)
     monkeypatch.setattr(db_session, 'close', lambda: None)
-    assert tuner._channel_candidates(tv.id) == ['a' * 40]
+    assert channel_session.relay_candidates(tv.id) == ['a' * 40]
 
 
 def test_manual_preferences_override_automatic_ranking_but_keep_safety_filters(db_session, monkeypatch):
@@ -73,6 +73,5 @@ def test_manual_preferences_override_automatic_ranking_but_keep_safety_filters(d
     db_session.commit()
     service = TunerService(db_session)
     assert service.relay_stream_ids(tv.id) == ['b' * 40, 'a' * 40]
-    assert service.online_stream_ids(tv.id) == ['b' * 40, 'a' * 40]
     playback.record_source_failure('b' * 40)
     assert playback.prefer_recovered_sources(service.relay_stream_ids(tv.id)) == ['a' * 40, 'b' * 40]

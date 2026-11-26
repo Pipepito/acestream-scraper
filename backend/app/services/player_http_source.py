@@ -20,7 +20,7 @@ from fastapi.concurrency import run_in_threadpool
 from app.services import hls_manifest, live_providers
 from app.services.hls_selection import best_variant
 from app.services.player_subtitles import media_clock_webvtt
-from app.utils.outbound_http import source_session
+from app.utils.outbound_http import follow_redirects, source_session
 
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_SUBTITLE_BYTES = 512 * 1024
@@ -227,71 +227,63 @@ class PlayerHTTPSource:
             # media playlist: decode whatever arrives encoded, or FFmpeg gets the
             # compressed bytes without the header and rejects the playlist.
             async with source_session(timeout=timeout, auto_decompress=True, cookie_jar=aiohttp.DummyCookieJar()) as client:
-                for _ in range(MAX_REDIRECTS + 1):
-                    _http_url(url)
-                    async with client.get(url, headers=headers, allow_redirects=False) as upstream:
-                        if upstream.status in (301, 302, 303, 307, 308):
-                            target = _http_url(urljoin(url, upstream.headers['Location']))
-                            if _origin(target) != _origin(url):
-                                headers = {k: v for k, v in headers.items() if k.lower() not in ('authorization', 'cookie')}
-                            url = target
-                            continue
-                        if upstream.status not in (200, 206):
-                            raise HTTPMediaStatusError(upstream.status)
-                        # readexactly is necessary: a TCP chunk may be only one byte.
-                        try:
-                            prefix = await upstream.content.readexactly(512)
-                        except asyncio.IncompleteReadError as exc:
-                            prefix = exc.partial
-                        if prefix.lstrip(b'\xef\xbb\xbf \r\n').startswith(b'#EXTM3U'):
-                            body = bytearray(prefix)
-                            async for chunk in upstream.content.iter_chunked(65536):
-                                body.extend(chunk)
-                                if len(body) > MAX_MANIFEST_BYTES:
-                                    raise ValueError('HLS manifest too large')
-                            text = bytes(body).decode('utf-8-sig').lstrip()
-                            return web.Response(text=self.rewrite(text, url), content_type='application/vnd.apple.mpegurl')
-                        if prefix.lstrip(b'\xef\xbb\xbf').startswith(b'WEBVTT'):
-                            body = bytearray(prefix)
-                            async for chunk in upstream.content.iter_chunked(65536):
-                                body.extend(chunk)
-                                if len(body) > MAX_SUBTITLE_BYTES:
-                                    raise ValueError('Subtitle segment too large')
-                            return web.Response(text=media_clock_webvtt(bytes(body).decode('utf-8-sig')),
-                                                content_type='text/vtt')
-                        budget.reschedule(None)
-                        # Stream media with backpressure; never buffer a whole live
-                        # transport stream or segment. Range metadata is preserved.
-                        # Lengths and ranges of an encoded body do not describe the
-                        # decoded bytes sent on.
-                        encoded = upstream.headers.get('Content-Encoding', 'identity').lower() != 'identity'
-                        response = web.StreamResponse(status=upstream.status, headers={
-                            key: upstream.headers[key] for key in ('Content-Length', 'Content-Range', 'Accept-Ranges')
-                            if key in upstream.headers and not encoded
-                        })
-                        response.content_type = 'application/octet-stream'
-                        await response.prepare(request)
-                        try:
-                            await response.write(prefix)
-                            while True:
-                                try:
-                                    chunk = await upstream.content.read(65536)
-                                except Exception as exc:
-                                    self._record_failure(request, exc)
-                                    raise
-                                if not chunk:
-                                    break
-                                await response.write(chunk)
-                            await response.write_eof()
-                        except Exception:
-                            # Headers/media have already been sent. A second
-                            # HTTP response would corrupt FFmpeg's media input.
-                            # Downstream disconnects are not upstream failures.
-                            response.force_close()
-                            if request.transport is not None:
-                                request.transport.close()
-                        return response
-            raise ValueError('Too many redirects')
+                async with follow_redirects(client, url, headers=headers, max_redirects=MAX_REDIRECTS,
+                                            check=_http_url) as (url, upstream):
+                    if upstream.status not in (200, 206):
+                        raise HTTPMediaStatusError(upstream.status)
+                    # readexactly is necessary: a TCP chunk may be only one byte.
+                    try:
+                        prefix = await upstream.content.readexactly(512)
+                    except asyncio.IncompleteReadError as exc:
+                        prefix = exc.partial
+                    if prefix.lstrip(b'\xef\xbb\xbf \r\n').startswith(b'#EXTM3U'):
+                        body = bytearray(prefix)
+                        async for chunk in upstream.content.iter_chunked(65536):
+                            body.extend(chunk)
+                            if len(body) > MAX_MANIFEST_BYTES:
+                                raise ValueError('HLS manifest too large')
+                        text = bytes(body).decode('utf-8-sig').lstrip()
+                        return web.Response(text=self.rewrite(text, url), content_type='application/vnd.apple.mpegurl')
+                    if prefix.lstrip(b'\xef\xbb\xbf').startswith(b'WEBVTT'):
+                        body = bytearray(prefix)
+                        async for chunk in upstream.content.iter_chunked(65536):
+                            body.extend(chunk)
+                            if len(body) > MAX_SUBTITLE_BYTES:
+                                raise ValueError('Subtitle segment too large')
+                        return web.Response(text=media_clock_webvtt(bytes(body).decode('utf-8-sig')),
+                                            content_type='text/vtt')
+                    budget.reschedule(None)
+                    # Stream media with backpressure; never buffer a whole live
+                    # transport stream or segment. Range metadata is preserved.
+                    # Lengths and ranges of an encoded body do not describe the
+                    # decoded bytes sent on.
+                    encoded = upstream.headers.get('Content-Encoding', 'identity').lower() != 'identity'
+                    response = web.StreamResponse(status=upstream.status, headers={
+                        key: upstream.headers[key] for key in ('Content-Length', 'Content-Range', 'Accept-Ranges')
+                        if key in upstream.headers and not encoded
+                    })
+                    response.content_type = 'application/octet-stream'
+                    await response.prepare(request)
+                    try:
+                        await response.write(prefix)
+                        while True:
+                            try:
+                                chunk = await upstream.content.read(65536)
+                            except Exception as exc:
+                                self._record_failure(request, exc)
+                                raise
+                            if not chunk:
+                                break
+                            await response.write(chunk)
+                        await response.write_eof()
+                    except Exception:
+                        # Headers/media have already been sent. A second
+                        # HTTP response would corrupt FFmpeg's media input.
+                        # Downstream disconnects are not upstream failures.
+                        response.force_close()
+                        if request.transport is not None:
+                            request.transport.close()
+                    return response
 
     async def close(self) -> None:
         tasks = list(self._tasks)

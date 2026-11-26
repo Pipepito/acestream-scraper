@@ -1,3 +1,4 @@
+import { useUiText } from '../i18n/useUiText';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
@@ -7,6 +8,7 @@ import { setupQueryKey, setupService } from '../services/setupService';
 const Setup = React.lazy(() => import('../pages/Setup'));
 
 export default function SetupNotice() {
+  const tUi = useUiText();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -18,11 +20,11 @@ export default function SetupNotice() {
     if (query.data?.setup_complete === false && !dismissed && pathname !== '/setup') setOpen(true);
   }, [query.data?.setup_complete, dismissed, pathname]);
   if (pathname === '/setup' || !query.data) return null;
-  if (open) return <React.Suspense fallback={<p role="status">Loading setup…</p>}>
+  if (open) return <React.Suspense fallback={<p role="status">{tUi("Loading setup…")}</p>}>
     <Setup onClose={() => { setOpen(false); setDismissed(true); }} />
   </React.Suspense>;
   if (query.data.setup_complete && !query.data.restart_required) return null;
-  return <Alert severity="info" sx={{ mb: 2 }} action={<Button component={Link} to="/setup" color="inherit">{query.data.restart_required ? 'Review setup' : 'Set up scraper'}</Button>}>
-    {query.data.restart_required ? 'Configuration saved. Restart the container or application to apply it.' : 'Add channel sources and an optional programme guide. You can return to setup from Settings.'}
+  return <Alert severity="info" sx={{ mb: 2 }} action={<Button component={Link} to="/setup" color="inherit">{query.data.restart_required ? tUi("Review setup") : tUi("Set up scraper")}</Button>}>
+    {query.data.restart_required ? tUi("Configuration saved. Restart the container or application to apply it.") : tUi("Add channel sources and an optional programme guide. You can return to setup from Settings.")}
   </Alert>;
 }

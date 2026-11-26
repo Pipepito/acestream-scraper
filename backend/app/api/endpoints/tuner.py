@@ -7,7 +7,6 @@ API token protects like every other ``/api/v1`` route.
 """
 from __future__ import annotations
 
-import asyncio
 import time
 
 import html
@@ -34,21 +33,16 @@ from app.services.public_url_service import resolve_public_base_url
 from app.services.stream_relay import RELAY_HEADERS, ClosingStreamingResponse, EngineStreamError, relay_engine_stream, relay_registry
 from app.services.tuner_network import get_tuner_gate, require_tuner_network
 from app.services.tuner_service import TunerService, TunerSettings
-from app.services import tuner_playback_service
-from app.services.tuner_playback_service import (
-    CHECKPOINT_SECONDS, ViewingCheckpoint, prefer_recovered_sources, relay_ranked_streams,
-)
+from app.services.channel_session import ChannelSession, NoSourceStarted, NoSources, TunerBusy, TunerEnvironment
+from app.services.tuner_playback_service import CHECKPOINT_SECONDS, ViewingCheckpoint, relay_ranked_streams
 from app.services.ts_clock import ClockWatch, watch_clock
-from app.services.tuner_remux import ffmpeg_binary
 from app.services.tuner_probe_service import tuner_probe_service
+from app.utils.stream_kind import is_acestream_id, is_http_id
 
 logger = logging.getLogger(__name__)
 
 hdhr_router = APIRouter(prefix="/tuner", dependencies=[Depends(require_tuner_network)], tags=["hdhomerun"])
 router = APIRouter()  # /api/v1/tuner settings + status
-
-_CONTENT_ID = re.compile(r"^[0-9a-fA-F]{40}$")
-
 
 def _engine() -> EngineClient:
     """Read the configured engine URL through a session of its own.
@@ -85,7 +79,7 @@ def _relay_client_factory(**kwargs) -> httpx.AsyncClient:
 
 
 def _validate_content_id(content_id: str) -> str:
-    if not _CONTENT_ID.match(content_id):
+    if not is_acestream_id(content_id):
         # APIError, not HTTPException: the 403 and the 502s on this router all
         # answer with the {"error": {...}} envelope and this must match.
         raise APIError(
@@ -192,7 +186,7 @@ def playlist_m3u(request: Request, db: Session = Depends(get_db)) -> PlainTextRe
 async def tuner_http_source(content_id: str, request: Request):
     """A stored HTTP source uses the bounded, credential-preserving TS relay."""
     from app.services.watch_service import imported_stream
-    if not re.fullmatch(r'url:[0-9a-f]{40}', content_id) or not await run_in_threadpool(imported_stream, content_id):
+    if not is_http_id(content_id) or not await run_in_threadpool(imported_stream, content_id):
         raise HTTPException(404, 'Channel not found')
     if request.method == 'HEAD':
         return Response(status_code=200, headers=RELAY_HEADERS)
@@ -232,8 +226,6 @@ def epg_xml(db: Session = Depends(get_db)) -> Response:
     return Response(content=EPGService(db).generate_epg_xml(tv_channel_ids=ids), media_type="application/xml",
                     headers={"Cache-Control": "no-store"})
 
-
-SOURCE_REFRESH_SECONDS = 60.0
 
 
 # --- stream relay ------------------------------------------------------------
@@ -343,25 +335,10 @@ async def tuner_stream(content_id: str, request: Request):
     return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
 
 
-def _switch_on_failure() -> bool:
-    # When the playing source stops sending, go on with another one in the
-    # same response instead of ending it. Off unless the setting turns it on.
-    db = SessionLocal()
-    try:
-        value = SettingsRepository(db).get_setting("tuner_switch_on_failure") or "false"
-        return str(value).lower() not in ("false", "0", "no")
-    finally:
-        db.close()
-
-
-def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) -> List[str]:
-    db = SessionLocal()
-    try:
-        service = TunerService(db)
-        ids = service.stream_ids(tv_channel_id) if include_offline else service.relay_stream_ids(tv_channel_id)
-        return prefer_recovered_sources(ids)
-    finally:
-        db.close()
+def _channel_environment() -> TunerEnvironment:
+    """The channel session reads the same configuration as the other relays."""
+    return TunerEnvironment(engine=lambda: _engine(), settings=lambda: _relay_settings(), slots=lambda: _tuner_count(),
+                            client_factory=lambda **kwargs: _relay_client_factory(**kwargs), probes=tuner_probe_service)
 
 
 @hdhr_router.head("/channel/{tv_channel_id}.ts", include_in_schema=False)
@@ -369,107 +346,23 @@ def _channel_candidates(tv_channel_id: int, *, include_offline: bool = False) ->
     summary="TV channel MPEG-TS with automatic source failover",
     responses={200: {"content": {"video/mp2t": {"schema": {"type": "string", "format": "binary"}}}}})
 async def tuner_channel(tv_channel_id: int, request: Request):
-    candidates = await run_in_threadpool(_channel_candidates, tv_channel_id)
-    eligible = candidates or await run_in_threadpool(_channel_candidates, tv_channel_id, include_offline=True)
-    if not eligible:
-        raise APIError(code="NO_ONLINE_STREAMS", message="This channel has no active supported sources available", status_code=503)
-    if request.method == "HEAD":
-        return Response(status_code=200, headers=RELAY_HEADERS)
-    limit = await run_in_threadpool(_tuner_count)
-    client = request.client.host if request.client else '?'
-    label = f"tuner:{client}"
-    # Kodi's second GET (or the same person back on this channel) goes on
-    # from where the GET before it is instead of starting the sources again.
-    key = (client, tv_channel_id)
-    shared, previous = tuner_playback_service.take_over_opening(key)
-    resume_deadline, skip = None, set()
-    if previous is not None:
-        candidates, resume_deadline, skip = tuner_playback_service.resume_order(candidates, previous)
-        logger.info("TV relay opening resumed tv_channel_id=%s from=%s skip=%s", tv_channel_id,
-                    previous.current, sorted(skip))
-    claim = relay_registry.try_open(candidates[0] if candidates else "", label, limit)
-    if claim is None:
-        tuner_playback_service.end_opening(key, shared)
-        raise APIError(code="TUNER_BUSY", message=f"All {limit} tuner slots are in use", status_code=503)
-    refresh = tuner_probe_service.start(tv_channel_id)
-
-    async def refresh_failed_source(_content_id: str) -> None:
-        nonlocal refresh
-        refresh = tuner_probe_service.start(tv_channel_id)
-
-    async def monitor_alternatives() -> None:
-        nonlocal refresh
-        while True:
-            await asyncio.sleep(SOURCE_REFRESH_SECONDS)
-            refresh = tuner_probe_service.start(tv_channel_id)
-
-    monitor = asyncio.create_task(monitor_alternatives())
-
-    async def refreshed_candidates() -> tuple[List[str], bool]:
-        current = await run_in_threadpool(_channel_candidates, tv_channel_id)
-        return current, refresh is not None and not refresh.done()
-
-    iterator = None
-    engine = None
+    session = ChannelSession(tv_channel_id, request.client.host if request.client else '?', _channel_environment())
     try:
-        relay_settings = await run_in_threadpool(_relay_settings)
-        experimental_transcoding = relay_settings.experimental_transcoding
-        if experimental_transcoding or relay_settings.plex_compatible_audio:
-            await run_in_threadpool(ffmpeg_binary)
-        try:
-            engine = await run_in_threadpool(_engine)
-        except EngineUnavailableError:
-            # HTTP sources are independent of the optional playback engine.
-            engine = None
-        iterator = relay_ranked_streams(engine, candidates, label, claim, client_factory=_relay_client_factory,
-                                      candidate_provider=refreshed_candidates, on_source_failure=refresh_failed_source,
-                                      experimental_transcoding=experimental_transcoding,
-                                      plex_compatible_audio=relay_settings.plex_compatible_audio,
-                                      attempt_seconds=relay_settings.source_start_seconds,
-                                      startup_budget_seconds=relay_settings.startup_budget_seconds,
-                                      switch_midstream=await run_in_threadpool(_switch_on_failure),
-                                      opening=shared, resume_deadline=resume_deadline, skip=skip,
-                                      last_resort_provider=lambda: run_in_threadpool(
-                                          _channel_candidates, tv_channel_id, include_offline=True),
-                                      last_resort_now=previous is not None and previous.last_resort,
-                                      tv_channel_id=tv_channel_id)
-        first = await anext(iterator)
-    except BaseException as exc:
-        tuner_playback_service.end_opening(key, shared)
-        monitor.cancel()
-        await asyncio.gather(monitor, return_exceptions=True)
-        tuner_probe_service.stop_channel(tv_channel_id)
-        if iterator is not None:
-            await iterator.aclose()
-        if engine is not None:
-            engine.close()
-        relay_registry.close(claim.id)
-        if isinstance(exc, StopAsyncIteration):
-            # A newer GET of the channel took the opening over before this
-            # one sent anything.
+        await session.check()
+        if request.method == "HEAD":
             return Response(status_code=200, headers=RELAY_HEADERS)
-        if isinstance(exc, (EngineStreamError, EngineUnavailableError)):
-            raise APIError(code="CHANNEL_STREAM_FAILED", message="No source could start playback within the startup budget", status_code=502) from exc
-        raise
-
-    async def body():
-        try:
-            yield first
-            async for chunk in iterator:
-                yield chunk
-        except (EngineStreamError, EngineUnavailableError):
-            # No source left after playback had started (the midstream switch
-            # spent them all). Video already went out: end the response
-            # instead of breaking the transfer.
-            logger.info("TV relay ran out of sources after playback; ending tv_channel_id=%s", tv_channel_id)
-        finally:
-            tuner_playback_service.end_opening(key, shared)
-            monitor.cancel()
-            await asyncio.gather(monitor, return_exceptions=True)
-            tuner_probe_service.stop_channel(tv_channel_id)
-            await iterator.aclose()
-
-    return ClosingStreamingResponse(body(), headers=RELAY_HEADERS)
+        stream = await session.start()
+    except NoSources as exc:
+        raise APIError(code="NO_ONLINE_STREAMS", message=str(exc), status_code=503) from None
+    except TunerBusy as exc:
+        raise APIError(code="TUNER_BUSY", message=str(exc), status_code=503) from None
+    except NoSourceStarted as exc:
+        raise APIError(code="CHANNEL_STREAM_FAILED", message=str(exc), status_code=502) from exc.__cause__
+    if stream is None:
+        # A newer GET of the channel took the opening over before this one
+        # sent anything.
+        return Response(status_code=200, headers=RELAY_HEADERS)
+    return ClosingStreamingResponse(stream, headers=RELAY_HEADERS)
 
 
 # --- operator API (/api/v1/tuner, token-gated) -------------------------------

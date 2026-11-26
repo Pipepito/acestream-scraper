@@ -26,6 +26,8 @@
     "playwright.mobile.config.ts",
     "mobile/**/*.ts",
     "playwright.monitor.config.ts",
-    "monitor/**/*.ts"
+    "monitor/**/*.ts",
+    "playwright.standalone.config.ts",
+    "standalone/**/*.ts"
   ]
 }

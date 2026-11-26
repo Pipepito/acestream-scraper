@@ -294,12 +294,13 @@ def test_cleanup_keeps_original_ownership_after_routing_changes():
 
 
 def test_late_probe_cleanup_waits_for_recording_or_viewer_lease():
-    from app.services.channel_status_service import ChannelStatusService
+    from app.services.playback_ownership import release_session, source_ownership
     client, calls = _ownership_client()
     session = client.start(CID)
     probe_url = 'http://engine:6878/ace/cmd/hash/probe'
-    service = object.__new__(ChannelStatusService)
-    service._release_probe('http://engine:6878', CID, probe_url)
+    probe = EngineSession(CID, '', '', '', probe_url, True)
+    release_session(source_ownership('http://engine:6878', CID), probe,
+                    lambda: pytest.fail('must not stop a source a lease still plays'))
     assert len(calls) == 1
     client.stop(session)
     assert {str(request.url).split('?')[0] for request in calls[1:]} == {session.command_url, probe_url}

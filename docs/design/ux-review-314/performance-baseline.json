@@ -1,0 +1,208 @@
+{
+  "revision": "cf952afc6b4489c02b7a675ff3d634cc13d98e0b",
+  "browser": "149.0.7827.55",
+  "pageErrors": [],
+  "method": "5 fresh-context runs per route/size, cold then warm document load. Local FastAPI with synthetic SQLite inventory. Settlement includes networkidle (500ms), not a standalone responsiveness metric. No media playback or external catalogue. Fixed viewport 1440x1000, en-GB.",
+  "results": [
+    {
+      "catalogueSize": 100,
+      "route": "/",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 674,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 10,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 596,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 10,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/settings",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 726,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 20,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/settings",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 638,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 20,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/tv-channels",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 647,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 5,
+      "longTaskMedianMs": 67
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/tv-channels",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 583,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 5,
+      "longTaskMedianMs": 54
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/live-tv",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 662,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 6,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/live-tv",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 588,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 6,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/scraper/builder",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 644,
+      "jsDecodedBytes": 2029836,
+      "apiRequests": 4,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 100,
+      "route": "/scraper/builder",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 576,
+      "jsDecodedBytes": 2029836,
+      "apiRequests": 4,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 672,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 10,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 601,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 10,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/settings",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 706,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 20,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/settings",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 639,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 20,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/tv-channels",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 1557,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 24,
+      "longTaskMedianMs": 71
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/tv-channels",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 1492,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 24,
+      "longTaskMedianMs": 55
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/live-tv",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 1573,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 25,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/live-tv",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 1500,
+      "jsDecodedBytes": 2003016,
+      "apiRequests": 25,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/scraper/builder",
+      "cache": "cold",
+      "runs": 5,
+      "settledMedianMs": 642,
+      "jsDecodedBytes": 2029836,
+      "apiRequests": 4,
+      "longTaskMedianMs": 0
+    },
+    {
+      "catalogueSize": 10000,
+      "route": "/scraper/builder",
+      "cache": "warm",
+      "runs": 5,
+      "settledMedianMs": 577,
+      "jsDecodedBytes": 2029836,
+      "apiRequests": 4,
+      "longTaskMedianMs": 0
+    }
+  ]
+}

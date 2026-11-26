@@ -29,7 +29,7 @@ const renderSection = (notify: jest.Mock) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  service.updateNotificationWebhookUrl.mockResolvedValue(undefined);
+  service.updateNotificationWebhookUrl.mockImplementation(async value => value);
   service.testNotificationWebhook.mockResolvedValue(undefined);
 });
 
@@ -42,7 +42,7 @@ it('saves a webhook and only offers the test once it is saved', async () => {
   await user.type(screen.getByRole('textbox', { name: 'Webhook URL' }), ' https://gotify.test/message?token=t ');
   await user.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(service.updateNotificationWebhookUrl).toHaveBeenCalledWith('https://gotify.test/message?token=t'));
-  expect(notify).toHaveBeenCalledWith('Notification webhook saved.', 'success');
+  expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Notification webhook saved.', 'success']);
 });
 
 it('sends a test to the saved webhook', async () => {
@@ -54,7 +54,7 @@ it('sends a test to the saved webhook', async () => {
   await waitFor(() => expect(test).toBeEnabled());
   await user.click(test);
   await waitFor(() => expect(service.testNotificationWebhook).toHaveBeenCalled());
-  expect(notify).toHaveBeenCalledWith('Test notification sent.', 'success');
+  expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Test notification sent.', 'success']);
 });
 
 it('turns notifications off with an empty value', async () => {
@@ -67,7 +67,7 @@ it('turns notifications off with an empty value', async () => {
   await user.clear(field);
   await user.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(service.updateNotificationWebhookUrl).toHaveBeenCalledWith(''));
-  expect(notify).toHaveBeenCalledWith('Notifications turned off.', 'success');
+  expect([notify.mock.calls[0]?.[0](), notify.mock.calls[0]?.[1]]).toEqual(['Notifications turned off.', 'success']);
 });
 
 it.each(['', 'https://gotify.test/message?token=new'])(
@@ -89,3 +89,22 @@ it.each(['', 'https://gotify.test/message?token=new'])(
     expect(service.testNotificationWebhook).not.toHaveBeenCalled();
   },
 );
+
+
+it('adopts the masked server value after saving so test delivery is enabled without exposing the token', async () => {
+  service.getNotificationWebhookUrl.mockResolvedValue('');
+  const masked = 'https://gotify.test/message?token=•••';
+  service.updateNotificationWebhookUrl.mockImplementation(async () => {
+    service.getNotificationWebhookUrl.mockResolvedValue(masked);
+    return masked;
+  });
+  const user = userEvent.setup();
+  renderSection(jest.fn());
+  const input = screen.getByRole('textbox', { name: 'Webhook URL' });
+  await user.type(input, 'https://gotify.test/message?token=secret');
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(input).toHaveValue(masked));
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await user.click(screen.getByRole('button', { name: 'Send test' }));
+  expect(service.testNotificationWebhook).toHaveBeenCalledTimes(1);
+});

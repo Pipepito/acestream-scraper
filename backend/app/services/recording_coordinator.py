@@ -34,14 +34,11 @@ def load_configuration():
 
 
 def candidates(cid):
-    from app.services.tuner_service import TunerService
-    from app.services.tuner_playback_service import prefer_recovered_sources
-    with SessionLocal() as db:
-        repo = RecordingRepository(db)
-        channel = repo.channel(cid) if cid else None
-        if not channel or not channel.is_active:
-            return []
-        return prefer_recovered_sources(TunerService(db).relay_stream_ids(cid))
+    """The sources a recording tries: the same choice and order as a viewer
+    of the channel (a missing or inactive channel has none). Unlike the
+    relay, a recording has no last resort and goes round these in turn."""
+    from app.services.channel_session import relay_candidates
+    return relay_candidates(cid) if cid else []
 
 
 def engine_client():

@@ -171,6 +171,47 @@ async def test_probes_use_distinct_pids_but_timeout_retry_reuses_pid(probe, engi
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('starts', [
+    [asyncio.TimeoutError(), asyncio.TimeoutError()],
+    [(200, None)],
+    [asyncio.TimeoutError(), (200, None)],
+], ids=['both starts time out', 'answer is not JSON', 'retry answer is not JSON'])
+async def test_a_start_without_a_usable_answer_has_its_session_stopped(probe, engine, starts):
+    """The engine opens the session even when the check never reads its
+    answer; asking again with the same PID hands that session back."""
+    engine.start_script = [*starts, (200, session_answer(token='unanswered'))]
+    channel = AcestreamChannel(id='a' * 40, name='Example')
+    result = await probe.check_channel_status(channel, persist=False)
+    assert result['is_online'] is False
+    pids = {call[2] for call in engine.asked('open')}
+    assert len(pids) == 1
+    assert engine.stopped == ['http://engine.test:6878/ace/cmd/hash/unanswered']
+
+
+@pytest.mark.asyncio
+async def test_a_timed_out_start_is_not_stopped_once_playback_holds_the_source(probe, engine):
+    from app.services.stream_relay import relay_registry
+    channel = AcestreamChannel(id='a' * 40, name='Example', is_online=True)
+    claim = None
+
+    def start(*_args):
+        nonlocal claim
+        if claim is None:
+            claim = relay_registry.open(channel.id, 'test')
+            return asyncio.TimeoutError()
+        return 200, session_answer(token='unanswered')
+
+    engine.start_script = [start]
+    try:
+        assert (await probe.check_channel_status(channel, persist=False))['status'] == 'skipped'
+        # Distinct PIDs do not isolate a stop of the same source.
+        assert engine.stopped == []
+    finally:
+        if claim:
+            relay_registry.close(claim.id)
+
+
+@pytest.mark.asyncio
 async def test_active_relay_is_not_probed_or_marked_offline(probe, engine):
     from app.services.stream_relay import relay_registry
     channel = AcestreamChannel(id='a' * 40, name='Example', is_online=True)

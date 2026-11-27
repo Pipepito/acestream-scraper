@@ -59,6 +59,13 @@ FAILURE_COOLDOWN_SECONDS = 60.0
 # the others for longer.
 EARLY_DEATH_SECONDS = 60.0
 EARLY_DEATH_COOLDOWN_SECONDS = 1800.0
+# A source that sent no byte in its whole start time stays behind the others for
+# longer than the plain 60 s too (16-11: a channel opened again two minutes later
+# spent 20 s each on the sources that had sent nothing the first time, before any
+# it had not tried). Not as long as an early death: a broadcast may start later.
+# An engine session that ends at once keeps the plain cooldown: it is often the
+# previous viewing's session still closing, not the source.
+NO_DATA_COOLDOWN_SECONDS = 600.0
 
 
 def record_source_failure(content_id: str, cooldown: float = FAILURE_COOLDOWN_SECONDS) -> None:
@@ -409,7 +416,9 @@ async def relay_ranked_streams(
                         continue
                     played = (last_at - first_at) if first_at is not None else 0.0
                     early_death = first_at is not None and played < EARLY_DEATH_SECONDS
-                    record_source_failure(content_id, EARLY_DEATH_COOLDOWN_SECONDS if early_death else FAILURE_COOLDOWN_SECONDS)
+                    record_source_failure(content_id, EARLY_DEATH_COOLDOWN_SECONDS if early_death else
+                                          NO_DATA_COOLDOWN_SECONDS if first_at is None and isinstance(exc, TimeoutError) else
+                                          FAILURE_COOLDOWN_SECONDS)
                     outcome = (
                         'early_death' if early_death else
                         'stall' if first_at is not None and isinstance(exc, TimeoutError) else

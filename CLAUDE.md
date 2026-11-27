@@ -261,7 +261,7 @@ are excluded. Freshness covers the last six hours; future timestamps are stale.
 Recent relay failures still deprioritize a source.
 One reserved relay claim survives failed attempts; startup has per-attempt and total
 deadlines. By default failures after playback starts end the response; client
-reconnections prefer alternatives over sources that failed in the last 60 seconds. Each
+reconnections prefer alternatives over sources that failed recently: 60 seconds by default, 10 minutes for a source that sent no byte in its whole start time, 30 minutes for one that died in its first minute. Each
 source passes through `tuner_remux.remux_source` only when experimental transcoding
 is explicitly enabled (off by default; otherwise clients reconnect after failure) with FFmpeg table versions and
 discontinuity signalling, MPEG-2 video and AAC audio normalization; never concatenate

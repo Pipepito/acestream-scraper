@@ -239,6 +239,20 @@ This lets Kodi's second GET reuse the warm source. Reconnecting cancels the pend
 stop; all retained sessions are stopped when the final viewer leaves. Source
 failures and relay deadlines still stop immediately. Acexy owns its own sessions.
 
+**Starting a channel with a chosen source.** A device can ask that its next
+opening of a TV channel start with one of that channel's sources:
+`POST /tuner/channel/{tv_channel_id}/first-source` with `{"source": "<id>"}` (a
+content ID or `url:<sha1>`; a source of another channel answers 404), then open
+`/tuner/channel/{tv_channel_id}.ts` as usual. `DELETE` on the same path goes back
+to the automatic order. The chosen source goes first even if the last check found
+it offline, unless the relay saw it fail in the last 60 seconds. It applies to one
+opening only: Kodi's HEAD and both GETs start with it, and once that opening ends
+(played, closed or cancelled) a new GET uses the automatic order. If the chosen
+source fails, the relay continues in the automatic order and does not come back to
+it. A request lasts 30 seconds and is kept in memory only. The device is the client
+IP address the scraper sees: clients that reach it through the Docker gateway share
+that address, and therefore share one choice.
+
 On **Playlist**, choose **TV channel relay (automatic failover)** or save a format
 such as `http://scraper:8000/tuner/channel/{tv_channel_id}.ts`. This generates one
 entry per TV channel, preserving its number and EPG ID, and can append unassigned

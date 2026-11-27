@@ -23,7 +23,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.config.database import SessionLocal
 from app.repositories.settings_repository import SettingsRepository
-from app.services import tuner_playback_service as playback
+from app.services import tuner_first_source, tuner_playback_service as playback
 from app.services.engine_client import EngineClient, EngineUnavailableError
 from app.services.source_reader import SourceReader
 from app.services.stream_relay import EngineStreamError, RelayRegistry, relay_registry
@@ -118,11 +118,16 @@ class ChannelSession:
         self.client = client
         self.env = env
         self._candidates: Optional[List[str]] = None
+        self._opening: Optional[tuner_first_source.ChannelOpening] = None
 
     async def check(self) -> None:
         """What a HEAD answers: raises NoSources when the channel has nothing
         to try. Starts nothing."""
         candidates = await run_in_threadpool(self.env.candidates, self.tv_channel_id)
+        # A person may have chosen the source this opening starts with (for
+        # example a Kodi skin's source list): see tuner_first_source.
+        self._opening = tuner_first_source.open_channel(self.client, self.tv_channel_id)
+        candidates = self._opening.order(candidates)
         eligible = candidates or await run_in_threadpool(self.env.last_resort, self.tv_channel_id)
         if not eligible:
             raise NoSources("This channel has no active supported sources available")
@@ -137,7 +142,7 @@ class ChannelSession:
         if self._candidates is None:
             await self.check()
         env, tv_channel_id = self.env, self.tv_channel_id
-        candidates = self._candidates
+        candidates, opening = self._candidates, self._opening
         limit = await run_in_threadpool(env.slots)
         label = f"tuner:{self.client}"
         # Kodi's second GET (or the same person back on this channel) goes on
@@ -151,12 +156,14 @@ class ChannelSession:
                         previous.current, sorted(skip))
         claim = env.registry.try_open(candidates[0] if candidates else "", label, limit)
         if claim is None:
+            opening.ended()
             playback.end_opening(key, shared)
             raise TunerBusy(limit)
         refresh = env.probes.start(tv_channel_id)
 
-        async def refresh_failed_source(_content_id: str) -> None:
+        async def refresh_failed_source(content_id: str) -> None:
             nonlocal refresh
+            opening.source_failed(content_id)
             refresh = env.probes.start(tv_channel_id)
 
         async def monitor_alternatives() -> None:
@@ -168,7 +175,7 @@ class ChannelSession:
         monitor = asyncio.create_task(monitor_alternatives())
 
         async def refreshed_candidates() -> tuple[List[str], bool]:
-            current = await run_in_threadpool(env.candidates, tv_channel_id)
+            current = opening.without_chosen(await run_in_threadpool(env.candidates, tv_channel_id))
             return current, refresh is not None and not refresh.done()
 
         iterator = None
@@ -176,6 +183,7 @@ class ChannelSession:
 
         async def end() -> None:
             """Everything the session holds, released once."""
+            opening.ended()
             playback.end_opening(key, shared)
             monitor.cancel()
             env.probes.stop_channel(tv_channel_id)

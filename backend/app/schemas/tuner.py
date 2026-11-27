@@ -67,3 +67,8 @@ class TunerStatusResponse(BaseModel):
     client_source: Literal["direct", "forwarded", "docker-gateway", "loopback"]
     warnings: List[str]
     recent_denials: List[TunerDenial]
+
+
+class TunerFirstSourceRequest(BaseModel):
+    """The source the next opening of a channel from this device starts with."""
+    source: str = Field(..., min_length=1, max_length=255, description="A relay source id of the channel: a content id or url:<sha1>")

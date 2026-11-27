@@ -70,13 +70,25 @@ def record_source_failure(content_id: str, cooldown: float = FAILURE_COOLDOWN_SE
             _failures.popitem(last=False)
 
 
+def _forget_old_failures() -> None:
+    now = time.monotonic()
+    for cid, failed_at in list(_failures.items()):
+        if now - failed_at >= FAILURE_COOLDOWN_SECONDS:
+            del _failures[cid]
+
+
 def prefer_recovered_sources(content_ids: list[str]) -> list[str]:
     with _failure_lock:
-        now = time.monotonic()
-        for cid, failed_at in list(_failures.items()):
-            if now - failed_at >= FAILURE_COOLDOWN_SECONDS:
-                del _failures[cid]
+        _forget_old_failures()
         return sorted(content_ids, key=lambda cid: (cid in _failures, _failures.get(cid, 0)))
+
+
+def failed_recently(content_id: str) -> bool:
+    """Whether the relay saw this source fail in the last
+    FAILURE_COOLDOWN_SECONDS."""
+    with _failure_lock:
+        _forget_old_failures()
+        return content_id in _failures
 
 
 # How each attempt at a source ended, for per-source statistics. Outcomes:

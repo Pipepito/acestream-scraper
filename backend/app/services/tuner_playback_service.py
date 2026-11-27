@@ -18,6 +18,7 @@ from app.services.stream_relay import EngineStreamError, RelayInfo, RelayRegistr
 from app.services.tuner_remux import remux_source, compatible_audio_source
 from app.services.tuner_http_source import relay_http_stream
 from app.services.ts_clock import ClockWatch, watch_clock
+from app.services.ts_nulls import drop_null_packets
 
 STARTUP_BUDGET_SECONDS = 45.0
 ATTEMPT_SECONDS = 15.0
@@ -360,6 +361,9 @@ async def relay_ranked_streams(
                             await upstream.aclose()
 
                 raw = source()
+                if not is_http:
+                    # Padding is not media: a source sending only null packets must look silent.
+                    raw = drop_null_packets(raw, content_id)
                 # Log the source's own clock jumps (a viewer saw sources jump back
                 # mid-match with no relay switch, and nothing showed it): read-only.
                 clock_watch = ClockWatch(content_id)

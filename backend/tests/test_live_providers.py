@@ -296,10 +296,47 @@ def test_broadcaster_failure_is_not_an_exception(fake):
     assert live_providers.resolve('atresplayer://nv') is None
 
 
-def test_atresplayer_takes_first_source(fake):
-    fake({f'{atresplayer.API}/player/v1/live/nv': {'sourcesLive': [
-        {'src': ' '}, {'src': 'https://a/hlsts/nova.m3u8'}, {'src': 'https://a/legacy.m3u8'}]}})
-    assert live_providers.resolve('atresplayer://nv') == 'https://a/hlsts/nova.m3u8'
+def test_atresplayer_prefers_the_uhd_ladder(fake):
+    """The UHD ladder carries the same steps as the others plus 1440p and 2160p."""
+    fake({
+        f'{atresplayer.API}/player/v1/live/nv': {'sourcesLive': [
+            {'src': 'https://a/hlsts/nova.m3u8', 'type': 'application/vnd.apple.mpegurl'},
+            {'src': 'https://a/legacy.m3u8', 'type': 'application/hls+legacy'},
+            {'src': 'https://a/uhd.m3u8', 'type': 'application/hls+4K'},
+        ]},
+        'https://a/uhd.m3u8': '#EXTM3U\n',
+    })
+    assert live_providers.resolve('atresplayer://nv') == 'https://a/uhd.m3u8'
+
+
+def test_atresplayer_falls_through_a_refused_ladder(fake):
+    """492 is the CDN's own answer to a ladder it is not serving right now."""
+    http = fake({
+        f'{atresplayer.API}/player/v1/live/nv': {'sourcesLive': [
+            {'src': 'https://a/uhd.m3u8', 'type': 'application/hls+4K'},
+            {'src': 'https://a/legacy.m3u8', 'type': 'application/hls+legacy'},
+            {'src': 'https://a/hlsts/nova.m3u8', 'type': 'application/vnd.apple.mpegurl'},
+        ]},
+        'https://a/uhd.m3u8': ValueError('HTTP 492'),
+        'https://a/legacy.m3u8': '#EXTM3U\n',
+    })
+    assert live_providers.resolve('atresplayer://nv') == 'https://a/legacy.m3u8'
+    assert [call[1] for call in http.calls] == [
+        f'{atresplayer.API}/player/v1/live/nv', 'https://a/uhd.m3u8', 'https://a/legacy.m3u8']
+
+
+def test_atresplayer_gives_up_after_three_ladders(fake):
+    """Three probes and no link: the channel reads as down, not as dangling."""
+    fake({
+        f'{atresplayer.API}/player/v1/live/nv': {'sourcesLive': [
+            {'src': f'https://a/{n}.m3u8', 'type': kind} for n, kind in enumerate((
+                'application/hls+4K', 'application/hls+legacy', 'application/hls+legacyv3',
+                'application/vnd.apple.mpegurl'))]},
+        'https://a/0.m3u8': ValueError('HTTP 492'),
+        'https://a/1.m3u8': ValueError('HTTP 492'),
+        'https://a/2.m3u8': ValueError('HTTP 492'),
+    })
+    assert live_providers.resolve('atresplayer://nv') is None
 
 
 def test_mediaset_makes_three_calls(fake):
